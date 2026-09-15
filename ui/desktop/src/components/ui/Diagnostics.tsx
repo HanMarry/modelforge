@@ -4,6 +4,7 @@ import { Button } from './button';
 import { toastError } from '../../toasts';
 import { defineMessages, useIntl } from '../../i18n';
 import { getDiagnosticsReport } from '../../acp/diagnostics';
+import { DOCS_URLS } from '../../branding';
 
 const i18n = defineMessages({
   reportProblem: {
@@ -141,10 +142,10 @@ export const DiagnosticsModal: React.FC<DiagnosticsModalProps> = ({
       const body = `**Describe the bug**
 
 💡 Before filing, please check common issues:  
-https://goose-docs.ai/docs/troubleshooting  
+${DOCS_URLS.troubleshooting}  
 
 📦 To help us debug faster, attach your **diagnostics JSON report** if possible.  
-👉 How to capture it: https://goose-docs.ai/docs/troubleshooting/diagnostics-and-reporting/
+👉 How to capture it: ${DOCS_URLS.diagnostics}
 
 A clear and concise description of what the bug is.
 

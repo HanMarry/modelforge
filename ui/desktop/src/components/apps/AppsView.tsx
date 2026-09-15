@@ -29,8 +29,7 @@ const i18n = defineMessages({
   },
   description: {
     id: 'appsView.description',
-    defaultMessage:
-      'Applications from your MCP servers and Apps built by goose itself. You can ask it to create new apps through the chat interface and they will appear here.',
+    defaultMessage: 'Applications from your MCP servers and Apps built by ModelForge itself. You can ask it to create new apps through the chat interface and they will appear here.',
   },
   loading: {
     id: 'appsView.loading',
@@ -42,8 +41,7 @@ const i18n = defineMessages({
   },
   noAppsDescription: {
     id: 'appsView.noAppsDescription',
-    defaultMessage:
-      'Open a chat and ask goose for the app you want to have. It can build one for you and that will appear here. Or if somebody shared an app, you can import it using the button above.',
+    defaultMessage: 'Open a chat and ask ModelForge for the app you want to have. It can build one for you and that will appear here. Or if somebody shared an app, you can import it using the button above.',
   },
   customApp: {
     id: 'appsView.customApp',

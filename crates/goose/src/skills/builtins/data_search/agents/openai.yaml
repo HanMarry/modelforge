@@ -1,0 +1,4 @@
+interface:
+  display_name: "查找公开数据"
+  short_description: "从官方、学术及公共数据平台查找、核验、下载并登记可靠数据"
+  default_prompt: "使用 $data-search 为当前建模项目查找、比较并获取可靠的公开数据。"

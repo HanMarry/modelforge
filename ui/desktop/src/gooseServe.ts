@@ -137,10 +137,7 @@ const appendErrorTail = (target: string[], lines: string[], maxLines = 100): voi
 const CERT_FINGERPRINT_PREFIX = 'GOOSED_CERT_FINGERPRINT=';
 const TLS_FINGERPRINT_TIMEOUT_MS = 5000;
 
-const fetchStatus = async (
-  statusUrl: string,
-  readinessFetch: ReadinessFetch
-): Promise<boolean> => {
+const fetchStatus = async (statusUrl: string, readinessFetch: ReadinessFetch): Promise<boolean> => {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 1000);
 
@@ -287,6 +284,20 @@ const withStartupDiagnosticsPath = (
   return `${message} Startup diagnostics: ${startupDiagnosticsPath}`;
 };
 
+/**
+ * Environment contributed by the selected agent runtime (Claude Code / Codex provisioning:
+ * isolated config dir + loopback shim URL). Held in a module slot so the runtime can be swapped
+ * without restarting the app wiring; the caller that provisions it owns cleanup. Empty by
+ * default, which leaves the built-in kernel behaviour untouched.
+ */
+let agentRuntimeEnv: Record<string, string> = {};
+
+export const setAgentRuntimeEnv = (env: Record<string, string>): void => {
+  agentRuntimeEnv = { ...env };
+};
+
+export const getAgentRuntimeEnv = (): Record<string, string> => ({ ...agentRuntimeEnv });
+
 const buildGooseServeEnv = (
   serverSecret: string,
   binaryPath: string,
@@ -315,6 +326,12 @@ const buildGooseServeEnv = (
     if (value !== undefined) {
       env[key] = value;
     }
+  }
+
+  // The agent runtime (when one is selected) wins over the caller's defaults: it carries the
+  // config-dir and shim variables the ACP adapter needs.
+  for (const [key, value] of Object.entries(agentRuntimeEnv)) {
+    env[key] = value;
   }
 
   env.GOOSE_SERVER__SECRET_KEY = serverSecret;

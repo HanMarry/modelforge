@@ -41,6 +41,10 @@ import ExtensionsView, { ExtensionsViewOptions } from './components/extensions/E
 import RecipesView from './components/recipes/RecipesView';
 import SkillsView from './components/skills/SkillsView';
 import AppsView from './components/apps/AppsView';
+import AlgorithmsView from './components/AlgorithmsView';
+import FigureTemplatesView from './components/FigureTemplatesView';
+import PaperTemplatesView from './components/PaperTemplatesView';
+import ConnectorsView from './components/ConnectorsView';
 import StandaloneAppView from './components/apps/StandaloneAppView';
 import { View, ViewOptions } from './utils/navigationUtils';
 
@@ -198,6 +202,17 @@ const SettingsRoute = () => {
   }
 
   return <SettingsView onClose={() => navigate('/')} setView={setView} viewOptions={viewOptions} />;
+};
+
+/** Profile and settings are one page now; keep the old path working. */
+const ProfileRedirectRoute = () => {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    navigate('/settings', { replace: true, state: { section: 'profile' } });
+  }, [navigate]);
+
+  return null;
 };
 
 const SessionsRoute = () => {
@@ -658,6 +673,7 @@ export function AppInner() {
                 }
               />
               <Route path="settings" element={<SettingsRoute />} />
+              <Route path="profile" element={<ProfileRedirectRoute />} />
               <Route
                 path="extensions"
                 element={
@@ -671,6 +687,10 @@ export function AppInner() {
               <Route path="schedules" element={<SchedulesRoute />} />
               <Route path="recipes" element={<RecipesRoute />} />
               <Route path="skills" element={<SkillsRoute />} />
+              <Route path="algorithms" element={<AlgorithmsView />} />
+              <Route path="figures" element={<FigureTemplatesView />} />
+              <Route path="paper" element={<PaperTemplatesView />} />
+              <Route path="connectors" element={<ConnectorsView />} />
               <Route path="permission" element={<PermissionRoute />} />
             </Route>
           </Routes>

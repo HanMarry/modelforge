@@ -58,6 +58,38 @@ const EFFORT_CONFIG_OPTION_ID: &str = "effort";
 /// Session request param holding the selected thinking effort.
 pub(super) const THINKING_EFFORT_PARAM: &str = "thinking_effort";
 
+/// Environment variable carrying the vertical-agent identity/system prompt that the app wants the
+/// wrapped CLI to use for every session.
+///
+/// The adapter owns the harness system prompt and introduces itself as "Claude Code, Anthropic's
+/// official CLI for Claude"; when the model actually serving the request is something else, the
+/// agent answers identity questions with that borrowed name. `claude-agent-acp` exposes a
+/// `_meta.systemPrompt` override on `session/new` — this forwards the app's override into it, so a
+/// white-labelled build can state its own identity without wrapping or reimplementing the CLI.
+pub(super) const SYSTEM_PROMPT_ENV_VAR: &str = "MODELFORGE_SYSTEM_PROMPT";
+
+/// Prefixed variant for callers that already namespace their configuration.
+pub(super) const SYSTEM_PROMPT_ENV_VAR_GOOSE: &str = "GOOSE_SYSTEM_PROMPT";
+
+/// Builds the `_meta` override for `session/new`, or `None` when the app provided no identity.
+pub(super) fn system_prompt_meta() -> Option<serde_json::Map<String, serde_json::Value>> {
+    let prompt = [SYSTEM_PROMPT_ENV_VAR, SYSTEM_PROMPT_ENV_VAR_GOOSE]
+        .iter()
+        .find_map(|key| std::env::var(key).ok())
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())?;
+
+    let mut meta = serde_json::Map::new();
+    // `append` rather than a bare string: the wrapped CLI also relies on its own prompt for the
+    // tool-use protocol, so the identity is appended and instructed to take precedence instead of
+    // replacing instructions we would then have to reimplement.
+    meta.insert(
+        "systemPrompt".to_string(),
+        serde_json::json!({ "append": prompt }),
+    );
+    Some(meta)
+}
+
 pub struct AcpProviderConfig {
     pub command: PathBuf,
     pub args: Vec<String>,
@@ -1565,12 +1597,12 @@ async fn handle_requests(
         match request {
             ClientRequest::NewSession { response_tx } => {
                 let mcp_servers = filter_supported_servers(&config.mcp_servers, &mcp_capabilities);
-                let session = cx
-                    .send_request(
-                        NewSessionRequest::new(config.work_dir.clone()).mcp_servers(mcp_servers),
-                    )
-                    .block_task()
-                    .await;
+                let mut new_session =
+                    NewSessionRequest::new(config.work_dir.clone()).mcp_servers(mcp_servers);
+                if let Some(meta) = system_prompt_meta() {
+                    new_session = new_session.meta(meta);
+                }
+                let session = cx.send_request(new_session).block_task().await;
                 let result = match session {
                     Ok(session) => {
                         *session_state.active_id.lock().unwrap() = Some(session.session_id.clone());
@@ -4666,5 +4698,55 @@ mod tests {
                 "goose.acp.kind serialized wrong for kind={kind:?}"
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod system_prompt_meta_tests {
+    use super::*;
+
+    const VARS: [&str; 2] = [SYSTEM_PROMPT_ENV_VAR, SYSTEM_PROMPT_ENV_VAR_GOOSE];
+
+    /// `lock_env` serialises these tests and restores whatever was set before, so each test only
+    /// needs the one guard — taking a second lock inside a guard would deadlock on the static lock.
+    fn unset_both() -> env_lock::EnvGuard<'static> {
+        env_lock::lock_env(VARS.map(|key| (key, None::<&str>)))
+    }
+
+    #[test]
+    fn absent_env_produces_no_override() {
+        let _guard = unset_both();
+        assert!(system_prompt_meta().is_none());
+    }
+
+    #[test]
+    fn blank_env_is_treated_as_absent() {
+        let _guard = env_lock::lock_env([(SYSTEM_PROMPT_ENV_VAR, Some("   "))]);
+        assert!(system_prompt_meta().is_none());
+    }
+
+    /// The adapter only honours `append` when the override is an object; a bare string would
+    /// replace the harness prompt and drop the tool-use protocol it documents.
+    #[test]
+    fn env_becomes_append_override() {
+        let _guard = env_lock::lock_env([(SYSTEM_PROMPT_ENV_VAR, Some("你是 ModelForge"))]);
+        let meta = system_prompt_meta().expect("override expected");
+        assert_eq!(
+            meta.get("systemPrompt"),
+            Some(&serde_json::json!({ "append": "你是 ModelForge" }))
+        );
+    }
+
+    #[test]
+    fn goose_prefixed_var_is_also_read() {
+        let _guard = env_lock::lock_env([
+            (SYSTEM_PROMPT_ENV_VAR, None),
+            (SYSTEM_PROMPT_ENV_VAR_GOOSE, Some("identity")),
+        ]);
+        let meta = system_prompt_meta().expect("override expected");
+        assert_eq!(
+            meta.get("systemPrompt"),
+            Some(&serde_json::json!({ "append": "identity" }))
+        );
     }
 }

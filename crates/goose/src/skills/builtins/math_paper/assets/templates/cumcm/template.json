@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "name": { "zh-CN": "国赛 CUMCM", "en": "CUMCM" },
+  "description": {
+    "zh-CN": "全国大学生数学建模竞赛中文论文模板",
+    "en": "China Undergraduate Mathematical Contest in Modeling"
+  },
+  "language": "zh-CN",
+  "entryFile": "document.tex",
+  "order": 10,
+  "defaultFor": ["zh-CN"],
+  "fields": [
+    {
+      "id": "problemNumber",
+      "label": { "zh-CN": "题号", "en": "Problem" },
+      "placeholder": { "zh-CN": "例如 A、B、C", "en": "e.g. A, B, or C" },
+      "required": true
+    },
+    {
+      "id": "teamNumber",
+      "label": { "zh-CN": "参赛队号", "en": "Team number" },
+      "placeholder": { "zh-CN": "全国统一编号", "en": "Official team number" },
+      "required": true
+    }
+  ],
+  "profileFields": ["school", "members", "advisor"]
+}

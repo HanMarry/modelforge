@@ -163,6 +163,18 @@ export function toastSuccess({ title, msg, toastOptions = {} }: ToastSuccessProp
   );
 }
 
+type ToastWarningProps = { title: string; msg: string };
+
+export function toastWarning({ title, msg }: ToastWarningProps) {
+  return toast.warning(
+    <div>
+      <strong className="font-medium">{title}</strong>
+      <div>{msg}</div>
+    </div>,
+    { ...commonToastOptions, autoClose: 8000 }
+  );
+}
+
 type ToastErrorProps = {
   title: string;
   msg: string;

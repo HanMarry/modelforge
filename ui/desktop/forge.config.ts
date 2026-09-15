@@ -19,8 +19,8 @@ let cfg = {
   // Protocol registration
   protocols: [
     {
-      name: 'GooseProtocol',
-      schemes: ['goose'],
+      name: 'ModelForgeProtocol',
+      schemes: ['modelforge'],
     },
   ],
   // macOS Info.plist extensions for drag-and-drop support
@@ -36,9 +36,9 @@ let cfg = {
     ],
     // Usage descriptions for macOS TCC (Transparency, Consent, and Control)
     NSMicrophoneUsageDescription:
-      'Goose needs access to your microphone for voice dictation.',
+      'ModelForge needs access to your microphone for voice dictation.',
     NSAppleEventsUsageDescription:
-      'Goose needs access to send Apple Events to control other apps on your behalf.',
+      'ModelForge needs access to send Apple Events to control other apps on your behalf.',
   },
 };
 
@@ -65,8 +65,8 @@ module.exports = {
       name: '@electron-forge/publisher-github',
       config: {
         repository: {
-          owner: process.env.GITHUB_OWNER || 'aaif-goose',
-          name: process.env.GITHUB_REPO || 'goose',
+          owner: process.env.GITHUB_OWNER || 'your-org',
+          name: process.env.GITHUB_REPO || 'modelforge',
         },
         prerelease: false,
         draft: true,
@@ -87,10 +87,10 @@ module.exports = {
     {
       name: '@electron-forge/maker-deb',
       config: {
-        name: 'Goose',
-        bin: 'Goose',
-        maintainer: 'AAIF (Agentic AI Foundation)',
-        homepage: 'https://goose-docs.ai/',
+        name: 'ModelForge',
+        bin: 'ModelForge',
+        maintainer: 'ModelForge Team',
+        homepage: 'https://github.com/your-org/modelforge',
         categories: ['Development'],
         desktopTemplate: './forge.deb.desktop',
         options: {
@@ -103,10 +103,10 @@ module.exports = {
     {
       name: '@electron-forge/maker-rpm',
       config: {
-        name: 'Goose',
-        bin: 'Goose',
-        maintainer: 'AAIF (Agentic AI Foundation)',
-        homepage: 'https://goose-docs.ai/',
+        name: 'ModelForge',
+        bin: 'ModelForge',
+        maintainer: 'ModelForge Team',
+        homepage: 'https://github.com/your-org/modelforge',
         categories: ['Development'],
         desktopTemplate: './forge.rpm.desktop',
         options: {
@@ -120,17 +120,17 @@ module.exports = {
       name: '@electron-forge/maker-flatpak',
       config: {
         options: {
-          id: 'io.github.block.Goose', // NOTE: kept for backwards compat with existing installs
+          id: 'io.github.yourorg.modelforge', // NOTE: kept for backwards compat with existing installs
           categories: ['Development'],
-          mimeType: ['x-scheme-handler/goose'],
+          mimeType: ['x-scheme-handler/modelforge'],
           icon: {
             scalable: 'src/images/icon.svg',
             '512x512': 'src/images/icon-512.png',
           },
-          homepage: 'https://goose-docs.ai/',
+          homepage: 'https://github.com/your-org/modelforge',
           runtimeVersion: '25.08',
           baseVersion: '25.08',
-          bin: 'Goose',
+          bin: 'ModelForge',
           modules: [
             {
               name: 'libbz2-shim',

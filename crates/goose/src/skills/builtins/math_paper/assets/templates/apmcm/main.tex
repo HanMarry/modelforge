@@ -1,0 +1,69 @@
+\documentclass[bwprint]{apmcmthesis}
+
+% === Extra packages ===
+\usepackage{algorithm2e}
+\usepackage{float}
+\usepackage[section]{placeins}
+\usepackage{needspace}
+
+% === TikZ ===
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit,calc}
+\usepackage{longtable}
+
+% === 引用上标格式（apmcmthesis 未配置上标）===
+\makeatletter
+\def\@cite#1#2{\textsuperscript{[{#1\if@tempswa , #2\fi}]}}
+\makeatother
+
+% === Competition info ===
+\tihao{[A/B/C]}
+\baominghao{[Team Number]}
+\schoolname{[School Name]}
+\membera{[Member A]}
+\memberb{[Member B]}
+\memberc{[Member C]}
+
+\title{[Paper Title]}
+
+\begin{document}
+
+\makecontrolsheet
+\maketitle
+
+\begin{abstract}
+
+% 写作提示：摘要最后写；按子问题说明所用方法/模型、关键处理、实际数值与单位、结论和验证，突出真正创新。
+% 不复述题面、不堆砌模型名、不放复杂公式和表格；下方仅为占位，篇幅以当届赛事规则为准。
+[Summary: problem overview + methods for each sub-problem + key numerical results + conclusions, 300-500 words]
+
+\keywords{[Keyword1]; [Keyword2]; [Keyword3]}
+\end{abstract}
+
+\newpage
+\tableofcontents
+\newpage
+
+% === Body ===
+\input{sections/1_introduction}
+\input{sections/2_assumptions}
+\input{sections/3_model_design}
+\input{sections/4_solution}
+\input{sections/5_sensitivity}
+\input{sections/6_strengths_weaknesses}
+\input{sections/7_conclusions}
+
+% === References ===
+% References must be real: use the paper-search Skill to search candidates and verify metadata by DOI.
+% Convert only verified sources into \bibitem entries; never invent titles, authors, venues, volumes, issues, or pages.
+% If paper-search or the network is unavailable, keep only references that can be verified manually.
+\begin{thebibliography}{99}
+% \bibitem{ref1} Author. Title[J]. Journal, Year.
+\end{thebibliography}
+
+% === Appendix ===
+\begin{appendices}
+\input{sections/A_code}
+\end{appendices}
+
+\end{document}

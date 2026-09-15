@@ -1,9 +1,11 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { View } from '../../../utils/navigationUtils';
 import ModelSettingsButtons from './subcomponents/ModelSettingsButtons';
+import KernelModelCard from './KernelModelCard';
 import { acpGetProviderDetails, acpReadDefaults } from '../../../acp/providers';
 import { modelAndProviderMessages, useModelAndProvider } from '../../ModelAndProviderContext';
 import { toastError } from '../../../toasts';
+import { defaultSettings, type AgentKernelSettings } from '../../../utils/settings';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
 import ResetProviderSection from '../reset_provider/ResetProviderSection';
@@ -18,6 +20,11 @@ const i18n = defineMessages({
     id: 'modelsSection.resetDescription',
     defaultMessage: 'Clear your selected model and provider settings to start fresh',
   },
+  kernelSlotNote: {
+    id: 'modelsSection.kernelSlotNote',
+    defaultMessage:
+      'The kernel keeps this slot at “current”; the model it actually calls is the one below.',
+  },
 });
 
 interface ModelsSectionProps {
@@ -29,6 +36,9 @@ export default function ModelsSection({ setView }: ModelsSectionProps) {
   const [provider, setProvider] = useState<string | null>(null);
   const [displayModelName, setDisplayModelName] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [kernelRuntime, setKernelRuntime] = useState<AgentKernelSettings['runtime']>(
+    defaultSettings.agentKernel.runtime
+  );
   const {
     getCurrentModelDisplayName,
     getCurrentProviderDisplayName,
@@ -77,6 +87,15 @@ export default function ModelsSection({ setView }: ModelsSectionProps) {
     loadModelData();
   }, [loadModelData]);
 
+  useEffect(() => {
+    window.electron
+      .getSetting('agentKernel')
+      .then((settings) =>
+        setKernelRuntime(settings?.runtime ?? defaultSettings.agentKernel.runtime)
+      )
+      .catch((error) => console.error('Failed to read the agent kernel settings', error));
+  }, []);
+
   // Update display when model or provider changes - but only if they actually changed
   const prevModelRef = useRef<string | null>(null);
   const prevProviderRef = useRef<string | null>(null);
@@ -106,11 +125,17 @@ export default function ModelsSection({ setView }: ModelsSectionProps) {
             <div className="animate-in fade-in duration-100">
               <h3 className="text-text-primary">{displayModelName}</h3>
               <h4 className="text-xs text-text-secondary">{provider}</h4>
+              {kernelRuntime !== 'builtin' && (
+                <p className="mt-1 text-xs text-text-tertiary">
+                  {intl.formatMessage(i18n.kernelSlotNote)}
+                </p>
+              )}
             </div>
           )}
           <ModelSettingsButtons setView={setView} />
         </CardContent>
       </Card>
+      {kernelRuntime !== 'builtin' && <KernelModelCard />}
       <Card className="pb-2 rounded-lg">
         <CardHeader className="pb-0">
           <CardTitle className="">{intl.formatMessage(i18n.resetTitle)}</CardTitle>

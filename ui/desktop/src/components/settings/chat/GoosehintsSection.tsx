@@ -6,16 +6,15 @@ import { defineMessages, useIntl } from '../../../i18n';
 
 const i18n = defineMessages({
   title: {
-    id: 'goosehintsSection.title',
+    id: 'projectHintsSection.title',
     defaultMessage: 'Project Hints (.goosehints)',
   },
   description: {
-    id: 'goosehintsSection.description',
-    defaultMessage:
-      "Configure your project's .goosehints file to provide additional context to Goose",
+    id: 'projectHintsSection.description',
+    defaultMessage: "Configure your project's .goosehints file to provide additional context to ModelForge",
   },
   configure: {
-    id: 'goosehintsSection.configure',
+    id: 'projectHintsSection.configure',
     defaultMessage: 'Configure',
   },
 });

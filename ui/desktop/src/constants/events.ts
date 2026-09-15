@@ -13,4 +13,8 @@ export enum AppEvents {
   SCROLL_CHAT_TO_BOTTOM = 'scroll-chat-to-bottom',
   HIDE_ALERT_POPOVER = 'hide-alert-popover',
   RESPONSE_STYLE_CHANGED = 'responseStyleChanged',
+  COMPOSER_INSERT = 'composer-insert',
+  OPEN_WORKSPACE_FILE = 'open-workspace-file',
+  /** The agent kernel was re-provisioned (kernel, model, key, window or prices changed). */
+  AGENT_KERNEL_CHANGED = 'agent-kernel-changed',
 }

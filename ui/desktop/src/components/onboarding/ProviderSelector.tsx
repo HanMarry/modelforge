@@ -11,6 +11,7 @@ import CustomProviderForm from '../settings/providers/modal/subcomponents/forms/
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { HardDrive, Key, Plus } from 'lucide-react';
 import { defineMessages, useIntl } from '../../i18n';
+import { rememberProviderApiKey } from '../../utils/agentKernelCapture';
 import { useFeatures } from '../../contexts/FeaturesContext';
 
 const i18n = defineMessages({
@@ -123,6 +124,7 @@ export default function ProviderSelector({
 
   const handleCreateCustomProvider = async (data: UpdateCustomProviderRequest) => {
     const result = await acpCreateCustomProviderFromRequest(data);
+    rememberProviderApiKey(result.provider_name, data.api_key);
     setShowCustomModal(false);
     if (result.provider_name) {
       await onConfigured(result.provider_name);

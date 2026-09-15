@@ -54,7 +54,7 @@ const i18n = defineMessages({
   },
   addApiKeyDescription: {
     id: 'providerConfigurationModal.addApiKeyDescription',
-    defaultMessage: 'Add your API key(s) for this provider to integrate into goose',
+    defaultMessage: 'Add your API key(s) for this provider to integrate into ModelForge',
   },
   oauthLoginFailed: {
     id: 'providerConfigurationModal.oauthLoginFailed',
@@ -99,7 +99,7 @@ const i18n = defineMessages({
   },
   externalSetupIntro: {
     id: 'providerConfigurationModal.externalSetupIntro',
-    defaultMessage: 'This provider is configured outside of goose. Follow these steps:',
+    defaultMessage: 'This provider is configured outside of ModelForge. Follow these steps:',
   },
   chooseModel: {
     id: 'providerConfigurationModal.chooseModel',

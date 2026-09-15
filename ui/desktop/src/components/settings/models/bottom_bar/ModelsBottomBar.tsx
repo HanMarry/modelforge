@@ -55,6 +55,14 @@ const i18n = defineMessages({
     id: 'modelsBottomBar.recentModels',
     defaultMessage: 'Recent',
   },
+  kernelModel: {
+    id: 'modelsBottomBar.kernelModel',
+    defaultMessage: 'Kernel model',
+  },
+  kernelModelHint: {
+    id: 'modelsBottomBar.kernelModelHint',
+    defaultMessage: 'The {kernel} kernel proxies to this model; change it in Settings → Models.',
+  },
 });
 
 interface ModelsBottomBarProps {
@@ -111,6 +119,28 @@ export default function ModelsBottomBar({
     void loadRecentModels();
   }, [loadRecentModels]);
 
+  // An external kernel runs on its own model slot ("current"); what the user cares about is the
+  // model the app forwards to, so the footer shows that instead.
+  const [kernelModel, setKernelModel] = useState<string | null>(null);
+  const [kernelName, setKernelName] = useState<string | null>(null);
+
+  useEffect(() => {
+    const pending = window.electron.getAgentKernelStatus?.();
+    if (!pending) {
+      return;
+    }
+    pending
+      .then((status) => {
+        const external = status.runtime !== 'builtin';
+        setKernelModel(external ? status.model || null : null);
+        setKernelName(external ? (status.runtime === 'codex' ? 'Codex' : 'Claude Code') : null);
+      })
+      .catch(() => {
+        setKernelModel(null);
+        setKernelName(null);
+      });
+  }, []);
+
   // Show a visible loading placeholder while session metadata is still being fetched,
   // rather than flashing the config default or leaving the footer blank.
   const isModelLoading = Boolean(sessionId && !sessionLoaded);
@@ -124,7 +154,7 @@ export default function ModelsBottomBar({
     resolvedModel !== currentModel
   );
   const loadingModelLabel = intl.formatMessage(i18n.loadingModel);
-  const triggerLabel = isModelLoading ? loadingModelLabel : displayModel;
+  const triggerLabel = isModelLoading ? loadingModelLabel : (kernelModel ?? displayModel);
   const menuModelLabel = isModelLoading ? loadingModelLabel : displayModelName;
 
   useEffect(() => {
@@ -251,6 +281,15 @@ export default function ModelsBottomBar({
             {menuModelLabel}
             {!isModelLoading && displayProvider && ` — ${displayProvider}`}
           </p>
+          {kernelModel && kernelName && (
+            <div className="mx-2 pb-2 border-b mb-2">
+              <h6 className="text-xs text-text-primary">{intl.formatMessage(i18n.kernelModel)}</h6>
+              <p className="text-xs text-text-primary truncate">{kernelModel}</p>
+              <p className="mt-0.5 text-[11px] text-text-tertiary">
+                {intl.formatMessage(i18n.kernelModelHint, { kernel: kernelName })}
+              </p>
+            </div>
+          )}
           {shouldShowResolvedModel && resolvedDisplayModelName && (
             <div className="mx-2 pb-2 border-b mb-2">
               <h6 className="text-xs text-text-primary">

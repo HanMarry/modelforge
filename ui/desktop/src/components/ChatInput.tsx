@@ -1,4 +1,5 @@
 import { AppEvents } from '../constants/events';
+import { mergeComposerPreset } from '../utils/composerSeed';
 import React, { useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import { ArrowUp, Bug, ScrollText } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/Tooltip';
@@ -17,9 +18,15 @@ import { cn } from '../utils';
 import { AlertType, useAlerts } from './alerts';
 import { useModelAndProvider } from './ModelAndProviderContext';
 import { acpGetProviderDetails } from '../acp/providers';
+import { resolveUpstreamContextLimit } from '../acp/kernelContextLimit';
 import { useAudioRecorder } from '../hooks/useAudioRecorder';
 import { useFocusOnTyping } from '../hooks/useFocusOnTyping';
-import { toastError } from '../toasts';
+import { toastError, toastWarning } from '../toasts';
+import {
+  contextWarningLevel,
+  shouldAnnounce,
+  type ContextWarningLevel,
+} from '../utils/contextWarning';
 import MentionPopover, { DisplayItemWithMatch } from './MentionPopover';
 import { COST_TRACKING_ENABLED } from '../updates';
 import { CostTracker } from './bottom_menu/CostTracker';
@@ -117,6 +124,43 @@ const i18n = defineMessages({
     id: 'chatInput.contextWindow',
     defaultMessage: 'Context window',
   },
+  kernelContextManaged: {
+    id: 'chatInput.kernelContextManaged',
+    defaultMessage:
+      'Context managed by the {kernel} kernel — it compacts on its own; the bar shows your model’s window.',
+  },
+  contextWarningTitle: {
+    id: 'chatInput.contextWarningTitle',
+    defaultMessage: 'Context is filling up',
+  },
+  contextWarningBody: {
+    id: 'chatInput.contextWarningBody',
+    defaultMessage:
+      '{percent}% used ({used} / {limit} tokens). Consider starting a new session so answers keep their quality.',
+  },
+  contextWarningKernelBody: {
+    id: 'chatInput.contextWarningKernelBody',
+    defaultMessage:
+      '{percent}% used ({used} / {limit} tokens). The {kernel} kernel compacts on its own, but a new session keeps details sharper.',
+  },
+  contextCriticalTitle: {
+    id: 'chatInput.contextCriticalTitle',
+    defaultMessage: 'Almost out of context',
+  },
+  contextCriticalBody: {
+    id: 'chatInput.contextCriticalBody',
+    defaultMessage:
+      '{percent}% used ({used} / {limit} tokens). Start a new session now — the next long turn may be rejected by your provider.',
+  },
+  contextCriticalKernelBody: {
+    id: 'chatInput.contextCriticalKernelBody',
+    defaultMessage:
+      '{percent}% used ({used} / {limit} tokens). Start a new session now — the {kernel} kernel may still exceed your model’s window.',
+  },
+  contextWarningNotificationTitle: {
+    id: 'chatInput.contextWarningNotificationTitle',
+    defaultMessage: 'ModelForge: context almost full',
+  },
   waitingForImages: {
     id: 'chatInput.waitingForImages',
     defaultMessage: 'Waiting for images to save...',
@@ -179,6 +223,8 @@ interface ChatInputProps {
   onFilesProcessed?: () => void;
   setView: (view: View) => void;
   totalTokens?: number;
+  /** Estimated tokens generated in the streaming turn that the backend has not counted yet. */
+  pendingTokens?: number;
   contextLimit?: number;
   accumulatedInputTokens?: number;
   accumulatedOutputTokens?: number;
@@ -199,6 +245,12 @@ interface ChatInputProps {
   latestInference?: Message['metadata']['inference'] | null;
   nextChatExtensionDraft?: NextChatExtensionDraft;
   onNextChatExtensionDraftChange?: (draft: NextChatExtensionDraft) => void;
+  /**
+   * Prompt seeded from outside the composer (e.g. a preset on the home screen).
+   * The `id` is what makes re-selecting the same preset re-apply it, so the text
+   * itself does not have to change for the effect to fire.
+   */
+  presetPrompt?: { id: string; text: string; mode?: 'append' } | null;
 }
 
 export default function ChatInput({
@@ -216,6 +268,7 @@ export default function ChatInput({
   onFilesProcessed,
   setView,
   totalTokens,
+  pendingTokens,
   contextLimit,
   accumulatedInputTokens,
   accumulatedOutputTokens,
@@ -236,6 +289,7 @@ export default function ChatInput({
   latestInference,
   nextChatExtensionDraft,
   onNextChatExtensionDraftChange,
+  presetPrompt,
 }: ChatInputProps) {
   const [_value, setValue] = useState(initialValue);
   const [displayValue, setDisplayValue] = useState(initialValue); // For immediate visual feedback
@@ -340,6 +394,15 @@ export default function ChatInput({
   }, [sessionModel, sessionProvider, configModel, configProvider, sessionId, modelOverride]);
   const [tokenLimit, setTokenLimit] = useState<number>(TOKEN_LIMIT_DEFAULT);
   const [isTokenLimitLoaded, setIsTokenLimitLoaded] = useState(false);
+  /**
+   * An external kernel reports its own context window (Claude Code's, say), but the request is
+   * served by the user's model — which may be much smaller. Clamp to the upstream window so the
+   * indicator and its warnings fire before the provider rejects the request.
+   */
+  const [kernelContextLimit, setKernelContextLimit] = useState<number | null>(null);
+  const [kernelRuntime, setKernelRuntime] = useState<string | null>(null);
+  const kernelOwnsContext = kernelRuntime !== null;
+  const kernelDisplayName = kernelRuntime === 'codex' ? 'Codex' : 'Claude Code';
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const [workingDirOverride, setWorkingDirOverride] = useState<string | null>(null);
   const currentWorkingDir = workingDirOverride ?? workingDir ?? getInitialWorkingDir();
@@ -553,6 +616,39 @@ export default function ChatInput({
     setHasUserTyped(false);
   }, [initialValue, draftRef]);
 
+  // Presets on the home screen seed the composer through here. Keyed on the preset
+  // id so picking the same preset twice re-applies it even though the text matches.
+  const appliedPresetRef = useRef<string | null>(null);
+  const managedPresetText = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (!presetPrompt || appliedPresetRef.current === presetPrompt.id) return;
+    appliedPresetRef.current = presetPrompt.id;
+    const current = draftRef?.current ?? textAreaRef.current?.value ?? initialValue;
+    applyInputValue(
+      mergeComposerPreset(
+        current,
+        presetPrompt.text,
+        presetPrompt.mode === 'append' ? undefined : managedPresetText.current
+      )
+    );
+    managedPresetText.current = presetPrompt.mode === 'append' ? undefined : presetPrompt.text;
+    requestAnimationFrame(() => inputRef?.current?.focus());
+  }, [presetPrompt, applyInputValue, inputRef, textAreaRef, draftRef, initialValue]);
+
+  // Panels (figure templates, workspace tools) push prompt text into the composer here.
+  useEffect(() => {
+    const handleComposerInsert = (event: Event) => {
+      const detail = (event as CustomEvent<{ text?: string }>).detail;
+      if (!detail?.text) return;
+      const current = textAreaRef.current?.value ?? '';
+      const next = current.trim() ? `${current.trimEnd()}\n\n${detail.text}` : detail.text;
+      applyInputValue(next);
+      requestAnimationFrame(() => textAreaRef.current?.focus());
+    };
+    window.addEventListener(AppEvents.COMPOSER_INSERT, handleComposerInsert);
+    return () => window.removeEventListener(AppEvents.COMPOSER_INSERT, handleComposerInsert);
+  }, [applyInputValue, textAreaRef]);
+
   // Handle recipe prompt updates
   useEffect(() => {
     // If recipe is accepted and we have an initial prompt, and no messages yet, and we haven't set it before
@@ -607,6 +703,38 @@ export default function ChatInput({
 
   useFocusOnTyping(textAreaRef, !isRecording);
 
+  const applyKernelClamp = useCallback(
+    (limit: number) =>
+      kernelContextLimit && kernelContextLimit > 0 ? Math.min(limit, kernelContextLimit) : limit,
+    [kernelContextLimit]
+  );
+
+  useEffect(() => {
+    const loadKernelState = async () => {
+      const status = await window.electron.getAgentKernelStatus();
+      const external = status.runtime !== 'builtin';
+      setKernelRuntime(external ? status.runtime : null);
+      setKernelContextLimit(external ? await resolveUpstreamContextLimit(status) : null);
+    };
+
+    const pending = window.electron.getAgentKernelStatus?.();
+    if (!pending) {
+      return;
+    }
+    void loadKernelState().catch(() => {
+      setKernelRuntime(null);
+      setKernelContextLimit(null);
+    });
+
+    // Switching kernel/model or editing the window happens on the settings page; the bar and
+    // its warnings must follow without an app restart.
+    const handleKernelChanged = () => {
+      void loadKernelState().catch(() => {});
+    };
+    window.addEventListener(AppEvents.AGENT_KERNEL_CHANGED, handleKernelChanged);
+    return () => window.removeEventListener(AppEvents.AGENT_KERNEL_CHANGED, handleKernelChanged);
+  }, []);
+
   // Load providers and get current model's token limit
   const loadProviderDetails = async () => {
     try {
@@ -635,7 +763,7 @@ export default function ChatInput({
       const predefinedModels = getPredefinedModelsFromEnv();
       const predefinedModel = predefinedModels.find((m) => m.name === model);
       if (predefinedModel?.context_limit) {
-        setTokenLimit(predefinedModel.context_limit);
+        setTokenLimit(applyKernelClamp(predefinedModel.context_limit));
         setIsTokenLimitLoaded(true);
         return;
       }
@@ -643,7 +771,7 @@ export default function ChatInput({
       // Priority 2: Check canonical model info (source of truth)
       const canonicalInfo = await fetchCanonicalModelInfo(provider, model);
       if (canonicalInfo?.contextLimit) {
-        setTokenLimit(canonicalInfo.contextLimit);
+        setTokenLimit(applyKernelClamp(canonicalInfo.contextLimit));
         setIsTokenLimitLoaded(true);
         return;
       }
@@ -653,19 +781,19 @@ export default function ChatInput({
       if (currentProvider?.metadata?.known_models) {
         const modelConfig = currentProvider.metadata.known_models.find((m) => m.name === model);
         if (modelConfig?.context_limit) {
-          setTokenLimit(modelConfig.context_limit);
+          setTokenLimit(applyKernelClamp(modelConfig.context_limit));
           setIsTokenLimitLoaded(true);
           return;
         }
       }
 
       // Priority 4: Use default if nothing else found
-      setTokenLimit(TOKEN_LIMIT_DEFAULT);
+      setTokenLimit(applyKernelClamp(TOKEN_LIMIT_DEFAULT));
       setIsTokenLimitLoaded(true);
     } catch (err) {
       console.error('Error loading providers or token limit:', err);
       // Set default limit on error
-      setTokenLimit(TOKEN_LIMIT_DEFAULT);
+      setTokenLimit(applyKernelClamp(TOKEN_LIMIT_DEFAULT));
       setIsTokenLimitLoaded(true);
     }
   };
@@ -675,7 +803,14 @@ export default function ChatInput({
   useEffect(() => {
     loadProviderDetails();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [effectiveModel, effectiveProvider, configModel, configProvider, sessionId]);
+  }, [
+    effectiveModel,
+    effectiveProvider,
+    configModel,
+    configProvider,
+    sessionId,
+    kernelContextLimit,
+  ]);
 
   useEffect(() => {
     if (contextLimit === undefined) {
@@ -686,9 +821,13 @@ export default function ChatInput({
       return;
     }
 
-    setTokenLimit(contextLimit);
+    setTokenLimit(
+      kernelContextLimit && kernelContextLimit > 0
+        ? Math.min(contextLimit, kernelContextLimit)
+        : contextLimit
+    );
     setIsTokenLimitLoaded(true);
-  }, [contextLimit, sessionId]);
+  }, [contextLimit, sessionId, kernelContextLimit]);
 
   // Handle token usage alerts
   useEffect(() => {
@@ -698,12 +837,18 @@ export default function ChatInput({
     if ((totalTokens && totalTokens > 0) || (isTokenLimitLoaded && tokenLimit)) {
       addAlert({
         type: getContextAlertType(totalTokens || 0, tokenLimit),
-        message: intl.formatMessage(i18n.contextWindow),
+        message: kernelOwnsContext
+          ? intl.formatMessage(i18n.kernelContextManaged, { kernel: kernelDisplayName })
+          : intl.formatMessage(i18n.contextWindow),
         progress: {
           current: totalTokens || 0,
           total: tokenLimit,
         },
-        showCompactButton: true,
+        // A kernel keeps its own conversation and compacts on its own schedule; goose cannot
+        // compact for it (the CLI treats the command as plain text), so the button is hidden
+        // along with goose's auto-compact threshold.
+        showCompactButton: !kernelOwnsContext,
+        showAutoCompactThreshold: !kernelOwnsContext,
         compactButtonDisabled: !totalTokens || isLoading,
         onCompact: () => {
           window.dispatchEvent(new CustomEvent(AppEvents.HIDE_ALERT_POPOVER));
@@ -714,7 +859,91 @@ export default function ChatInput({
     }
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [totalTokens, tokenLimit, isTokenLimitLoaded, isLoading, addAlert, clearAlerts]);
+  }, [
+    totalTokens,
+    tokenLimit,
+    isTokenLimitLoaded,
+    isLoading,
+    addAlert,
+    clearAlerts,
+    kernelOwnsContext,
+    kernelDisplayName,
+  ]);
+
+  /**
+   * Warn before the window runs out rather than after a failed turn: 80% is a nudge, 95% is a
+   * demand for a new session. Each level fires once per session, and only while the window is
+   * unfocused does it also raise a system notification.
+   */
+  const contextWarningRef = useRef<{ sessionId: string; level: ContextWarningLevel }>({
+    sessionId: '',
+    level: 0,
+  });
+
+  useEffect(() => {
+    if (!isTokenLimitLoaded || !tokenLimit) {
+      return;
+    }
+    const scope = sessionId ?? 'no-session';
+    if (contextWarningRef.current.sessionId !== scope) {
+      contextWarningRef.current = { sessionId: scope, level: 0 };
+    }
+
+    const percent = Math.round(((totalTokens || 0) / tokenLimit) * 100);
+    const level = contextWarningLevel(totalTokens || 0, tokenLimit);
+    if (!shouldAnnounce(level, contextWarningRef.current.level)) {
+      return;
+    }
+    contextWarningRef.current.level = level;
+
+    const params = {
+      percent: String(percent),
+      used: (totalTokens || 0).toLocaleString(),
+      limit: tokenLimit.toLocaleString(),
+      kernel: kernelDisplayName,
+    };
+    const title = intl.formatMessage(
+      level >= 2 ? i18n.contextCriticalTitle : i18n.contextWarningTitle
+    );
+    const body = intl.formatMessage(
+      level >= 2
+        ? kernelOwnsContext
+          ? i18n.contextCriticalKernelBody
+          : i18n.contextCriticalBody
+        : kernelOwnsContext
+          ? i18n.contextWarningKernelBody
+          : i18n.contextWarningBody,
+      params
+    );
+
+    toastWarning({ title, msg: body });
+
+    void (async () => {
+      try {
+        const [notificationsEnabled, anyWindowFocused] = await Promise.all([
+          window.electron.getSetting('enableNotifications'),
+          window.electron.isAnyWindowFocused(),
+        ]);
+        if (notificationsEnabled === true && !anyWindowFocused) {
+          window.electron.showNotification({
+            title: intl.formatMessage(i18n.contextWarningNotificationTitle),
+            body,
+          });
+        }
+      } catch (error) {
+        console.warn('Failed to raise the context notification:', error);
+      }
+    })();
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    totalTokens,
+    tokenLimit,
+    isTokenLimitLoaded,
+    sessionId,
+    kernelOwnsContext,
+    kernelDisplayName,
+  ]);
 
   // Cleanup effect for component unmount - prevent memory leaks
   useEffect(() => {
@@ -1747,9 +1976,10 @@ export default function ChatInput({
 
             {/* Right: context window indicator */}
             <ContextWindowIndicator
-              totalTokens={totalTokens || 0}
+              totalTokens={(totalTokens || 0) + (pendingTokens || 0)}
               tokenLimit={tokenLimit}
               alerts={alerts}
+              isEstimate={(pendingTokens || 0) > 0}
             />
 
             {/* Right: extension selector */}

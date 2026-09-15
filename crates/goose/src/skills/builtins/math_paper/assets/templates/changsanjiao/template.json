@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "name": { "zh-CN": "长三角赛", "en": "Yangtze River Delta Contest" },
+  "description": {
+    "zh-CN": "长三角高校数学建模竞赛论文模板",
+    "en": "Yangtze River Delta University Mathematical Modeling Contest"
+  },
+  "language": "zh-CN",
+  "entryFile": "main.tex",
+  "order": 100,
+  "defaultFor": [],
+  "fields": [
+    {
+      "id": "problemNumber",
+      "label": { "zh-CN": "题号", "en": "Problem" },
+      "placeholder": { "zh-CN": "A、B 或 C", "en": "A, B, or C" },
+      "required": true
+    },
+    {
+      "id": "teamNumber",
+      "label": { "zh-CN": "队伍编号", "en": "Team number" },
+      "required": true
+    },
+    {
+      "id": "category",
+      "label": { "zh-CN": "赛道", "en": "Division" },
+      "required": true,
+      "options": [
+        { "value": "本科生", "label": { "zh-CN": "本科生", "en": "Undergraduate" } },
+        { "value": "研究生", "label": { "zh-CN": "研究生", "en": "Graduate" } }
+      ]
+    }
+  ],
+  "profileFields": []
+}

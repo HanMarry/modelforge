@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "name": { "zh-CN": "华中杯", "en": "Central China Cup" },
+  "description": {
+    "zh-CN": "华中杯大学生数学建模挑战赛论文模板",
+    "en": "Central China Cup Mathematical Modeling Challenge"
+  },
+  "language": "zh-CN",
+  "entryFile": "main.tex",
+  "order": 120,
+  "defaultFor": [],
+  "fields": [
+    {
+      "id": "problemNumber",
+      "label": { "zh-CN": "题号", "en": "Problem" },
+      "required": true
+    },
+    {
+      "id": "teamNumber",
+      "label": { "zh-CN": "参赛队号", "en": "Team number" },
+      "required": true
+    },
+    {
+      "id": "contestDate",
+      "label": { "zh-CN": "竞赛日期", "en": "Contest date" },
+      "placeholder": { "zh-CN": "例如 2026-05-01", "en": "e.g. 2026-05-01" },
+      "required": false
+    }
+  ],
+  "profileFields": ["school", "members", "advisor"]
+}

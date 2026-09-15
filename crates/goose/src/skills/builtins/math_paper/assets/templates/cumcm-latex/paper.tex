@@ -1,0 +1,114 @@
+%! Mode:: "TeX:UTF-8"
+%! TEX program = xelatex
+%
+% CUMCM paper skeleton.
+%
+% Compile with:  latexmk -xelatex -interaction=nonstopmode paper.tex
+% Prerequisite:  cumcmthesis.cls must sit next to this file (see README.md).
+% Everything below compiles as-is; replace the placeholders with real content.
+%
+\PassOptionsToPackage{quiet}{xeCJK}
+\documentclass[withoutpreface,notoc]{cumcmthesis}
+
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{tabularx}
+
+\newcolumntype{C}{>{\centering\arraybackslash}X}
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+
+\title{基于机理分析与优化模型的定日镜场设计}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+  摘要需要概括每个子问题所用的模型、关键算法与主要定量结论，最后写关键词。
+  先写完全文结果，再回来完成摘要。
+
+  \textbf{针对问题一，} 建立了\ldots 模型，采用\ldots 求解，得到\ldots。
+
+  \textbf{针对问题二，} 应用了\ldots 算法，发现\ldots。
+
+  \keywords{关键词一\quad 关键词二\quad 关键词三}
+\end{abstract}
+
+\section{问题重述}
+简要重述赛题，厘清需要解决的关键问题点。
+
+\section{问题分析}
+逐个子问题给出分析思路与拆解方式，并说明题目的已知条件与缺口。
+
+\section{模型假设与符号说明}
+本文做出以下假设：
+\begin{enumerate}
+  \item 假设一\ldots
+  \item 假设二\ldots
+\end{enumerate}
+
+主要符号如\cref{tab:symbols}所示。
+
+\begin{table}[H]
+  \centering
+  \caption{符号说明表}
+  \label{tab:symbols}
+  \begin{tabularx}{\textwidth}{CLC}
+    \toprule
+    符号 & 说明 & 单位 \\
+    \midrule
+    $m$ & 质量 & kg \\
+    $t$ & 时间 & s \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\section{问题一的模型建立与求解}
+\subsection{模型建立}
+给出目标函数、决策变量与约束条件，并说明模型选择的理由与局限。
+\begin{equation}
+  \label{eq:objective}
+  \min_{x \in X} f(x) \quad \text{s.t.} \quad g_i(x) \le 0 .
+\end{equation}
+
+\subsection{模型求解}
+说明算法步骤、参数取值与实现方式，固定随机种子以便复现。
+
+\subsection{结果与分析}
+给出求解结果。图表紧随首次引用处，例如\cref{fig:result}。
+\begin{figure}[htbp]
+  \centering
+  % \includegraphics[width=0.7\textwidth]{figures/result.pdf}
+  \fbox{\parbox{0.7\textwidth}{\centering 在此插入由 \texttt{code/} 生成的结果图}}
+  \caption{结果图示例}
+  \label{fig:result}
+\end{figure}
+
+\section{模型检验}
+给出灵敏度分析、误差指标与与基线方法的对比。
+
+\section{模型评价与推广}
+列出模型的优点、缺点与可推广的方向。
+
+\bibliographystyle{gbt7714-numerical}
+\bibliography{refs}
+
+\newpage
+\begin{appendices}
+  \section{支撑材料列表}
+  \begin{table}[H]
+    \centering
+    \caption{附录文件列表}
+    \label{tab:files}
+    \begin{tabularx}{\textwidth}{LL}
+      \toprule
+      文件名 & 功能描述 \\
+      \midrule
+      code/q1.py & 问题一求解程序 \\
+      data/raw.xlsx & 原始数据 \\
+      \bottomrule
+    \end{tabularx}
+  \end{table}
+\end{appendices}
+
+\end{document}

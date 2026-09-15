@@ -11,6 +11,17 @@
     "bundled": true
   },
   {
+    "id": "modeling",
+    "name": "modeling",
+    "display_name": "Modeling Toolkit",
+    "description": "Mathematical modeling tools: detect Python, uv, and LaTeX/Typst toolchains, and compile LaTeX/Typst documents to PDF.",
+    "enabled": true,
+    "type": "builtin",
+    "env_keys": [],
+    "timeout": 300,
+    "bundled": true
+  },
+  {
     "id": "computercontroller",
     "name": "computercontroller",
     "display_name": "Computer Controller",

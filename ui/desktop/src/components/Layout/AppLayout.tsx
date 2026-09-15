@@ -38,6 +38,8 @@ const AppLayoutContent: React.FC<AppLayoutContentProps> = ({ activeSessions }) =
   const safeIsMacOS = (window?.electron?.platform || 'darwin') === 'darwin';
   const chatContext = useChatContext();
   const isOnPairRoute = location.pathname === '/pair';
+  // Settings is a full-window page: it carries its own section list and back button.
+  const isOnSettingsRoute = location.pathname === '/settings';
 
   const [isFullScreen, setIsFullScreen] = useState(false);
 
@@ -107,7 +109,13 @@ const AppLayoutContent: React.FC<AppLayoutContentProps> = ({ activeSessions }) =
     <div className="flex flex-1 w-full h-full relative animate-fade-in bg-background-primary flex-row">
       <div
         style={{ zIndex: Z_INDEX.HEADER }}
-        className={cn('absolute flex items-center gap-1', headerPadding, headerTop, 'ml-1.5')}
+        className={cn(
+          'absolute flex items-center gap-1',
+          headerPadding,
+          headerTop,
+          'ml-1.5',
+          isOnSettingsRoute && 'hidden'
+        )}
       >
         <Button
           onClick={() => setIsNavExpanded(!isNavExpanded)}
@@ -127,7 +135,7 @@ const AppLayoutContent: React.FC<AppLayoutContentProps> = ({ activeSessions }) =
         <motion.div
           key="nav"
           initial={false}
-          animate={{ width: isNavExpanded ? navWidth : 0 }}
+          animate={{ width: isNavExpanded && !isOnSettingsRoute ? navWidth : 0 }}
           transition={
             isDragging ? { duration: 0 } : { type: 'spring', stiffness: 400, damping: 40 }
           }

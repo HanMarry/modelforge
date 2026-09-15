@@ -1,0 +1,7 @@
+﻿name,unit,direction,reference
+溶解氧,mg/L,benefit,7.5
+高锰酸盐指数,mg/L,cost,4.0
+化学需氧量,mg/L,cost,20.0
+氨氮,mg/L,cost,1.0
+总磷,mg/L,cost,0.2
+浊度,NTU,cost,5.0

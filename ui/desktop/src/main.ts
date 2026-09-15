@@ -12,6 +12,7 @@ import {
   Notification,
   powerMonitor,
   powerSaveBlocker,
+  safeStorage,
   screen,
   session,
   shell,
@@ -28,8 +29,10 @@ import { execFileSync, spawn, execFile } from 'child_process';
 import 'dotenv/config';
 import { checkBackendStatus } from './backendStatus';
 import { installBackendCertificateVerifiers } from './backendCertificateVerifier';
+import * as skillEnablement from './utils/skillEnablement';
 import { configureProxy } from './proxy';
 import { startGooseServe } from './gooseServe';
+import { createAgentKernelManager, resolveGooseConfigDir } from './utils/agentKernel';
 import { getLoginShellPath } from './loginShellPath';
 import { GooseServeLeaseRegistry, type GooseServeLease } from './gooseServeLeaseRegistry';
 import { acpWebSocketUrlFromHttpBase, normalizeAcpHttpBaseUrl } from './acp/url';
@@ -55,6 +58,13 @@ import {
 import { UPDATES_ENABLED } from './updates';
 import './utils/gitBranchIpc';
 import './utils/recipeHash';
+import { registerWorkspaceIpc } from './utils/workspaceIpc';
+import { registerGitVersionIpc } from './utils/gitVersionIpc';
+import { disposeTerminalSessions, registerTerminalIpc } from './utils/terminalIpc';
+
+registerWorkspaceIpc();
+registerGitVersionIpc();
+registerTerminalIpc();
 import type { GooseApp } from './types/apps';
 import installExtension, { REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer';
 import { WEB_PROTOCOLS } from './utils/urlSecurity';
@@ -94,7 +104,7 @@ const MENU_TRANSLATIONS_ZH_CN: Record<string, string> = {
   Cut: '剪切',
   Copy: '复制',
   Paste: '粘贴',
-  // Goose-added items
+  // ModelForge-added items
   'New Window': '新建窗口',
   Settings: '设置',
   'Find…': '查找…',
@@ -106,11 +116,11 @@ const MENU_TRANSLATIONS_ZH_CN: Record<string, string> = {
   'New Chat Window': '新建聊天窗口',
   'Open Directory...': '打开目录…',
   'Recent Directories': '最近的目录',
-  'Focus Goose Window': '聚焦 Goose 窗口',
+  'Focus ModelForge Window': '聚焦 ModelForge 窗口',
   'Quick Launcher': '快速启动器',
   'Always on Top': '窗口置顶',
   'Toggle Navigation': '切换导航',
-  'About Goose': '关于 Goose',
+  'About ModelForge': '关于 ModelForge',
   // Electron's default role-based labels we want to translate as well.
   // (The menu role itself still provides the correct behaviour; only the
   // display string is overridden.)
@@ -136,7 +146,7 @@ const MENU_TRANSLATIONS_ZH_CN: Record<string, string> = {
   'Bring All to Front': '全部置于最前',
   'Emoji & Symbols': '表情符号',
   'Start Dictation…': '开始听写…',
-  'Hide Goose': '隐藏 Goose',
+  'Hide ModelForge': '隐藏 ModelForge',
   'Hide Others': '隐藏其他',
   'Show All': '全部显示',
   Services: '服务',
@@ -181,6 +191,50 @@ function translateMenuLabels(items: MenuItem[]): void {
 // Settings management
 const SETTINGS_FILE = path.join(app.getPath('userData'), 'settings.json');
 const STARTUP_LOGS_DIR = path.join(app.getPath('userData'), 'logs', 'startup');
+
+/**
+ * External agent kernels (Claude Code / Codex) reach the provider configured in the app
+ * through an in-app loopback shim. The manager owns that shim and the isolated CLI config
+ * directory, and contributes the environment the kernel process inherits.
+ */
+const agentKernel = createAgentKernelManager({
+  runtimeRoot: path.join(app.getPath('userData'), 'agent-runtimes'),
+  secretsFile: path.join(app.getPath('userData'), 'agent-kernel-secrets.json'),
+  gooseConfigDir: resolveGooseConfigDir(),
+  log: (message) => log.info(`[agent-kernel] ${message}`),
+  codec: {
+    encode: (plaintext) =>
+      safeStorage.isEncryptionAvailable()
+        ? `enc:${safeStorage.encryptString(plaintext).toString('base64')}`
+        : `raw:${Buffer.from(plaintext, 'utf8').toString('base64')}`,
+    decode: (stored) => {
+      try {
+        if (stored.startsWith('enc:')) {
+          return safeStorage.isEncryptionAvailable()
+            ? safeStorage.decryptString(Buffer.from(stored.slice(4), 'base64'))
+            : null;
+        }
+        if (stored.startsWith('raw:')) {
+          return Buffer.from(stored.slice(4), 'base64').toString('utf8');
+        }
+      } catch (error) {
+        log.error('[agent-kernel] failed to decode stored secret', error);
+      }
+      return null;
+    },
+  },
+});
+
+let agentKernelApplied = false;
+
+/** Provisions the selected kernel once per run; goose serve inherits its environment at spawn. */
+const ensureAgentKernel = async (): Promise<void> => {
+  if (agentKernelApplied) {
+    return;
+  }
+  agentKernelApplied = true;
+  await agentKernel.apply(getSettings().agentKernel);
+};
 const validLanguageSettings = new Set<Settings['language']>([
   'system',
   'en',
@@ -221,6 +275,10 @@ function getSettings(): Settings {
       externalGoosed: {
         ...defaultSettings.externalGoosed,
         ...(stored.externalGoosed ?? {}),
+      },
+      agentKernel: {
+        ...defaultSettings.agentKernel,
+        ...(stored.agentKernel ?? {}),
       },
       keyboardShortcuts: {
         ...defaultSettings.keyboardShortcuts,
@@ -762,7 +820,7 @@ app.on('open-url', async (_event, url) => {
 app.on('will-finish-launching', () => {
   if (process.platform === 'darwin') {
     app.setAboutPanelOptions({
-      applicationName: 'Goose',
+      applicationName: 'ModelForge',
       applicationVersion: app.getVersion(),
     });
   }
@@ -817,7 +875,7 @@ async function handleFileOpen(filePath: string) {
 
     // Show user-friendly error notification
     new Notification({
-      title: 'Goose',
+      title: 'ModelForge',
       body: `Could not open directory: ${path.basename(filePath)}`,
     }).show();
   }
@@ -1186,6 +1244,7 @@ const createChat = async (
       return;
     }
   } else {
+    await ensureAgentKernel();
     const localCertificateTrust = trustBackendCertificate('127.0.0.1', null);
 
     const loginShellPath = await getLoginShellPath(log);
@@ -1227,7 +1286,7 @@ const createChat = async (
       log.error('goose serve failed to start', error);
       dialog.showMessageBoxSync({
         type: 'error',
-        title: 'Goose Failed to Start',
+        title: 'ModelForge Failed to Start',
         message: 'The backend server failed to start.',
         detail: [
           'Backend: goose serve',
@@ -1971,6 +2030,7 @@ const validSettingKeys: Set<string> = new Set([
   'seenAnnouncementIds',
   'disableAutoDownload',
   'recentModels',
+  'agentKernel',
 ]);
 
 ipcMain.handle('set-setting', (_event, key: SettingKey, value: unknown) => {
@@ -2011,6 +2071,50 @@ ipcMain.handle('get-secret-key', (event) => {
   }
   return gooseServeLeases.getSecretKey(windowId) ?? null;
 });
+
+ipcMain.handle('agent-kernel-status', () => agentKernel.getStatus());
+
+/**
+ * Remembers the provider key the user typed in the app's provider settings so the external
+ * kernels can reuse it. goose masks secrets over ACP, hence the app-side copy.
+ */
+ipcMain.handle(
+  'agent-kernel-remember-provider-key',
+  (_event, providerId: string, apiKey: string) => {
+    agentKernel.rememberProviderKey(providerId, apiKey);
+    return true;
+  }
+);
+
+ipcMain.handle('agent-kernel-forget-provider-key', (_event, providerId: string) => {
+  agentKernel.forgetProviderKey(providerId);
+  return true;
+});
+
+ipcMain.handle('agent-kernel-set-key', (_event, providerId: string, apiKey: string) => {
+  agentKernel.setKernelKey(providerId, apiKey);
+  return true;
+});
+
+ipcMain.handle('agent-kernel-clear-key', (_event, providerId: string) => {
+  agentKernel.clearKernelKey(providerId);
+  return true;
+});
+
+/** Re-provisions the kernel for the saved settings; a running backend keeps its old env. */
+ipcMain.handle('agent-kernel-apply', async () => {
+  agentKernelApplied = true;
+  return agentKernel.apply(getSettings().agentKernel);
+});
+
+/** Switches the model the kernel proxies to; takes effect on the next request. */
+ipcMain.handle('agent-kernel-set-model', (_event, model: string) => agentKernel.setModel(model));
+
+/**
+ * Applies settings edits to the running kernel without re-provisioning, so the shim keeps the
+ * port goose serve captured at spawn time.
+ */
+ipcMain.handle('agent-kernel-refresh', () => agentKernel.refresh(getSettings().agentKernel));
 
 ipcMain.handle('get-acp-url', async (event) => {
   const windowId = BrowserWindow.fromWebContents(event.sender)?.id;
@@ -2390,6 +2494,86 @@ ipcMain.handle('list-files', async (_event, dirPath, extension) => {
   }
 });
 
+// --- Skills: enable/disable, folder import, payload import -------------------
+//
+// Disabling a skill is a folder move into the app's data directory: the kernel discovers
+// skills by scanning fixed roots, so nothing else makes a skill invisible to the agent.
+// See `utils/skillEnablement.ts` for the store layout and the reasoning.
+
+const skillsDataDir = () => app.getPath('userData');
+
+ipcMain.handle('skills-set-enabled', async (_event, request) => {
+  try {
+    const result = skillEnablement.setSkillEnabled(skillsDataDir(), request);
+    return { ok: true as const, records: result.records, location: result.location };
+  } catch (error) {
+    return { ok: false as const, error: error instanceof Error ? error.message : String(error) };
+  }
+});
+
+ipcMain.handle('skills-disabled-list', async () => {
+  return skillEnablement.readDisabledIndex(skillsDataDir());
+});
+
+/**
+ * Copies a picked folder that contains `SKILL.md` into the user's global skills
+ * directory. Supporting files go with it, which the JSON import cannot do.
+ */
+ipcMain.handle('import-skill-folder', async (event) => {
+  const senderWindow = requireRegularRendererWindow(event);
+  const result = await dialog.showOpenDialog(senderWindow, {
+    title: 'Import skill folder',
+    defaultPath: os.homedir(),
+    properties: ['openDirectory'],
+  });
+  if (result.canceled || result.filePaths.length === 0) {
+    return { canceled: true as const };
+  }
+
+  const source = result.filePaths[0];
+  if (!skillEnablement.isSkillDirectory(source)) {
+    return { canceled: false as const, error: `所选文件夹里没有 ${skillEnablement.SKILL_FILE}` };
+  }
+
+  const name = path.basename(source);
+  const destination = path.join(os.homedir(), '.agents', 'skills', name);
+  if (fsSync.existsSync(destination)) {
+    return { canceled: false as const, error: `同名技能已存在：${destination}` };
+  }
+  try {
+    await fs.cp(source, destination, { recursive: true });
+  } catch (error) {
+    return {
+      canceled: false as const,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+  return { canceled: false as const, name, path: destination };
+});
+
+/** Reads a skill export payload so the renderer can hand it to the kernel's importer. */
+ipcMain.handle('select-skill-import-file', async (event) => {
+  const senderWindow = requireRegularRendererWindow(event);
+  const result = await dialog.showOpenDialog(senderWindow, {
+    title: 'Import skill',
+    defaultPath: os.homedir(),
+    properties: ['openFile'],
+    filters: [{ name: 'Skill export', extensions: ['json'] }],
+  });
+  if (result.canceled || result.filePaths.length === 0) {
+    return null;
+  }
+  const file = result.filePaths[0];
+  try {
+    return { filename: path.basename(file), json: await fs.readFile(file, 'utf8') };
+  } catch (error) {
+    return {
+      filename: path.basename(file),
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+});
+
 ipcMain.handle('show-message-box', async (_event, options) => {
   return dialog.showMessageBox(options);
 });
@@ -2553,7 +2737,7 @@ async function appMain() {
 
   const shortcuts = getKeyboardShortcuts(settings);
 
-  const appMenu = menu?.items.find((item) => item.label === 'Goose');
+  const appMenu = menu?.items.find((item) => item.label === 'ModelForge');
   if (appMenu?.submenu) {
     appMenu.submenu.insert(1, new MenuItem({ type: 'separator' }));
     if (shortcuts.settings) {
@@ -2681,7 +2865,7 @@ async function appMain() {
     if (shortcuts.focusWindow) {
       fileMenu.submenu.append(
         new MenuItem({
-          label: menuT('Focus Goose Window'),
+          label: menuT('Focus ModelForge Window'),
           accelerator: shortcuts.focusWindow,
           click() {
             focusWindow();
@@ -2788,9 +2972,9 @@ async function appMain() {
         helpMenu.submenu.append(new MenuItem({ type: 'separator' }));
       }
 
-      // Create the About Goose menu item with a submenu
+      // Create the About ModelForge menu item with a submenu
       const aboutGooseMenuItem = new MenuItem({
-        label: menuT('About Goose'),
+        label: menuT('About ModelForge'),
         submenu: Menu.buildFromTemplate([]), // Start with an empty submenu for About
       });
 
@@ -3131,7 +3315,7 @@ app.whenReady().then(async () => {
   try {
     await appMain();
   } catch (error) {
-    dialog.showErrorBox('Goose Error', `Failed to create main window: ${error}`);
+    dialog.showErrorBox('ModelForge Error', `Failed to create main window: ${error}`);
     app.quit();
   }
 });
@@ -3167,6 +3351,8 @@ async function getAllowList(): Promise<string[]> {
 }
 
 app.on('will-quit', async () => {
+  await agentKernel.dispose();
+
   const gooseServeLeaseCount = gooseServeLeases.activeLeaseCount();
   if (gooseServeLeaseCount > 0) {
     log.info(`App quitting, cleaning up ${gooseServeLeaseCount} backend lease(s)`);
@@ -3187,6 +3373,8 @@ app.on('will-quit', async () => {
     }
   }
   windowPowerSaveBlockers.clear();
+
+  disposeTerminalSessions();
 
   globalShortcut.unregisterAll();
 });

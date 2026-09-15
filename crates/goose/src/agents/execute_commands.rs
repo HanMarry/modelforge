@@ -174,10 +174,10 @@ impl Agent {
     async fn handle_compact_command(&self, session_id: &str) -> Result<Option<Message>> {
         let provider = self.provider().await?;
         if provider.manages_own_context() {
-            return Err(anyhow!(context_management_unsupported_message(
-                "compact",
-                provider.get_name()
-            )));
+            // The provider runs its own agent loop and owns its conversation, and its CLI
+            // understands the same command. Returning None passes the command through as a
+            // normal prompt so the provider compacts itself instead of failing here.
+            return Ok(None);
         }
 
         let manager = self.config.session_manager.clone();
@@ -216,10 +216,8 @@ impl Agent {
 
         let provider = self.provider().await?;
         if provider.manages_own_context() {
-            return Err(anyhow!(context_management_unsupported_message(
-                "clear",
-                provider.get_name()
-            )));
+            // Same reasoning as /compact: the provider's CLI owns its history and can clear it.
+            return Ok(None);
         }
 
         let manager = self.config.session_manager.clone();

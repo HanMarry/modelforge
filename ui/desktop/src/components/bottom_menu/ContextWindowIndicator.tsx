@@ -5,6 +5,8 @@ interface ContextWindowIndicatorProps {
   totalTokens: number;
   tokenLimit: number;
   alerts: Alert[];
+  /** True while part of the number is a live estimate of the streaming turn. */
+  isEstimate?: boolean;
 }
 
 const formatTokenCount = (count: number): string => {
@@ -23,6 +25,7 @@ export function ContextWindowIndicator({
   totalTokens,
   tokenLimit,
   alerts,
+  isEstimate = false,
 }: ContextWindowIndicatorProps) {
   if (!tokenLimit) return null;
 
@@ -32,7 +35,15 @@ export function ContextWindowIndicator({
   return (
     <div className="flex items-center h-full">
       <BottomMenuAlertPopover alerts={alerts}>
-        <span className={`text-xs font-mono ${colorClass}`}>
+        <span
+          className={`text-xs font-mono ${colorClass}`}
+          title={
+            isEstimate
+              ? 'Live estimate: the backend reports context usage once per request'
+              : undefined
+          }
+        >
+          {isEstimate && '≈ '}
           {formatTokenCount(totalTokens)} / {formatTokenCount(tokenLimit)}
         </span>
       </BottomMenuAlertPopover>

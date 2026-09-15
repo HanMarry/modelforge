@@ -6,25 +6,7 @@ import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
-// Improved oneDark theme for better comment contrast and readability
-const customOneDarkTheme = {
-  ...oneDark,
-  'code[class*="language-"]': {
-    ...oneDark['code[class*="language-"]'],
-    color: '#e6e6e6',
-    fontSize: '14px',
-  },
-  'pre[class*="language-"]': {
-    ...oneDark['pre[class*="language-"]'],
-    color: '#e6e6e6',
-    fontSize: '14px',
-  },
-  comment: { ...oneDark.comment, color: '#a0a0a0', fontStyle: 'italic' },
-  prolog: { ...oneDark.prolog, color: '#a0a0a0' },
-  doctype: { ...oneDark.doctype, color: '#a0a0a0' },
-  cdata: { ...oneDark.cdata, color: '#a0a0a0' },
-};
+import { customOneDarkTheme } from '../utils/syntaxTheme';
 
 import { Check, Copy } from './icons';
 import { wrapHTMLInCodeBlock } from '../utils/htmlSecurity';

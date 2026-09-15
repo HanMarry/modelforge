@@ -1,0 +1,53 @@
+version: 1.0.0
+title: "每日论文抓取"
+description: "按主题抓取最新论文并生成 Markdown 摘要，适合定时调度（如每日运行）。使用 OpenAlex API，无需 API key"
+
+instructions: |
+  你是一名文献情报助手。请加载 paper-search 技能，然后按以下步骤执行。
+
+  ## 步骤 1：检索
+  - 用 OpenAlex 检索主题「{{ topic }}」，按最新优先排序，取前 {{ max_results }} 篇：
+
+  ```bash
+  curl -sG "https://api.openalex.org/works" \
+    --data-urlencode "search={{ topic }}" \
+    --data-urlencode "sort=publication_date:desc" \
+    --data-urlencode "per-page={{ max_results }}" \
+    | python3 -c "import json,sys; [print(w.get('doi'),'|',w.get('title'),'|',w.get('publication_year'),'|',w.get('cited_by_count')) for w in json.load(sys.stdin).get('results',[])]"
+  ```
+
+  - 若无 python3，改用 curl 原始 JSON 并人工解析。
+
+  ## 步骤 2：摘要
+  - 为每篇论文读取题目、年份、被引数与 DOI，尽量获取 abstract。
+  - 用一句话概括每篇论文的方法与结论；无法确认的信息不要编造。
+
+  ## 步骤 3：写日报
+  - 按下面的模板写 {{ output_file }}（若为相对路径，写到工作目录）：
+    - 顶部：主题、生成日期、来源（OpenAlex）
+    - 每篇：标题、DOI 链接、年份、被引数、一句话摘要
+    - 末尾：注明「仅收录有 DOI 的可核验记录」。
+
+prompt: |
+  请抓取主题「{{ topic }}」的最新论文，数量 {{ max_results }} 篇，
+  并按 instructions 的模板生成日报到 {{ output_file }}。
+
+parameters:
+  - key: "topic"
+    input_type: string
+    requirement: required
+    description: "检索主题（英文关键词效果最佳）"
+  - key: "max_results"
+    input_type: string
+    requirement: optional
+    default: "10"
+    description: "最大论文数"
+  - key: "output_file"
+    input_type: string
+    requirement: optional
+    default: "paper_digest.md"
+    description: "日报输出文件路径"
+
+extensions:
+  - type: platform
+    name: developer

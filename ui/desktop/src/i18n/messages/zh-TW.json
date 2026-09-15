@@ -1,4 +1,160 @@
 {
+  "acpReadinessPanel.adapterFound": {
+    "defaultMessage": "已找到 ACP 轉接器"
+  },
+  "acpReadinessPanel.adapterNotFound": {
+    "defaultMessage": "找不到 ACP 轉接器"
+  },
+  "acpReadinessPanel.authenticationHelp": {
+    "defaultMessage": "請透過提供者 CLI 登入，然後再次檢查。"
+  },
+  "acpReadinessPanel.checkAgain": {
+    "defaultMessage": "再次檢查"
+  },
+  "acpReadinessPanel.checking": {
+    "defaultMessage": "正在檢查…"
+  },
+  "acpReadinessPanel.connected": {
+    "defaultMessage": "連線成功"
+  },
+  "acpReadinessPanel.connectionNotChecked": {
+    "defaultMessage": "請先檢查帳戶連線，然後再繼續。"
+  },
+  "activityStatus.compacting": {
+    "defaultMessage": "正在壓縮上下文…"
+  },
+  "activityStatus.completedOps": {
+    "defaultMessage": "已完成 {count} 項操作"
+  },
+  "activityStatus.elapsed": {
+    "defaultMessage": "已用時 {time}"
+  },
+  "activityStatus.running": {
+    "defaultMessage": "{operation}"
+  },
+  "activityStatus.streaming": {
+    "defaultMessage": "正在寫回覆…"
+  },
+  "activityStatus.thinking": {
+    "defaultMessage": "正在思考…"
+  },
+  "activityStatus.waiting": {
+    "defaultMessage": "等待你的確認…"
+  },
+  "agentKernelSection.activeBadge": {
+    "defaultMessage": "使用中"
+  },
+  "agentKernelSection.apiKeyHelp": {
+    "defaultMessage": "密钥在本机加密保存。goose 不会把服务提供方密钥回传给应用，因此若提示缺少密钥，在此填写一次即可。"
+  },
+  "agentKernelSection.apiKeyLabel": {
+    "defaultMessage": "内核使用的 API Key（可选）"
+  },
+  "agentKernelSection.apiKeyPlaceholder": {
+    "defaultMessage": "留空则复用服务提供方设置里保存的密钥"
+  },
+  "agentKernelSection.builtinDescription": {
+    "defaultMessage": "ModelForge 自带的智能体循环，无需额外运行时。"
+  },
+  "agentKernelSection.builtinTitle": {
+    "defaultMessage": "内置内核"
+  },
+  "agentKernelSection.claudeCodeDescription": {
+    "defaultMessage": "用你配置的 API 运行 Claude Code 的智能体循环。"
+  },
+  "agentKernelSection.claudeCodeTitle": {
+    "defaultMessage": "Claude Code 内核"
+  },
+  "agentKernelSection.clearKey": {
+    "defaultMessage": "删除已保存密钥"
+  },
+  "agentKernelSection.codexDescription": {
+    "defaultMessage": "用你配置的 API 运行 OpenAI Codex 的智能体循环。"
+  },
+  "agentKernelSection.codexTitle": {
+    "defaultMessage": "Codex 内核"
+  },
+  "agentKernelSection.contextWindowHelp": {
+    "defaultMessage": "窗口是每个模型各自的属性，这里只对 {model} 生效。进度条与预警会用这个值，而不是内核自己那个（通常更大的）窗口。"
+  },
+  "agentKernelSection.contextWindowSourceOverride": {
+    "defaultMessage": "当前使用你填写的窗口。"
+  },
+  "agentKernelSection.contextWindowSourceProvider": {
+    "defaultMessage": "当前使用 provider 为该模型声明的窗口。"
+  },
+  "agentKernelSection.contextWindowSourceUnknown": {
+    "defaultMessage": "provider 没有为该模型声明窗口，进度条无法及时预警——建议在这里填一个。"
+  },
+  "agentKernelSection.contextWindowTitle": {
+    "defaultMessage": "{model} 的上下文窗口"
+  },
+  "agentKernelSection.currency": {
+    "defaultMessage": "货币符号"
+  },
+  "agentKernelSection.description": {
+    "defaultMessage": "选择运行对话的智能体循环。内置内核开箱即用；Claude Code 与 Codex 内核会通过本地适配器使用你在 ModelForge 中配置的 API。"
+  },
+  "agentKernelSection.inputPrice": {
+    "defaultMessage": "输入 / 百万"
+  },
+  "agentKernelSection.keySaved": {
+    "defaultMessage": "密钥已保存。"
+  },
+  "agentKernelSection.keySource": {
+    "defaultMessage": "密钥来源：{source}"
+  },
+  "agentKernelSection.keySourceEnv": {
+    "defaultMessage": "环境变量 {name}"
+  },
+  "agentKernelSection.keySourceKernel": {
+    "defaultMessage": "内核专用密钥"
+  },
+  "agentKernelSection.keySourceNone": {
+    "defaultMessage": "未设置"
+  },
+  "agentKernelSection.keySourceProvider": {
+    "defaultMessage": "从服务提供方设置中获取"
+  },
+  "agentKernelSection.outputPrice": {
+    "defaultMessage": "输出 / 百万"
+  },
+  "agentKernelSection.pricingHelp": {
+    "defaultMessage": "按每百万 token 填写，用来估算内核在你模型上的花费。token 数来自内核自己的用量统计，goose 不知道你模型的单价。"
+  },
+  "agentKernelSection.pricingTitle": {
+    "defaultMessage": "模型计价（可选）"
+  },
+  "agentKernelSection.restartNote": {
+    "defaultMessage": "模型、密钥、上下文窗口和单价都是即时生效；只有「切换内核」本身需要重启应用。"
+  },
+  "agentKernelSection.restartNow": {
+    "defaultMessage": "立即重启"
+  },
+  "agentKernelSection.restartRequired": {
+    "defaultMessage": "内核已更改——重启 ModelForge 完成装配。"
+  },
+  "agentKernelSection.saveKey": {
+    "defaultMessage": "保存密钥"
+  },
+  "agentKernelSection.statusBuiltin": {
+    "defaultMessage": "当前使用内置内核。"
+  },
+  "agentKernelSection.statusIncomplete": {
+    "defaultMessage": "尚未就绪"
+  },
+  "agentKernelSection.statusReady": {
+    "defaultMessage": "已就绪 · {baseUrl} · 模型 {model} · 本地适配器 {shimUrl}"
+  },
+  "agentKernelSection.statusTitle": {
+    "defaultMessage": "内核状态"
+  },
+  "agentKernelSection.title": {
+    "defaultMessage": "智能体内核"
+  },
+  "agentKernelSection.usingProvider": {
+    "defaultMessage": "服务提供方：{providerId}"
+  },
   "alertBox.autoCompactAt": {
     "defaultMessage": "自動壓縮於"
   },
@@ -7,6 +163,54 @@
   },
   "alertBox.failedToSaveThreshold": {
     "defaultMessage": "無法儲存閾值：{error}"
+  },
+  "algorithmsView.all": {
+    "defaultMessage": "全部"
+  },
+  "algorithmsView.dataNeeded": {
+    "defaultMessage": "需要什么数据"
+  },
+  "algorithmsView.dependencies": {
+    "defaultMessage": "依赖"
+  },
+  "algorithmsView.empty": {
+    "defaultMessage": "没有匹配的方法。"
+  },
+  "algorithmsView.entrypoint": {
+    "defaultMessage": "调用入口"
+  },
+  "algorithmsView.homepage": {
+    "defaultMessage": "官方文档"
+  },
+  "algorithmsView.license": {
+    "defaultMessage": "许可"
+  },
+  "algorithmsView.needsInstall": {
+    "defaultMessage": "需安装"
+  },
+  "algorithmsView.notSuitableFor": {
+    "defaultMessage": "不适合的情况"
+  },
+  "algorithmsView.outputs": {
+    "defaultMessage": "会得到什么"
+  },
+  "algorithmsView.searchPlaceholder": {
+    "defaultMessage": "搜索方法或依赖包，例如 PSO、scikit-learn"
+  },
+  "algorithmsView.sessionFailed": {
+    "defaultMessage": "无法为该算法创建会话"
+  },
+  "algorithmsView.subtitle": {
+    "defaultMessage": "预置方法卡片：选一个，Agent 会装依赖并写出可运行代码。"
+  },
+  "algorithmsView.title": {
+    "defaultMessage": "方法与算法"
+  },
+  "algorithmsView.useInSession": {
+    "defaultMessage": "在测试中使用"
+  },
+  "algorithmsView.useWhen": {
+    "defaultMessage": "适合什么时候用"
   },
   "announcementModal.gotIt": {
     "defaultMessage": "知道了！"
@@ -27,7 +231,7 @@
     "defaultMessage": "Delete \"{name}\"? This cannot be undone."
   },
   "appsView.description": {
-    "defaultMessage": "來自您 MCP 伺服器的應用程式，以及由 goose 自行建立的應用程式。您可以透過聊天介面要求它建立新的應用程式，它們便會出現在這裡。"
+    "defaultMessage": "來自您 MCP 伺服器的應用程式，以及由 ModelForge 自行建立的應用程式。您可以透過聊天介面要求它建立新的應用程式，它們便會出現在這裡。"
   },
   "appsView.errorLoading": {
     "defaultMessage": "載入應用程式時發生錯誤：{error}"
@@ -45,7 +249,7 @@
     "defaultMessage": "正在載入應用程式…"
   },
   "appsView.noAppsDescription": {
-    "defaultMessage": "開啟聊天並向 goose 索取您想要的應用程式。它可以為您建立一個，並顯示在這裡。或者，如果有人分享了應用程式，您可以使用上方的按鈕匯入。"
+    "defaultMessage": "開啟聊天並向 ModelForge 索取您想要的應用程式。它可以為您建立一個，並顯示在這裡。或者，如果有人分享了應用程式，您可以使用上方的按鈕匯入。"
   },
   "appsView.noAppsTitle": {
     "defaultMessage": "沒有可用的應用程式"
@@ -84,7 +288,7 @@
     "defaultMessage": "憑證已刪除"
   },
   "authSettings.description": {
-    "defaultMessage": "管理 goose 在本機儲存的供應商憑證。"
+    "defaultMessage": "管理 ModelForge 在本機儲存的供應商憑證。"
   },
   "authSettings.empty": {
     "defaultMessage": "找不到本機儲存的供應商憑證。"
@@ -171,10 +375,31 @@
     "defaultMessage": "啟動"
   },
   "chat.notification.taskComplete.body": {
-    "defaultMessage": "按一下這裡讓 Goose 重新回到焦點。"
+    "defaultMessage": "按一下這裡讓 ModelForge 重新回到焦點。"
   },
   "chat.notification.taskComplete.title": {
-    "defaultMessage": "Goose 已完成工作。"
+    "defaultMessage": "ModelForge 已完成工作。"
+  },
+  "chatInput.contextCriticalBody": {
+    "defaultMessage": "已用 {percent}%（{used} / {limit} tokens）。请立刻开始新会话，否则下一轮长回答可能被上游直接拒绝。"
+  },
+  "chatInput.contextCriticalKernelBody": {
+    "defaultMessage": "已用 {percent}%（{used} / {limit} tokens）。请立刻开始新会话——{kernel} 内核仍可能超出你模型的窗口。"
+  },
+  "chatInput.contextCriticalTitle": {
+    "defaultMessage": "上下文即将占满"
+  },
+  "chatInput.contextWarningBody": {
+    "defaultMessage": "已用 {percent}%（{used} / {limit} tokens）。建议开个新会话，回答质量会更稳。"
+  },
+  "chatInput.contextWarningKernelBody": {
+    "defaultMessage": "已用 {percent}%（{used} / {limit} tokens）。{kernel} 内核会自行压缩历史，但开新会话能让细节更可靠。"
+  },
+  "chatInput.contextWarningNotificationTitle": {
+    "defaultMessage": "ModelForge：上下文即将占满"
+  },
+  "chatInput.contextWarningTitle": {
+    "defaultMessage": "上下文快满了"
   },
   "chatInput.contextWindow": {
     "defaultMessage": "上下文視窗"
@@ -184,6 +409,9 @@
   },
   "chatInput.failedToReadImage": {
     "defaultMessage": "無法讀取影像檔案"
+  },
+  "chatInput.kernelContextManaged": {
+    "defaultMessage": "上下文由 {kernel} 内核自行管理（接近上限时它会自动压缩）；这里的进度条按你所用模型的窗口计算。"
   },
   "chatInput.navigationShortcut": {
     "defaultMessage": "{prefix}↑/{prefix}↓ 可瀏覽訊息"
@@ -225,13 +453,13 @@
     "defaultMessage": "正在等待影像儲存…"
   },
   "chatSettings.modeDescription": {
-    "defaultMessage": "選擇 Goose 用於新工作階段的預設模式。現有的工作階段會維持目前的模式。"
+    "defaultMessage": "選擇 ModelForge 用於新工作階段的預設模式。現有的工作階段會維持目前的模式。"
   },
   "chatSettings.modeTitle": {
     "defaultMessage": "預設模式"
   },
   "chatSettings.responseStylesDescription": {
-    "defaultMessage": "選擇 Goose 設定回應格式與樣式的方式"
+    "defaultMessage": "選擇 ModelForge 設定回應格式與樣式的方式"
   },
   "chatSettings.responseStylesTitle": {
     "defaultMessage": "回應樣式"
@@ -252,10 +480,10 @@
     "defaultMessage": "設定編輯器"
   },
   "configSettings.description": {
-    "defaultMessage": "編輯您的 goose 設定"
+    "defaultMessage": "編輯您的 ModelForge 設定"
   },
   "configSettings.descriptionWithProvider": {
-    "defaultMessage": "編輯您的 goose 設定（{provider} 的目前設定）"
+    "defaultMessage": "編輯您的 ModelForge 設定（{provider} 的目前設定）"
   },
   "configSettings.done": {
     "defaultMessage": "完成"
@@ -320,6 +548,93 @@
   "confirmationModal.processing": {
     "defaultMessage": "正在處理…"
   },
+  "connectorsView.addCustom": {
+    "defaultMessage": "添加自定义连接器"
+  },
+  "connectorsView.all": {
+    "defaultMessage": "全部"
+  },
+  "connectorsView.alreadyInstalled": {
+    "defaultMessage": "该连接器已在你的扩展列表中。"
+  },
+  "connectorsView.builtin": {
+    "defaultMessage": "内置"
+  },
+  "connectorsView.builtinHint": {
+    "defaultMessage": "随应用发布，可在「插件」里开关。"
+  },
+  "connectorsView.cancel": {
+    "defaultMessage": "取消"
+  },
+  "connectorsView.capabilities": {
+    "defaultMessage": "能力"
+  },
+  "connectorsView.command": {
+    "defaultMessage": "运行方式"
+  },
+  "connectorsView.confirmInstall": {
+    "defaultMessage": "添加连接器"
+  },
+  "connectorsView.defaultOff": {
+    "defaultMessage": "默认关闭"
+  },
+  "connectorsView.defaultOn": {
+    "defaultMessage": "默认开启"
+  },
+  "connectorsView.docs": {
+    "defaultMessage": "官方文档"
+  },
+  "connectorsView.install": {
+    "defaultMessage": "安装"
+  },
+  "connectorsView.installFailed": {
+    "defaultMessage": "连接器添加失败"
+  },
+  "connectorsView.installSuccess": {
+    "defaultMessage": "连接器已添加"
+  },
+  "connectorsView.installSuccessMsg": {
+    "defaultMessage": "{name} 已启用。首次调用可能需要等待依赖下载。"
+  },
+  "connectorsView.installable": {
+    "defaultMessage": "可连接"
+  },
+  "connectorsView.installed": {
+    "defaultMessage": "已安装"
+  },
+  "connectorsView.installing": {
+    "defaultMessage": "安装中…"
+  },
+  "connectorsView.optional": {
+    "defaultMessage": "可选"
+  },
+  "connectorsView.planned": {
+    "defaultMessage": "规划中"
+  },
+  "connectorsView.plannedHint": {
+    "defaultMessage": "尚未实现对应服务；列出以保证目录完整。"
+  },
+  "connectorsView.prerequisite": {
+    "defaultMessage": "开始之前"
+  },
+  "connectorsView.secretsHint": {
+    "defaultMessage": "保存在系统钥匙串中，不会写入配置文件。也可以留空，稍后再填。"
+  },
+  "connectorsView.secretsTitle": {
+    "defaultMessage": "凭据"
+  },
+  "connectorsView.source": {
+    "defaultMessage": "包名"
+  },
+  "connectorsView.subtitle": {
+    "defaultMessage": "通过 MCP 服务器扩展能力：文献检索、网页抓取、代码仓库。"
+  },
+  "connectorsView.title": {
+    "defaultMessage": "连接器"
+  },
+  "connectorsView.transport": {
+    "defaultMessage": "传输方式"
+  },
   "conversationLimitsDropdown.conversationLimits": {
     "defaultMessage": "對話限制"
   },
@@ -327,13 +642,22 @@
     "defaultMessage": "最大回合數"
   },
   "conversationLimitsDropdown.maxTurnsDescription": {
-    "defaultMessage": "Goose 要求使用者輸入前的最大代理回合數"
+    "defaultMessage": "ModelForge 要求使用者輸入前的最大代理回合數"
   },
   "costTracker.costUnavailable": {
     "defaultMessage": "{model} 無可用的費用資料（輸入 {inputTokens} 個詞元，輸出 {outputTokens} 個詞元）"
   },
   "costTracker.inputOutputTooltip": {
     "defaultMessage": "輸入：{inputTokens} 個詞元（{inputCost}）｜輸出：{outputTokens} 個詞元（{outputCost}）"
+  },
+  "costTracker.kernelEstimate": {
+    "defaultMessage": "按你填写的单价估算"
+  },
+  "costTracker.kernelEstimateTooltip": {
+    "defaultMessage": "本次会话由 {kernel} 内核调用 {model} 完成，费用按「设置 → 应用 → 智能体内核」里的单价估算：输入 {inputTokens} tok、输出 {outputTokens} tok。"
+  },
+  "costTracker.kernelPricesMissing": {
+    "defaultMessage": "内核正在用你的模型 {model} 提供服务，goose 没有它的价格数据。到「设置 → 应用 → 智能体内核」填写每百万 token 单价，即可看到费用估算。"
   },
   "costTracker.pricingUnavailable": {
     "defaultMessage": "{model} 無可用的定價資料"
@@ -783,7 +1107,7 @@
     "defaultMessage": "編輯 {name} 設定"
   },
   "defaultCardButtons.getStarted": {
-    "defaultMessage": "開始使用 goose！"
+    "defaultMessage": "開始使用 ModelForge！"
   },
   "defaultProviderSetupForm.apiHostLabel": {
     "defaultMessage": "API 主機"
@@ -866,6 +1190,24 @@
   "diagnosticsModal.systemInfoErrorTitle": {
     "defaultMessage": "錯誤"
   },
+  "diagramsPanel.count": {
+    "defaultMessage": "{count} 張流程圖"
+  },
+  "diagramsPanel.empty": {
+    "defaultMessage": "還沒有流程圖"
+  },
+  "diagramsPanel.emptyHint": {
+    "defaultMessage": "讓 Agent 畫技術路線圖或流程圖，產出的 .drawio / PNG 會出現在這裡。"
+  },
+  "diagramsPanel.generate": {
+    "defaultMessage": "讓 Agent 畫技術路線圖"
+  },
+  "diagramsPanel.openExternal": {
+    "defaultMessage": "用外部程式開啟"
+  },
+  "diagramsPanel.refresh": {
+    "defaultMessage": "重新整理"
+  },
   "dialog.close": {
     "defaultMessage": "關閉"
   },
@@ -914,6 +1256,12 @@
   "dictationSettings.voiceDictationProvider": {
     "defaultMessage": "語音聽寫供應商"
   },
+  "diffView.empty": {
+    "defaultMessage": "該檔案沒有文字變更"
+  },
+  "diffView.truncated": {
+    "defaultMessage": "差異過長，已截斷"
+  },
   "dirSwitcher.chooseDirectory": {
     "defaultMessage": "選擇目錄…"
   },
@@ -923,11 +1271,11 @@
   "dirSwitcher.enterPath": {
     "defaultMessage": "Enter path"
   },
-  "dirSwitcher.enterPathPlaceholder": {
-    "defaultMessage": "Enter an absolute path (e.g. /home/goose/workspace)"
-  },
   "dirSwitcher.enterPathInvalid": {
     "defaultMessage": "Working directory must be an absolute path"
+  },
+  "dirSwitcher.enterPathPlaceholder": {
+    "defaultMessage": "Enter an absolute path (e.g. /home/goose/workspace)"
   },
   "dirSwitcher.failedToUpdateWorkingDir": {
     "defaultMessage": "無法更新工作目錄"
@@ -944,18 +1292,6 @@
   "dirSwitcher.recentDirectories": {
     "defaultMessage": "最近的目錄"
   },
-  "gitBranchIndicator.failedToSwitch": {
-    "defaultMessage": "無法切換至 {branch}"
-  },
-  "gitBranchIndicator.noBranchesFound": {
-    "defaultMessage": "找不到分支"
-  },
-  "gitBranchIndicator.searchBranches": {
-    "defaultMessage": "搜尋分支…"
-  },
-  "gitBranchIndicator.uncommittedChanges": {
-    "defaultMessage": "你可能有尚未提交的變更。"
-  },
   "elicitationRequest.accept": {
     "defaultMessage": "接受"
   },
@@ -963,7 +1299,7 @@
     "defaultMessage": "資訊要求已取消。"
   },
   "elicitationRequest.defaultMessage": {
-    "defaultMessage": "Goose 需要您提供一些資訊。"
+    "defaultMessage": "ModelForge 需要您提供一些資訊。"
   },
   "elicitationRequest.expired": {
     "defaultMessage": "此要求已過期。擴充功能需要重新詢問。"
@@ -1004,11 +1340,29 @@
   "environmentBadge.dev": {
     "defaultMessage": "開發"
   },
+  "environmentPanel.checking": {
+    "defaultMessage": "正在偵測環境…"
+  },
+  "environmentPanel.missing": {
+    "defaultMessage": "未找到"
+  },
+  "environmentPanel.probeFailed": {
+    "defaultMessage": "環境偵測失敗"
+  },
+  "environmentPanel.refresh": {
+    "defaultMessage": "重新偵測"
+  },
+  "environmentPanel.terminal": {
+    "defaultMessage": "終端機"
+  },
+  "environmentPanel.workingDir": {
+    "defaultMessage": "工作目錄"
+  },
   "errorBoundary.errorGeneric": {
     "defaultMessage": "發生錯誤。"
   },
   "errorBoundary.errorWithVersion": {
-    "defaultMessage": "Goose v{version} 發生錯誤。"
+    "defaultMessage": "ModelForge v{version} 發生錯誤。"
   },
   "errorBoundary.heading": {
     "defaultMessage": "Honk！"
@@ -1191,7 +1545,7 @@
     "defaultMessage": "在此啟用的擴充功能會作為新聊天的預設值。您也可以在聊天期間切換使用中的擴充功能。"
   },
   "extensionsView.description": {
-    "defaultMessage": "這些擴充功能使用模型內容協定 (MCP)。它們可透過三個主要元件擴充 Goose 的能力：提示、資源與工具。{searchShortcut} 即可搜尋。"
+    "defaultMessage": "這些擴充功能使用模型內容協定 (MCP)。它們可透過三個主要元件擴充 ModelForge 的能力：提示、資源與工具。{searchShortcut} 即可搜尋。"
   },
   "extensionsView.heading": {
     "defaultMessage": "擴充功能"
@@ -1209,19 +1563,19 @@
     "defaultMessage": "AA:BB:CC:… 或 sha256/base64"
   },
   "externalBackendSection.description": {
-    "defaultMessage": "goose 預設會為您啟動伺服器，使用此選項以連線至外部 goose 伺服器"
+    "defaultMessage": "ModelForge 預設會為您啟動伺服器，使用此選項以連線至外部 ModelForge 伺服器"
   },
   "externalBackendSection.fingerprintRequiresHttps": {
     "defaultMessage": "Certificate fingerprint requires an https URL"
   },
   "externalBackendSection.restartNote": {
-    "defaultMessage": "變更需要重新啟動 Goose 才會生效。新的聊天視窗將連線至外部伺服器。"
+    "defaultMessage": "變更需要重新啟動 ModelForge 才會生效。新的聊天視窗將連線至外部伺服器。"
   },
   "externalBackendSection.secretKey": {
     "defaultMessage": "密鑰"
   },
   "externalBackendSection.secretKeyHelp": {
-    "defaultMessage": "在 Goose 伺服器上設定的密鑰 (GOOSE_SERVER__SECRET_KEY)"
+    "defaultMessage": "在 ModelForge 伺服器上設定的密鑰 (GOOSE_SERVER__SECRET_KEY)"
   },
   "externalBackendSection.secretKeyPlaceholder": {
     "defaultMessage": "輸入伺服器的密鑰"
@@ -1230,10 +1584,10 @@
     "defaultMessage": "伺服器 URL"
   },
   "externalBackendSection.serverUrlHelp": {
-    "defaultMessage": "Enter the HTTP(S) base URL. Goose checks /status and connects to /acp under this base."
+    "defaultMessage": "Enter the HTTP(S) base URL. ModelForge checks /status and connects to /acp under this base."
   },
   "externalBackendSection.title": {
-    "defaultMessage": "Goose 伺服器"
+    "defaultMessage": "ModelForge 伺服器"
   },
   "externalBackendSection.urlBaseError": {
     "defaultMessage": "URL must be the backend base URL before /acp, without query parameters or fragments"
@@ -1248,7 +1602,7 @@
     "defaultMessage": "使用外部伺服器"
   },
   "externalBackendSection.useExternalServerDescription": {
-    "defaultMessage": "連線至在其他位置執行的 goose 伺服器（需要重新啟動應用程式）"
+    "defaultMessage": "連線至在其他位置執行的 ModelForge 伺服器（需要重新啟動應用程式）"
   },
   "externalBackendSection.workingDir": {
     "defaultMessage": "遠端工作目錄（選用）"
@@ -1259,68 +1613,89 @@
   "externalBackendSection.workingDirPlaceholder": {
     "defaultMessage": "/home/goose/workspace"
   },
-  "goosehintsModal.close": {
-    "defaultMessage": "關閉"
+  "figuresPanel.all": {
+    "defaultMessage": "全部"
   },
-  "goosehintsModal.developer": {
-    "defaultMessage": "開發者"
+  "figuresPanel.empty": {
+    "defaultMessage": "沒有符合的模板"
   },
-  "goosehintsModal.dialogDescription": {
-    "defaultMessage": "提供有關您專案的額外內容，以改善與 Goose 的溝通"
+  "figuresPanel.hint": {
+    "defaultMessage": "選擇模板會填入輸入框，按傳送後才會執行。"
   },
-  "goosehintsModal.dialogTitle": {
-    "defaultMessage": "設定專案提示 (.goosehints)"
+  "figuresPanel.insert": {
+    "defaultMessage": "填入提示詞"
   },
-  "goosehintsModal.errorReading": {
-    "defaultMessage": "讀取 .goosehints 檔案時發生錯誤：{error}"
+  "figuresPanel.search": {
+    "defaultMessage": "搜尋模板"
   },
-  "goosehintsModal.failedToAccess": {
-    "defaultMessage": "無法存取 .goosehints 檔案"
+  "figuresView.all": {
+    "defaultMessage": "全部"
   },
-  "goosehintsModal.failedToSave": {
-    "defaultMessage": "無法儲存 .goosehints 檔案"
+  "figuresView.depsValue": {
+    "defaultMessage": "依赖 {deps}"
   },
-  "goosehintsModal.fileCreating": {
-    "defaultMessage": "正在於此處建立新的 .goosehints 檔案：{filePath}"
+  "figuresView.empty": {
+    "defaultMessage": "该分类下暂无模板。"
   },
-  "goosehintsModal.fileFound": {
-    "defaultMessage": "在此處找到 .goosehints 檔案：{filePath}"
+  "figuresView.placeholder": {
+    "defaultMessage": "模板待补充"
   },
-  "goosehintsModal.helpText1": {
-    "defaultMessage": ".goosehints 是一個文字檔，用於提供有關您專案的額外內容，並改善與 Goose 的溝通。"
+  "figuresView.script": {
+    "defaultMessage": "生成脚本"
   },
-  "goosehintsModal.helpText2": {
-    "defaultMessage": "請確認擴充功能頁面中已啟用 {bold} 擴充功能。使用 .goosehints 需要此擴充功能。您需要重新啟動工作階段，.goosehints 的更新才會生效。"
+  "figuresView.subtitle": {
+    "defaultMessage": "选择模板，Agent 会写出绘图脚本、出图并导出矢量 PDF/SVG 与 PNG 预览。"
   },
-  "goosehintsModal.helpText3": {
-    "defaultMessage": "如需更多資訊，請參閱 {link}。"
+  "figuresView.title": {
+    "defaultMessage": "科研绘图"
   },
-  "goosehintsModal.helpTextLink": {
-    "defaultMessage": "使用 .goosehints"
+  "figuresView.total": {
+    "defaultMessage": "共 {count} 个模板"
   },
-  "goosehintsModal.placeholder": {
-    "defaultMessage": "在此輸入專案提示…"
+  "figuresView.unavailable": {
+    "defaultMessage": "暂无预览——该模板需要额外的几何依赖库。"
   },
-  "goosehintsModal.save": {
-    "defaultMessage": "儲存"
+  "figuresView.useTemplate": {
+    "defaultMessage": "使用此模板"
   },
-  "goosehintsModal.savedSuccessfully": {
-    "defaultMessage": "已成功儲存"
+  "figuresView.useTemplateHint": {
+    "defaultMessage": "把「用该模板出图」的请求写进首页输入框，不会自动发送。"
   },
-  "goosehintsModal.saving": {
-    "defaultMessage": "正在儲存…"
+  "fileArtifact.open": {
+    "defaultMessage": "在工作區編輯器中開啟"
   },
-  "goosehintsSection.configure": {
-    "defaultMessage": "設定"
+  "filePreview.binary": {
+    "defaultMessage": "二進位檔案"
   },
-  "goosehintsSection.description": {
-    "defaultMessage": "設定您專案的 .goosehints 檔案，為 Goose 提供額外內容"
+  "filePreview.loading": {
+    "defaultMessage": "正在載入…"
   },
-  "goosehintsSection.title": {
-    "defaultMessage": "專案提示 (.goosehints)"
+  "filePreview.readFailed": {
+    "defaultMessage": "無法讀取這個檔案。請確認檔案仍然存在，然後重試。"
   },
-  "groupedExtensionLoadingToast.askGoose": {
-    "defaultMessage": "詢問 goose"
+  "filePreview.retry": {
+    "defaultMessage": "重新載入預覽"
+  },
+  "filePreview.truncated": {
+    "defaultMessage": "檔案較大，僅顯示前一部分"
+  },
+  "filePreview.unsupported": {
+    "defaultMessage": "這種檔案類型沒有內建預覽，請用外部程式開啟。"
+  },
+  "gitBranchIndicator.failedToSwitch": {
+    "defaultMessage": "無法切換至 {branch}"
+  },
+  "gitBranchIndicator.noBranchesFound": {
+    "defaultMessage": "找不到分支"
+  },
+  "gitBranchIndicator.searchBranches": {
+    "defaultMessage": "搜尋分支…"
+  },
+  "gitBranchIndicator.uncommittedChanges": {
+    "defaultMessage": "你可能有尚未提交的變更。"
+  },
+  "groupedExtensionLoadingToast.askAssistant": {
+    "defaultMessage": "詢問 ModelForge"
   },
   "groupedExtensionLoadingToast.collapseDetails": {
     "defaultMessage": "收合詳細資料"
@@ -1379,6 +1754,39 @@
   "headersSection.value": {
     "defaultMessage": "值"
   },
+  "hexPreview.header": {
+    "defaultMessage": "二進位預覽"
+  },
+  "hexPreview.truncated": {
+    "defaultMessage": "顯示前 {bytes} 位元組（共 {size}）"
+  },
+  "hub.appTitle": {
+    "defaultMessage": "数学建模助手"
+  },
+  "hub.chooseProject": {
+    "defaultMessage": "選擇資料夾開始"
+  },
+  "hub.contestInfo": {
+    "defaultMessage": "赛事信息"
+  },
+  "hub.contestLabel": {
+    "defaultMessage": "赛事"
+  },
+  "hub.exampleNeedsInput": {
+    "defaultMessage": "题目未内置，请自行补充"
+  },
+  "hub.exampleReady": {
+    "defaultMessage": "已附带题目与附件"
+  },
+  "hub.examplesTitle": {
+    "defaultMessage": "试试这些数模真题案例"
+  },
+  "hub.freeChat": {
+    "defaultMessage": "自由對話"
+  },
+  "hub.freeChatHint": {
+    "defaultMessage": "不預設任務，依你的輸入開始"
+  },
   "hub.goodAfternoon": {
     "defaultMessage": "午安"
   },
@@ -1387,6 +1795,15 @@
   },
   "hub.goodMorning": {
     "defaultMessage": "早安"
+  },
+  "hub.paperLabel": {
+    "defaultMessage": "排版"
+  },
+  "hub.projectMaterials": {
+    "defaultMessage": "查看專案材料與下一步"
+  },
+  "hub.workflowLabel": {
+    "defaultMessage": "工作流"
   },
   "huggingFaceModelSearch.download": {
     "defaultMessage": "下載"
@@ -1440,7 +1857,7 @@
     "defaultMessage": "Hugging Face"
   },
   "imagePreview.altText": {
-    "defaultMessage": "goose 圖片"
+    "defaultMessage": "ModelForge 圖片"
   },
   "imagePreview.clickToCollapse": {
     "defaultMessage": "按一下以收合"
@@ -1488,7 +1905,7 @@
     "defaultMessage": "食譜檔案"
   },
   "importRecipeForm.reviewWarning": {
-    "defaultMessage": "在將食譜檔案加入您的 goose 介面之前，請務必檢閱其內容。"
+    "defaultMessage": "在將食譜檔案加入您的 ModelForge 介面之前，請務必檢閱其內容。"
   },
   "importRecipeForm.schemaDescription": {
     "defaultMessage": "您的 YAML 或 JSON 檔案應遵循此結構。必填欄位為：title、description，以及 instructions 或 prompt 其中之一。"
@@ -1574,6 +1991,33 @@
   "jsonSchemaForm.submit": {
     "defaultMessage": "提交"
   },
+  "kernelModel.description": {
+    "defaultMessage": "{kernel} 内核的每次请求都会经本地适配器转发到下面选中的模型，切换后下一次请求即生效。"
+  },
+  "kernelModel.empty": {
+    "defaultMessage": "该服务提供方没有可选模型。"
+  },
+  "kernelModel.loading": {
+    "defaultMessage": "正在加载模型…"
+  },
+  "kernelModel.notRunning": {
+    "defaultMessage": "内核尚未运行——请到「应用 → 智能体内核」确认配置。"
+  },
+  "kernelModel.provider": {
+    "defaultMessage": "服务提供方：{provider}"
+  },
+  "kernelModel.readFailed": {
+    "defaultMessage": "无法读取内核状态"
+  },
+  "kernelModel.switchFailed": {
+    "defaultMessage": "无法切换内核模型"
+  },
+  "kernelModel.switched": {
+    "defaultMessage": "内核模型已切换为 {model}"
+  },
+  "kernelModel.title": {
+    "defaultMessage": "内核模型"
+  },
   "keyValueEditor.addValue": {
     "defaultMessage": "新增預先設定的值"
   },
@@ -1599,13 +2043,13 @@
     "defaultMessage": "應用程式快速鍵"
   },
   "keyboardShortcuts.categoryApplicationDescription": {
-    "defaultMessage": "這些快速鍵在 Goose 為使用中的應用程式時生效"
+    "defaultMessage": "這些快速鍵在 ModelForge 為使用中的應用程式時生效"
   },
   "keyboardShortcuts.categoryGlobal": {
     "defaultMessage": "全域快速鍵"
   },
   "keyboardShortcuts.categoryGlobalDescription": {
-    "defaultMessage": "這些快速鍵在整個系統都可使用，即使 Goose 並非焦點視窗"
+    "defaultMessage": "這些快速鍵在整個系統都可使用，即使 ModelForge 並非焦點視窗"
   },
   "keyboardShortcuts.categorySearch": {
     "defaultMessage": "搜尋快速鍵"
@@ -1647,10 +2091,10 @@
     "defaultMessage": "尋找上一個"
   },
   "keyboardShortcuts.focusWindowDescription": {
-    "defaultMessage": "從任何位置將 Goose 視窗帶到前景"
+    "defaultMessage": "從任何位置將 ModelForge 視窗帶到前景"
   },
   "keyboardShortcuts.focusWindowLabel": {
-    "defaultMessage": "聚焦 Goose 視窗"
+    "defaultMessage": "聚焦 ModelForge 視窗"
   },
   "keyboardShortcuts.loading": {
     "defaultMessage": "載入中…"
@@ -1662,7 +2106,7 @@
     "defaultMessage": "新對話"
   },
   "keyboardShortcuts.newChatWindowDescription": {
-    "defaultMessage": "開啟新的 Goose 視窗"
+    "defaultMessage": "開啟新的 ModelForge 視窗"
   },
   "keyboardShortcuts.newChatWindowLabel": {
     "defaultMessage": "新對話視窗"
@@ -1701,7 +2145,7 @@
     "defaultMessage": "重設為預設值"
   },
   "keyboardShortcuts.restartDescription": {
-    "defaultMessage": "變更應用程式快速鍵（例如「新對話」、「設定」等）需要重新啟動 Goose 才會生效。全域快速鍵（聚焦視窗、快速啟動器）則會立即生效。"
+    "defaultMessage": "變更應用程式快速鍵（例如「新對話」、「設定」等）需要重新啟動 ModelForge 才會生效。全域快速鍵（聚焦視窗、快速啟動器）則會立即生效。"
   },
   "keyboardShortcuts.restartRequired": {
     "defaultMessage": "需要重新啟動"
@@ -1731,13 +2175,13 @@
     "defaultMessage": "切換導覽"
   },
   "launcher.placeholder": {
-    "defaultMessage": "向 goose 詢問任何問題…"
+    "defaultMessage": "向 ModelForge 詢問任何問題…"
   },
   "loadingGoose.compacting": {
-    "defaultMessage": "goose 正在壓縮對話…"
+    "defaultMessage": "ModelForge 正在壓縮對話…"
   },
   "loadingGoose.idle": {
-    "defaultMessage": "goose 正在處理…"
+    "defaultMessage": "ModelForge 正在處理…"
   },
   "loadingGoose.loadingConversation": {
     "defaultMessage": "正在載入對話…"
@@ -1746,13 +2190,13 @@
     "defaultMessage": "正在重新啟動工作階段…"
   },
   "loadingGoose.streaming": {
-    "defaultMessage": "goose 正在處理…"
+    "defaultMessage": "ModelForge 正在處理…"
   },
   "loadingGoose.thinking": {
-    "defaultMessage": "goose 正在思考…"
+    "defaultMessage": "ModelForge 正在思考…"
   },
   "loadingGoose.waiting": {
-    "defaultMessage": "goose 正在等待…"
+    "defaultMessage": "ModelForge 正在等待…"
   },
   "localInferenceSettings.deleteConfirm": {
     "defaultMessage": "要刪除此模型嗎？您之後可以重新下載。"
@@ -2303,6 +2747,12 @@
   "modelsBottomBar.currentModel": {
     "defaultMessage": "目前模型"
   },
+  "modelsBottomBar.kernelModel": {
+    "defaultMessage": "内核模型"
+  },
+  "modelsBottomBar.kernelModelHint": {
+    "defaultMessage": "{kernel} 内核实际请求的就是这个模型；在「设置 → 模型 → 内核模型」里切换。"
+  },
   "modelsBottomBar.loadingModel": {
     "defaultMessage": "正在載入模型…"
   },
@@ -2312,11 +2762,17 @@
   "modelsBottomBar.localModelSettingsTitle": {
     "defaultMessage": "本機模型設定 — {modelName}"
   },
+  "modelsBottomBar.recentModels": {
+    "defaultMessage": "最近"
+  },
   "modelsBottomBar.resolvedModel": {
     "defaultMessage": "已解析的模型"
   },
   "modelsBottomBar.selectModel": {
     "defaultMessage": "選擇模型"
+  },
+  "modelsSection.kernelSlotNote": {
+    "defaultMessage": "内核自身固定使用 current 这一模型位，真正调用的模型是下方「内核模型」里选中的那个。"
   },
   "modelsSection.resetDescription": {
     "defaultMessage": "清除您選定的模型與供應商設定以重新開始"
@@ -2324,29 +2780,47 @@
   "modelsSection.resetTitle": {
     "defaultMessage": "重設供應商與模型"
   },
-  "navigation.itemApps": {
-    "defaultMessage": "應用程式"
+  "navigation.catalogAlgorithms": {
+    "defaultMessage": "算法"
   },
-  "navigation.itemExtensions": {
-    "defaultMessage": "擴充功能"
+  "navigation.catalogConnectors": {
+    "defaultMessage": "连接器"
+  },
+  "navigation.catalogPlugins": {
+    "defaultMessage": "插件"
+  },
+  "navigation.catalogSkills": {
+    "defaultMessage": "技能"
+  },
+  "navigation.catalogTemplates": {
+    "defaultMessage": "模板"
+  },
+  "navigation.itemApps": {
+    "defaultMessage": "应用"
+  },
+  "navigation.itemCatalog": {
+    "defaultMessage": "扩展"
+  },
+  "navigation.itemFigures": {
+    "defaultMessage": "科研绘图"
   },
   "navigation.itemHome": {
-    "defaultMessage": "新交談"
+    "defaultMessage": "新建会话"
   },
-  "navigation.itemRecipes": {
-    "defaultMessage": "配方"
+  "navigation.itemPaper": {
+    "defaultMessage": "论文模板"
+  },
+  "navigation.itemProfile": {
+    "defaultMessage": "个人资料"
   },
   "navigation.itemScheduler": {
-    "defaultMessage": "排程器"
+    "defaultMessage": "自动化"
   },
   "navigation.itemSessions": {
-    "defaultMessage": "工作階段紀錄"
+    "defaultMessage": "会话历史"
   },
   "navigation.itemSettings": {
-    "defaultMessage": "設定"
-  },
-  "navigation.itemSkills": {
-    "defaultMessage": "技能"
+    "defaultMessage": "设置"
   },
   "navigationPanel.chats": {
     "defaultMessage": "交談"
@@ -2384,11 +2858,23 @@
   "navigationPanel.untitledSession": {
     "defaultMessage": "未命名工作階段"
   },
+  "notebookPreview.cell": {
+    "defaultMessage": "儲存格 {index}"
+  },
+  "notebookPreview.empty": {
+    "defaultMessage": "這個筆記本沒有內容"
+  },
+  "notebookPreview.invalid": {
+    "defaultMessage": "無法解析這個筆記本檔案"
+  },
+  "notebookPreview.truncated": {
+    "defaultMessage": "僅顯示前 {count} 個儲存格"
+  },
   "onboardingGuard.checkProviderErrorDescription": {
     "defaultMessage": "伺服器可能正在啟動或暫時無法使用。"
   },
   "onboardingGuard.checkProviderErrorTitle": {
-    "defaultMessage": "無法連線到 Goose 伺服器"
+    "defaultMessage": "無法連線到 ModelForge 伺服器"
   },
   "onboardingGuard.retry": {
     "defaultMessage": "重試"
@@ -2397,10 +2883,10 @@
     "defaultMessage": "您的本機 AI 代理。連線 AI 模型供應商即可開始使用。"
   },
   "onboardingGuard.welcomeTitle": {
-    "defaultMessage": "歡迎使用 goose"
+    "defaultMessage": "歡迎使用 ModelForge"
   },
   "onboardingSuccess.allSet": {
-    "defaultMessage": "一切就緒，您可以開始使用 goose 了。"
+    "defaultMessage": "一切就緒，您可以開始使用 ModelForge 了。"
   },
   "onboardingSuccess.connectedTo": {
     "defaultMessage": "已連線到 {providerName}"
@@ -2415,13 +2901,118 @@
     "defaultMessage": "本機模型已就緒"
   },
   "onboardingSuccess.privacyDescription": {
-    "defaultMessage": "匿名使用資料有助於改善 goose。我們絕不會收集您的對話、程式碼或個人資料。"
+    "defaultMessage": "匿名使用資料有助於改善 ModelForge。我們絕不會收集您的對話、程式碼或個人資料。"
   },
   "onboardingSuccess.privacyTitle": {
     "defaultMessage": "隱私權"
   },
   "onboardingSuccess.shareUsageData": {
     "defaultMessage": "分享匿名使用資料"
+  },
+  "paperView.all": {
+    "defaultMessage": "全部"
+  },
+  "paperView.available": {
+    "defaultMessage": "已内置"
+  },
+  "paperView.availableOnly": {
+    "defaultMessage": "已内置"
+  },
+  "paperView.contents": {
+    "defaultMessage": "模板内容"
+  },
+  "paperView.coverFields": {
+    "defaultMessage": "封面信息"
+  },
+  "paperView.coverHint": {
+    "defaultMessage": "由模板自身声明（题号、队号、学校…）。填好的值会写进请求；留空的项 Agent 会来问你。"
+  },
+  "paperView.customize": {
+    "defaultMessage": "基于此模板自定义"
+  },
+  "paperView.customizeCancel": {
+    "defaultMessage": "取消"
+  },
+  "paperView.customizeConfirm": {
+    "defaultMessage": "生成自定义请求"
+  },
+  "paperView.customizeHint": {
+    "defaultMessage": "在项目里生成你自己的副本再改造，内置模板保持原样。"
+  },
+  "paperView.customizeName": {
+    "defaultMessage": "你的副本名称"
+  },
+  "paperView.customizeNamePlaceholder": {
+    "defaultMessage": "例如 my-cumcm-2026"
+  },
+  "paperView.defaultFor": {
+    "defaultMessage": "默认用于"
+  },
+  "paperView.empty": {
+    "defaultMessage": "没有符合筛选条件的模板。"
+  },
+  "paperView.engine": {
+    "defaultMessage": "引擎"
+  },
+  "paperView.engineLatex": {
+    "defaultMessage": "LaTeX"
+  },
+  "paperView.engineTypst": {
+    "defaultMessage": "Typst"
+  },
+  "paperView.entryFile": {
+    "defaultMessage": "入口文件"
+  },
+  "paperView.groupBundled": {
+    "defaultMessage": "内置 · 赛事模板"
+  },
+  "paperView.groupVendored": {
+    "defaultMessage": "上游开源模板"
+  },
+  "paperView.langEn": {
+    "defaultMessage": "英文"
+  },
+  "paperView.langZh": {
+    "defaultMessage": "中文"
+  },
+  "paperView.language": {
+    "defaultMessage": "语言"
+  },
+  "paperView.license": {
+    "defaultMessage": "许可"
+  },
+  "paperView.optional": {
+    "defaultMessage": "可留空"
+  },
+  "paperView.planned": {
+    "defaultMessage": "待内置"
+  },
+  "paperView.previewCaption": {
+    "defaultMessage": "模板编译后的首页（由 xelatex 实际渲染）。"
+  },
+  "paperView.source": {
+    "defaultMessage": "来源"
+  },
+  "paperView.subtitle": {
+    "defaultMessage": "选择赛事模板，Agent 会把整套模板复制到项目里，并从入口文件开始撰写与编译论文。"
+  },
+  "paperView.templateDir": {
+    "defaultMessage": "模板文件夹"
+  },
+  "paperView.title": {
+    "defaultMessage": "论文模板"
+  },
+  "paperView.usage": {
+    "defaultMessage": "使用方式"
+  },
+  "paperView.usageBody": {
+    "defaultMessage": "Agent 会把整个模板文件夹复制到项目中，并从入口文件开始写作；用 modeling 扩展的 compile_latex 编译。"
+  },
+  "paperView.useTemplate": {
+    "defaultMessage": "使用此模板写论文"
+  },
+  "paperView.useTemplateHint": {
+    "defaultMessage": "把模板、入口文件与封面信息写进首页输入框，不会自动发送。"
   },
   "parameterInput.defaultValue": {
     "defaultMessage": "預設值"
@@ -2516,6 +3107,30 @@
   "parameterInputModal.whatToDo": {
     "defaultMessage": "您想要執行什麼操作？"
   },
+  "pdfPreview.failed": {
+    "defaultMessage": "無法開啟這個 PDF"
+  },
+  "pdfPreview.fitWidth": {
+    "defaultMessage": "配合寬度"
+  },
+  "pdfPreview.loading": {
+    "defaultMessage": "正在載入 PDF…"
+  },
+  "pdfPreview.next": {
+    "defaultMessage": "下一頁"
+  },
+  "pdfPreview.page": {
+    "defaultMessage": "{current} / {total}"
+  },
+  "pdfPreview.previous": {
+    "defaultMessage": "上一頁"
+  },
+  "pdfPreview.zoomIn": {
+    "defaultMessage": "放大"
+  },
+  "pdfPreview.zoomOut": {
+    "defaultMessage": "縮小"
+  },
   "permissionModal.alwaysAllow": {
     "defaultMessage": "一律允許"
   },
@@ -2583,10 +3198,10 @@
     "defaultMessage": "工作階段指標（持續時間、互動次數、詞元用量）"
   },
   "privacyInfoModal.collectVersion": {
-    "defaultMessage": "goose 版本與安裝方式"
+    "defaultMessage": "ModelForge 版本與安裝方式"
   },
   "privacyInfoModal.description": {
-    "defaultMessage": "匿名使用資料有助於我們瞭解 goose 的使用情況並找出可改善的方面。"
+    "defaultMessage": "匿名使用資料有助於我們瞭解 ModelForge 的使用情況並找出可改善的方面。"
   },
   "privacyInfoModal.neverCollect": {
     "defaultMessage": "我們絕不會收集您的對話、程式碼、工具引數、錯誤訊息或任何個人資料。您隨時可以在「設定」中變更此設定。"
@@ -2597,6 +3212,87 @@
   "privacyInfoModal.whatWeCollect": {
     "defaultMessage": "我們收集的內容："
   },
+  "profileView.activity": {
+    "defaultMessage": "活跃度"
+  },
+  "profileView.activityHint": {
+    "defaultMessage": "近一年每日提示词数。"
+  },
+  "profileView.countValue": {
+    "defaultMessage": "{count}"
+  },
+  "profileView.daysValue": {
+    "defaultMessage": "{count} 天"
+  },
+  "profileView.error": {
+    "defaultMessage": "无法读取会话统计。"
+  },
+  "profileView.less": {
+    "defaultMessage": "少"
+  },
+  "profileView.loading": {
+    "defaultMessage": "正在统计…"
+  },
+  "profileView.modelUsage": {
+    "defaultMessage": "模型使用情况"
+  },
+  "profileView.modelUsageHint": {
+    "defaultMessage": "按会话数计算的占比。"
+  },
+  "profileView.models": {
+    "defaultMessage": "最常用模型"
+  },
+  "profileView.more": {
+    "defaultMessage": "多"
+  },
+  "profileView.none": {
+    "defaultMessage": "暂无数据"
+  },
+  "profileView.projects": {
+    "defaultMessage": "最常用项目"
+  },
+  "profileView.providers": {
+    "defaultMessage": "最常用供应商"
+  },
+  "profileView.recipes": {
+    "defaultMessage": "使用配方的会话"
+  },
+  "profileView.refresh": {
+    "defaultMessage": "刷新"
+  },
+  "profileView.spanUnknown": {
+    "defaultMessage": "—"
+  },
+  "profileView.spanValue": {
+    "defaultMessage": "{days} 天"
+  },
+  "profileView.statActiveDays": {
+    "defaultMessage": "活跃天数"
+  },
+  "profileView.statMessages": {
+    "defaultMessage": "提示词"
+  },
+  "profileView.statProjects": {
+    "defaultMessage": "项目数"
+  },
+  "profileView.statSessions": {
+    "defaultMessage": "会话数"
+  },
+  "profileView.statSpan": {
+    "defaultMessage": "历史跨度"
+  },
+  "profileView.statStreakCurrent": {
+    "defaultMessage": "当前连续天数"
+  },
+  "profileView.statStreakLongest": {
+    "defaultMessage": "最长连续天数"
+  },
+  "profileView.subtitle": {
+    "defaultMessage": "本机使用情况，由会话列表统计得出。"
+  },
+  "profileView.tokensNote": {
+    "defaultMessage": "Token 与费用按会话统计——打开某个会话可查看其用量，此处尚未做汇总。"
+  },
   "progressiveMessageList.loadingMessages": {
     "defaultMessage": "正在載入訊息... ({renderedCount}/{totalCount})"
   },
@@ -2605,6 +3301,165 @@
   },
   "progressiveMessageList.searchHint": {
     "defaultMessage": "按 Cmd/Ctrl+F 立即載入所有訊息以進行搜尋"
+  },
+  "projectHintsModal.close": {
+    "defaultMessage": "關閉"
+  },
+  "projectHintsModal.developer": {
+    "defaultMessage": "開發者"
+  },
+  "projectHintsModal.dialogDescription": {
+    "defaultMessage": "提供有關您專案的額外內容，以改善與 ModelForge 的溝通"
+  },
+  "projectHintsModal.dialogTitle": {
+    "defaultMessage": "設定專案提示 (.goosehints)"
+  },
+  "projectHintsModal.errorReading": {
+    "defaultMessage": "讀取 .goosehints 檔案時發生錯誤：{error}"
+  },
+  "projectHintsModal.failedToAccess": {
+    "defaultMessage": "無法存取 .goosehints 檔案"
+  },
+  "projectHintsModal.failedToSave": {
+    "defaultMessage": "無法儲存 .goosehints 檔案"
+  },
+  "projectHintsModal.fileCreating": {
+    "defaultMessage": "正在於此處建立新的 .goosehints 檔案：{filePath}"
+  },
+  "projectHintsModal.fileFound": {
+    "defaultMessage": "在此處找到 .goosehints 檔案：{filePath}"
+  },
+  "projectHintsModal.helpText1": {
+    "defaultMessage": ".goosehints 是一個文字檔，用於提供有關您專案的額外內容，並改善與 ModelForge 的溝通。"
+  },
+  "projectHintsModal.helpText2": {
+    "defaultMessage": "請確認擴充功能頁面中已啟用 {bold} 擴充功能。使用 .goosehints 需要此擴充功能。您需要重新啟動工作階段，.goosehints 的更新才會生效。"
+  },
+  "projectHintsModal.helpText3": {
+    "defaultMessage": "如需更多資訊，請參閱 {link}。"
+  },
+  "projectHintsModal.helpTextLink": {
+    "defaultMessage": "使用 .goosehints"
+  },
+  "projectHintsModal.placeholder": {
+    "defaultMessage": "在此輸入專案提示…"
+  },
+  "projectHintsModal.save": {
+    "defaultMessage": "儲存"
+  },
+  "projectHintsModal.savedSuccessfully": {
+    "defaultMessage": "已成功儲存"
+  },
+  "projectHintsModal.saving": {
+    "defaultMessage": "正在儲存…"
+  },
+  "projectHintsSection.configure": {
+    "defaultMessage": "設定"
+  },
+  "projectHintsSection.description": {
+    "defaultMessage": "設定您專案的 .goosehints 檔案，為 ModelForge 提供額外內容"
+  },
+  "projectHintsSection.title": {
+    "defaultMessage": "專案提示 (.goosehints)"
+  },
+  "projectPanel.actionCode": {
+    "defaultMessage": "實作模型程式碼"
+  },
+  "projectPanel.actionFigures": {
+    "defaultMessage": "整理科研圖表"
+  },
+  "projectPanel.actionInputs": {
+    "defaultMessage": "整理題目與資料"
+  },
+  "projectPanel.actionPaper": {
+    "defaultMessage": "完善論文"
+  },
+  "projectPanel.actionPlan": {
+    "defaultMessage": "制定建模方案"
+  },
+  "projectPanel.actionResults": {
+    "defaultMessage": "重現計算結果"
+  },
+  "projectPanel.actionReview": {
+    "defaultMessage": "檢查交付材料"
+  },
+  "projectPanel.added": {
+    "defaultMessage": "已加入草稿。請在對話輸入框確認內容，再傳送。"
+  },
+  "projectPanel.caution": {
+    "defaultMessage": "這裡按檔案歸類，材料內容是否正確仍需進一步檢查。"
+  },
+  "projectPanel.code": {
+    "defaultMessage": "程式碼與相依套件"
+  },
+  "projectPanel.collapse": {
+    "defaultMessage": "收合"
+  },
+  "projectPanel.count": {
+    "defaultMessage": "{count} 個檔案"
+  },
+  "projectPanel.coverage": {
+    "defaultMessage": "已找到 {count} / 6 類材料"
+  },
+  "projectPanel.empty": {
+    "defaultMessage": "選擇包含題目和資料的資料夾，開始整理建模專案。"
+  },
+  "projectPanel.emptyFile": {
+    "defaultMessage": "空白檔案"
+  },
+  "projectPanel.environment": {
+    "defaultMessage": "檢查執行環境"
+  },
+  "projectPanel.error": {
+    "defaultMessage": "無法讀取專案。請確認資料夾仍可存取，然後重試。"
+  },
+  "projectPanel.expand": {
+    "defaultMessage": "展開全部 {count} 個檔案"
+  },
+  "projectPanel.figures": {
+    "defaultMessage": "圖表"
+  },
+  "projectPanel.folder": {
+    "defaultMessage": "選擇專案資料夾"
+  },
+  "projectPanel.inputs": {
+    "defaultMessage": "題目與資料"
+  },
+  "projectPanel.loading": {
+    "defaultMessage": "正在尋找專案材料…"
+  },
+  "projectPanel.missing": {
+    "defaultMessage": "尚未找到檔案"
+  },
+  "projectPanel.next": {
+    "defaultMessage": "建議的下一步"
+  },
+  "projectPanel.openFolder": {
+    "defaultMessage": "開啟專案資料夾"
+  },
+  "projectPanel.paper": {
+    "defaultMessage": "論文"
+  },
+  "projectPanel.partial": {
+    "defaultMessage": "部分資料夾尚未掃描，可在「檔案」中繼續尋找。"
+  },
+  "projectPanel.plan": {
+    "defaultMessage": "建模方案"
+  },
+  "projectPanel.refresh": {
+    "defaultMessage": "重新整理材料"
+  },
+  "projectPanel.results": {
+    "defaultMessage": "計算結果"
+  },
+  "projectPanel.retry": {
+    "defaultMessage": "重試"
+  },
+  "projectPanel.subtitle": {
+    "defaultMessage": "找到已有成果，明確下一步。"
+  },
+  "projectPanel.title": {
+    "defaultMessage": "專案材料"
   },
   "promptsSettings.allPromptsReset": {
     "defaultMessage": "所有提示已重設為預設值"
@@ -2655,7 +3510,7 @@
     "defaultMessage": "無法儲存提示"
   },
   "promptsSettings.promptEditingDescription": {
-    "defaultMessage": "自訂在不同情境中定義 goose 行為的提示。這些提示使用 Jinja2 範本語法。修改範本變數時請務必小心，因為不正確的變更可能會破壞功能。請與社群分享任何改善內容。"
+    "defaultMessage": "自訂在不同情境中定義 ModelForge 行為的提示。這些提示使用 Jinja2 範本語法。修改範本變數時請務必小心，因為不正確的變更可能會破壞功能。請與社群分享任何改善內容。"
   },
   "promptsSettings.promptEditingTitle": {
     "defaultMessage": "提示編輯"
@@ -2683,6 +3538,9 @@
   },
   "promptsSettings.unsavedChanges": {
     "defaultMessage": "您有未儲存的變更"
+  },
+  "providerCard.deprecatedReplacement": {
+    "defaultMessage": "已棄用 — 請改用 {replacement}。"
   },
   "providerCard.noMetadata": {
     "defaultMessage": "ProviderCard 錯誤：未提供中繼資料"
@@ -2738,8 +3596,17 @@
   "providerConfigForm.continue": {
     "defaultMessage": "繼續"
   },
+  "providerConfigForm.deviceCodeAndEnter": {
+    "defaultMessage": "並輸入："
+  },
+  "providerConfigForm.deviceCodeCopy": {
+    "defaultMessage": "複製"
+  },
   "providerConfigForm.deviceCodeFlowHint": {
     "defaultMessage": "將開啟瀏覽器視窗。驗證碼會顯示在此處，輸入驗證碼即可完成登入。"
+  },
+  "providerConfigForm.deviceCodeVisit": {
+    "defaultMessage": "前往"
   },
   "providerConfigForm.noApiKey": {
     "defaultMessage": "沒有 API 金鑰嗎？"
@@ -2751,7 +3618,7 @@
     "defaultMessage": "正在登入..."
   },
   "providerConfigurationModal.addApiKeyDescription": {
-    "defaultMessage": "新增此提供者的 API 金鑰以整合至 goose"
+    "defaultMessage": "新增此提供者的 API 金鑰以整合至 ModelForge"
   },
   "providerConfigurationModal.browserWindowHint": {
     "defaultMessage": "將開啟瀏覽器視窗供您完成登入。"
@@ -2765,6 +3632,9 @@
   "providerConfigurationModal.checkConfigAgain": {
     "defaultMessage": "再次檢查您的組態以使用此提供者。"
   },
+  "providerConfigurationModal.chooseModel": {
+    "defaultMessage": "選擇模型"
+  },
   "providerConfigurationModal.close": {
     "defaultMessage": "關閉"
   },
@@ -2777,8 +3647,17 @@
   "providerConfigurationModal.deleteConfirmation": {
     "defaultMessage": "這將永久刪除目前的提供者組態。"
   },
+  "providerConfigurationModal.deviceCodeAndEnter": {
+    "defaultMessage": "並輸入："
+  },
+  "providerConfigurationModal.deviceCodeCopy": {
+    "defaultMessage": "複製"
+  },
   "providerConfigurationModal.deviceCodeFlowHint": {
     "defaultMessage": "將開啟瀏覽器視窗。驗證碼會顯示在此處，輸入驗證碼即可完成登入。"
+  },
+  "providerConfigurationModal.deviceCodeVisit": {
+    "defaultMessage": "前往"
   },
   "providerConfigurationModal.errorCheckingConfig": {
     "defaultMessage": "檢查此提供者組態時發生錯誤。"
@@ -2787,7 +3666,7 @@
     "defaultMessage": "錯誤"
   },
   "providerConfigurationModal.externalSetupIntro": {
-    "defaultMessage": "此提供者是在 goose 之外設定的。請依照下列步驟操作："
+    "defaultMessage": "此提供者是在 ModelForge 之外設定的。請依照下列步驟操作："
   },
   "providerConfigurationModal.goBack": {
     "defaultMessage": "返回"
@@ -2871,7 +3750,7 @@
     "defaultMessage": "正在載入提供者..."
   },
   "providerSettings.onboardingDescription": {
-    "defaultMessage": "選取一個 AI 模型提供者以開始使用 goose。您需要使用各提供者產生的 API 金鑰，這些金鑰將會加密並儲存在本機。您隨時可以在設定中變更提供者。"
+    "defaultMessage": "選取一個 AI 模型提供者以開始使用 ModelForge。您需要使用各提供者產生的 API 金鑰，這些金鑰將會加密並儲存在本機。您隨時可以在設定中變更提供者。"
   },
   "providerSettings.otherProviders": {
     "defaultMessage": "其他提供者"
@@ -3804,7 +4683,7 @@
     "defaultMessage": "聊天記錄"
   },
   "sessions.chatHistoryDesc": {
-    "defaultMessage": "檢視並搜尋您與 Goose 過去的對話。{shortcut} 即可搜尋。"
+    "defaultMessage": "檢視並搜尋您與 ModelForge 過去的對話。{shortcut} 即可搜尋。"
   },
   "sessions.close": {
     "defaultMessage": "關閉"
@@ -3840,7 +4719,7 @@
     "defaultMessage": "匯入連結"
   },
   "sessions.importNostr.description": {
-    "defaultMessage": "貼上 Goose Nostr 分享連結，以擷取、解密並匯入該工作階段。"
+    "defaultMessage": "貼上 ModelForge Nostr 分享連結，以擷取、解密並匯入該工作階段。"
   },
   "sessions.importNostr.placeholder": {
     "defaultMessage": "goose://sessions/nostr?nevent=...&key=..."
@@ -3924,7 +4803,7 @@
     "defaultMessage": "已成功更新工作階段描述"
   },
   "settings.appearance.description": {
-    "defaultMessage": "設定 goose 在您系統上的顯示方式"
+    "defaultMessage": "設定 ModelForge 在您系統上的顯示方式"
   },
   "settings.appearance.title": {
     "defaultMessage": "外觀"
@@ -3939,13 +4818,13 @@
     "defaultMessage": "費用追蹤"
   },
   "settings.dockIcon.description": {
-    "defaultMessage": "在 Dock 中顯示 goose"
+    "defaultMessage": "在 Dock 中顯示 ModelForge"
   },
   "settings.dockIcon.title": {
     "defaultMessage": "Dock 圖示"
   },
   "settings.help.description": {
-    "defaultMessage": "回報問題或申請新功能，協助我們改善 goose"
+    "defaultMessage": "回報問題或申請新功能，協助我們改善 ModelForge"
   },
   "settings.help.reportBug": {
     "defaultMessage": "回報錯誤"
@@ -3957,7 +4836,7 @@
     "defaultMessage": "說明與意見回饋"
   },
   "settings.language.description": {
-    "defaultMessage": "選擇 goose 的顯示語言"
+    "defaultMessage": "選擇 ModelForge 的顯示語言"
   },
   "settings.language.english": {
     "defaultMessage": "English"
@@ -4014,7 +4893,7 @@
     "defaultMessage": "中文（繁體）"
   },
   "settings.menuBarIcon.description": {
-    "defaultMessage": "在選單列中顯示 goose"
+    "defaultMessage": "在選單列中顯示 ModelForge"
   },
   "settings.menuBarIcon.title": {
     "defaultMessage": "選單列圖示"
@@ -4035,7 +4914,7 @@
     "defaultMessage": "點選「通知」"
   },
   "settings.notifications.modal.macStep3": {
-    "defaultMessage": "在應用程式清單中找到並選取 goose"
+    "defaultMessage": "在應用程式清單中找到並選取 ModelForge"
   },
   "settings.notifications.modal.macStep4": {
     "defaultMessage": "啟用通知並依需求調整設定"
@@ -4053,7 +4932,7 @@
     "defaultMessage": "前往「系統」>「通知」"
   },
   "settings.notifications.modal.winStep3": {
-    "defaultMessage": "在應用程式清單中找到並選取 goose"
+    "defaultMessage": "在應用程式清單中找到並選取 ModelForge"
   },
   "settings.notifications.modal.winStep4": {
     "defaultMessage": "開啟通知並依需求調整設定"
@@ -4062,7 +4941,7 @@
     "defaultMessage": "開啟設定"
   },
   "settings.notifications.task.description": {
-    "defaultMessage": "當視窗在背景執行時，Goose 完成工作後發出通知"
+    "defaultMessage": "當視窗在背景執行時，ModelForge 完成工作後發出通知"
   },
   "settings.notifications.task.title": {
     "defaultMessage": "工作完成通知"
@@ -4071,25 +4950,31 @@
     "defaultMessage": "通知"
   },
   "settings.preventSleep.description": {
-    "defaultMessage": "在 goose 執行工作時讓電腦保持喚醒狀態（螢幕仍可鎖定）"
+    "defaultMessage": "在 ModelForge 執行工作時讓電腦保持喚醒狀態（螢幕仍可鎖定）"
   },
   "settings.preventSleep.title": {
     "defaultMessage": "防止睡眠"
   },
   "settings.theme.description": {
-    "defaultMessage": "自訂 goose 的外觀與風格"
+    "defaultMessage": "自訂 ModelForge 的外觀與風格"
   },
   "settings.theme.title": {
     "defaultMessage": "佈景主題"
   },
   "settings.updates.description": {
-    "defaultMessage": "檢查並安裝更新，讓 goose 保持最佳運作狀態"
+    "defaultMessage": "檢查並安裝更新，讓 ModelForge 保持最佳運作狀態"
   },
   "settings.updates.title": {
     "defaultMessage": "更新"
   },
   "settings.version.title": {
     "defaultMessage": "版本"
+  },
+  "settingsView.backToApp": {
+    "defaultMessage": "返回应用"
+  },
+  "settingsView.searchSettings": {
+    "defaultMessage": "搜索设置"
   },
   "settingsView.tabApp": {
     "defaultMessage": "應用程式"
@@ -4116,7 +5001,7 @@
     "defaultMessage": "提示"
   },
   "settingsView.title": {
-    "defaultMessage": "設定"
+    "defaultMessage": "设置"
   },
   "shortcutRecorder.cancel": {
     "defaultMessage": "取消"
@@ -4133,44 +5018,161 @@
   "shortcutRecorder.save": {
     "defaultMessage": "儲存"
   },
-  "skillsView.addSkill": {
-    "defaultMessage": "新增技能"
+  "skillsView.builtin": {
+    "defaultMessage": "内置"
   },
-  "skillsView.adjustSearchTerms": {
-    "defaultMessage": "請嘗試調整您的搜尋字詞"
+  "skillsView.builtinCannotDisable": {
+    "defaultMessage": "内置技能随应用更新，不能停用。"
   },
-  "skillsView.comingSoon": {
-    "defaultMessage": "即將推出"
+  "skillsView.cancel": {
+    "defaultMessage": "取消"
   },
-  "skillsView.errorLoadingSkills": {
-    "defaultMessage": "載入技能時發生錯誤"
+  "skillsView.confirmDelete": {
+    "defaultMessage": "确认删除"
   },
-  "skillsView.noMatchingSkills": {
-    "defaultMessage": "找不到符合的技能"
+  "skillsView.contentLabel": {
+    "defaultMessage": "SKILL.md 正文"
   },
-  "skillsView.noSkillsDescription": {
-    "defaultMessage": "技能會從 ~/.config/agents/skills/、.goose/skills/ 或其他支援目錄中的 SKILL.md 檔案載入。"
+  "skillsView.contentPlaceholder": {
+    "defaultMessage": "# 这个技能做什么\n\nAgent 应该按这些步骤执行…"
   },
-  "skillsView.noSkillsInstalled": {
-    "defaultMessage": "未安裝任何技能"
+  "skillsView.descriptionLabel": {
+    "defaultMessage": "一句话说明"
   },
-  "skillsView.searchSkillsPlaceholder": {
-    "defaultMessage": "搜尋技能..."
+  "skillsView.descriptionPlaceholder": {
+    "defaultMessage": "什么时候该加载这个技能？"
   },
-  "skillsView.skillsDescription": {
-    "defaultMessage": "檢視可擴充 Goose 功能的已安裝技能。{shortcut} 即可搜尋。"
+  "skillsView.disable": {
+    "defaultMessage": "停用"
   },
-  "skillsView.skillsTitle": {
+  "skillsView.disabled": {
+    "defaultMessage": "已停用"
+  },
+  "skillsView.disabledAt": {
+    "defaultMessage": "停用于"
+  },
+  "skillsView.edit": {
+    "defaultMessage": "编辑"
+  },
+  "skillsView.enable": {
+    "defaultMessage": "启用"
+  },
+  "skillsView.enabled": {
+    "defaultMessage": "已启用"
+  },
+  "skillsView.exportSkill": {
+    "defaultMessage": "导出"
+  },
+  "skillsView.exported": {
+    "defaultMessage": "已导出到 {path}"
+  },
+  "skillsView.globalSkill": {
+    "defaultMessage": "全局"
+  },
+  "skillsView.importFolder": {
+    "defaultMessage": "导入文件夹"
+  },
+  "skillsView.importJson": {
+    "defaultMessage": "导入文件"
+  },
+  "skillsView.imported": {
+    "defaultMessage": "已导入 {count} 个技能"
+  },
+  "skillsView.loadFailed": {
+    "defaultMessage": "技能加载失败"
+  },
+  "skillsView.location": {
+    "defaultMessage": "位置"
+  },
+  "skillsView.nameLabel": {
+    "defaultMessage": "名称"
+  },
+  "skillsView.namePlaceholder": {
+    "defaultMessage": "例如 data-cleaning"
+  },
+  "skillsView.nameRequired": {
+    "defaultMessage": "必须填名称。"
+  },
+  "skillsView.newSkill": {
+    "defaultMessage": "新建技能"
+  },
+  "skillsView.noMatch": {
+    "defaultMessage": "没有匹配的技能。"
+  },
+  "skillsView.noSkills": {
+    "defaultMessage": "没有找到技能"
+  },
+  "skillsView.notToggled": {
+    "defaultMessage": "无法切换技能状态"
+  },
+  "skillsView.projectSkill": {
+    "defaultMessage": "项目"
+  },
+  "skillsView.readOnly": {
+    "defaultMessage": "该技能是只读的，不能在这里编辑。"
+  },
+  "skillsView.remove": {
+    "defaultMessage": "删除"
+  },
+  "skillsView.runError": {
+    "defaultMessage": "操作失败"
+  },
+  "skillsView.save": {
+    "defaultMessage": "保存"
+  },
+  "skillsView.saving": {
+    "defaultMessage": "保存中…"
+  },
+  "skillsView.scopeLabel": {
+    "defaultMessage": "保存到"
+  },
+  "skillsView.searchPlaceholder": {
+    "defaultMessage": "按名称或说明搜索技能…"
+  },
+  "skillsView.source": {
+    "defaultMessage": "来源"
+  },
+  "skillsView.status": {
+    "defaultMessage": "状态"
+  },
+  "skillsView.subtitle": {
+    "defaultMessage": "教 Agent 怎么做事的方法文档（SKILL.md）。已启用的技能可以在输入框用「/」调用。"
+  },
+  "skillsView.supportingFiles": {
+    "defaultMessage": "支撑文件"
+  },
+  "skillsView.title": {
     "defaultMessage": "技能"
   },
+  "skillsView.total": {
+    "defaultMessage": "共 {count} 个技能"
+  },
   "skillsView.tryAgain": {
-    "defaultMessage": "重試"
+    "defaultMessage": "重试"
   },
   "spellcheckToggle.description": {
     "defaultMessage": "檢查聊天輸入中的拼字。需重新啟動才會生效。"
   },
   "spellcheckToggle.title": {
     "defaultMessage": "啟用拼字檢查"
+  },
+  "spreadsheetPreview.empty": {
+    "defaultMessage": "這張工作表是空的"
+  },
+  "spreadsheetPreview.failed": {
+    "defaultMessage": "無法讀取這個活頁簿"
+  },
+  "spreadsheetPreview.loading": {
+    "defaultMessage": "正在讀取活頁簿…"
+  },
+  "spreadsheetPreview.sheet": {
+    "defaultMessage": "工作表"
+  },
+  "spreadsheetPreview.summary": {
+    "defaultMessage": "{rows} 列 × {cols} 欄"
+  },
+  "spreadsheetPreview.truncated": {
+    "defaultMessage": "僅顯示前 {rows} 列、{cols} 欄"
   },
   "standaloneAppView.failedToLoad": {
     "defaultMessage": "無法載入應用程式"
@@ -4400,11 +5402,20 @@
   "switchModelModal.useOtherProvider": {
     "defaultMessage": "使用其他提供者"
   },
+  "tablePreview.empty": {
+    "defaultMessage": "這張表是空的"
+  },
+  "tablePreview.summary": {
+    "defaultMessage": "{rows} 列 × {cols} 欄"
+  },
+  "tablePreview.truncated": {
+    "defaultMessage": "僅顯示前 {rows} 列、{cols} 欄"
+  },
   "telemetryConsentPrompt.description": {
-    "defaultMessage": "您願意分享匿名使用資料以協助改善 goose 嗎？我們絕不會收集您的對話、程式碼或個人資料。"
+    "defaultMessage": "您願意分享匿名使用資料以協助改善 ModelForge 嗎？我們絕不會收集您的對話、程式碼或個人資料。"
   },
   "telemetryConsentPrompt.heading": {
-    "defaultMessage": "協助改善 goose"
+    "defaultMessage": "協助改善 ModelForge"
   },
   "telemetryConsentPrompt.learnMore": {
     "defaultMessage": "瞭解詳情"
@@ -4431,13 +5442,34 @@
     "defaultMessage": "隱私"
   },
   "telemetrySettings.toggleDescription": {
-    "defaultMessage": "分享匿名使用統計資料以協助改善 goose。"
+    "defaultMessage": "分享匿名使用統計資料以協助改善 ModelForge。"
   },
   "telemetrySettings.toggleLabel": {
     "defaultMessage": "匿名使用資料"
   },
   "telemetrySettings.updateError": {
     "defaultMessage": "無法更新遙測設定。"
+  },
+  "terminalView.exited": {
+    "defaultMessage": "工作階段已結束"
+  },
+  "terminalView.failed": {
+    "defaultMessage": "無法啟動 Shell"
+  },
+  "terminalView.fitWidth": {
+    "defaultMessage": "配合面板寬度"
+  },
+  "terminalView.pipeMode": {
+    "defaultMessage": "管道模式（無 PTY）"
+  },
+  "terminalView.ptyMode": {
+    "defaultMessage": "互動式 PTY"
+  },
+  "terminalView.restart": {
+    "defaultMessage": "新增工作階段"
+  },
+  "terminalView.starting": {
+    "defaultMessage": "正在啟動終端機…"
   },
   "themeSelector.aura": {
     "defaultMessage": "Aura"
@@ -4481,6 +5513,21 @@
   "toolApprovalButtons.staleApprovalRequest": {
     "defaultMessage": "此核准要求已不再有效。"
   },
+  "toolCallGroup.collapse": {
+    "defaultMessage": "收起操作記錄"
+  },
+  "toolCallGroup.done": {
+    "defaultMessage": "已完成"
+  },
+  "toolCallGroup.expand": {
+    "defaultMessage": "展開操作記錄"
+  },
+  "toolCallGroup.running": {
+    "defaultMessage": "執行中"
+  },
+  "toolCallGroup.summary": {
+    "defaultMessage": "{count} 項操作"
+  },
   "toolCallStatusIndicator.toolStatus": {
     "defaultMessage": "工具狀態：{status}"
   },
@@ -4512,10 +5559,10 @@
     "defaultMessage": "允許 {toolName}？"
   },
   "toolConfirmation.gooseWouldLikeToCallWithName": {
-    "defaultMessage": "Goose 想要呼叫 {toolName}。要允許嗎？"
+    "defaultMessage": "ModelForge 想要呼叫 {toolName}。要允許嗎？"
   },
   "updateSection.autoDownload": {
-    "defaultMessage": "Goose 會在背景下載更新，並於您下次結束或重新啟動時安裝。"
+    "defaultMessage": "ModelForge 會在背景下載更新，並於您下次結束或重新啟動時安裝。"
   },
   "updateSection.autoDownloadDisabledByEnv": {
     "defaultMessage": "已透過 GOOSE_DISABLE_AUTO_DOWNLOAD 環境變數停用自動下載。"
@@ -4536,7 +5583,7 @@
     "defaultMessage": "停用自動下載更新"
   },
   "updateSection.disableAutoDownloadDesc": {
-    "defaultMessage": "啟用後，Goose 會通知您有新版本，但不會自動下載。"
+    "defaultMessage": "啟用後，ModelForge 會通知您有新版本，但不會自動下載。"
   },
   "updateSection.downloadNow": {
     "defaultMessage": "立即下載"
@@ -4622,52 +5669,202 @@
   "userMessage.removeImageFromEdit": {
     "defaultMessage": "從訊息中移除圖片"
   },
-  "modelsBottomBar.recentModels": {
-    "defaultMessage": "最近"
+  "versionsPanel.cancel": {
+    "defaultMessage": "取消"
   },
-  "providerConfigurationModal.chooseModel": {
-    "defaultMessage": "選擇模型"
+  "versionsPanel.changed": {
+    "defaultMessage": "{count} 個檔案有變更"
   },
-  "providerCard.deprecatedReplacement": {
-    "defaultMessage": "已棄用 — 請改用 {replacement}。"
+  "versionsPanel.empty": {
+    "defaultMessage": "還沒有儲存過版本"
   },
-  "acpReadinessPanel.adapterFound": {
-    "defaultMessage": "已找到 ACP 轉接器"
+  "versionsPanel.failed": {
+    "defaultMessage": "操作失敗"
   },
-  "acpReadinessPanel.adapterNotFound": {
-    "defaultMessage": "找不到 ACP 轉接器"
+  "versionsPanel.gitMissing": {
+    "defaultMessage": "未安裝 Git"
   },
-  "acpReadinessPanel.authenticationHelp": {
-    "defaultMessage": "請透過提供者 CLI 登入，然後再次檢查。"
+  "versionsPanel.hideFiles": {
+    "defaultMessage": "收合變更檔案"
   },
-  "acpReadinessPanel.checkAgain": {
-    "defaultMessage": "再次檢查"
+  "versionsPanel.init": {
+    "defaultMessage": "啟用版本存檔"
   },
-  "acpReadinessPanel.checking": {
-    "defaultMessage": "正在檢查…"
+  "versionsPanel.loadingFiles": {
+    "defaultMessage": "正在載入檔案清單…"
   },
-  "acpReadinessPanel.connected": {
-    "defaultMessage": "連線成功"
+  "versionsPanel.missingIdentity": {
+    "defaultMessage": "Git 未設定使用者身分"
   },
-  "acpReadinessPanel.connectionNotChecked": {
-    "defaultMessage": "請先檢查帳戶連線，然後再繼續。"
+  "versionsPanel.noChanges": {
+    "defaultMessage": "沒有待儲存的變更"
   },
-  "providerConfigForm.deviceCodeAndEnter": {
-    "defaultMessage": "並輸入："
+  "versionsPanel.noFiles": {
+    "defaultMessage": "該版本沒有記錄檔案變更"
   },
-  "providerConfigForm.deviceCodeCopy": {
-    "defaultMessage": "複製"
+  "versionsPanel.notARepo": {
+    "defaultMessage": "目前工作目錄不是 Git 倉庫，無法追蹤程式碼變更。"
   },
-  "providerConfigForm.deviceCodeVisit": {
-    "defaultMessage": "前往"
+  "versionsPanel.nothingToCommit": {
+    "defaultMessage": "沒有新變更可儲存"
   },
-  "providerConfigurationModal.deviceCodeAndEnter": {
-    "defaultMessage": "並輸入："
+  "versionsPanel.refreshed": {
+    "defaultMessage": "已重新整理"
   },
-  "providerConfigurationModal.deviceCodeCopy": {
-    "defaultMessage": "複製"
+  "versionsPanel.restore": {
+    "defaultMessage": "還原到此"
   },
-  "providerConfigurationModal.deviceCodeVisit": {
-    "defaultMessage": "前往"
+  "versionsPanel.restoreConfirm": {
+    "defaultMessage": "將已追蹤檔案全部還原到該版本？目前未儲存的變更會被覆蓋。"
+  },
+  "versionsPanel.restored": {
+    "defaultMessage": "已還原到該版本"
+  },
+  "versionsPanel.restoring": {
+    "defaultMessage": "還原中…"
+  },
+  "versionsPanel.save": {
+    "defaultMessage": "儲存版本"
+  },
+  "versionsPanel.saved": {
+    "defaultMessage": "版本已儲存"
+  },
+  "versionsPanel.saving": {
+    "defaultMessage": "儲存中…"
+  },
+  "versionsPanel.showFiles": {
+    "defaultMessage": "變更檔案"
+  },
+  "versionsPanel.title": {
+    "defaultMessage": "專案版本"
+  },
+  "workspaceEditor.close": {
+    "defaultMessage": "關閉編輯區"
+  },
+  "workspaceEditor.openFileHint": {
+    "defaultMessage": "從右側檔案樹中選擇檔案"
+  },
+  "workspaceEditor.openFileTitle": {
+    "defaultMessage": "開啟檔案"
+  },
+  "workspaceEditor.tab": {
+    "defaultMessage": "檔案"
+  },
+  "workspaceFiles.back": {
+    "defaultMessage": "返回檔案列表"
+  },
+  "workspaceFiles.binary": {
+    "defaultMessage": "二進位檔案——請用外部程式開啟"
+  },
+  "workspaceFiles.copied": {
+    "defaultMessage": "已複製"
+  },
+  "workspaceFiles.copyPath": {
+    "defaultMessage": "複製路徑"
+  },
+  "workspaceFiles.edit": {
+    "defaultMessage": "編輯"
+  },
+  "workspaceFiles.empty": {
+    "defaultMessage": "該目錄下沒有檔案"
+  },
+  "workspaceFiles.incompleteFile": {
+    "defaultMessage": "大型檔案預覽為唯讀。請使用外部編輯器修改完整檔案。"
+  },
+  "workspaceFiles.loadFailed": {
+    "defaultMessage": "載入目錄失敗"
+  },
+  "workspaceFiles.loading": {
+    "defaultMessage": "載入中…"
+  },
+  "workspaceFiles.noMatches": {
+    "defaultMessage": "沒有符合的檔案"
+  },
+  "workspaceFiles.openFileHint": {
+    "defaultMessage": "Pick a file from the workspace tree on the left"
+  },
+  "workspaceFiles.openFileTitle": {
+    "defaultMessage": "Open a file"
+  },
+  "workspaceFiles.openWith": {
+    "defaultMessage": "開啟方式"
+  },
+  "workspaceFiles.preview": {
+    "defaultMessage": "預覽"
+  },
+  "workspaceFiles.refresh": {
+    "defaultMessage": "重新整理"
+  },
+  "workspaceFiles.reveal": {
+    "defaultMessage": "在資料夾中顯示"
+  },
+  "workspaceFiles.save": {
+    "defaultMessage": "儲存"
+  },
+  "workspaceFiles.saveFailed": {
+    "defaultMessage": "儲存失敗"
+  },
+  "workspaceFiles.saved": {
+    "defaultMessage": "已儲存"
+  },
+  "workspaceFiles.search": {
+    "defaultMessage": "搜尋檔案"
+  },
+  "workspaceFiles.truncated": {
+    "defaultMessage": "檔案較大，僅顯示前一部分"
+  },
+  "workspacePanel.close": {
+    "defaultMessage": "關閉面板"
+  },
+  "workspacePanel.diagrams": {
+    "defaultMessage": "流程圖"
+  },
+  "workspacePanel.environment": {
+    "defaultMessage": "環境"
+  },
+  "workspacePanel.figures": {
+    "defaultMessage": "繪圖"
+  },
+  "workspacePanel.files": {
+    "defaultMessage": "檔案"
+  },
+  "workspacePanel.noWorkingDir": {
+    "defaultMessage": "目前工作階段還沒有工作目錄，請先選擇或新增一個工作區，就能瀏覽檔案、執行指令。"
+  },
+  "workspacePanel.project": {
+    "defaultMessage": "專案"
+  },
+  "workspacePanel.resize": {
+    "defaultMessage": "拖曳調整寬度"
+  },
+  "workspacePanel.versions": {
+    "defaultMessage": "版本"
+  },
+  "workspaceToolbar.close": {
+    "defaultMessage": "收合面板"
+  },
+  "workspaceToolbar.diagrams": {
+    "defaultMessage": "流程圖"
+  },
+  "workspaceToolbar.editor": {
+    "defaultMessage": "編輯器檢視"
+  },
+  "workspaceToolbar.environment": {
+    "defaultMessage": "環境"
+  },
+  "workspaceToolbar.figures": {
+    "defaultMessage": "繪圖"
+  },
+  "workspaceToolbar.files": {
+    "defaultMessage": "檔案"
+  },
+  "workspaceToolbar.open": {
+    "defaultMessage": "開啟面板"
+  },
+  "workspaceToolbar.project": {
+    "defaultMessage": "專案"
+  },
+  "workspaceToolbar.versions": {
+    "defaultMessage": "版本"
   }
 }

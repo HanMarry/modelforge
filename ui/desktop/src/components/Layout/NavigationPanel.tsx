@@ -1,14 +1,17 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, Settings, UserRound } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigationContext } from './NavigationContext';
 import { useConfig } from '../ConfigContext';
 import { useNavigationSessions } from '../../hooks/useNavigationSessions';
 import {
+  CATALOG_GROUP,
   NAV_ITEMS,
+  PROFILE_NAV_ITEM,
   SETTINGS_NAV_ITEM,
   getNavItemLabel,
+  navGroupLabel,
   type NavItem,
 } from '../../hooks/useNavigationItems';
 import { AppEvents } from '../../constants/events';
@@ -107,6 +110,56 @@ const NavRow: React.FC<NavRowProps> = ({ item, active, onClick }) => {
     </button>
   );
 };
+
+/** Indented sub-item row, used inside an expanded nav group. */
+const NavSubRow: React.FC<NavRowProps> = ({ item, active, onClick }) => {
+  const intl = useIntl();
+  const Icon = item.icon;
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        'flex flex-row items-center gap-2.5 outline-none no-drag w-full',
+        'rounded-full py-1.5 pl-9 pr-3 text-sm transition-colors',
+        active
+          ? 'bg-background-tertiary text-text-primary font-medium'
+          : 'text-text-secondary hover:bg-background-tertiary/60 hover:text-text-primary'
+      )}
+    >
+      <Icon className="w-4 h-4 flex-shrink-0" />
+      <span className="text-left flex-1 truncate">{getNavItemLabel(item, intl)}</span>
+    </button>
+  );
+};
+
+/** Expandable top-level entry that reveals its sub-items. */
+const NavGroupRow: React.FC<{
+  label: string;
+  icon: NavItem['icon'];
+  expanded: boolean;
+  active: boolean;
+  onToggle: () => void;
+}> = ({ label, icon: Icon, expanded, active, onToggle }) => (
+  <button
+    onClick={onToggle}
+    aria-expanded={expanded}
+    className={cn(
+      'flex flex-row items-center gap-3 outline-none no-drag w-full',
+      'rounded-full px-3 py-2 text-sm font-medium transition-colors',
+      active && !expanded
+        ? 'bg-background-tertiary text-text-primary'
+        : 'text-text-primary hover:bg-background-tertiary/60'
+    )}
+  >
+    <Icon className="w-5 h-5 flex-shrink-0 text-text-secondary" />
+    <span className="text-left flex-1 truncate">{label}</span>
+    {expanded ? (
+      <ChevronDown className="w-4 h-4 flex-shrink-0 text-text-secondary" />
+    ) : (
+      <ChevronRight className="w-4 h-4 flex-shrink-0 text-text-secondary" />
+    )}
+  </button>
+);
 
 interface SessionRowProps {
   session: SessionListItem;
@@ -236,6 +289,20 @@ export const Navigation: React.FC<{ className?: string }> = ({ className }) => {
 
   const isActive = useCallback((path: string) => location.pathname === path, [location.pathname]);
 
+  const catalogActive = CATALOG_GROUP.isActive(location.pathname);
+  const [catalogExpanded, setCatalogExpanded] = useState(false);
+
+  // Opening one of the catalog routes reveals the group, so the current page is
+  // always visible in the sidebar.
+  useEffect(() => {
+    if (catalogActive) setCatalogExpanded(true);
+  }, [catalogActive]);
+
+  const visibleCatalogChildren = useMemo(
+    () => CATALOG_GROUP.children.filter((item) => item.path !== '/apps' || appsExtensionEnabled),
+    [appsExtensionEnabled]
+  );
+
   const {
     recentSessions,
     recentSessionsByProject,
@@ -318,12 +385,33 @@ export const Navigation: React.FC<{ className?: string }> = ({ className }) => {
 
       <div className="px-2 flex flex-col gap-0.5">
         {visibleItems.map((item) => (
-          <NavRow
-            key={item.id}
-            item={item}
-            active={isActive(item.path)}
-            onClick={() => handleNavClick(item.path)}
-          />
+          <React.Fragment key={item.id}>
+            <NavRow
+              item={item}
+              active={isActive(item.path)}
+              onClick={() => handleNavClick(item.path)}
+            />
+            {item.id === 'scheduler' && (
+              <>
+                <NavGroupRow
+                  label={navGroupLabel(intl, CATALOG_GROUP)}
+                  icon={CATALOG_GROUP.icon}
+                  expanded={catalogExpanded}
+                  active={catalogActive}
+                  onToggle={() => setCatalogExpanded((v) => !v)}
+                />
+                {catalogExpanded &&
+                  visibleCatalogChildren.map((child) => (
+                    <NavSubRow
+                      key={child.id}
+                      item={child}
+                      active={isActive(child.path)}
+                      onClick={() => handleNavClick(child.path)}
+                    />
+                  ))}
+              </>
+            )}
+          </React.Fragment>
         ))}
       </div>
 
@@ -399,12 +487,31 @@ export const Navigation: React.FC<{ className?: string }> = ({ className }) => {
         )}
       </div>
 
-      <div className="px-2 pt-2 pb-2 border-t border-border-secondary">
-        <NavRow
-          item={SETTINGS_NAV_ITEM}
-          active={isActive(SETTINGS_NAV_ITEM.path)}
-          onClick={() => handleNavClick(SETTINGS_NAV_ITEM.path)}
-        />
+      <div className="px-2 pt-2 pb-2 border-t border-border-secondary flex items-center gap-1">
+        {/* One entry for the account: profile and settings are the same page now. */}
+        <button
+          onClick={() => handleNavClick(SETTINGS_NAV_ITEM.path, { section: 'profile' })}
+          className={cn(navItemClass(isActive(SETTINGS_NAV_ITEM.path)), 'min-w-0 flex-1')}
+        >
+          <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-background-tertiary">
+            <UserRound className="h-3.5 w-3.5 text-text-secondary" />
+          </span>
+          <span className="text-left flex-1 truncate">
+            {getNavItemLabel(PROFILE_NAV_ITEM, intl)}
+          </span>
+        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={() => handleNavClick(SETTINGS_NAV_ITEM.path)}
+              aria-label={getNavItemLabel(SETTINGS_NAV_ITEM, intl)}
+              className="no-drag flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-background-tertiary/60 hover:text-text-primary"
+            >
+              <Settings className="h-4 w-4" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="top">{getNavItemLabel(SETTINGS_NAV_ITEM, intl)}</TooltipContent>
+        </Tooltip>
       </div>
     </motion.div>
   );

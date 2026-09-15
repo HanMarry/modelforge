@@ -109,6 +109,33 @@ describe('AlertBox', () => {
       const progressDots = container.querySelectorAll('.h-\\[2px\\]');
       expect(progressDots.length).toBe(0);
     });
+
+    it('shows the message next to the progress bar', () => {
+      const alert: Alert = {
+        type: AlertType.Info,
+        message: 'Context managed by the Claude Code kernel',
+        progress: { current: 50, total: 100 },
+      };
+
+      renderWithIntl(<AlertBox alert={alert} />);
+
+      expect(screen.getByText('Context managed by the Claude Code kernel')).toBeInTheDocument();
+    });
+
+    it('hides goose own auto-compact threshold when a kernel owns the context', async () => {
+      const alert: Alert = {
+        type: AlertType.Info,
+        message: 'Context managed by the Claude Code kernel',
+        progress: { current: 50, total: 100 },
+        showAutoCompactThreshold: false,
+        showCompactButton: false,
+      };
+
+      renderWithIntl(<AlertBox alert={alert} />);
+
+      expect(screen.queryByText(/Auto compact at/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Compact now/)).not.toBeInTheDocument();
+    });
   });
 
   describe('Compact Button', () => {

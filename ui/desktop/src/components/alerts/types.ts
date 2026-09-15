@@ -17,6 +17,8 @@ export interface Alert {
     total: number;
   };
   showCompactButton?: boolean;
+  /** goose's own auto-compact threshold is meaningless when a kernel manages the context. */
+  showAutoCompactThreshold?: boolean;
   compactButtonDisabled?: boolean;
   onCompact?: () => void;
   compactIcon?: React.ReactNode;

@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "name": { "zh-CN": "华数杯", "en": "Huashu Cup" },
+  "description": {
+    "zh-CN": "华数杯全国大学生数学建模竞赛论文模板",
+    "en": "Huashu Cup Mathematical Modeling Contest"
+  },
+  "language": "zh-CN",
+  "entryFile": "main.tex",
+  "order": 60,
+  "defaultFor": [],
+  "fields": [],
+  "profileFields": []
+}

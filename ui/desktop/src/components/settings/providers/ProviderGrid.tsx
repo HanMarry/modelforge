@@ -18,6 +18,7 @@ import { SwitchModelModal } from '../models/subcomponents/SwitchModelModal';
 import { useModelAndProvider } from '../../ModelAndProviderContext';
 import type { View } from '../../../utils/navigationUtils';
 import { defineMessages, useIntl } from '../../../i18n';
+import { rememberProviderApiKey } from '../../../utils/agentKernelCapture';
 
 const i18n = defineMessages({
   addProvider: {
@@ -30,15 +31,15 @@ const i18n = defineMessages({
   },
   editProvider: {
     id: 'providerGrid.editProvider',
-    defaultMessage: 'Edit  Provider',
+    defaultMessage: 'Edit Provider',
   },
   configureProvider: {
     id: 'providerGrid.configureProvider',
-    defaultMessage: 'Configure  Provider',
+    defaultMessage: 'Configure Provider',
   },
   addProviderTitle: {
     id: 'providerGrid.addProviderTitle',
-    defaultMessage: 'Add  Provider',
+    defaultMessage: 'Add Provider',
   },
   chooseModel: {
     id: 'providerGrid.chooseModel',
@@ -166,6 +167,7 @@ function ProviderCards({
 
       await acpUpdateCustomProviderFromRequest(editingProvider.id, data);
       const providerId = editingProvider.id;
+      rememberProviderApiKey(providerId, data.api_key);
       setShowCustomProviderModal(false);
       setEditingProvider(null);
       if (refreshProviders) {
@@ -232,6 +234,7 @@ function ProviderCards({
     async (data: UpdateCustomProviderRequest) => {
       const result = await acpCreateCustomProviderFromRequest(data);
       const providerId = result.provider_name;
+      rememberProviderApiKey(providerId, data.api_key);
       setShowCustomProviderModal(false);
       if (refreshProviders) {
         await refreshProviders();

@@ -12,11 +12,11 @@ const i18n = defineMessages({
   // Shortcut labels
   focusWindowLabel: {
     id: 'keyboardShortcuts.focusWindowLabel',
-    defaultMessage: 'Focus Goose Window',
+    defaultMessage: 'Focus ModelForge Window',
   },
   focusWindowDescription: {
     id: 'keyboardShortcuts.focusWindowDescription',
-    defaultMessage: 'Bring Goose window to front from anywhere',
+    defaultMessage: 'Bring ModelForge window to front from anywhere',
   },
   quickLauncherLabel: {
     id: 'keyboardShortcuts.quickLauncherLabel',
@@ -40,7 +40,7 @@ const i18n = defineMessages({
   },
   newChatWindowDescription: {
     id: 'keyboardShortcuts.newChatWindowDescription',
-    defaultMessage: 'Open a new Goose window',
+    defaultMessage: 'Open a new ModelForge window',
   },
   openDirectoryLabel: {
     id: 'keyboardShortcuts.openDirectoryLabel',
@@ -106,7 +106,7 @@ const i18n = defineMessages({
   },
   categoryGlobalDescription: {
     id: 'keyboardShortcuts.categoryGlobalDescription',
-    defaultMessage: 'These shortcuts work system-wide, even when Goose is not focused',
+    defaultMessage: 'These shortcuts work system-wide, even when ModelForge is not focused',
   },
   categoryApplication: {
     id: 'keyboardShortcuts.categoryApplication',
@@ -114,7 +114,7 @@ const i18n = defineMessages({
   },
   categoryApplicationDescription: {
     id: 'keyboardShortcuts.categoryApplicationDescription',
-    defaultMessage: 'These shortcuts work when Goose is the active application',
+    defaultMessage: 'These shortcuts work when ModelForge is the active application',
   },
   categorySearch: {
     id: 'keyboardShortcuts.categorySearch',
@@ -144,8 +144,7 @@ const i18n = defineMessages({
   },
   restartDescription: {
     id: 'keyboardShortcuts.restartDescription',
-    defaultMessage:
-      'Changes to application shortcuts (like New Chat, Settings, etc.) require restarting Goose to take effect. Global shortcuts (Focus Window, Quick Launcher) work immediately.',
+    defaultMessage: 'Changes to application shortcuts (like New Chat, Settings, etc.) require restarting ModelForge to take effect. Global shortcuts (Focus Window, Quick Launcher) work immediately.',
   },
   dismiss: {
     id: 'keyboardShortcuts.dismiss',

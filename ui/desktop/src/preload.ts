@@ -2,8 +2,21 @@ import Electron, { contextBridge, ipcRenderer, webUtils } from 'electron';
 import { Recipe } from './recipe';
 import type { GooseApp } from './types/apps';
 import type { Settings, SettingKey } from './utils/settings';
+import type { AgentKernelStatus } from './utils/agentKernel';
 import { defaultSettings } from './utils/settings';
+import type { DisabledSkillRecord } from './utils/skillEnablement';
 import type { OpenExternalUrlResult } from './utils/urlSecurity';
+import type {
+  EnvironmentProbe,
+  GitCheckpoint,
+  GitCheckpointFile,
+  GitVersionResult,
+  GitVersionStatus,
+  TerminalSessionInfo,
+  WorkspaceEntry,
+  ProjectSnapshot,
+  WorkspaceFileReadResult,
+} from './types/workspaceApi';
 
 // Mapping from settings keys to their old localStorage keys for lazy migration
 const localStorageKeyMap: Partial<Record<SettingKey, string>> = {
@@ -125,7 +138,68 @@ type ElectronAPI = {
   writeFile: (directory: string, content: string) => Promise<boolean>;
   ensureDirectory: (dirPath: string) => Promise<boolean>;
   listFiles: (dirPath: string, extension?: string) => Promise<string[]>;
+  workspaceListDirectory: (dirPath: string, showHidden?: boolean) => Promise<WorkspaceEntry[]>;
+  workspaceReadFile: (filePath: string) => Promise<WorkspaceFileReadResult | null>;
+  workspaceReadBinary: (
+    filePath: string
+  ) => Promise<{ dataUrl: string | null; size: number; error: string | null }>;
+  workspaceWriteFile: (
+    filePath: string,
+    content: string
+  ) => Promise<{ ok: boolean; error?: string }>;
+  workspaceOpenPath: (targetPath: string) => Promise<string>;
+  workspaceRevealPath: (targetPath: string) => Promise<boolean>;
+  workspaceOpenInEditor: (
+    targetPath: string,
+    editor: 'vscode' | 'cursor' | 'notepad' | 'default'
+  ) => Promise<{ ok: boolean; error?: string }>;
+  workspaceProbeEnvironment: () => Promise<EnvironmentProbe[]>;
+  workspaceScanProject: (rootDir: string) => Promise<ProjectSnapshot>;
+  workspaceListDiagrams: (rootDir: string) => Promise<WorkspaceEntry[]>;
+  workspaceSearchFiles: (rootDir: string, query: string) => Promise<WorkspaceEntry[]>;
+  workspaceReadBytes: (
+    filePath: string
+  ) => Promise<{ base64: string | null; size: number; error: string | null }>;
+  workspaceStat: (filePath: string) => Promise<{
+    exists: boolean;
+    isDirectory: boolean;
+    size: number;
+    modifiedAt: number;
+  }>;
+  gitVersionStatus: (dir: string) => Promise<GitVersionStatus>;
+  gitVersionList: (dir: string, limit?: number) => Promise<GitCheckpoint[]>;
+  gitVersionFiles: (dir: string, hash: string) => Promise<GitCheckpointFile[]>;
+  gitVersionFileDiff: (dir: string, hash: string, filePath: string) => Promise<string>;
+  gitVersionSave: (dir: string, message: string) => Promise<GitVersionResult>;
+  gitVersionRestore: (dir: string, hash: string) => Promise<GitVersionResult>;
+  gitVersionInit: (dir: string) => Promise<GitVersionResult>;
+  terminalCreate: (request: {
+    cwd?: string;
+    cols?: number;
+    rows?: number;
+  }) => Promise<TerminalSessionInfo | null>;
+  terminalWrite: (id: string, data: string) => Promise<boolean>;
+  terminalResizeConsole: (id: string, cols: number, rows: number) => Promise<boolean>;
+  terminalKill: (id: string) => Promise<boolean>;
+  onTerminalData: (callback: (payload: { id: string; data: string }) => void) => () => void;
+  onTerminalExit: (callback: (payload: { id: string; code: number }) => void) => () => void;
   getAllowedExtensions: () => Promise<string[]>;
+  /** Moves a skill folder in or out of the disabled store; built-ins cannot be disabled. */
+  setSkillEnabled: (request: {
+    name: string;
+    path: string;
+    enabled: boolean;
+  }) => Promise<
+    { ok: true; records: DisabledSkillRecord[]; location: string } | { ok: false; error: string }
+  >;
+  /** Skills the user disabled, with where they came from so they can be restored. */
+  listDisabledSkills: () => Promise<DisabledSkillRecord[]>;
+  /** Copies a picked folder containing SKILL.md into the global skills directory. */
+  importSkillFolder: () => Promise<
+    { canceled: true } | { canceled: false; name?: string; path?: string; error?: string }
+  >;
+  /** Reads a skill export payload for the kernel's importer. */
+  selectSkillImportFile: () => Promise<{ filename: string; json?: string; error?: string } | null>;
   getPathForFile: (file: File) => string;
   setMenuBarIcon: (show: boolean) => Promise<boolean>;
   getMenuBarIconState: () => Promise<boolean>;
@@ -135,6 +209,20 @@ type ElectronAPI = {
   setSetting: <K extends SettingKey>(key: K, value: Settings[K]) => Promise<void>;
   getSecretKey: () => Promise<string | null>;
   getAcpUrl: () => Promise<string | null>;
+  /** Which agent kernel is active and whether it has everything it needs to run. */
+  getAgentKernelStatus: () => Promise<AgentKernelStatus>;
+  /** Stores the key the external kernels use for the active provider. */
+  setAgentKernelKey: (providerId: string, apiKey: string) => Promise<boolean>;
+  clearAgentKernelKey: (providerId: string) => Promise<boolean>;
+  /** Keeps a copy of a provider key saved in the app so kernels can reuse it. */
+  rememberProviderApiKey: (providerId: string, apiKey: string) => Promise<boolean>;
+  forgetProviderApiKey: (providerId: string) => Promise<boolean>;
+  /** Re-provisions the kernel now; a running backend only picks it up after a restart. */
+  applyAgentKernel: () => Promise<AgentKernelStatus>;
+  /** Applies settings edits to the running kernel without re-provisioning it. */
+  refreshAgentKernel: () => Promise<AgentKernelStatus>;
+  /** Switches the model the kernel proxies to; takes effect on the next request. */
+  setAgentKernelModel: (model: string) => Promise<AgentKernelStatus>;
   setWakelock: (enable: boolean) => Promise<boolean>;
   getWakelockState: () => Promise<boolean>;
   setSpellcheck: (enable: boolean) => Promise<boolean>;
@@ -227,6 +315,62 @@ const electronAPI: ElectronAPI = {
   ensureDirectory: (dirPath: string) => ipcRenderer.invoke('ensure-directory', dirPath),
   listFiles: (dirPath: string, extension?: string) =>
     ipcRenderer.invoke('list-files', dirPath, extension),
+  workspaceListDirectory: (dirPath: string, showHidden?: boolean) =>
+    ipcRenderer.invoke('workspace-list-dir', dirPath, showHidden),
+  workspaceReadFile: (filePath: string) => ipcRenderer.invoke('workspace-read-file', filePath),
+  workspaceReadBinary: (filePath: string) => ipcRenderer.invoke('workspace-read-binary', filePath),
+  workspaceWriteFile: (filePath: string, content: string) =>
+    ipcRenderer.invoke('workspace-write-file', filePath, content),
+  workspaceOpenPath: (targetPath: string) => ipcRenderer.invoke('workspace-open-path', targetPath),
+  workspaceRevealPath: (targetPath: string) =>
+    ipcRenderer.invoke('workspace-reveal-path', targetPath),
+  workspaceOpenInEditor: (
+    targetPath: string,
+    editor: 'vscode' | 'cursor' | 'notepad' | 'default'
+  ) => ipcRenderer.invoke('workspace-open-in-editor', targetPath, editor),
+  workspaceProbeEnvironment: () => ipcRenderer.invoke('workspace-probe-environment'),
+  workspaceScanProject: (rootDir: string) => ipcRenderer.invoke('workspace-scan-project', rootDir),
+  workspaceListDiagrams: (rootDir: string) =>
+    ipcRenderer.invoke('workspace-list-diagrams', rootDir),
+  workspaceSearchFiles: (rootDir: string, query: string) =>
+    ipcRenderer.invoke('workspace-search-files', rootDir, query),
+  workspaceReadBytes: (filePath: string) => ipcRenderer.invoke('workspace-read-bytes', filePath),
+  workspaceStat: (filePath: string) => ipcRenderer.invoke('workspace-stat', filePath),
+  gitVersionStatus: (dir: string) => ipcRenderer.invoke('git-version-status', dir),
+  gitVersionList: (dir: string, limit?: number) =>
+    ipcRenderer.invoke('git-version-list', dir, limit),
+  gitVersionFiles: (dir: string, hash: string) =>
+    ipcRenderer.invoke('git-version-files', dir, hash),
+  gitVersionFileDiff: (dir: string, hash: string, filePath: string) =>
+    ipcRenderer.invoke('git-version-file-diff', dir, hash, filePath),
+  gitVersionSave: (dir: string, message: string) =>
+    ipcRenderer.invoke('git-version-save', dir, message),
+  gitVersionRestore: (dir: string, hash: string) =>
+    ipcRenderer.invoke('git-version-restore', dir, hash),
+  gitVersionInit: (dir: string) => ipcRenderer.invoke('git-version-init', dir),
+  terminalCreate: (request: { cwd?: string; cols?: number; rows?: number }) =>
+    ipcRenderer.invoke('terminal-create', request),
+  terminalWrite: (id: string, data: string) => ipcRenderer.invoke('terminal-write', id, data),
+  terminalResizeConsole: (id: string, cols: number, rows: number) =>
+    ipcRenderer.invoke('terminal-resize-console', id, cols, rows),
+  terminalKill: (id: string) => ipcRenderer.invoke('terminal-kill', id),
+  onTerminalData: (callback: (payload: { id: string; data: string }) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, payload: { id: string; data: string }) =>
+      callback(payload);
+    ipcRenderer.on('terminal-data', listener);
+    return () => ipcRenderer.removeListener('terminal-data', listener);
+  },
+  onTerminalExit: (callback: (payload: { id: string; code: number }) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, payload: { id: string; code: number }) =>
+      callback(payload);
+    ipcRenderer.on('terminal-exit', listener);
+    return () => ipcRenderer.removeListener('terminal-exit', listener);
+  },
+  setSkillEnabled: (request: { name: string; path: string; enabled: boolean }) =>
+    ipcRenderer.invoke('skills-set-enabled', request),
+  listDisabledSkills: () => ipcRenderer.invoke('skills-disabled-list'),
+  importSkillFolder: () => ipcRenderer.invoke('import-skill-folder'),
+  selectSkillImportFile: () => ipcRenderer.invoke('select-skill-import-file'),
   getPathForFile: (file: File) => webUtils.getPathForFile(file),
   getAllowedExtensions: () => ipcRenderer.invoke('get-allowed-extensions'),
   setMenuBarIcon: (show: boolean) => ipcRenderer.invoke('set-menu-bar-icon', show),
@@ -262,6 +406,18 @@ const electronAPI: ElectronAPI = {
   },
   getSecretKey: () => ipcRenderer.invoke('get-secret-key'),
   getAcpUrl: () => ipcRenderer.invoke('get-acp-url'),
+  getAgentKernelStatus: () => ipcRenderer.invoke('agent-kernel-status'),
+  setAgentKernelKey: (providerId: string, apiKey: string) =>
+    ipcRenderer.invoke('agent-kernel-set-key', providerId, apiKey),
+  clearAgentKernelKey: (providerId: string) =>
+    ipcRenderer.invoke('agent-kernel-clear-key', providerId),
+  rememberProviderApiKey: (providerId: string, apiKey: string) =>
+    ipcRenderer.invoke('agent-kernel-remember-provider-key', providerId, apiKey),
+  forgetProviderApiKey: (providerId: string) =>
+    ipcRenderer.invoke('agent-kernel-forget-provider-key', providerId),
+  applyAgentKernel: () => ipcRenderer.invoke('agent-kernel-apply'),
+  refreshAgentKernel: () => ipcRenderer.invoke('agent-kernel-refresh'),
+  setAgentKernelModel: (model: string) => ipcRenderer.invoke('agent-kernel-set-model', model),
   setWakelock: (enable: boolean) => ipcRenderer.invoke('set-wakelock', enable),
   getWakelockState: () => ipcRenderer.invoke('get-wakelock-state'),
   setSpellcheck: (enable: boolean) => ipcRenderer.invoke('set-spellcheck', enable),

@@ -188,7 +188,7 @@ export function useNavigationSessions() {
   }, []);
 
   const handleNavClick = useCallback(
-    (path: string) => {
+    (path: string, state?: Record<string, unknown>) => {
       if (path === '/pair') {
         const sessionId =
           currentSessionId || lastSessionIdRef.current || chatContext?.chat?.sessionId;
@@ -198,7 +198,7 @@ export function useNavigationSessions() {
           navigate('/');
         }
       } else {
-        navigate(path);
+        navigate(path, state ? { state } : undefined);
       }
     },
     [navigate, currentSessionId, chatContext?.chat?.sessionId]

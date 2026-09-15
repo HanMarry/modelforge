@@ -4,7 +4,7 @@ import os from 'node:os';
 import log from './logger';
 
 /**
- * Ensures Windows shims are available in %LOCALAPPDATA%\Goose\bin
+ * Ensures Windows shims are available in %LOCALAPPDATA%\ModelForge\bin
  * This allows the bundled executables to be found via PATH regardless of where Goose is installed
  */
 export async function ensureWinShims(): Promise<void> {
@@ -13,14 +13,14 @@ export async function ensureWinShims(): Promise<void> {
   const srcDir = path.join(process.resourcesPath, 'bin'); // existing dir
   const tgtDir = path.join(
     process.env.LOCALAPPDATA ?? path.join(os.homedir(), 'AppData', 'Local'),
-    'Goose',
+    'ModelForge',
     'bin'
   );
 
   try {
     await fs.promises.mkdir(tgtDir, { recursive: true });
 
-    // Copy command-line tools only; the goose binary is never shimmed
+    // Copy command-line tools only; the agent binary is never shimmed
     const shims = ['uvx.exe', 'uv.exe', 'npx.cmd'];
 
     await Promise.all(

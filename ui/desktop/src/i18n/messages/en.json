@@ -20,6 +20,141 @@
   "acpReadinessPanel.connectionNotChecked": {
     "defaultMessage": "Check your account connection before continuing."
   },
+  "activityStatus.compacting": {
+    "defaultMessage": "Compacting the conversation…"
+  },
+  "activityStatus.completedOps": {
+    "defaultMessage": "{count} operations completed"
+  },
+  "activityStatus.elapsed": {
+    "defaultMessage": "{time} elapsed"
+  },
+  "activityStatus.running": {
+    "defaultMessage": "{operation}"
+  },
+  "activityStatus.streaming": {
+    "defaultMessage": "Writing the reply…"
+  },
+  "activityStatus.thinking": {
+    "defaultMessage": "Thinking…"
+  },
+  "activityStatus.waiting": {
+    "defaultMessage": "Waiting for your confirmation…"
+  },
+  "agentKernelSection.activeBadge": {
+    "defaultMessage": "Active"
+  },
+  "agentKernelSection.apiKeyHelp": {
+    "defaultMessage": "Stored encrypted on this device. goose never hands the provider key back to the app, so save it here once if the kernel reports the key is missing."
+  },
+  "agentKernelSection.apiKeyLabel": {
+    "defaultMessage": "API key for the kernel (optional)"
+  },
+  "agentKernelSection.apiKeyPlaceholder": {
+    "defaultMessage": "Leave blank to reuse the key saved in the provider settings"
+  },
+  "agentKernelSection.builtinDescription": {
+    "defaultMessage": "ModelForge own agent loop. No extra runtime needed."
+  },
+  "agentKernelSection.builtinTitle": {
+    "defaultMessage": "Built-in kernel"
+  },
+  "agentKernelSection.claudeCodeDescription": {
+    "defaultMessage": "Runs the Claude Code agent loop on the API you configured."
+  },
+  "agentKernelSection.claudeCodeTitle": {
+    "defaultMessage": "Claude Code kernel"
+  },
+  "agentKernelSection.clearKey": {
+    "defaultMessage": "Forget saved key"
+  },
+  "agentKernelSection.codexDescription": {
+    "defaultMessage": "Runs the OpenAI Codex agent loop on the API you configured."
+  },
+  "agentKernelSection.codexTitle": {
+    "defaultMessage": "Codex kernel"
+  },
+  "agentKernelSection.contextWindowHelp": {
+    "defaultMessage": "Windows differ per model, so this applies to {model} only. The context bar and its warnings use this value instead of the kernel’s own (usually larger) window."
+  },
+  "agentKernelSection.contextWindowSourceOverride": {
+    "defaultMessage": "Using the window you entered."
+  },
+  "agentKernelSection.contextWindowSourceProvider": {
+    "defaultMessage": "Using the window the provider declares for this model."
+  },
+  "agentKernelSection.contextWindowSourceUnknown": {
+    "defaultMessage": "The provider declares no window for this model, so the bar cannot warn you in time — filling it in here is recommended."
+  },
+  "agentKernelSection.contextWindowTitle": {
+    "defaultMessage": "Context window of {model}"
+  },
+  "agentKernelSection.currency": {
+    "defaultMessage": "Currency"
+  },
+  "agentKernelSection.description": {
+    "defaultMessage": "Choose the agent loop that runs your chats. The built-in kernel works out of the box; Claude Code and Codex run on the API configured in ModelForge through a local adapter."
+  },
+  "agentKernelSection.inputPrice": {
+    "defaultMessage": "Input / 1M"
+  },
+  "agentKernelSection.keySaved": {
+    "defaultMessage": "Key saved."
+  },
+  "agentKernelSection.keySource": {
+    "defaultMessage": "API key source: {source}"
+  },
+  "agentKernelSection.keySourceEnv": {
+    "defaultMessage": "environment variable {name}"
+  },
+  "agentKernelSection.keySourceKernel": {
+    "defaultMessage": "entered for the kernel"
+  },
+  "agentKernelSection.keySourceNone": {
+    "defaultMessage": "not set"
+  },
+  "agentKernelSection.keySourceProvider": {
+    "defaultMessage": "captured from the provider settings"
+  },
+  "agentKernelSection.outputPrice": {
+    "defaultMessage": "Output / 1M"
+  },
+  "agentKernelSection.pricingHelp": {
+    "defaultMessage": "Per 1M tokens, used to estimate what the kernel spends on your model. The kernel reports its own tokens; goose has no price for it."
+  },
+  "agentKernelSection.pricingTitle": {
+    "defaultMessage": "Model pricing (optional)"
+  },
+  "agentKernelSection.restartNote": {
+    "defaultMessage": "Model, key, window and prices apply right away. Switching the kernel itself needs a restart."
+  },
+  "agentKernelSection.restartNow": {
+    "defaultMessage": "Restart now"
+  },
+  "agentKernelSection.restartRequired": {
+    "defaultMessage": "Kernel changed — restart ModelForge to provision it."
+  },
+  "agentKernelSection.saveKey": {
+    "defaultMessage": "Save key"
+  },
+  "agentKernelSection.statusBuiltin": {
+    "defaultMessage": "The built-in kernel is active."
+  },
+  "agentKernelSection.statusIncomplete": {
+    "defaultMessage": "Not ready yet"
+  },
+  "agentKernelSection.statusReady": {
+    "defaultMessage": "Ready · {baseUrl} · model {model} · local adapter {shimUrl}"
+  },
+  "agentKernelSection.statusTitle": {
+    "defaultMessage": "Kernel status"
+  },
+  "agentKernelSection.title": {
+    "defaultMessage": "Agent Kernel"
+  },
+  "agentKernelSection.usingProvider": {
+    "defaultMessage": "Provider: {providerId}"
+  },
   "alertBox.autoCompactAt": {
     "defaultMessage": "Auto compact at"
   },
@@ -28,6 +163,54 @@
   },
   "alertBox.failedToSaveThreshold": {
     "defaultMessage": "Failed to save threshold: {error}"
+  },
+  "algorithmsView.all": {
+    "defaultMessage": "All"
+  },
+  "algorithmsView.dataNeeded": {
+    "defaultMessage": "What data it needs"
+  },
+  "algorithmsView.dependencies": {
+    "defaultMessage": "Dependencies"
+  },
+  "algorithmsView.empty": {
+    "defaultMessage": "No methods match that search."
+  },
+  "algorithmsView.entrypoint": {
+    "defaultMessage": "Entry point"
+  },
+  "algorithmsView.homepage": {
+    "defaultMessage": "Upstream docs"
+  },
+  "algorithmsView.license": {
+    "defaultMessage": "Licence"
+  },
+  "algorithmsView.needsInstall": {
+    "defaultMessage": "Needs install"
+  },
+  "algorithmsView.notSuitableFor": {
+    "defaultMessage": "When not to use it"
+  },
+  "algorithmsView.outputs": {
+    "defaultMessage": "What you get back"
+  },
+  "algorithmsView.searchPlaceholder": {
+    "defaultMessage": "Search methods or packages, e.g. PSO, scikit-learn"
+  },
+  "algorithmsView.sessionFailed": {
+    "defaultMessage": "Could not start a session for this method"
+  },
+  "algorithmsView.subtitle": {
+    "defaultMessage": "Ready-made method cards: pick one and let the agent install dependencies and write the code."
+  },
+  "algorithmsView.title": {
+    "defaultMessage": "Methods and algorithms"
+  },
+  "algorithmsView.useInSession": {
+    "defaultMessage": "Try it in a session"
+  },
+  "algorithmsView.useWhen": {
+    "defaultMessage": "When to use it"
   },
   "announcementModal.gotIt": {
     "defaultMessage": "Got it!"
@@ -48,7 +231,7 @@
     "defaultMessage": "Delete \"{name}\"? This cannot be undone."
   },
   "appsView.description": {
-    "defaultMessage": "Applications from your MCP servers and Apps built by goose itself. You can ask it to create new apps through the chat interface and they will appear here."
+    "defaultMessage": "Applications from your MCP servers and Apps built by ModelForge itself. You can ask it to create new apps through the chat interface and they will appear here."
   },
   "appsView.errorLoading": {
     "defaultMessage": "Error loading apps: {error}"
@@ -66,7 +249,7 @@
     "defaultMessage": "Loading apps..."
   },
   "appsView.noAppsDescription": {
-    "defaultMessage": "Open a chat and ask goose for the app you want to have. It can build one for you and that will appear here. Or if somebody shared an app, you can import it using the button above."
+    "defaultMessage": "Open a chat and ask ModelForge for the app you want to have. It can build one for you and that will appear here. Or if somebody shared an app, you can import it using the button above."
   },
   "appsView.noAppsTitle": {
     "defaultMessage": "No apps available"
@@ -105,7 +288,7 @@
     "defaultMessage": "Credential deleted"
   },
   "authSettings.description": {
-    "defaultMessage": "Manage provider credentials stored locally by goose."
+    "defaultMessage": "Manage provider credentials stored locally by ModelForge."
   },
   "authSettings.empty": {
     "defaultMessage": "No locally stored provider credentials were found."
@@ -192,10 +375,31 @@
     "defaultMessage": "Launch"
   },
   "chat.notification.taskComplete.body": {
-    "defaultMessage": "Click here to bring Goose back into focus."
+    "defaultMessage": "Click here to bring ModelForge back into focus."
   },
   "chat.notification.taskComplete.title": {
-    "defaultMessage": "Goose finished the task."
+    "defaultMessage": "ModelForge finished the task."
+  },
+  "chatInput.contextCriticalBody": {
+    "defaultMessage": "{percent}% used ({used} / {limit} tokens). Start a new session now — the next long turn may be rejected by your provider."
+  },
+  "chatInput.contextCriticalKernelBody": {
+    "defaultMessage": "{percent}% used ({used} / {limit} tokens). Start a new session now — the {kernel} kernel may still exceed your model’s window."
+  },
+  "chatInput.contextCriticalTitle": {
+    "defaultMessage": "Almost out of context"
+  },
+  "chatInput.contextWarningBody": {
+    "defaultMessage": "{percent}% used ({used} / {limit} tokens). Consider starting a new session so answers keep their quality."
+  },
+  "chatInput.contextWarningKernelBody": {
+    "defaultMessage": "{percent}% used ({used} / {limit} tokens). The {kernel} kernel compacts on its own, but a new session keeps details sharper."
+  },
+  "chatInput.contextWarningNotificationTitle": {
+    "defaultMessage": "ModelForge: context almost full"
+  },
+  "chatInput.contextWarningTitle": {
+    "defaultMessage": "Context is filling up"
   },
   "chatInput.contextWindow": {
     "defaultMessage": "Context window"
@@ -205,6 +409,9 @@
   },
   "chatInput.failedToReadImage": {
     "defaultMessage": "Failed to read image file"
+  },
+  "chatInput.kernelContextManaged": {
+    "defaultMessage": "Context managed by the {kernel} kernel — it compacts on its own; the bar shows your model’s window."
   },
   "chatInput.navigationShortcut": {
     "defaultMessage": "{prefix}↑/{prefix}↓ to navigate messages"
@@ -246,13 +453,13 @@
     "defaultMessage": "Waiting for images to save..."
   },
   "chatSettings.modeDescription": {
-    "defaultMessage": "Choose the default mode Goose uses for new sessions. Existing sessions keep their current mode."
+    "defaultMessage": "Choose the default mode ModelForge uses for new sessions. Existing sessions keep their current mode."
   },
   "chatSettings.modeTitle": {
     "defaultMessage": "Default Mode"
   },
   "chatSettings.responseStylesDescription": {
-    "defaultMessage": "Choose how Goose should format and style its responses"
+    "defaultMessage": "Choose how ModelForge should format and style its responses"
   },
   "chatSettings.responseStylesTitle": {
     "defaultMessage": "Response Styles"
@@ -273,10 +480,10 @@
     "defaultMessage": "Configuration Editor"
   },
   "configSettings.description": {
-    "defaultMessage": "Edit your goose configuration settings"
+    "defaultMessage": "Edit your ModelForge configuration settings"
   },
   "configSettings.descriptionWithProvider": {
-    "defaultMessage": "Edit your goose configuration settings (current settings for {provider})"
+    "defaultMessage": "Edit your ModelForge configuration settings (current settings for {provider})"
   },
   "configSettings.done": {
     "defaultMessage": "Done"
@@ -341,6 +548,93 @@
   "confirmationModal.processing": {
     "defaultMessage": "Processing..."
   },
+  "connectorsView.addCustom": {
+    "defaultMessage": "Add a custom connector"
+  },
+  "connectorsView.all": {
+    "defaultMessage": "All"
+  },
+  "connectorsView.alreadyInstalled": {
+    "defaultMessage": "This connector is already in your extensions."
+  },
+  "connectorsView.builtin": {
+    "defaultMessage": "Built in"
+  },
+  "connectorsView.builtinHint": {
+    "defaultMessage": "Ships with the app; toggle it from Plugins."
+  },
+  "connectorsView.cancel": {
+    "defaultMessage": "Cancel"
+  },
+  "connectorsView.capabilities": {
+    "defaultMessage": "Capabilities"
+  },
+  "connectorsView.command": {
+    "defaultMessage": "Runs as"
+  },
+  "connectorsView.confirmInstall": {
+    "defaultMessage": "Add connector"
+  },
+  "connectorsView.defaultOff": {
+    "defaultMessage": "Disabled by default"
+  },
+  "connectorsView.defaultOn": {
+    "defaultMessage": "Enabled by default"
+  },
+  "connectorsView.docs": {
+    "defaultMessage": "Documentation"
+  },
+  "connectorsView.install": {
+    "defaultMessage": "Install"
+  },
+  "connectorsView.installFailed": {
+    "defaultMessage": "Couldn't add the connector"
+  },
+  "connectorsView.installSuccess": {
+    "defaultMessage": "Connector added"
+  },
+  "connectorsView.installSuccessMsg": {
+    "defaultMessage": "{name} is enabled. Its first call may take a moment while the package downloads."
+  },
+  "connectorsView.installable": {
+    "defaultMessage": "Available to connect"
+  },
+  "connectorsView.installed": {
+    "defaultMessage": "Installed"
+  },
+  "connectorsView.installing": {
+    "defaultMessage": "Installing…"
+  },
+  "connectorsView.optional": {
+    "defaultMessage": "optional"
+  },
+  "connectorsView.planned": {
+    "defaultMessage": "Planned"
+  },
+  "connectorsView.plannedHint": {
+    "defaultMessage": "No server implemented yet — listed so the catalogue is complete."
+  },
+  "connectorsView.prerequisite": {
+    "defaultMessage": "Before you start"
+  },
+  "connectorsView.secretsHint": {
+    "defaultMessage": "Stored in the system keyring, never written into the config file. Leave blank to fill in later."
+  },
+  "connectorsView.secretsTitle": {
+    "defaultMessage": "Credentials"
+  },
+  "connectorsView.source": {
+    "defaultMessage": "Package"
+  },
+  "connectorsView.subtitle": {
+    "defaultMessage": "Extend the assistant with MCP servers: literature search, web fetch and repositories."
+  },
+  "connectorsView.title": {
+    "defaultMessage": "Connectors"
+  },
+  "connectorsView.transport": {
+    "defaultMessage": "Transport"
+  },
   "conversationLimitsDropdown.conversationLimits": {
     "defaultMessage": "Conversation Limits"
   },
@@ -348,13 +642,22 @@
     "defaultMessage": "Max Turns"
   },
   "conversationLimitsDropdown.maxTurnsDescription": {
-    "defaultMessage": "Maximum agent turns before Goose asks for user input"
+    "defaultMessage": "Maximum agent turns before ModelForge asks for user input"
   },
   "costTracker.costUnavailable": {
     "defaultMessage": "Cost data not available for {model} ({inputTokens} input, {outputTokens} output tokens)"
   },
   "costTracker.inputOutputTooltip": {
     "defaultMessage": "Input: {inputTokens} tokens ({inputCost}) | Output: {outputTokens} tokens ({outputCost})"
+  },
+  "costTracker.kernelEstimate": {
+    "defaultMessage": "Estimated from your prices"
+  },
+  "costTracker.kernelEstimateTooltip": {
+    "defaultMessage": "Served by {model} through the {kernel} kernel. Estimated from the prices you entered in Settings → App → Agent kernel · input {inputTokens} tok, output {outputTokens} tok."
+  },
+  "costTracker.kernelPricesMissing": {
+    "defaultMessage": "The kernel is serving your model {model}, so goose has no price for it. Enter the per-million-token prices in Settings → App → Agent kernel to see a cost estimate."
   },
   "costTracker.pricingUnavailable": {
     "defaultMessage": "Pricing data unavailable for {model}"
@@ -804,7 +1107,7 @@
     "defaultMessage": "Edit {name} settings"
   },
   "defaultCardButtons.getStarted": {
-    "defaultMessage": "Get started with goose!"
+    "defaultMessage": "Get started with ModelForge!"
   },
   "defaultProviderSetupForm.apiHostLabel": {
     "defaultMessage": "API Host"
@@ -887,6 +1190,24 @@
   "diagnosticsModal.systemInfoErrorTitle": {
     "defaultMessage": "Error"
   },
+  "diagramsPanel.count": {
+    "defaultMessage": "{count} diagrams"
+  },
+  "diagramsPanel.empty": {
+    "defaultMessage": "No diagrams yet"
+  },
+  "diagramsPanel.emptyHint": {
+    "defaultMessage": "Ask the agent for a technical roadmap or flow diagram; rendered .drawio / PNG output shows up here."
+  },
+  "diagramsPanel.generate": {
+    "defaultMessage": "Ask for a technical roadmap diagram"
+  },
+  "diagramsPanel.openExternal": {
+    "defaultMessage": "Open with an external program"
+  },
+  "diagramsPanel.refresh": {
+    "defaultMessage": "Refresh"
+  },
   "dialog.close": {
     "defaultMessage": "Close"
   },
@@ -935,6 +1256,12 @@
   "dictationSettings.voiceDictationProvider": {
     "defaultMessage": "Voice Dictation Provider"
   },
+  "diffView.empty": {
+    "defaultMessage": "No textual changes for this file"
+  },
+  "diffView.truncated": {
+    "defaultMessage": "Diff truncated"
+  },
   "dirSwitcher.chooseDirectory": {
     "defaultMessage": "Choose directory…"
   },
@@ -972,7 +1299,7 @@
     "defaultMessage": "Information request was cancelled."
   },
   "elicitationRequest.defaultMessage": {
-    "defaultMessage": "Goose needs some information from you."
+    "defaultMessage": "ModelForge needs some information from you."
   },
   "elicitationRequest.expired": {
     "defaultMessage": "This request has expired. The extension will need to ask again."
@@ -1013,11 +1340,29 @@
   "environmentBadge.dev": {
     "defaultMessage": "Dev"
   },
+  "environmentPanel.checking": {
+    "defaultMessage": "Checking the environment…"
+  },
+  "environmentPanel.missing": {
+    "defaultMessage": "Not found"
+  },
+  "environmentPanel.probeFailed": {
+    "defaultMessage": "Could not probe the environment"
+  },
+  "environmentPanel.refresh": {
+    "defaultMessage": "Re-check"
+  },
+  "environmentPanel.terminal": {
+    "defaultMessage": "Terminal"
+  },
+  "environmentPanel.workingDir": {
+    "defaultMessage": "Working directory"
+  },
   "errorBoundary.errorGeneric": {
     "defaultMessage": "An error occurred."
   },
   "errorBoundary.errorWithVersion": {
-    "defaultMessage": "An error occurred in Goose v{version}."
+    "defaultMessage": "An error occurred in ModelForge v{version}."
   },
   "errorBoundary.heading": {
     "defaultMessage": "Honk!"
@@ -1200,7 +1545,7 @@
     "defaultMessage": "Extensions enabled here are used as the default for new chats. You can also toggle active extensions during chat."
   },
   "extensionsView.description": {
-    "defaultMessage": "These extensions use the Model Context Protocol (MCP). They can expand Goose's capabilities using three main components: Prompts, Resources, and Tools. {searchShortcut} to search."
+    "defaultMessage": "These extensions use the Model Context Protocol (MCP). They can expand ModelForge's capabilities using three main components: Prompts, Resources, and Tools. {searchShortcut} to search."
   },
   "extensionsView.heading": {
     "defaultMessage": "Extensions"
@@ -1218,13 +1563,13 @@
     "defaultMessage": "AA:BB:CC:... or sha256/base64"
   },
   "externalBackendSection.description": {
-    "defaultMessage": "By default Goose starts a local backend. Use this to connect to an external ACP-compatible backend."
+    "defaultMessage": "By default ModelForge starts a local backend. Use this to connect to an external ACP-compatible backend."
   },
   "externalBackendSection.fingerprintRequiresHttps": {
     "defaultMessage": "Certificate fingerprint requires an https URL"
   },
   "externalBackendSection.restartNote": {
-    "defaultMessage": "Changes apply to new chat windows. Restart Goose to update existing windows."
+    "defaultMessage": "Changes apply to new chat windows. Restart ModelForge to update existing windows."
   },
   "externalBackendSection.secretKey": {
     "defaultMessage": "Secret Key"
@@ -1239,7 +1584,7 @@
     "defaultMessage": "Backend Base URL"
   },
   "externalBackendSection.serverUrlHelp": {
-    "defaultMessage": "Enter the HTTP(S) base URL. Goose checks /status and connects to /acp under this base."
+    "defaultMessage": "Enter the HTTP(S) base URL. ModelForge checks /status and connects to /acp under this base."
   },
   "externalBackendSection.title": {
     "defaultMessage": "External Backend (ACP)"
@@ -1268,6 +1613,75 @@
   "externalBackendSection.workingDirPlaceholder": {
     "defaultMessage": "/home/goose/workspace"
   },
+  "figuresPanel.all": {
+    "defaultMessage": "All"
+  },
+  "figuresPanel.empty": {
+    "defaultMessage": "No matching template"
+  },
+  "figuresPanel.hint": {
+    "defaultMessage": "Picking a template fills the composer; nothing is sent until you press send."
+  },
+  "figuresPanel.insert": {
+    "defaultMessage": "Fill the prompt"
+  },
+  "figuresPanel.search": {
+    "defaultMessage": "Search templates"
+  },
+  "figuresView.all": {
+    "defaultMessage": "All"
+  },
+  "figuresView.depsValue": {
+    "defaultMessage": "Requires {deps}"
+  },
+  "figuresView.empty": {
+    "defaultMessage": "No templates in this category yet."
+  },
+  "figuresView.placeholder": {
+    "defaultMessage": "Template not added yet"
+  },
+  "figuresView.script": {
+    "defaultMessage": "Generating script"
+  },
+  "figuresView.subtitle": {
+    "defaultMessage": "Pick a template and the agent writes the plotting script, draws the chart and exports vector PDF/SVG plus a PNG preview."
+  },
+  "figuresView.title": {
+    "defaultMessage": "Research figures"
+  },
+  "figuresView.total": {
+    "defaultMessage": "{count} templates"
+  },
+  "figuresView.unavailable": {
+    "defaultMessage": "No preview yet — this template needs extra geometry libraries."
+  },
+  "figuresView.useTemplate": {
+    "defaultMessage": "Use this template"
+  },
+  "figuresView.useTemplateHint": {
+    "defaultMessage": "Fills the home composer with a request for this template; nothing is sent yet."
+  },
+  "fileArtifact.open": {
+    "defaultMessage": "Open in the workspace editor"
+  },
+  "filePreview.binary": {
+    "defaultMessage": "Binary file"
+  },
+  "filePreview.loading": {
+    "defaultMessage": "Loading…"
+  },
+  "filePreview.readFailed": {
+    "defaultMessage": "Could not read this file. Check it still exists and try again."
+  },
+  "filePreview.retry": {
+    "defaultMessage": "Retry preview"
+  },
+  "filePreview.truncated": {
+    "defaultMessage": "Showing the first portion of a large file"
+  },
+  "filePreview.unsupported": {
+    "defaultMessage": "No preview for this file type - open it with an external program."
+  },
   "gitBranchIndicator.failedToSwitch": {
     "defaultMessage": "Failed to switch to {branch}"
   },
@@ -1280,68 +1694,8 @@
   "gitBranchIndicator.uncommittedChanges": {
     "defaultMessage": "You may have uncommitted changes."
   },
-  "goosehintsModal.close": {
-    "defaultMessage": "Close"
-  },
-  "goosehintsModal.developer": {
-    "defaultMessage": "Developer"
-  },
-  "goosehintsModal.dialogDescription": {
-    "defaultMessage": "Provide additional context about your project to improve communication with Goose"
-  },
-  "goosehintsModal.dialogTitle": {
-    "defaultMessage": "Configure Project Hints (.goosehints)"
-  },
-  "goosehintsModal.errorReading": {
-    "defaultMessage": "Error reading .goosehints file: {error}"
-  },
-  "goosehintsModal.failedToAccess": {
-    "defaultMessage": "Failed to access .goosehints file"
-  },
-  "goosehintsModal.failedToSave": {
-    "defaultMessage": "Failed to save .goosehints file"
-  },
-  "goosehintsModal.fileCreating": {
-    "defaultMessage": "Creating new .goosehints file at: {filePath}"
-  },
-  "goosehintsModal.fileFound": {
-    "defaultMessage": ".goosehints file found at: {filePath}"
-  },
-  "goosehintsModal.helpText1": {
-    "defaultMessage": ".goosehints is a text file used to provide additional context about your project and improve the communication with Goose."
-  },
-  "goosehintsModal.helpText2": {
-    "defaultMessage": "Please make sure {bold} extension is enabled in the extensions page. This extension is required to use .goosehints. You'll need to restart your session for .goosehints updates to take effect."
-  },
-  "goosehintsModal.helpText3": {
-    "defaultMessage": "See {link} for more information."
-  },
-  "goosehintsModal.helpTextLink": {
-    "defaultMessage": "using .goosehints"
-  },
-  "goosehintsModal.placeholder": {
-    "defaultMessage": "Enter project hints here..."
-  },
-  "goosehintsModal.save": {
-    "defaultMessage": "Save"
-  },
-  "goosehintsModal.savedSuccessfully": {
-    "defaultMessage": "Saved successfully"
-  },
-  "goosehintsModal.saving": {
-    "defaultMessage": "Saving..."
-  },
-  "goosehintsSection.configure": {
-    "defaultMessage": "Configure"
-  },
-  "goosehintsSection.description": {
-    "defaultMessage": "Configure your project's .goosehints file to provide additional context to Goose"
-  },
-  "goosehintsSection.title": {
-    "defaultMessage": "Project Hints (.goosehints)"
-  },
-  "groupedExtensionLoadingToast.askGoose": {
-    "defaultMessage": "Ask goose"
+  "groupedExtensionLoadingToast.askAssistant": {
+    "defaultMessage": "Ask ModelForge"
   },
   "groupedExtensionLoadingToast.collapseDetails": {
     "defaultMessage": "Collapse details"
@@ -1400,6 +1754,39 @@
   "headersSection.value": {
     "defaultMessage": "Value"
   },
+  "hexPreview.header": {
+    "defaultMessage": "Binary preview"
+  },
+  "hexPreview.truncated": {
+    "defaultMessage": "Showing the first {bytes} bytes of {size}"
+  },
+  "hub.appTitle": {
+    "defaultMessage": "Mathematical Modeling Assistant"
+  },
+  "hub.chooseProject": {
+    "defaultMessage": "Choose a folder to begin"
+  },
+  "hub.contestInfo": {
+    "defaultMessage": "Contest info"
+  },
+  "hub.contestLabel": {
+    "defaultMessage": "Contest"
+  },
+  "hub.exampleNeedsInput": {
+    "defaultMessage": "Statement not bundled — add it yourself"
+  },
+  "hub.exampleReady": {
+    "defaultMessage": "Statement and attachments included"
+  },
+  "hub.examplesTitle": {
+    "defaultMessage": "Try one of these contest problems"
+  },
+  "hub.freeChat": {
+    "defaultMessage": "Free chat"
+  },
+  "hub.freeChatHint": {
+    "defaultMessage": "No preset workflow; start from your own input"
+  },
   "hub.goodAfternoon": {
     "defaultMessage": "Good afternoon"
   },
@@ -1408,6 +1795,15 @@
   },
   "hub.goodMorning": {
     "defaultMessage": "Good morning"
+  },
+  "hub.paperLabel": {
+    "defaultMessage": "Paper"
+  },
+  "hub.projectMaterials": {
+    "defaultMessage": "View project materials and next steps"
+  },
+  "hub.workflowLabel": {
+    "defaultMessage": "Workflow"
   },
   "huggingFaceModelSearch.download": {
     "defaultMessage": "Download"
@@ -1461,7 +1857,7 @@
     "defaultMessage": "Hugging Face"
   },
   "imagePreview.altText": {
-    "defaultMessage": "goose image"
+    "defaultMessage": "ModelForge image"
   },
   "imagePreview.clickToCollapse": {
     "defaultMessage": "Click to collapse"
@@ -1509,7 +1905,7 @@
     "defaultMessage": "Recipe File"
   },
   "importRecipeForm.reviewWarning": {
-    "defaultMessage": "Ensure you review contents of recipe files before adding them to your goose interface."
+    "defaultMessage": "Ensure you review contents of recipe files before adding them to your ModelForge interface."
   },
   "importRecipeForm.schemaDescription": {
     "defaultMessage": "Your YAML or JSON file should follow this structure. Required fields are: title, description, and either instructions or prompt."
@@ -1595,6 +1991,33 @@
   "jsonSchemaForm.submit": {
     "defaultMessage": "Submit"
   },
+  "kernelModel.description": {
+    "defaultMessage": "The {kernel} kernel sends every request through the local adapter, which forwards it to the model below. Picking a model applies to the next request."
+  },
+  "kernelModel.empty": {
+    "defaultMessage": "This provider has no models to choose from."
+  },
+  "kernelModel.loading": {
+    "defaultMessage": "Loading models…"
+  },
+  "kernelModel.notRunning": {
+    "defaultMessage": "The kernel is not running yet — check 应用 → 智能体内核."
+  },
+  "kernelModel.provider": {
+    "defaultMessage": "Provider: {provider}"
+  },
+  "kernelModel.readFailed": {
+    "defaultMessage": "Could not read the kernel state"
+  },
+  "kernelModel.switchFailed": {
+    "defaultMessage": "Could not switch the kernel model"
+  },
+  "kernelModel.switched": {
+    "defaultMessage": "Kernel model switched to {model}"
+  },
+  "kernelModel.title": {
+    "defaultMessage": "Kernel model"
+  },
   "keyValueEditor.addValue": {
     "defaultMessage": "Add pre-configured value"
   },
@@ -1620,13 +2043,13 @@
     "defaultMessage": "Application Shortcuts"
   },
   "keyboardShortcuts.categoryApplicationDescription": {
-    "defaultMessage": "These shortcuts work when Goose is the active application"
+    "defaultMessage": "These shortcuts work when ModelForge is the active application"
   },
   "keyboardShortcuts.categoryGlobal": {
     "defaultMessage": "Global Shortcuts"
   },
   "keyboardShortcuts.categoryGlobalDescription": {
-    "defaultMessage": "These shortcuts work system-wide, even when Goose is not focused"
+    "defaultMessage": "These shortcuts work system-wide, even when ModelForge is not focused"
   },
   "keyboardShortcuts.categorySearch": {
     "defaultMessage": "Search Shortcuts"
@@ -1668,10 +2091,10 @@
     "defaultMessage": "Find Previous"
   },
   "keyboardShortcuts.focusWindowDescription": {
-    "defaultMessage": "Bring Goose window to front from anywhere"
+    "defaultMessage": "Bring ModelForge window to front from anywhere"
   },
   "keyboardShortcuts.focusWindowLabel": {
-    "defaultMessage": "Focus Goose Window"
+    "defaultMessage": "Focus ModelForge Window"
   },
   "keyboardShortcuts.loading": {
     "defaultMessage": "Loading..."
@@ -1683,7 +2106,7 @@
     "defaultMessage": "New Chat"
   },
   "keyboardShortcuts.newChatWindowDescription": {
-    "defaultMessage": "Open a new Goose window"
+    "defaultMessage": "Open a new ModelForge window"
   },
   "keyboardShortcuts.newChatWindowLabel": {
     "defaultMessage": "New Chat Window"
@@ -1722,7 +2145,7 @@
     "defaultMessage": "Reset to Defaults"
   },
   "keyboardShortcuts.restartDescription": {
-    "defaultMessage": "Changes to application shortcuts (like New Chat, Settings, etc.) require restarting Goose to take effect. Global shortcuts (Focus Window, Quick Launcher) work immediately."
+    "defaultMessage": "Changes to application shortcuts (like New Chat, Settings, etc.) require restarting ModelForge to take effect. Global shortcuts (Focus Window, Quick Launcher) work immediately."
   },
   "keyboardShortcuts.restartRequired": {
     "defaultMessage": "Restart Required"
@@ -1752,13 +2175,13 @@
     "defaultMessage": "Toggle Navigation"
   },
   "launcher.placeholder": {
-    "defaultMessage": "Ask goose anything..."
+    "defaultMessage": "Ask ModelForge anything..."
   },
   "loadingGoose.compacting": {
-    "defaultMessage": "goose is compacting the conversation..."
+    "defaultMessage": "ModelForge is compacting the conversation..."
   },
   "loadingGoose.idle": {
-    "defaultMessage": "goose is working on it…"
+    "defaultMessage": "ModelForge is working on it…"
   },
   "loadingGoose.loadingConversation": {
     "defaultMessage": "loading conversation..."
@@ -1767,13 +2190,13 @@
     "defaultMessage": "restarting session..."
   },
   "loadingGoose.streaming": {
-    "defaultMessage": "goose is working on it…"
+    "defaultMessage": "ModelForge is working on it…"
   },
   "loadingGoose.thinking": {
-    "defaultMessage": "goose is thinking…"
+    "defaultMessage": "ModelForge is thinking…"
   },
   "loadingGoose.waiting": {
-    "defaultMessage": "goose is waiting…"
+    "defaultMessage": "ModelForge is waiting…"
   },
   "localInferenceSettings.deleteConfirm": {
     "defaultMessage": "Delete this model? You can re-download it later."
@@ -2324,6 +2747,12 @@
   "modelsBottomBar.currentModel": {
     "defaultMessage": "Current model"
   },
+  "modelsBottomBar.kernelModel": {
+    "defaultMessage": "Kernel model"
+  },
+  "modelsBottomBar.kernelModelHint": {
+    "defaultMessage": "The {kernel} kernel proxies to this model; change it in Settings → Models."
+  },
   "modelsBottomBar.loadingModel": {
     "defaultMessage": "Loading model..."
   },
@@ -2342,35 +2771,56 @@
   "modelsBottomBar.selectModel": {
     "defaultMessage": "Select Model"
   },
+  "modelsSection.kernelSlotNote": {
+    "defaultMessage": "The kernel keeps this slot at “current”; the model it actually calls is the one below."
+  },
   "modelsSection.resetDescription": {
     "defaultMessage": "Clear your selected model and provider settings to start fresh"
   },
   "modelsSection.resetTitle": {
     "defaultMessage": "Reset Provider and Model"
   },
+  "navigation.catalogAlgorithms": {
+    "defaultMessage": "Algorithms"
+  },
+  "navigation.catalogConnectors": {
+    "defaultMessage": "Connectors"
+  },
+  "navigation.catalogPlugins": {
+    "defaultMessage": "Plugins"
+  },
+  "navigation.catalogSkills": {
+    "defaultMessage": "Skills"
+  },
+  "navigation.catalogTemplates": {
+    "defaultMessage": "Templates"
+  },
   "navigation.itemApps": {
     "defaultMessage": "Apps"
   },
-  "navigation.itemExtensions": {
+  "navigation.itemCatalog": {
     "defaultMessage": "Extensions"
   },
-  "navigation.itemHome": {
-    "defaultMessage": "New Chat"
+  "navigation.itemFigures": {
+    "defaultMessage": "Figures"
   },
-  "navigation.itemRecipes": {
-    "defaultMessage": "Recipes"
+  "navigation.itemHome": {
+    "defaultMessage": "New Session"
+  },
+  "navigation.itemPaper": {
+    "defaultMessage": "Paper Templates"
+  },
+  "navigation.itemProfile": {
+    "defaultMessage": "Profile"
   },
   "navigation.itemScheduler": {
-    "defaultMessage": "Scheduler"
+    "defaultMessage": "Automation"
   },
   "navigation.itemSessions": {
     "defaultMessage": "Session History"
   },
   "navigation.itemSettings": {
     "defaultMessage": "Settings"
-  },
-  "navigation.itemSkills": {
-    "defaultMessage": "Skills"
   },
   "navigationPanel.chats": {
     "defaultMessage": "Chats"
@@ -2408,11 +2858,23 @@
   "navigationPanel.untitledSession": {
     "defaultMessage": "Untitled session"
   },
+  "notebookPreview.cell": {
+    "defaultMessage": "Cell {index}"
+  },
+  "notebookPreview.empty": {
+    "defaultMessage": "This notebook has no cells"
+  },
+  "notebookPreview.invalid": {
+    "defaultMessage": "This notebook could not be parsed"
+  },
+  "notebookPreview.truncated": {
+    "defaultMessage": "Only the first {count} cells are shown"
+  },
   "onboardingGuard.checkProviderErrorDescription": {
     "defaultMessage": "The server may be starting up or temporarily unavailable."
   },
   "onboardingGuard.checkProviderErrorTitle": {
-    "defaultMessage": "Unable to connect to Goose server"
+    "defaultMessage": "Unable to connect to ModelForge server"
   },
   "onboardingGuard.retry": {
     "defaultMessage": "Retry"
@@ -2421,10 +2883,10 @@
     "defaultMessage": "Your local AI agent. Connect an AI model provider to get started."
   },
   "onboardingGuard.welcomeTitle": {
-    "defaultMessage": "Welcome to goose"
+    "defaultMessage": "Welcome to ModelForge"
   },
   "onboardingSuccess.allSet": {
-    "defaultMessage": "You're all set to start using goose."
+    "defaultMessage": "You're all set to start using ModelForge."
   },
   "onboardingSuccess.connectedTo": {
     "defaultMessage": "Connected to {providerName}"
@@ -2439,13 +2901,118 @@
     "defaultMessage": "Local model ready"
   },
   "onboardingSuccess.privacyDescription": {
-    "defaultMessage": "Anonymous usage data helps improve goose. We never collect your conversations, code, or personal data."
+    "defaultMessage": "Anonymous usage data helps improve ModelForge. We never collect your conversations, code, or personal data."
   },
   "onboardingSuccess.privacyTitle": {
     "defaultMessage": "Privacy"
   },
   "onboardingSuccess.shareUsageData": {
     "defaultMessage": "Share anonymous usage data"
+  },
+  "paperView.all": {
+    "defaultMessage": "All"
+  },
+  "paperView.available": {
+    "defaultMessage": "Bundled"
+  },
+  "paperView.availableOnly": {
+    "defaultMessage": "Available"
+  },
+  "paperView.contents": {
+    "defaultMessage": "Template contents"
+  },
+  "paperView.coverFields": {
+    "defaultMessage": "Cover page inputs"
+  },
+  "paperView.coverHint": {
+    "defaultMessage": "Declared by the template itself (题号, 队号, 学校 …). Filled values are written into the request; leave a field empty and the agent will ask."
+  },
+  "paperView.customize": {
+    "defaultMessage": "Customise from this template"
+  },
+  "paperView.customizeCancel": {
+    "defaultMessage": "Cancel"
+  },
+  "paperView.customizeConfirm": {
+    "defaultMessage": "Create the request"
+  },
+  "paperView.customizeHint": {
+    "defaultMessage": "Creates your own copy inside the project and adapts it, so the bundled template stays untouched."
+  },
+  "paperView.customizeName": {
+    "defaultMessage": "Name for your copy"
+  },
+  "paperView.customizeNamePlaceholder": {
+    "defaultMessage": "e.g. my-cumcm-2026"
+  },
+  "paperView.defaultFor": {
+    "defaultMessage": "Default for"
+  },
+  "paperView.empty": {
+    "defaultMessage": "No templates match that filter."
+  },
+  "paperView.engine": {
+    "defaultMessage": "Engine"
+  },
+  "paperView.engineLatex": {
+    "defaultMessage": "LaTeX"
+  },
+  "paperView.engineTypst": {
+    "defaultMessage": "Typst"
+  },
+  "paperView.entryFile": {
+    "defaultMessage": "Entry file"
+  },
+  "paperView.groupBundled": {
+    "defaultMessage": "Bundled · contest templates"
+  },
+  "paperView.groupVendored": {
+    "defaultMessage": "Upstream open source"
+  },
+  "paperView.langEn": {
+    "defaultMessage": "English"
+  },
+  "paperView.langZh": {
+    "defaultMessage": "Chinese"
+  },
+  "paperView.language": {
+    "defaultMessage": "Language"
+  },
+  "paperView.license": {
+    "defaultMessage": "Licence"
+  },
+  "paperView.optional": {
+    "defaultMessage": "optional"
+  },
+  "paperView.planned": {
+    "defaultMessage": "Not bundled yet"
+  },
+  "paperView.previewCaption": {
+    "defaultMessage": "First page of the compiled template (rendered by xelatex)."
+  },
+  "paperView.source": {
+    "defaultMessage": "Source"
+  },
+  "paperView.subtitle": {
+    "defaultMessage": "Pick a contest template and the agent copies it into the project, then writes and compiles the paper from the entry file."
+  },
+  "paperView.templateDir": {
+    "defaultMessage": "Template folder"
+  },
+  "paperView.title": {
+    "defaultMessage": "Competition paper templates"
+  },
+  "paperView.usage": {
+    "defaultMessage": "How it is used"
+  },
+  "paperView.usageBody": {
+    "defaultMessage": "The agent copies the whole template folder into the project and starts from the entry file. Compile with the modeling extension (compile_latex)."
+  },
+  "paperView.useTemplate": {
+    "defaultMessage": "Use this template"
+  },
+  "paperView.useTemplateHint": {
+    "defaultMessage": "Fills the home composer with the template, entry file and cover values; nothing is sent yet."
   },
   "parameterInput.defaultValue": {
     "defaultMessage": "Default Value"
@@ -2540,6 +3107,30 @@
   "parameterInputModal.whatToDo": {
     "defaultMessage": "What would you like to do?"
   },
+  "pdfPreview.failed": {
+    "defaultMessage": "This PDF could not be opened"
+  },
+  "pdfPreview.fitWidth": {
+    "defaultMessage": "Fit width"
+  },
+  "pdfPreview.loading": {
+    "defaultMessage": "Loading PDF…"
+  },
+  "pdfPreview.next": {
+    "defaultMessage": "Next page"
+  },
+  "pdfPreview.page": {
+    "defaultMessage": "{current} / {total}"
+  },
+  "pdfPreview.previous": {
+    "defaultMessage": "Previous page"
+  },
+  "pdfPreview.zoomIn": {
+    "defaultMessage": "Zoom in"
+  },
+  "pdfPreview.zoomOut": {
+    "defaultMessage": "Zoom out"
+  },
   "permissionModal.alwaysAllow": {
     "defaultMessage": "Always allow"
   },
@@ -2607,10 +3198,10 @@
     "defaultMessage": "Session metrics (duration, interaction count, token usage)"
   },
   "privacyInfoModal.collectVersion": {
-    "defaultMessage": "goose version and install method"
+    "defaultMessage": "ModelForge version and install method"
   },
   "privacyInfoModal.description": {
-    "defaultMessage": "Anonymous usage data helps us understand how goose is used and identify areas for improvement."
+    "defaultMessage": "Anonymous usage data helps us understand how ModelForge is used and identify areas for improvement."
   },
   "privacyInfoModal.neverCollect": {
     "defaultMessage": "We never collect your conversations, code, tool arguments, error messages, or any personal data. You can change this setting anytime in Settings."
@@ -2621,6 +3212,87 @@
   "privacyInfoModal.whatWeCollect": {
     "defaultMessage": "What we collect:"
   },
+  "profileView.activity": {
+    "defaultMessage": "Activity"
+  },
+  "profileView.activityHint": {
+    "defaultMessage": "Prompts per day over the last year."
+  },
+  "profileView.countValue": {
+    "defaultMessage": "{count}"
+  },
+  "profileView.daysValue": {
+    "defaultMessage": "{count} days"
+  },
+  "profileView.error": {
+    "defaultMessage": "Could not load session statistics."
+  },
+  "profileView.less": {
+    "defaultMessage": "Less"
+  },
+  "profileView.loading": {
+    "defaultMessage": "Loading statistics…"
+  },
+  "profileView.modelUsage": {
+    "defaultMessage": "Model usage"
+  },
+  "profileView.modelUsageHint": {
+    "defaultMessage": "Share of sessions per model."
+  },
+  "profileView.models": {
+    "defaultMessage": "Most used models"
+  },
+  "profileView.more": {
+    "defaultMessage": "More"
+  },
+  "profileView.none": {
+    "defaultMessage": "No data yet"
+  },
+  "profileView.projects": {
+    "defaultMessage": "Most used projects"
+  },
+  "profileView.providers": {
+    "defaultMessage": "Most used providers"
+  },
+  "profileView.recipes": {
+    "defaultMessage": "Sessions using a recipe"
+  },
+  "profileView.refresh": {
+    "defaultMessage": "Refresh"
+  },
+  "profileView.spanUnknown": {
+    "defaultMessage": "—"
+  },
+  "profileView.spanValue": {
+    "defaultMessage": "{days} days"
+  },
+  "profileView.statActiveDays": {
+    "defaultMessage": "Active days"
+  },
+  "profileView.statMessages": {
+    "defaultMessage": "Prompts"
+  },
+  "profileView.statProjects": {
+    "defaultMessage": "Projects"
+  },
+  "profileView.statSessions": {
+    "defaultMessage": "Sessions"
+  },
+  "profileView.statSpan": {
+    "defaultMessage": "History span"
+  },
+  "profileView.statStreakCurrent": {
+    "defaultMessage": "Current streak"
+  },
+  "profileView.statStreakLongest": {
+    "defaultMessage": "Longest streak"
+  },
+  "profileView.subtitle": {
+    "defaultMessage": "Local usage on this machine, derived from your session list."
+  },
+  "profileView.tokensNote": {
+    "defaultMessage": "Token and cost totals are per session — open a chat to see its usage. Aggregating them across every session needs a local usage store, which this build does not have yet."
+  },
   "progressiveMessageList.loadingMessages": {
     "defaultMessage": "Loading messages... ({renderedCount}/{totalCount})"
   },
@@ -2629,6 +3301,165 @@
   },
   "progressiveMessageList.searchHint": {
     "defaultMessage": "Press Cmd/Ctrl+F to load all messages immediately for search"
+  },
+  "projectHintsModal.close": {
+    "defaultMessage": "Close"
+  },
+  "projectHintsModal.developer": {
+    "defaultMessage": "Developer"
+  },
+  "projectHintsModal.dialogDescription": {
+    "defaultMessage": "Provide additional context about your project to improve communication with ModelForge"
+  },
+  "projectHintsModal.dialogTitle": {
+    "defaultMessage": "Configure Project Hints (.goosehints)"
+  },
+  "projectHintsModal.errorReading": {
+    "defaultMessage": "Error reading .goosehints file: {error}"
+  },
+  "projectHintsModal.failedToAccess": {
+    "defaultMessage": "Failed to access .goosehints file"
+  },
+  "projectHintsModal.failedToSave": {
+    "defaultMessage": "Failed to save .goosehints file"
+  },
+  "projectHintsModal.fileCreating": {
+    "defaultMessage": "Creating new .goosehints file at: {filePath}"
+  },
+  "projectHintsModal.fileFound": {
+    "defaultMessage": ".goosehints file found at: {filePath}"
+  },
+  "projectHintsModal.helpText1": {
+    "defaultMessage": ".goosehints is a text file used to provide additional context about your project and improve the communication with ModelForge."
+  },
+  "projectHintsModal.helpText2": {
+    "defaultMessage": "Please make sure {bold} extension is enabled in the extensions page. This extension is required to use .goosehints. You'll need to restart your session for .goosehints updates to take effect."
+  },
+  "projectHintsModal.helpText3": {
+    "defaultMessage": "See {link} for more information."
+  },
+  "projectHintsModal.helpTextLink": {
+    "defaultMessage": "using .goosehints"
+  },
+  "projectHintsModal.placeholder": {
+    "defaultMessage": "Enter project hints here..."
+  },
+  "projectHintsModal.save": {
+    "defaultMessage": "Save"
+  },
+  "projectHintsModal.savedSuccessfully": {
+    "defaultMessage": "Saved successfully"
+  },
+  "projectHintsModal.saving": {
+    "defaultMessage": "Saving..."
+  },
+  "projectHintsSection.configure": {
+    "defaultMessage": "Configure"
+  },
+  "projectHintsSection.description": {
+    "defaultMessage": "Configure your project's .goosehints file to provide additional context to ModelForge"
+  },
+  "projectHintsSection.title": {
+    "defaultMessage": "Project Hints (.goosehints)"
+  },
+  "projectPanel.actionCode": {
+    "defaultMessage": "Implement the model"
+  },
+  "projectPanel.actionFigures": {
+    "defaultMessage": "Prepare figures"
+  },
+  "projectPanel.actionInputs": {
+    "defaultMessage": "Inspect problem & data"
+  },
+  "projectPanel.actionPaper": {
+    "defaultMessage": "Improve the paper"
+  },
+  "projectPanel.actionPlan": {
+    "defaultMessage": "Prepare model plan"
+  },
+  "projectPanel.actionResults": {
+    "defaultMessage": "Reproduce results"
+  },
+  "projectPanel.actionReview": {
+    "defaultMessage": "Review deliverables"
+  },
+  "projectPanel.added": {
+    "defaultMessage": "Added to your draft. Review it in the chat input, then send when ready."
+  },
+  "projectPanel.caution": {
+    "defaultMessage": "Files are grouped for navigation. Their contents still need checking."
+  },
+  "projectPanel.code": {
+    "defaultMessage": "Code & dependencies"
+  },
+  "projectPanel.collapse": {
+    "defaultMessage": "Show fewer"
+  },
+  "projectPanel.count": {
+    "defaultMessage": "{count} files"
+  },
+  "projectPanel.coverage": {
+    "defaultMessage": "{count} of 6 material types found"
+  },
+  "projectPanel.empty": {
+    "defaultMessage": "Choose the folder containing your problem and data to start a project."
+  },
+  "projectPanel.emptyFile": {
+    "defaultMessage": "Empty file"
+  },
+  "projectPanel.environment": {
+    "defaultMessage": "Check running environment"
+  },
+  "projectPanel.error": {
+    "defaultMessage": "Could not read this project. Check the folder is available, then retry."
+  },
+  "projectPanel.expand": {
+    "defaultMessage": "Show all {count} files"
+  },
+  "projectPanel.figures": {
+    "defaultMessage": "Figures"
+  },
+  "projectPanel.folder": {
+    "defaultMessage": "Choose project folder"
+  },
+  "projectPanel.inputs": {
+    "defaultMessage": "Problem & data"
+  },
+  "projectPanel.loading": {
+    "defaultMessage": "Looking for project materials…"
+  },
+  "projectPanel.missing": {
+    "defaultMessage": "No files found yet"
+  },
+  "projectPanel.next": {
+    "defaultMessage": "Suggested next step"
+  },
+  "projectPanel.openFolder": {
+    "defaultMessage": "Open project folder"
+  },
+  "projectPanel.paper": {
+    "defaultMessage": "Paper"
+  },
+  "projectPanel.partial": {
+    "defaultMessage": "Some folders were not scanned. Use Files to browse the rest."
+  },
+  "projectPanel.plan": {
+    "defaultMessage": "Model plan"
+  },
+  "projectPanel.refresh": {
+    "defaultMessage": "Refresh materials"
+  },
+  "projectPanel.results": {
+    "defaultMessage": "Computed results"
+  },
+  "projectPanel.retry": {
+    "defaultMessage": "Retry"
+  },
+  "projectPanel.subtitle": {
+    "defaultMessage": "Find your work. Decide what comes next."
+  },
+  "projectPanel.title": {
+    "defaultMessage": "Project materials"
   },
   "promptsSettings.allPromptsReset": {
     "defaultMessage": "All prompts reset to defaults"
@@ -2679,7 +3510,7 @@
     "defaultMessage": "Failed to save prompt"
   },
   "promptsSettings.promptEditingDescription": {
-    "defaultMessage": "Customize the prompts that define goose's behavior in different contexts. These prompts use Jinja2 templating syntax. Be careful when modifying template variables, as incorrect changes can break functionality. Please share any improvements with the community."
+    "defaultMessage": "Customize the prompts that define ModelForge's behavior in different contexts. These prompts use Jinja2 templating syntax. Be careful when modifying template variables, as incorrect changes can break functionality. Please share any improvements with the community."
   },
   "promptsSettings.promptEditingTitle": {
     "defaultMessage": "Prompt Editing"
@@ -2787,7 +3618,7 @@
     "defaultMessage": "Signing in..."
   },
   "providerConfigurationModal.addApiKeyDescription": {
-    "defaultMessage": "Add your API key(s) for this provider to integrate into goose"
+    "defaultMessage": "Add your API key(s) for this provider to integrate into ModelForge"
   },
   "providerConfigurationModal.browserWindowHint": {
     "defaultMessage": "A browser window will open for you to complete the login."
@@ -2835,7 +3666,7 @@
     "defaultMessage": "Error"
   },
   "providerConfigurationModal.externalSetupIntro": {
-    "defaultMessage": "This provider is configured outside of goose. Follow these steps:"
+    "defaultMessage": "This provider is configured outside of ModelForge. Follow these steps:"
   },
   "providerConfigurationModal.goBack": {
     "defaultMessage": "Go Back"
@@ -2919,7 +3750,7 @@
     "defaultMessage": "Loading providers..."
   },
   "providerSettings.onboardingDescription": {
-    "defaultMessage": "Select an AI model provider to get started with goose. You'll need to use API keys generated by each provider which will be encrypted and stored locally. You can change your provider at any time in settings."
+    "defaultMessage": "Select an AI model provider to get started with ModelForge. You'll need to use API keys generated by each provider which will be encrypted and stored locally. You can change your provider at any time in settings."
   },
   "providerSettings.otherProviders": {
     "defaultMessage": "Other providers"
@@ -3852,7 +4683,7 @@
     "defaultMessage": "Chat history"
   },
   "sessions.chatHistoryDesc": {
-    "defaultMessage": "View and search your past conversations with Goose. {shortcut} to search."
+    "defaultMessage": "View and search your past conversations with ModelForge. {shortcut} to search."
   },
   "sessions.close": {
     "defaultMessage": "Close"
@@ -3888,7 +4719,7 @@
     "defaultMessage": "Import Link"
   },
   "sessions.importNostr.description": {
-    "defaultMessage": "Paste a Goose Nostr share link to fetch, decrypt, and import the session."
+    "defaultMessage": "Paste a ModelForge Nostr share link to fetch, decrypt, and import the session."
   },
   "sessions.importNostr.placeholder": {
     "defaultMessage": "goose://sessions/nostr?nevent=...&key=..."
@@ -3972,7 +4803,7 @@
     "defaultMessage": "Session description updated successfully"
   },
   "settings.appearance.description": {
-    "defaultMessage": "Configure how goose appears on your system"
+    "defaultMessage": "Configure how ModelForge appears on your system"
   },
   "settings.appearance.title": {
     "defaultMessage": "Appearance"
@@ -3987,13 +4818,13 @@
     "defaultMessage": "Cost Tracking"
   },
   "settings.dockIcon.description": {
-    "defaultMessage": "Show goose in the dock"
+    "defaultMessage": "Show ModelForge in the dock"
   },
   "settings.dockIcon.title": {
     "defaultMessage": "Dock icon"
   },
   "settings.help.description": {
-    "defaultMessage": "Help us improve goose by reporting issues or requesting new features"
+    "defaultMessage": "Help us improve ModelForge by reporting issues or requesting new features"
   },
   "settings.help.reportBug": {
     "defaultMessage": "Report a Bug"
@@ -4005,7 +4836,7 @@
     "defaultMessage": "Help & feedback"
   },
   "settings.language.description": {
-    "defaultMessage": "Choose the display language for goose"
+    "defaultMessage": "Choose the display language for ModelForge"
   },
   "settings.language.english": {
     "defaultMessage": "English"
@@ -4062,7 +4893,7 @@
     "defaultMessage": "Chinese (Traditional)"
   },
   "settings.menuBarIcon.description": {
-    "defaultMessage": "Show goose in the menu bar"
+    "defaultMessage": "Show ModelForge in the menu bar"
   },
   "settings.menuBarIcon.title": {
     "defaultMessage": "Menu bar icon"
@@ -4083,7 +4914,7 @@
     "defaultMessage": "Click on Notifications"
   },
   "settings.notifications.modal.macStep3": {
-    "defaultMessage": "Find and select goose in the application list"
+    "defaultMessage": "Find and select ModelForge in the application list"
   },
   "settings.notifications.modal.macStep4": {
     "defaultMessage": "Enable notifications and adjust settings as desired"
@@ -4101,7 +4932,7 @@
     "defaultMessage": "Go to System > Notifications"
   },
   "settings.notifications.modal.winStep3": {
-    "defaultMessage": "Find and select goose in the application list"
+    "defaultMessage": "Find and select ModelForge in the application list"
   },
   "settings.notifications.modal.winStep4": {
     "defaultMessage": "Toggle notifications on and adjust settings as desired"
@@ -4110,7 +4941,7 @@
     "defaultMessage": "Open Settings"
   },
   "settings.notifications.task.description": {
-    "defaultMessage": "Notify when Goose finishes a task while the window is in the background"
+    "defaultMessage": "Notify when ModelForge finishes a task while the window is in the background"
   },
   "settings.notifications.task.title": {
     "defaultMessage": "Task completion notifications"
@@ -4119,25 +4950,31 @@
     "defaultMessage": "Notifications"
   },
   "settings.preventSleep.description": {
-    "defaultMessage": "Keep your computer awake while goose is running a task (screen can still lock)"
+    "defaultMessage": "Keep your computer awake while ModelForge is running a task (screen can still lock)"
   },
   "settings.preventSleep.title": {
     "defaultMessage": "Prevent Sleep"
   },
   "settings.theme.description": {
-    "defaultMessage": "Customize the look and feel of goose"
+    "defaultMessage": "Customize the look and feel of ModelForge"
   },
   "settings.theme.title": {
     "defaultMessage": "Theme"
   },
   "settings.updates.description": {
-    "defaultMessage": "Check for and install updates to keep goose running at its best"
+    "defaultMessage": "Check for and install updates to keep ModelForge running at its best"
   },
   "settings.updates.title": {
     "defaultMessage": "Updates"
   },
   "settings.version.title": {
     "defaultMessage": "Version"
+  },
+  "settingsView.backToApp": {
+    "defaultMessage": "Back to app"
+  },
+  "settingsView.searchSettings": {
+    "defaultMessage": "Search settings"
   },
   "settingsView.tabApp": {
     "defaultMessage": "App"
@@ -4181,44 +5018,161 @@
   "shortcutRecorder.save": {
     "defaultMessage": "Save"
   },
-  "skillsView.addSkill": {
-    "defaultMessage": "Add Skill"
+  "skillsView.builtin": {
+    "defaultMessage": "Built-in"
   },
-  "skillsView.adjustSearchTerms": {
-    "defaultMessage": "Try adjusting your search terms"
+  "skillsView.builtinCannotDisable": {
+    "defaultMessage": "Built-in skills ship with the app and cannot be disabled."
   },
-  "skillsView.comingSoon": {
-    "defaultMessage": "Coming soon"
+  "skillsView.cancel": {
+    "defaultMessage": "Cancel"
   },
-  "skillsView.errorLoadingSkills": {
-    "defaultMessage": "Error Loading Skills"
+  "skillsView.confirmDelete": {
+    "defaultMessage": "Confirm delete"
   },
-  "skillsView.noMatchingSkills": {
-    "defaultMessage": "No matching skills found"
+  "skillsView.contentLabel": {
+    "defaultMessage": "SKILL.md body"
   },
-  "skillsView.noSkillsDescription": {
-    "defaultMessage": "Skills are loaded from SKILL.md files in ~/.config/agents/skills/, .goose/skills/, or other supported directories."
+  "skillsView.contentPlaceholder": {
+    "defaultMessage": "# What this skill does Steps the agent should follow…"
   },
-  "skillsView.noSkillsInstalled": {
-    "defaultMessage": "No skills installed"
+  "skillsView.descriptionLabel": {
+    "defaultMessage": "One-line description"
   },
-  "skillsView.searchSkillsPlaceholder": {
-    "defaultMessage": "Search skills..."
+  "skillsView.descriptionPlaceholder": {
+    "defaultMessage": "When should the agent load this skill?"
   },
-  "skillsView.skillsDescription": {
-    "defaultMessage": "View installed skills that extend Goose capabilities. {shortcut} to search."
+  "skillsView.disable": {
+    "defaultMessage": "Disable"
   },
-  "skillsView.skillsTitle": {
+  "skillsView.disabled": {
+    "defaultMessage": "Disabled"
+  },
+  "skillsView.disabledAt": {
+    "defaultMessage": "Disabled at"
+  },
+  "skillsView.edit": {
+    "defaultMessage": "Edit"
+  },
+  "skillsView.enable": {
+    "defaultMessage": "Enable"
+  },
+  "skillsView.enabled": {
+    "defaultMessage": "Enabled"
+  },
+  "skillsView.exportSkill": {
+    "defaultMessage": "Export"
+  },
+  "skillsView.exported": {
+    "defaultMessage": "Exported to {path}"
+  },
+  "skillsView.globalSkill": {
+    "defaultMessage": "Global"
+  },
+  "skillsView.importFolder": {
+    "defaultMessage": "Import folder"
+  },
+  "skillsView.importJson": {
+    "defaultMessage": "Import file"
+  },
+  "skillsView.imported": {
+    "defaultMessage": "Imported {count} skill(s)"
+  },
+  "skillsView.loadFailed": {
+    "defaultMessage": "Could not load skills"
+  },
+  "skillsView.location": {
+    "defaultMessage": "Location"
+  },
+  "skillsView.nameLabel": {
+    "defaultMessage": "Name"
+  },
+  "skillsView.namePlaceholder": {
+    "defaultMessage": "e.g. data-cleaning"
+  },
+  "skillsView.nameRequired": {
+    "defaultMessage": "A name is required."
+  },
+  "skillsView.newSkill": {
+    "defaultMessage": "New skill"
+  },
+  "skillsView.noMatch": {
+    "defaultMessage": "No skill matches that search."
+  },
+  "skillsView.noSkills": {
+    "defaultMessage": "No skills found"
+  },
+  "skillsView.notToggled": {
+    "defaultMessage": "Could not change the skill state"
+  },
+  "skillsView.projectSkill": {
+    "defaultMessage": "Project"
+  },
+  "skillsView.readOnly": {
+    "defaultMessage": "This skill is read-only and cannot be edited here."
+  },
+  "skillsView.remove": {
+    "defaultMessage": "Delete"
+  },
+  "skillsView.runError": {
+    "defaultMessage": "The action failed"
+  },
+  "skillsView.save": {
+    "defaultMessage": "Save"
+  },
+  "skillsView.saving": {
+    "defaultMessage": "Saving…"
+  },
+  "skillsView.scopeLabel": {
+    "defaultMessage": "Save to"
+  },
+  "skillsView.searchPlaceholder": {
+    "defaultMessage": "Search skills by name or description…"
+  },
+  "skillsView.source": {
+    "defaultMessage": "Source"
+  },
+  "skillsView.status": {
+    "defaultMessage": "Status"
+  },
+  "skillsView.subtitle": {
+    "defaultMessage": "Method documents (SKILL.md) that teach the agent how to work. Enabled skills can be invoked from the composer with “/”."
+  },
+  "skillsView.supportingFiles": {
+    "defaultMessage": "Supporting files"
+  },
+  "skillsView.title": {
     "defaultMessage": "Skills"
   },
+  "skillsView.total": {
+    "defaultMessage": "{count} skills"
+  },
   "skillsView.tryAgain": {
-    "defaultMessage": "Try Again"
+    "defaultMessage": "Try again"
   },
   "spellcheckToggle.description": {
     "defaultMessage": "Check spelling in the chat input. Requires restart to take effect."
   },
   "spellcheckToggle.title": {
     "defaultMessage": "Enable Spellcheck"
+  },
+  "spreadsheetPreview.empty": {
+    "defaultMessage": "This sheet is empty"
+  },
+  "spreadsheetPreview.failed": {
+    "defaultMessage": "This workbook could not be read"
+  },
+  "spreadsheetPreview.loading": {
+    "defaultMessage": "Reading workbook…"
+  },
+  "spreadsheetPreview.sheet": {
+    "defaultMessage": "Sheet"
+  },
+  "spreadsheetPreview.summary": {
+    "defaultMessage": "{rows} rows × {cols} columns"
+  },
+  "spreadsheetPreview.truncated": {
+    "defaultMessage": "Showing the first {rows} rows and {cols} columns"
   },
   "standaloneAppView.failedToLoad": {
     "defaultMessage": "Failed to Load App"
@@ -4448,11 +5402,20 @@
   "switchModelModal.useOtherProvider": {
     "defaultMessage": "Use other provider"
   },
+  "tablePreview.empty": {
+    "defaultMessage": "This table is empty"
+  },
+  "tablePreview.summary": {
+    "defaultMessage": "{rows} rows × {cols} columns"
+  },
+  "tablePreview.truncated": {
+    "defaultMessage": "Showing the first {rows} rows and {cols} columns"
+  },
   "telemetryConsentPrompt.description": {
-    "defaultMessage": "Would you like to share anonymous usage data to help improve goose? We never collect your conversations, code, or personal data."
+    "defaultMessage": "Would you like to share anonymous usage data to help improve ModelForge? We never collect your conversations, code, or personal data."
   },
   "telemetryConsentPrompt.heading": {
-    "defaultMessage": "Help improve goose"
+    "defaultMessage": "Help improve ModelForge"
   },
   "telemetryConsentPrompt.learnMore": {
     "defaultMessage": "Learn more"
@@ -4479,13 +5442,34 @@
     "defaultMessage": "Privacy"
   },
   "telemetrySettings.toggleDescription": {
-    "defaultMessage": "Help improve goose by sharing anonymous usage statistics."
+    "defaultMessage": "Help improve ModelForge by sharing anonymous usage statistics."
   },
   "telemetrySettings.toggleLabel": {
     "defaultMessage": "Anonymous usage data"
   },
   "telemetrySettings.updateError": {
     "defaultMessage": "Failed to update telemetry settings."
+  },
+  "terminalView.exited": {
+    "defaultMessage": "Session ended"
+  },
+  "terminalView.failed": {
+    "defaultMessage": "Could not start the shell"
+  },
+  "terminalView.fitWidth": {
+    "defaultMessage": "Fit panel width"
+  },
+  "terminalView.pipeMode": {
+    "defaultMessage": "Piped shell (no PTY available)"
+  },
+  "terminalView.ptyMode": {
+    "defaultMessage": "Interactive PTY"
+  },
+  "terminalView.restart": {
+    "defaultMessage": "Start a new session"
+  },
+  "terminalView.starting": {
+    "defaultMessage": "Starting the shell…"
   },
   "themeSelector.aura": {
     "defaultMessage": "Aura"
@@ -4529,6 +5513,21 @@
   "toolApprovalButtons.staleApprovalRequest": {
     "defaultMessage": "This approval request is no longer active."
   },
+  "toolCallGroup.collapse": {
+    "defaultMessage": "Collapse operations"
+  },
+  "toolCallGroup.done": {
+    "defaultMessage": "completed"
+  },
+  "toolCallGroup.expand": {
+    "defaultMessage": "Expand operations"
+  },
+  "toolCallGroup.running": {
+    "defaultMessage": "running"
+  },
+  "toolCallGroup.summary": {
+    "defaultMessage": "{count} operations"
+  },
   "toolCallStatusIndicator.toolStatus": {
     "defaultMessage": "Tool status: {status}"
   },
@@ -4560,10 +5559,10 @@
     "defaultMessage": "Allow {toolName}?"
   },
   "toolConfirmation.gooseWouldLikeToCallWithName": {
-    "defaultMessage": "Goose would like to call {toolName}. Allow?"
+    "defaultMessage": "ModelForge would like to call {toolName}. Allow?"
   },
   "updateSection.autoDownload": {
-    "defaultMessage": "Goose will download the update in the background and install it the next time you quit or restart."
+    "defaultMessage": "ModelForge will download the update in the background and install it the next time you quit or restart."
   },
   "updateSection.autoDownloadDisabledByEnv": {
     "defaultMessage": "Automatic downloads are disabled via the GOOSE_DISABLE_AUTO_DOWNLOAD environment variable."
@@ -4584,7 +5583,7 @@
     "defaultMessage": "Disable automatic update downloads"
   },
   "updateSection.disableAutoDownloadDesc": {
-    "defaultMessage": "When enabled, Goose will notify you of new versions but will not download them automatically."
+    "defaultMessage": "When enabled, ModelForge will notify you of new versions but will not download them automatically."
   },
   "updateSection.downloadNow": {
     "defaultMessage": "Download Now"
@@ -4669,5 +5668,203 @@
   },
   "userMessage.removeImageFromEdit": {
     "defaultMessage": "Remove image from message"
+  },
+  "versionsPanel.cancel": {
+    "defaultMessage": "Cancel"
+  },
+  "versionsPanel.changed": {
+    "defaultMessage": "{count} changed files"
+  },
+  "versionsPanel.empty": {
+    "defaultMessage": "No saved versions yet"
+  },
+  "versionsPanel.failed": {
+    "defaultMessage": "Operation failed"
+  },
+  "versionsPanel.gitMissing": {
+    "defaultMessage": "Git is not installed"
+  },
+  "versionsPanel.hideFiles": {
+    "defaultMessage": "Hide files"
+  },
+  "versionsPanel.init": {
+    "defaultMessage": "Enable version history"
+  },
+  "versionsPanel.loadingFiles": {
+    "defaultMessage": "Loading files…"
+  },
+  "versionsPanel.missingIdentity": {
+    "defaultMessage": "Git has no user identity configured"
+  },
+  "versionsPanel.noChanges": {
+    "defaultMessage": "No pending changes"
+  },
+  "versionsPanel.noFiles": {
+    "defaultMessage": "No file changes recorded"
+  },
+  "versionsPanel.notARepo": {
+    "defaultMessage": "This working directory is not a git repository, so changes cannot be tracked."
+  },
+  "versionsPanel.nothingToCommit": {
+    "defaultMessage": "Nothing new to save"
+  },
+  "versionsPanel.refreshed": {
+    "defaultMessage": "Refreshed"
+  },
+  "versionsPanel.restore": {
+    "defaultMessage": "Restore to here"
+  },
+  "versionsPanel.restoreConfirm": {
+    "defaultMessage": "Restore all tracked files to this version? Current unsaved edits are overwritten."
+  },
+  "versionsPanel.restored": {
+    "defaultMessage": "Restored to this version"
+  },
+  "versionsPanel.restoring": {
+    "defaultMessage": "Restoring…"
+  },
+  "versionsPanel.save": {
+    "defaultMessage": "Save version"
+  },
+  "versionsPanel.saved": {
+    "defaultMessage": "Version saved"
+  },
+  "versionsPanel.saving": {
+    "defaultMessage": "Saving…"
+  },
+  "versionsPanel.showFiles": {
+    "defaultMessage": "Changed files"
+  },
+  "versionsPanel.title": {
+    "defaultMessage": "Project versions"
+  },
+  "workspaceEditor.close": {
+    "defaultMessage": "Close editor view"
+  },
+  "workspaceEditor.openFileHint": {
+    "defaultMessage": "Pick a file from the workspace tree on the right"
+  },
+  "workspaceEditor.openFileTitle": {
+    "defaultMessage": "Open a file"
+  },
+  "workspaceEditor.tab": {
+    "defaultMessage": "Files"
+  },
+  "workspaceFiles.back": {
+    "defaultMessage": "Back to files"
+  },
+  "workspaceFiles.binary": {
+    "defaultMessage": "Binary file - open it with an external program"
+  },
+  "workspaceFiles.copied": {
+    "defaultMessage": "Copied"
+  },
+  "workspaceFiles.copyPath": {
+    "defaultMessage": "Copy path"
+  },
+  "workspaceFiles.edit": {
+    "defaultMessage": "Edit"
+  },
+  "workspaceFiles.empty": {
+    "defaultMessage": "No files in this folder"
+  },
+  "workspaceFiles.incompleteFile": {
+    "defaultMessage": "Large file preview is read-only. Open it externally to edit the complete file."
+  },
+  "workspaceFiles.loadFailed": {
+    "defaultMessage": "Failed to load folder"
+  },
+  "workspaceFiles.loading": {
+    "defaultMessage": "Loading…"
+  },
+  "workspaceFiles.noMatches": {
+    "defaultMessage": "No matching file"
+  },
+  "workspaceFiles.openFileHint": {
+    "defaultMessage": "Pick a file from the workspace tree on the left"
+  },
+  "workspaceFiles.openFileTitle": {
+    "defaultMessage": "Open a file"
+  },
+  "workspaceFiles.openWith": {
+    "defaultMessage": "Open with"
+  },
+  "workspaceFiles.preview": {
+    "defaultMessage": "Preview"
+  },
+  "workspaceFiles.refresh": {
+    "defaultMessage": "Refresh"
+  },
+  "workspaceFiles.reveal": {
+    "defaultMessage": "Show in file manager"
+  },
+  "workspaceFiles.save": {
+    "defaultMessage": "Save"
+  },
+  "workspaceFiles.saveFailed": {
+    "defaultMessage": "Save failed"
+  },
+  "workspaceFiles.saved": {
+    "defaultMessage": "Saved"
+  },
+  "workspaceFiles.search": {
+    "defaultMessage": "Search files"
+  },
+  "workspaceFiles.truncated": {
+    "defaultMessage": "Showing the first portion of a large file"
+  },
+  "workspacePanel.close": {
+    "defaultMessage": "Close panel"
+  },
+  "workspacePanel.diagrams": {
+    "defaultMessage": "Diagrams"
+  },
+  "workspacePanel.environment": {
+    "defaultMessage": "Environment"
+  },
+  "workspacePanel.figures": {
+    "defaultMessage": "Figures"
+  },
+  "workspacePanel.files": {
+    "defaultMessage": "Files"
+  },
+  "workspacePanel.noWorkingDir": {
+    "defaultMessage": "This session has no working directory yet. Pick one to browse files and run commands."
+  },
+  "workspacePanel.project": {
+    "defaultMessage": "Project"
+  },
+  "workspacePanel.resize": {
+    "defaultMessage": "Drag to resize"
+  },
+  "workspacePanel.versions": {
+    "defaultMessage": "Versions"
+  },
+  "workspaceToolbar.close": {
+    "defaultMessage": "Hide panel"
+  },
+  "workspaceToolbar.diagrams": {
+    "defaultMessage": "Diagrams"
+  },
+  "workspaceToolbar.editor": {
+    "defaultMessage": "Editor view"
+  },
+  "workspaceToolbar.environment": {
+    "defaultMessage": "Environment"
+  },
+  "workspaceToolbar.figures": {
+    "defaultMessage": "Figures"
+  },
+  "workspaceToolbar.files": {
+    "defaultMessage": "Files"
+  },
+  "workspaceToolbar.open": {
+    "defaultMessage": "Open panel"
+  },
+  "workspaceToolbar.project": {
+    "defaultMessage": "Project"
+  },
+  "workspaceToolbar.versions": {
+    "defaultMessage": "Versions"
   }
 }

@@ -1,4 +1,4 @@
-import GooseLogo from './GooseLogo';
+import ModelForgeLogo from './ModelForgeLogo';
 import AnimatedIcons from './AnimatedIcons';
 import FlyingBird from './FlyingBird';
 import { ChatState } from '../types/chatState';
@@ -16,23 +16,23 @@ const i18n = defineMessages({
   },
   thinking: {
     id: 'loadingGoose.thinking',
-    defaultMessage: 'goose is thinking…',
+    defaultMessage: 'ModelForge is thinking…',
   },
   streaming: {
     id: 'loadingGoose.streaming',
-    defaultMessage: 'goose is working on it…',
+    defaultMessage: 'ModelForge is working on it…',
   },
   waiting: {
     id: 'loadingGoose.waiting',
-    defaultMessage: 'goose is waiting…',
+    defaultMessage: 'ModelForge is waiting…',
   },
   compacting: {
     id: 'loadingGoose.compacting',
-    defaultMessage: 'goose is compacting the conversation...',
+    defaultMessage: 'ModelForge is compacting the conversation...',
   },
   idle: {
     id: 'loadingGoose.idle',
-    defaultMessage: 'goose is working on it…',
+    defaultMessage: 'ModelForge is working on it…',
   },
   restartingAgent: {
     id: 'loadingGoose.restartingAgent',
@@ -40,7 +40,7 @@ const i18n = defineMessages({
   },
 });
 
-const STATE_ICONS: Record<ChatState, React.ReactNode> = {
+export const STATE_ICONS: Record<ChatState, React.ReactNode> = {
   [ChatState.LoadingConversation]: <AnimatedIcons className="flex-shrink-0" cycleInterval={600} />,
   [ChatState.Thinking]: <AnimatedIcons className="flex-shrink-0" cycleInterval={600} />,
   [ChatState.Streaming]: <FlyingBird className="flex-shrink-0" cycleInterval={150} />,
@@ -48,7 +48,7 @@ const STATE_ICONS: Record<ChatState, React.ReactNode> = {
     <AnimatedIcons className="flex-shrink-0" cycleInterval={600} variant="waiting" />
   ),
   [ChatState.Compacting]: <AnimatedIcons className="flex-shrink-0" cycleInterval={600} />,
-  [ChatState.Idle]: <GooseLogo size="small" hover={false} />,
+  [ChatState.Idle]: <ModelForgeLogo size="small" animate />,
   [ChatState.RestartingAgent]: <AnimatedIcons className="flex-shrink-0" cycleInterval={600} />,
 };
 

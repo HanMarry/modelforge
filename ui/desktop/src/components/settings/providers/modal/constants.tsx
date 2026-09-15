@@ -1,1 +1,3 @@
-export const QUICKSTART_GUIDE_URL = 'https://goose-docs.ai/docs/quickstart';
+import { DOCS_URLS } from '../../../../branding';
+
+export const QUICKSTART_GUIDE_URL = DOCS_URLS.quickstart;

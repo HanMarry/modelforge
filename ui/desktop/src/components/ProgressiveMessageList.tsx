@@ -17,6 +17,10 @@ import type {
   NotificationEvent,
   SystemNotificationContent,
 } from '../types/message';
+import { getTextAndImageContent, getToolRequests } from '../types/message';
+import { identifyConsecutiveToolCalls } from '../utils/toolCallChaining';
+import { describeToolCall, unwrapToolCall } from '../utils/toolDescription';
+import ToolCallGroup from './ToolCallGroup';
 import LoadingGoose from './LoadingGoose';
 import { getModelDisplayName } from './settings/models/predefinedModelsUtils';
 import { deriveMessageRowContexts, type MessageRowContext } from './messageRowContext';
@@ -239,52 +243,102 @@ export default function ProgressiveMessageList({
   }, [isLoading, messages.length]);
 
   const rowContexts = useMemo(() => deriveMessageRowContexts(messages), [messages]);
+  const chains = useMemo(() => identifyConsecutiveToolCalls(messages), [messages]);
+  const chainByIndex = useMemo(() => {
+    const map = new Map<number, number[]>();
+    for (const chain of chains) {
+      for (const messageIndex of chain) {
+        map.set(messageIndex, chain);
+      }
+    }
+    return map;
+  }, [chains]);
   const messagesToRender = messages.slice(0, renderedCount);
+
+  const buildMessageRow = (message: Message, index: number) => {
+    if (!message.metadata.userVisible) return null;
+    if (renderMessage) return renderMessage(message, index);
+
+    const isUser = isUserMessage(message);
+    const messageIdentifier = message.id ?? `msg-${index}-${message.created}`;
+    const messageKey = getSystemNotification(message)
+      ? `notification-${messageIdentifier}`
+      : messageIdentifier;
+    const rowContext = rowContexts[index];
+    const currentResolvedModel = getResolvedModel(message);
+    const modelChangeMessage =
+      currentResolvedModel &&
+      rowContext.previousResolvedModel &&
+      currentResolvedModel !== rowContext.previousResolvedModel
+        ? intl.formatMessage(i18n.modelChanged, {
+            previousModel: getModelDisplayName(rowContext.previousResolvedModel),
+            currentModel: getModelDisplayName(currentResolvedModel),
+          })
+        : null;
+    const toolNotifications = rowContext.toolStates.map((toolState) =>
+      toolCallNotifications.get(toolState.requestId)
+    );
+
+    return (
+      <MessageRow
+        key={messageKey}
+        append={append}
+        index={index}
+        isStreaming={
+          isStreamingMessage &&
+          !isUser &&
+          index === messagesToRender.length - 1 &&
+          message.role === 'assistant'
+        }
+        isUser={isUser}
+        message={message}
+        modelChangeMessage={modelChangeMessage}
+        onMessageUpdate={onMessageUpdate}
+        rowContext={rowContext}
+        sessionId={sessionId}
+        submitElicitationResponse={submitElicitationResponse}
+        toolNotifications={toolNotifications}
+      />
+    );
+  };
+
+  const latestOperationOf = (chainMessages: Message[]): string | null => {
+    const requests = chainMessages.flatMap((message) => getToolRequests(message));
+    const lastRequest = requests[requests.length - 1];
+    const toolCall = lastRequest ? unwrapToolCall(lastRequest.toolCall) : null;
+    return toolCall ? describeToolCall(toolCall) : null;
+  };
+
   const messageRows = messagesToRender
     .map((message, index) => {
-      if (!message.metadata.userVisible) return null;
-      if (renderMessage) return renderMessage(message, index);
+      const chain = chainByIndex.get(index);
+      if (!chain || !chain.every((chainIndex) => chainIndex < renderedCount)) {
+        return buildMessageRow(message, index);
+      }
+      if (chain[0] !== index) return null;
 
-      const isUser = isUserMessage(message);
-      const messageIdentifier = message.id ?? `msg-${index}-${message.created}`;
-      const messageKey = getSystemNotification(message)
-        ? `notification-${messageIdentifier}`
-        : messageIdentifier;
-      const rowContext = rowContexts[index];
-      const currentResolvedModel = getResolvedModel(message);
-      const modelChangeMessage =
-        currentResolvedModel &&
-        rowContext.previousResolvedModel &&
-        currentResolvedModel !== rowContext.previousResolvedModel
-          ? intl.formatMessage(i18n.modelChanged, {
-              previousModel: getModelDisplayName(rowContext.previousResolvedModel),
-              currentModel: getModelDisplayName(currentResolvedModel),
-            })
-          : null;
-      const toolNotifications = rowContext.toolStates.map((toolState) =>
-        toolCallNotifications.get(toolState.requestId)
+      const chainMessages = chain.map((chainIndex) => messages[chainIndex]);
+      const operationCount = chainMessages.reduce(
+        (total, chainMessage) => total + getToolRequests(chainMessage).length,
+        0
       );
+      const hasTextAfterChain = messages
+        .slice(chain[chain.length - 1] + 1)
+        .some(
+          (laterMessage) =>
+            laterMessage.metadata.userVisible &&
+            getTextAndImageContent(laterMessage).textContent.trim().length > 0
+        );
 
       return (
-        <MessageRow
-          key={messageKey}
-          append={append}
-          index={index}
-          isStreaming={
-            isStreamingMessage &&
-            !isUser &&
-            index === messagesToRender.length - 1 &&
-            message.role === 'assistant'
-          }
-          isUser={isUser}
-          message={message}
-          modelChangeMessage={modelChangeMessage}
-          onMessageUpdate={onMessageUpdate}
-          rowContext={rowContext}
-          sessionId={sessionId}
-          submitElicitationResponse={submitElicitationResponse}
-          toolNotifications={toolNotifications}
-        />
+        <ToolCallGroup
+          key={`tool-group-${chain[0]}-${chain.length}`}
+          operationCount={operationCount}
+          isRunning={isStreamingMessage && !hasTextAfterChain}
+          latestOperation={latestOperationOf(chainMessages)}
+        >
+          {chain.map((chainIndex) => buildMessageRow(messages[chainIndex], chainIndex))}
+        </ToolCallGroup>
       );
     })
     .filter(Boolean);

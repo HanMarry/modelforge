@@ -254,3 +254,61 @@ describe('ProgressiveMessageList batching', () => {
     expect(onRenderingComplete).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('ProgressiveMessageList tool call grouping', () => {
+  it('folds consecutive tool-only messages into a single collapsed group', () => {
+    renderList([
+      message('assistant-intro', 'assistant', [{ type: 'text', text: 'Working' }]),
+      message('tool-1', 'assistant', [toolRequest('tool-1')]),
+      message('tool-2', 'assistant', [toolRequest('tool-2')]),
+      message('tool-3', 'assistant', [toolRequest('tool-3')]),
+      message('tool-response', 'user', [toolResponse('tool-3')]),
+    ]);
+
+    expect(screen.getAllByTestId('tool-call-group')).toHaveLength(1);
+    expect(screen.getByText('3 operations')).not.toBeNull();
+    expect(screen.queryByText('tool-1')).toBeNull();
+  });
+
+  it('keeps the group expanded while the chain is still running', () => {
+    render(
+      <ProgressiveMessageList
+        messages={[
+          message('user-1', 'user', [{ type: 'text', text: 'go' }]),
+          message('tool-1', 'assistant', [toolRequest('tool-1')]),
+          message('tool-2', 'assistant', [toolRequest('tool-2')]),
+        ]}
+        sessionId="test-session"
+        append={append}
+        isUserMessage={isUserMessage}
+        isStreamingMessage
+      />,
+      { wrapper: IntlTestWrapper }
+    );
+
+    expect(screen.getByText('running')).not.toBeNull();
+    expect(screen.getByText('tool-1')).not.toBeNull();
+  });
+
+  it('collapses the group once the assistant starts answering', () => {
+    render(
+      <ProgressiveMessageList
+        messages={[
+          message('user-1', 'user', [{ type: 'text', text: 'go' }]),
+          message('tool-1', 'assistant', [toolRequest('tool-1')]),
+          message('tool-2', 'assistant', [toolRequest('tool-2')]),
+          message('answer', 'assistant', [{ type: 'text', text: 'Done' }]),
+        ]}
+        sessionId="test-session"
+        append={append}
+        isUserMessage={isUserMessage}
+        isStreamingMessage
+      />,
+      { wrapper: IntlTestWrapper }
+    );
+
+    expect(screen.getByText('completed')).not.toBeNull();
+    expect(screen.queryByText('tool-1')).toBeNull();
+    expect(screen.getByText('answer')).not.toBeNull();
+  });
+});

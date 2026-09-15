@@ -1,4 +1,160 @@
 {
+  "acpReadinessPanel.adapterFound": {
+    "defaultMessage": "Đã tìm thấy bộ điều hợp ACP"
+  },
+  "acpReadinessPanel.adapterNotFound": {
+    "defaultMessage": "Không tìm thấy bộ điều hợp ACP"
+  },
+  "acpReadinessPanel.authenticationHelp": {
+    "defaultMessage": "Đăng nhập qua CLI của nhà cung cấp, sau đó kiểm tra lại."
+  },
+  "acpReadinessPanel.checkAgain": {
+    "defaultMessage": "Kiểm tra lại"
+  },
+  "acpReadinessPanel.checking": {
+    "defaultMessage": "Đang kiểm tra..."
+  },
+  "acpReadinessPanel.connected": {
+    "defaultMessage": "Kết nối thành công"
+  },
+  "acpReadinessPanel.connectionNotChecked": {
+    "defaultMessage": "Hãy kiểm tra kết nối tài khoản trước khi tiếp tục."
+  },
+  "activityStatus.compacting": {
+    "defaultMessage": "Compacting the conversation…"
+  },
+  "activityStatus.completedOps": {
+    "defaultMessage": "{count} operations completed"
+  },
+  "activityStatus.elapsed": {
+    "defaultMessage": "{time} elapsed"
+  },
+  "activityStatus.running": {
+    "defaultMessage": "{operation}"
+  },
+  "activityStatus.streaming": {
+    "defaultMessage": "Writing the reply…"
+  },
+  "activityStatus.thinking": {
+    "defaultMessage": "Thinking…"
+  },
+  "activityStatus.waiting": {
+    "defaultMessage": "Waiting for your confirmation…"
+  },
+  "agentKernelSection.activeBadge": {
+    "defaultMessage": "Active"
+  },
+  "agentKernelSection.apiKeyHelp": {
+    "defaultMessage": "Stored encrypted on this device. goose never hands the provider key back to the app, so save it here once if the kernel reports the key is missing."
+  },
+  "agentKernelSection.apiKeyLabel": {
+    "defaultMessage": "API key for the kernel (optional)"
+  },
+  "agentKernelSection.apiKeyPlaceholder": {
+    "defaultMessage": "Leave blank to reuse the key saved in the provider settings"
+  },
+  "agentKernelSection.builtinDescription": {
+    "defaultMessage": "ModelForge own agent loop. No extra runtime needed."
+  },
+  "agentKernelSection.builtinTitle": {
+    "defaultMessage": "Built-in kernel"
+  },
+  "agentKernelSection.claudeCodeDescription": {
+    "defaultMessage": "Runs the Claude Code agent loop on the API you configured."
+  },
+  "agentKernelSection.claudeCodeTitle": {
+    "defaultMessage": "Claude Code kernel"
+  },
+  "agentKernelSection.clearKey": {
+    "defaultMessage": "Forget saved key"
+  },
+  "agentKernelSection.codexDescription": {
+    "defaultMessage": "Runs the OpenAI Codex agent loop on the API you configured."
+  },
+  "agentKernelSection.codexTitle": {
+    "defaultMessage": "Codex kernel"
+  },
+  "agentKernelSection.contextWindowHelp": {
+    "defaultMessage": "Windows differ per model, so this applies to {model} only. The context bar and its warnings use this value instead of the kernel’s own (usually larger) window."
+  },
+  "agentKernelSection.contextWindowSourceOverride": {
+    "defaultMessage": "Using the window you entered."
+  },
+  "agentKernelSection.contextWindowSourceProvider": {
+    "defaultMessage": "Using the window the provider declares for this model."
+  },
+  "agentKernelSection.contextWindowSourceUnknown": {
+    "defaultMessage": "The provider declares no window for this model, so the bar cannot warn you in time — filling it in here is recommended."
+  },
+  "agentKernelSection.contextWindowTitle": {
+    "defaultMessage": "Context window of {model}"
+  },
+  "agentKernelSection.currency": {
+    "defaultMessage": "Currency"
+  },
+  "agentKernelSection.description": {
+    "defaultMessage": "Choose the agent loop that runs your chats. The built-in kernel works out of the box; Claude Code and Codex run on the API configured in ModelForge through a local adapter."
+  },
+  "agentKernelSection.inputPrice": {
+    "defaultMessage": "Input / 1M"
+  },
+  "agentKernelSection.keySaved": {
+    "defaultMessage": "Key saved."
+  },
+  "agentKernelSection.keySource": {
+    "defaultMessage": "API key source: {source}"
+  },
+  "agentKernelSection.keySourceEnv": {
+    "defaultMessage": "environment variable {name}"
+  },
+  "agentKernelSection.keySourceKernel": {
+    "defaultMessage": "entered for the kernel"
+  },
+  "agentKernelSection.keySourceNone": {
+    "defaultMessage": "not set"
+  },
+  "agentKernelSection.keySourceProvider": {
+    "defaultMessage": "captured from the provider settings"
+  },
+  "agentKernelSection.outputPrice": {
+    "defaultMessage": "Output / 1M"
+  },
+  "agentKernelSection.pricingHelp": {
+    "defaultMessage": "Per 1M tokens, used to estimate what the kernel spends on your model. The kernel reports its own tokens; goose has no price for it."
+  },
+  "agentKernelSection.pricingTitle": {
+    "defaultMessage": "Model pricing (optional)"
+  },
+  "agentKernelSection.restartNote": {
+    "defaultMessage": "The kernel is provisioned when ModelForge starts. Restart the app to apply a change."
+  },
+  "agentKernelSection.restartNow": {
+    "defaultMessage": "Restart now"
+  },
+  "agentKernelSection.restartRequired": {
+    "defaultMessage": "Kernel changed — restart ModelForge to provision it."
+  },
+  "agentKernelSection.saveKey": {
+    "defaultMessage": "Save key"
+  },
+  "agentKernelSection.statusBuiltin": {
+    "defaultMessage": "The built-in kernel is active."
+  },
+  "agentKernelSection.statusIncomplete": {
+    "defaultMessage": "Not ready yet"
+  },
+  "agentKernelSection.statusReady": {
+    "defaultMessage": "Ready · {baseUrl} · model {model} · local adapter {shimUrl}"
+  },
+  "agentKernelSection.statusTitle": {
+    "defaultMessage": "Kernel status"
+  },
+  "agentKernelSection.title": {
+    "defaultMessage": "Agent Kernel"
+  },
+  "agentKernelSection.usingProvider": {
+    "defaultMessage": "Provider: {providerId}"
+  },
   "alertBox.autoCompactAt": {
     "defaultMessage": "Tự động nén tại"
   },
@@ -7,6 +163,54 @@
   },
   "alertBox.failedToSaveThreshold": {
     "defaultMessage": "Không thể lưu ngưỡng: {error}"
+  },
+  "algorithmsView.all": {
+    "defaultMessage": "All"
+  },
+  "algorithmsView.dataNeeded": {
+    "defaultMessage": "What data it needs"
+  },
+  "algorithmsView.dependencies": {
+    "defaultMessage": "Dependencies"
+  },
+  "algorithmsView.empty": {
+    "defaultMessage": "No methods match that search."
+  },
+  "algorithmsView.entrypoint": {
+    "defaultMessage": "Entry point"
+  },
+  "algorithmsView.homepage": {
+    "defaultMessage": "Upstream docs"
+  },
+  "algorithmsView.license": {
+    "defaultMessage": "Licence"
+  },
+  "algorithmsView.needsInstall": {
+    "defaultMessage": "Needs install"
+  },
+  "algorithmsView.notSuitableFor": {
+    "defaultMessage": "When not to use it"
+  },
+  "algorithmsView.outputs": {
+    "defaultMessage": "What you get back"
+  },
+  "algorithmsView.searchPlaceholder": {
+    "defaultMessage": "Search methods or packages, e.g. PSO, scikit-learn"
+  },
+  "algorithmsView.sessionFailed": {
+    "defaultMessage": "Could not start a session for this method"
+  },
+  "algorithmsView.subtitle": {
+    "defaultMessage": "Ready-made method cards: pick one and let the agent install dependencies and write the code."
+  },
+  "algorithmsView.title": {
+    "defaultMessage": "Methods and algorithms"
+  },
+  "algorithmsView.useInSession": {
+    "defaultMessage": "Try it in a session"
+  },
+  "algorithmsView.useWhen": {
+    "defaultMessage": "When to use it"
   },
   "announcementModal.gotIt": {
     "defaultMessage": "Đã hiểu!"
@@ -27,7 +231,7 @@
     "defaultMessage": "Delete \"{name}\"? This cannot be undone."
   },
   "appsView.description": {
-    "defaultMessage": "Các ứng dụng từ máy chủ MCP của bạn và các ứng dụng do goose tự tạo. Bạn có thể yêu cầu nó tạo ứng dụng mới thông qua giao diện trò chuyện và chúng sẽ xuất hiện ở đây."
+    "defaultMessage": "Các ứng dụng từ máy chủ MCP của bạn và các ứng dụng do ModelForge tự tạo. Bạn có thể yêu cầu nó tạo ứng dụng mới thông qua giao diện trò chuyện và chúng sẽ xuất hiện ở đây."
   },
   "appsView.errorLoading": {
     "defaultMessage": "Lỗi khi tải ứng dụng: {error}"
@@ -45,7 +249,7 @@
     "defaultMessage": "Đang tải ứng dụng..."
   },
   "appsView.noAppsDescription": {
-    "defaultMessage": "Mở một cuộc trò chuyện và yêu cầu goose tạo ứng dụng bạn muốn. Nó có thể tạo cho bạn và ứng dụng sẽ xuất hiện ở đây. Hoặc nếu ai đó đã chia sẻ một ứng dụng, bạn có thể nhập nó bằng nút phía trên."
+    "defaultMessage": "Mở một cuộc trò chuyện và yêu cầu ModelForge tạo ứng dụng bạn muốn. Nó có thể tạo cho bạn và ứng dụng sẽ xuất hiện ở đây. Hoặc nếu ai đó đã chia sẻ một ứng dụng, bạn có thể nhập nó bằng nút phía trên."
   },
   "appsView.noAppsTitle": {
     "defaultMessage": "Không có ứng dụng nào"
@@ -84,7 +288,7 @@
     "defaultMessage": "Đã xóa thông tin xác thực"
   },
   "authSettings.description": {
-    "defaultMessage": "Quản lý thông tin xác thực nhà cung cấp được goose lưu trữ cục bộ."
+    "defaultMessage": "Quản lý thông tin xác thực nhà cung cấp được ModelForge lưu trữ cục bộ."
   },
   "authSettings.empty": {
     "defaultMessage": "Không tìm thấy thông tin xác thực nhà cung cấp nào được lưu trữ cục bộ."
@@ -171,10 +375,31 @@
     "defaultMessage": "Khởi chạy"
   },
   "chat.notification.taskComplete.body": {
-    "defaultMessage": "Nhấp vào đây để đưa Goose trở lại tiêu điểm."
+    "defaultMessage": "Nhấp vào đây để đưa ModelForge trở lại tiêu điểm."
   },
   "chat.notification.taskComplete.title": {
-    "defaultMessage": "Goose đã hoàn thành tác vụ."
+    "defaultMessage": "ModelForge đã hoàn thành tác vụ."
+  },
+  "chatInput.contextCriticalBody": {
+    "defaultMessage": "{percent}% used ({used} / {limit} tokens). Start a new session now — the next long turn may be rejected by your provider."
+  },
+  "chatInput.contextCriticalKernelBody": {
+    "defaultMessage": "{percent}% used ({used} / {limit} tokens). Start a new session now — the {kernel} kernel may still exceed your model’s window."
+  },
+  "chatInput.contextCriticalTitle": {
+    "defaultMessage": "Almost out of context"
+  },
+  "chatInput.contextWarningBody": {
+    "defaultMessage": "{percent}% used ({used} / {limit} tokens). Consider starting a new session so answers keep their quality."
+  },
+  "chatInput.contextWarningKernelBody": {
+    "defaultMessage": "{percent}% used ({used} / {limit} tokens). The {kernel} kernel compacts on its own, but a new session keeps details sharper."
+  },
+  "chatInput.contextWarningNotificationTitle": {
+    "defaultMessage": "ModelForge: context almost full"
+  },
+  "chatInput.contextWarningTitle": {
+    "defaultMessage": "Context is filling up"
   },
   "chatInput.contextWindow": {
     "defaultMessage": "Cửa sổ ngữ cảnh"
@@ -184,6 +409,9 @@
   },
   "chatInput.failedToReadImage": {
     "defaultMessage": "Không thể đọc tệp hình ảnh"
+  },
+  "chatInput.kernelContextManaged": {
+    "defaultMessage": "Context managed by the {kernel} kernel — it compacts on its own; the bar shows your model’s window."
   },
   "chatInput.navigationShortcut": {
     "defaultMessage": "{prefix}↑/{prefix}↓ để điều hướng tin nhắn"
@@ -225,13 +453,13 @@
     "defaultMessage": "Đang chờ lưu hình ảnh..."
   },
   "chatSettings.modeDescription": {
-    "defaultMessage": "Chọn chế độ mặc định mà Goose sử dụng cho các phiên mới. Các phiên hiện có vẫn giữ chế độ hiện tại của chúng."
+    "defaultMessage": "Chọn chế độ mặc định mà ModelForge sử dụng cho các phiên mới. Các phiên hiện có vẫn giữ chế độ hiện tại của chúng."
   },
   "chatSettings.modeTitle": {
     "defaultMessage": "Chế độ mặc định"
   },
   "chatSettings.responseStylesDescription": {
-    "defaultMessage": "Chọn cách Goose định dạng và tạo phong cách cho các phản hồi của mình"
+    "defaultMessage": "Chọn cách ModelForge định dạng và tạo phong cách cho các phản hồi của mình"
   },
   "chatSettings.responseStylesTitle": {
     "defaultMessage": "Phong cách phản hồi"
@@ -252,10 +480,10 @@
     "defaultMessage": "Trình chỉnh sửa cấu hình"
   },
   "configSettings.description": {
-    "defaultMessage": "Chỉnh sửa cài đặt cấu hình goose của bạn"
+    "defaultMessage": "Chỉnh sửa cài đặt cấu hình ModelForge của bạn"
   },
   "configSettings.descriptionWithProvider": {
-    "defaultMessage": "Chỉnh sửa cài đặt cấu hình goose của bạn (cài đặt hiện tại cho {provider})"
+    "defaultMessage": "Chỉnh sửa cài đặt cấu hình ModelForge của bạn (cài đặt hiện tại cho {provider})"
   },
   "configSettings.done": {
     "defaultMessage": "Xong"
@@ -320,6 +548,93 @@
   "confirmationModal.processing": {
     "defaultMessage": "Đang xử lý..."
   },
+  "connectorsView.addCustom": {
+    "defaultMessage": "Add a custom connector"
+  },
+  "connectorsView.all": {
+    "defaultMessage": "All"
+  },
+  "connectorsView.alreadyInstalled": {
+    "defaultMessage": "This connector is already in your extensions."
+  },
+  "connectorsView.builtin": {
+    "defaultMessage": "Built in"
+  },
+  "connectorsView.builtinHint": {
+    "defaultMessage": "Ships with the app; toggle it from Plugins."
+  },
+  "connectorsView.cancel": {
+    "defaultMessage": "Cancel"
+  },
+  "connectorsView.capabilities": {
+    "defaultMessage": "Capabilities"
+  },
+  "connectorsView.command": {
+    "defaultMessage": "Runs as"
+  },
+  "connectorsView.confirmInstall": {
+    "defaultMessage": "Add connector"
+  },
+  "connectorsView.defaultOff": {
+    "defaultMessage": "Disabled by default"
+  },
+  "connectorsView.defaultOn": {
+    "defaultMessage": "Enabled by default"
+  },
+  "connectorsView.docs": {
+    "defaultMessage": "Documentation"
+  },
+  "connectorsView.install": {
+    "defaultMessage": "Install"
+  },
+  "connectorsView.installFailed": {
+    "defaultMessage": "Couldn't add the connector"
+  },
+  "connectorsView.installSuccess": {
+    "defaultMessage": "Connector added"
+  },
+  "connectorsView.installSuccessMsg": {
+    "defaultMessage": "{name} is enabled. Its first call may take a moment while the package downloads."
+  },
+  "connectorsView.installable": {
+    "defaultMessage": "Available to connect"
+  },
+  "connectorsView.installed": {
+    "defaultMessage": "Installed"
+  },
+  "connectorsView.installing": {
+    "defaultMessage": "Installing…"
+  },
+  "connectorsView.optional": {
+    "defaultMessage": "optional"
+  },
+  "connectorsView.planned": {
+    "defaultMessage": "Planned"
+  },
+  "connectorsView.plannedHint": {
+    "defaultMessage": "No server implemented yet — listed so the catalogue is complete."
+  },
+  "connectorsView.prerequisite": {
+    "defaultMessage": "Before you start"
+  },
+  "connectorsView.secretsHint": {
+    "defaultMessage": "Stored in the system keyring, never written into the config file. Leave blank to fill in later."
+  },
+  "connectorsView.secretsTitle": {
+    "defaultMessage": "Credentials"
+  },
+  "connectorsView.source": {
+    "defaultMessage": "Package"
+  },
+  "connectorsView.subtitle": {
+    "defaultMessage": "Extend the assistant with MCP servers: literature search, web fetch and repositories."
+  },
+  "connectorsView.title": {
+    "defaultMessage": "Connectors"
+  },
+  "connectorsView.transport": {
+    "defaultMessage": "Transport"
+  },
   "conversationLimitsDropdown.conversationLimits": {
     "defaultMessage": "Giới hạn cuộc trò chuyện"
   },
@@ -327,13 +642,22 @@
     "defaultMessage": "Số lượt tối đa"
   },
   "conversationLimitsDropdown.maxTurnsDescription": {
-    "defaultMessage": "Số lượt tác nhân tối đa trước khi Goose yêu cầu người dùng nhập liệu"
+    "defaultMessage": "Số lượt tác nhân tối đa trước khi ModelForge yêu cầu người dùng nhập liệu"
   },
   "costTracker.costUnavailable": {
     "defaultMessage": "Không có dữ liệu chi phí cho {model} ({inputTokens} token đầu vào, {outputTokens} token đầu ra)"
   },
   "costTracker.inputOutputTooltip": {
     "defaultMessage": "Đầu vào: {inputTokens} token ({inputCost}) | Đầu ra: {outputTokens} token ({outputCost})"
+  },
+  "costTracker.kernelEstimate": {
+    "defaultMessage": "Estimated from your prices"
+  },
+  "costTracker.kernelEstimateTooltip": {
+    "defaultMessage": "Served by {model} through the {kernel} kernel. Estimated from the prices you entered in Settings → App → Agent kernel · input {inputTokens} tok, output {outputTokens} tok."
+  },
+  "costTracker.kernelPricesMissing": {
+    "defaultMessage": "The kernel is serving your model {model}, so goose has no price for it. Enter the per-million-token prices in Settings → App → Agent kernel to see a cost estimate."
   },
   "costTracker.pricingUnavailable": {
     "defaultMessage": "Không có dữ liệu giá cho {model}"
@@ -783,7 +1107,7 @@
     "defaultMessage": "Chỉnh sửa thiết lập {name}"
   },
   "defaultCardButtons.getStarted": {
-    "defaultMessage": "Bắt đầu với goose!"
+    "defaultMessage": "Bắt đầu với ModelForge!"
   },
   "defaultProviderSetupForm.apiHostLabel": {
     "defaultMessage": "Máy chủ API"
@@ -866,6 +1190,24 @@
   "diagnosticsModal.systemInfoErrorTitle": {
     "defaultMessage": "Lỗi"
   },
+  "diagramsPanel.count": {
+    "defaultMessage": "{count} diagrams"
+  },
+  "diagramsPanel.empty": {
+    "defaultMessage": "No diagrams yet"
+  },
+  "diagramsPanel.emptyHint": {
+    "defaultMessage": "Ask the agent for a technical roadmap or flow diagram; rendered .drawio / PNG output shows up here."
+  },
+  "diagramsPanel.generate": {
+    "defaultMessage": "Ask for a technical roadmap diagram"
+  },
+  "diagramsPanel.openExternal": {
+    "defaultMessage": "Open with an external program"
+  },
+  "diagramsPanel.refresh": {
+    "defaultMessage": "Refresh"
+  },
   "dialog.close": {
     "defaultMessage": "Đóng"
   },
@@ -914,6 +1256,12 @@
   "dictationSettings.voiceDictationProvider": {
     "defaultMessage": "Nhà cung cấp đọc chính tả bằng giọng nói"
   },
+  "diffView.empty": {
+    "defaultMessage": "No textual changes for this file"
+  },
+  "diffView.truncated": {
+    "defaultMessage": "Diff truncated"
+  },
   "dirSwitcher.chooseDirectory": {
     "defaultMessage": "Chọn thư mục…"
   },
@@ -923,11 +1271,11 @@
   "dirSwitcher.enterPath": {
     "defaultMessage": "Enter path"
   },
-  "dirSwitcher.enterPathPlaceholder": {
-    "defaultMessage": "Enter an absolute path (e.g. /home/goose/workspace)"
-  },
   "dirSwitcher.enterPathInvalid": {
     "defaultMessage": "Working directory must be an absolute path"
+  },
+  "dirSwitcher.enterPathPlaceholder": {
+    "defaultMessage": "Enter an absolute path (e.g. /home/goose/workspace)"
   },
   "dirSwitcher.failedToUpdateWorkingDir": {
     "defaultMessage": "Không thể cập nhật thư mục làm việc"
@@ -944,18 +1292,6 @@
   "dirSwitcher.recentDirectories": {
     "defaultMessage": "Thư mục gần đây"
   },
-  "gitBranchIndicator.failedToSwitch": {
-    "defaultMessage": "Không thể chuyển sang {branch}"
-  },
-  "gitBranchIndicator.noBranchesFound": {
-    "defaultMessage": "Không tìm thấy nhánh"
-  },
-  "gitBranchIndicator.searchBranches": {
-    "defaultMessage": "Tìm kiếm nhánh…"
-  },
-  "gitBranchIndicator.uncommittedChanges": {
-    "defaultMessage": "Bạn có thể có các thay đổi chưa commit."
-  },
   "elicitationRequest.accept": {
     "defaultMessage": "Chấp nhận"
   },
@@ -963,7 +1299,7 @@
     "defaultMessage": "Yêu cầu thông tin đã bị hủy."
   },
   "elicitationRequest.defaultMessage": {
-    "defaultMessage": "Goose cần một số thông tin từ bạn."
+    "defaultMessage": "ModelForge cần một số thông tin từ bạn."
   },
   "elicitationRequest.expired": {
     "defaultMessage": "Yêu cầu này đã hết hạn. Tiện ích mở rộng sẽ cần hỏi lại."
@@ -1004,11 +1340,29 @@
   "environmentBadge.dev": {
     "defaultMessage": "Dev"
   },
+  "environmentPanel.checking": {
+    "defaultMessage": "Checking the environment…"
+  },
+  "environmentPanel.missing": {
+    "defaultMessage": "Not found"
+  },
+  "environmentPanel.probeFailed": {
+    "defaultMessage": "Could not probe the environment"
+  },
+  "environmentPanel.refresh": {
+    "defaultMessage": "Re-check"
+  },
+  "environmentPanel.terminal": {
+    "defaultMessage": "Terminal"
+  },
+  "environmentPanel.workingDir": {
+    "defaultMessage": "Working directory"
+  },
   "errorBoundary.errorGeneric": {
     "defaultMessage": "Đã xảy ra lỗi."
   },
   "errorBoundary.errorWithVersion": {
-    "defaultMessage": "Đã xảy ra lỗi trong Goose v{version}."
+    "defaultMessage": "Đã xảy ra lỗi trong ModelForge v{version}."
   },
   "errorBoundary.heading": {
     "defaultMessage": "Honk!"
@@ -1191,7 +1545,7 @@
     "defaultMessage": "Các tiện ích mở rộng được bật ở đây sẽ được dùng làm mặc định cho các cuộc trò chuyện mới. Bạn cũng có thể bật/tắt các tiện ích mở rộng đang hoạt động trong khi trò chuyện."
   },
   "extensionsView.description": {
-    "defaultMessage": "Các tiện ích mở rộng này sử dụng Model Context Protocol (MCP). Chúng có thể mở rộng khả năng của Goose bằng ba thành phần chính: Lời nhắc, Tài nguyên và Công cụ. {searchShortcut} để tìm kiếm."
+    "defaultMessage": "Các tiện ích mở rộng này sử dụng Model Context Protocol (MCP). Chúng có thể mở rộng khả năng của ModelForge bằng ba thành phần chính: Lời nhắc, Tài nguyên và Công cụ. {searchShortcut} để tìm kiếm."
   },
   "extensionsView.heading": {
     "defaultMessage": "Tiện ích mở rộng"
@@ -1209,19 +1563,19 @@
     "defaultMessage": "AA:BB:CC:... hoặc sha256/base64"
   },
   "externalBackendSection.description": {
-    "defaultMessage": "Theo mặc định goose khởi chạy một máy chủ cho bạn, hãy dùng tùy chọn này để kết nối tới một máy chủ goose bên ngoài"
+    "defaultMessage": "Theo mặc định ModelForge khởi chạy một máy chủ cho bạn, hãy dùng tùy chọn này để kết nối tới một máy chủ ModelForge bên ngoài"
   },
   "externalBackendSection.fingerprintRequiresHttps": {
     "defaultMessage": "Certificate fingerprint requires an https URL"
   },
   "externalBackendSection.restartNote": {
-    "defaultMessage": "Các thay đổi cần khởi động lại Goose để có hiệu lực. Các cửa sổ trò chuyện mới sẽ kết nối tới máy chủ bên ngoài."
+    "defaultMessage": "Các thay đổi cần khởi động lại ModelForge để có hiệu lực. Các cửa sổ trò chuyện mới sẽ kết nối tới máy chủ bên ngoài."
   },
   "externalBackendSection.secretKey": {
     "defaultMessage": "Khóa bí mật"
   },
   "externalBackendSection.secretKeyHelp": {
-    "defaultMessage": "Khóa bí mật được cấu hình trên máy chủ Goose (GOOSE_SERVER__SECRET_KEY)"
+    "defaultMessage": "Khóa bí mật được cấu hình trên máy chủ ModelForge (GOOSE_SERVER__SECRET_KEY)"
   },
   "externalBackendSection.secretKeyPlaceholder": {
     "defaultMessage": "Nhập khóa bí mật của máy chủ"
@@ -1230,10 +1584,10 @@
     "defaultMessage": "URL máy chủ"
   },
   "externalBackendSection.serverUrlHelp": {
-    "defaultMessage": "Enter the HTTP(S) base URL. Goose checks /status and connects to /acp under this base."
+    "defaultMessage": "Enter the HTTP(S) base URL. ModelForge checks /status and connects to /acp under this base."
   },
   "externalBackendSection.title": {
-    "defaultMessage": "Máy chủ Goose"
+    "defaultMessage": "Máy chủ ModelForge"
   },
   "externalBackendSection.urlBaseError": {
     "defaultMessage": "URL must be the backend base URL before /acp, without query parameters or fragments"
@@ -1248,7 +1602,7 @@
     "defaultMessage": "Sử dụng máy chủ bên ngoài"
   },
   "externalBackendSection.useExternalServerDescription": {
-    "defaultMessage": "Kết nối tới một máy chủ goose đang chạy ở nơi khác (cần khởi động lại ứng dụng)"
+    "defaultMessage": "Kết nối tới một máy chủ ModelForge đang chạy ở nơi khác (cần khởi động lại ứng dụng)"
   },
   "externalBackendSection.workingDir": {
     "defaultMessage": "Thư mục làm việc từ xa (tùy chọn)"
@@ -1259,68 +1613,89 @@
   "externalBackendSection.workingDirPlaceholder": {
     "defaultMessage": "/home/goose/workspace"
   },
-  "goosehintsModal.close": {
-    "defaultMessage": "Đóng"
+  "figuresPanel.all": {
+    "defaultMessage": "All"
   },
-  "goosehintsModal.developer": {
-    "defaultMessage": "Nhà phát triển"
+  "figuresPanel.empty": {
+    "defaultMessage": "No matching template"
   },
-  "goosehintsModal.dialogDescription": {
-    "defaultMessage": "Cung cấp thêm ngữ cảnh về dự án của bạn để cải thiện giao tiếp với Goose"
+  "figuresPanel.hint": {
+    "defaultMessage": "Picking a template fills the composer; nothing is sent until you press send."
   },
-  "goosehintsModal.dialogTitle": {
-    "defaultMessage": "Cấu hình gợi ý dự án (.goosehints)"
+  "figuresPanel.insert": {
+    "defaultMessage": "Fill the prompt"
   },
-  "goosehintsModal.errorReading": {
-    "defaultMessage": "Lỗi khi đọc tệp .goosehints: {error}"
+  "figuresPanel.search": {
+    "defaultMessage": "Search templates"
   },
-  "goosehintsModal.failedToAccess": {
-    "defaultMessage": "Không thể truy cập tệp .goosehints"
+  "figuresView.all": {
+    "defaultMessage": "All"
   },
-  "goosehintsModal.failedToSave": {
-    "defaultMessage": "Không thể lưu tệp .goosehints"
+  "figuresView.depsValue": {
+    "defaultMessage": "Requires {deps}"
   },
-  "goosehintsModal.fileCreating": {
-    "defaultMessage": "Đang tạo tệp .goosehints mới tại: {filePath}"
+  "figuresView.empty": {
+    "defaultMessage": "No templates in this category yet."
   },
-  "goosehintsModal.fileFound": {
-    "defaultMessage": "Đã tìm thấy tệp .goosehints tại: {filePath}"
+  "figuresView.placeholder": {
+    "defaultMessage": "Template not added yet"
   },
-  "goosehintsModal.helpText1": {
-    "defaultMessage": ".goosehints là một tệp văn bản dùng để cung cấp thêm ngữ cảnh về dự án của bạn và cải thiện giao tiếp với Goose."
+  "figuresView.script": {
+    "defaultMessage": "Generating script"
   },
-  "goosehintsModal.helpText2": {
-    "defaultMessage": "Hãy đảm bảo tiện ích mở rộng {bold} được bật trong trang tiện ích mở rộng. Tiện ích mở rộng này là bắt buộc để sử dụng .goosehints. Bạn cần khởi động lại phiên để các cập nhật .goosehints có hiệu lực."
+  "figuresView.subtitle": {
+    "defaultMessage": "Pick a template and the agent writes the plotting script, draws the chart and exports vector PDF/SVG plus a PNG preview."
   },
-  "goosehintsModal.helpText3": {
-    "defaultMessage": "Xem {link} để biết thêm thông tin."
+  "figuresView.title": {
+    "defaultMessage": "Research figures"
   },
-  "goosehintsModal.helpTextLink": {
-    "defaultMessage": "cách sử dụng .goosehints"
+  "figuresView.total": {
+    "defaultMessage": "{count} templates"
   },
-  "goosehintsModal.placeholder": {
-    "defaultMessage": "Nhập gợi ý dự án ở đây..."
+  "figuresView.unavailable": {
+    "defaultMessage": "No preview yet — this template needs extra geometry libraries."
   },
-  "goosehintsModal.save": {
-    "defaultMessage": "Lưu"
+  "figuresView.useTemplate": {
+    "defaultMessage": "Use this template"
   },
-  "goosehintsModal.savedSuccessfully": {
-    "defaultMessage": "Đã lưu thành công"
+  "figuresView.useTemplateHint": {
+    "defaultMessage": "Fills the home composer with a request for this template; nothing is sent yet."
   },
-  "goosehintsModal.saving": {
-    "defaultMessage": "Đang lưu..."
+  "fileArtifact.open": {
+    "defaultMessage": "Open in the workspace editor"
   },
-  "goosehintsSection.configure": {
-    "defaultMessage": "Cấu hình"
+  "filePreview.binary": {
+    "defaultMessage": "Binary file"
   },
-  "goosehintsSection.description": {
-    "defaultMessage": "Cấu hình tệp .goosehints của dự án để cung cấp thêm ngữ cảnh cho Goose"
+  "filePreview.loading": {
+    "defaultMessage": "Loading…"
   },
-  "goosehintsSection.title": {
-    "defaultMessage": "Gợi ý dự án (.goosehints)"
+  "filePreview.readFailed": {
+    "defaultMessage": "Could not read this file. Check it still exists and try again."
   },
-  "groupedExtensionLoadingToast.askGoose": {
-    "defaultMessage": "Hỏi goose"
+  "filePreview.retry": {
+    "defaultMessage": "Retry preview"
+  },
+  "filePreview.truncated": {
+    "defaultMessage": "Showing the first portion of a large file"
+  },
+  "filePreview.unsupported": {
+    "defaultMessage": "No preview for this file type - open it with an external program."
+  },
+  "gitBranchIndicator.failedToSwitch": {
+    "defaultMessage": "Không thể chuyển sang {branch}"
+  },
+  "gitBranchIndicator.noBranchesFound": {
+    "defaultMessage": "Không tìm thấy nhánh"
+  },
+  "gitBranchIndicator.searchBranches": {
+    "defaultMessage": "Tìm kiếm nhánh…"
+  },
+  "gitBranchIndicator.uncommittedChanges": {
+    "defaultMessage": "Bạn có thể có các thay đổi chưa commit."
+  },
+  "groupedExtensionLoadingToast.askAssistant": {
+    "defaultMessage": "Hỏi ModelForge"
   },
   "groupedExtensionLoadingToast.collapseDetails": {
     "defaultMessage": "Thu gọn chi tiết"
@@ -1379,6 +1754,39 @@
   "headersSection.value": {
     "defaultMessage": "Giá trị"
   },
+  "hexPreview.header": {
+    "defaultMessage": "Binary preview"
+  },
+  "hexPreview.truncated": {
+    "defaultMessage": "Showing the first {bytes} bytes of {size}"
+  },
+  "hub.appTitle": {
+    "defaultMessage": "Mathematical Modeling Assistant"
+  },
+  "hub.chooseProject": {
+    "defaultMessage": "Choose a folder to begin"
+  },
+  "hub.contestInfo": {
+    "defaultMessage": "Contest info"
+  },
+  "hub.contestLabel": {
+    "defaultMessage": "Contest"
+  },
+  "hub.exampleNeedsInput": {
+    "defaultMessage": "Statement not bundled — add it yourself"
+  },
+  "hub.exampleReady": {
+    "defaultMessage": "Sample data included"
+  },
+  "hub.examplesTitle": {
+    "defaultMessage": "Try one of these modeling problems"
+  },
+  "hub.freeChat": {
+    "defaultMessage": "Free chat"
+  },
+  "hub.freeChatHint": {
+    "defaultMessage": "No preset workflow; start from your own input"
+  },
   "hub.goodAfternoon": {
     "defaultMessage": "Chào buổi chiều"
   },
@@ -1387,6 +1795,15 @@
   },
   "hub.goodMorning": {
     "defaultMessage": "Chào buổi sáng"
+  },
+  "hub.paperLabel": {
+    "defaultMessage": "Paper"
+  },
+  "hub.projectMaterials": {
+    "defaultMessage": "View project materials and next steps"
+  },
+  "hub.workflowLabel": {
+    "defaultMessage": "Workflow"
   },
   "huggingFaceModelSearch.download": {
     "defaultMessage": "Tải xuống"
@@ -1440,7 +1857,7 @@
     "defaultMessage": "Hugging Face"
   },
   "imagePreview.altText": {
-    "defaultMessage": "hình ảnh goose"
+    "defaultMessage": "hình ảnh ModelForge"
   },
   "imagePreview.clickToCollapse": {
     "defaultMessage": "Nhấp để thu gọn"
@@ -1488,7 +1905,7 @@
     "defaultMessage": "Tệp công thức"
   },
   "importRecipeForm.reviewWarning": {
-    "defaultMessage": "Hãy đảm bảo bạn xem lại nội dung của các tệp công thức trước khi thêm chúng vào giao diện goose của bạn."
+    "defaultMessage": "Hãy đảm bảo bạn xem lại nội dung của các tệp công thức trước khi thêm chúng vào giao diện ModelForge của bạn."
   },
   "importRecipeForm.schemaDescription": {
     "defaultMessage": "Tệp YAML hoặc JSON của bạn phải tuân theo cấu trúc này. Các trường bắt buộc là: title, description, và instructions hoặc prompt."
@@ -1574,6 +1991,33 @@
   "jsonSchemaForm.submit": {
     "defaultMessage": "Gửi"
   },
+  "kernelModel.description": {
+    "defaultMessage": "The {kernel} kernel sends every request through the local adapter, which forwards it to the model below. Picking a model applies to the next request."
+  },
+  "kernelModel.empty": {
+    "defaultMessage": "This provider has no models to choose from."
+  },
+  "kernelModel.loading": {
+    "defaultMessage": "Loading models…"
+  },
+  "kernelModel.notRunning": {
+    "defaultMessage": "The kernel is not running yet — check 应用 → 智能体内核."
+  },
+  "kernelModel.provider": {
+    "defaultMessage": "Provider: {provider}"
+  },
+  "kernelModel.readFailed": {
+    "defaultMessage": "Could not read the kernel state"
+  },
+  "kernelModel.switchFailed": {
+    "defaultMessage": "Could not switch the kernel model"
+  },
+  "kernelModel.switched": {
+    "defaultMessage": "Kernel model switched to {model}"
+  },
+  "kernelModel.title": {
+    "defaultMessage": "Kernel model"
+  },
   "keyValueEditor.addValue": {
     "defaultMessage": "Thêm giá trị được cấu hình sẵn"
   },
@@ -1599,13 +2043,13 @@
     "defaultMessage": "Phím tắt ứng dụng"
   },
   "keyboardShortcuts.categoryApplicationDescription": {
-    "defaultMessage": "Các phím tắt này hoạt động khi Goose là ứng dụng đang hoạt động"
+    "defaultMessage": "Các phím tắt này hoạt động khi ModelForge là ứng dụng đang hoạt động"
   },
   "keyboardShortcuts.categoryGlobal": {
     "defaultMessage": "Phím tắt toàn cục"
   },
   "keyboardShortcuts.categoryGlobalDescription": {
-    "defaultMessage": "Các phím tắt này hoạt động trên toàn hệ thống, ngay cả khi Goose không được lấy nét"
+    "defaultMessage": "Các phím tắt này hoạt động trên toàn hệ thống, ngay cả khi ModelForge không được lấy nét"
   },
   "keyboardShortcuts.categorySearch": {
     "defaultMessage": "Phím tắt tìm kiếm"
@@ -1647,10 +2091,10 @@
     "defaultMessage": "Tìm trước đó"
   },
   "keyboardShortcuts.focusWindowDescription": {
-    "defaultMessage": "Đưa cửa sổ Goose lên phía trước từ bất kỳ đâu"
+    "defaultMessage": "Đưa cửa sổ ModelForge lên phía trước từ bất kỳ đâu"
   },
   "keyboardShortcuts.focusWindowLabel": {
-    "defaultMessage": "Lấy nét cửa sổ Goose"
+    "defaultMessage": "Lấy nét cửa sổ ModelForge"
   },
   "keyboardShortcuts.loading": {
     "defaultMessage": "Đang tải..."
@@ -1662,7 +2106,7 @@
     "defaultMessage": "Trò chuyện mới"
   },
   "keyboardShortcuts.newChatWindowDescription": {
-    "defaultMessage": "Mở một cửa sổ Goose mới"
+    "defaultMessage": "Mở một cửa sổ ModelForge mới"
   },
   "keyboardShortcuts.newChatWindowLabel": {
     "defaultMessage": "Cửa sổ trò chuyện mới"
@@ -1701,7 +2145,7 @@
     "defaultMessage": "Đặt lại về mặc định"
   },
   "keyboardShortcuts.restartDescription": {
-    "defaultMessage": "Các thay đổi đối với phím tắt ứng dụng (như Trò chuyện mới, Cài đặt, v.v.) yêu cầu khởi động lại Goose để có hiệu lực. Phím tắt toàn cục (Lấy nét cửa sổ, Trình khởi chạy nhanh) hoạt động ngay lập tức."
+    "defaultMessage": "Các thay đổi đối với phím tắt ứng dụng (như Trò chuyện mới, Cài đặt, v.v.) yêu cầu khởi động lại ModelForge để có hiệu lực. Phím tắt toàn cục (Lấy nét cửa sổ, Trình khởi chạy nhanh) hoạt động ngay lập tức."
   },
   "keyboardShortcuts.restartRequired": {
     "defaultMessage": "Cần khởi động lại"
@@ -1731,13 +2175,13 @@
     "defaultMessage": "Bật/tắt điều hướng"
   },
   "launcher.placeholder": {
-    "defaultMessage": "Hỏi goose bất cứ điều gì..."
+    "defaultMessage": "Hỏi ModelForge bất cứ điều gì..."
   },
   "loadingGoose.compacting": {
-    "defaultMessage": "goose đang nén cuộc trò chuyện..."
+    "defaultMessage": "ModelForge đang nén cuộc trò chuyện..."
   },
   "loadingGoose.idle": {
-    "defaultMessage": "goose đang xử lý…"
+    "defaultMessage": "ModelForge đang xử lý…"
   },
   "loadingGoose.loadingConversation": {
     "defaultMessage": "đang tải cuộc trò chuyện..."
@@ -1746,13 +2190,13 @@
     "defaultMessage": "đang khởi động lại phiên..."
   },
   "loadingGoose.streaming": {
-    "defaultMessage": "goose đang xử lý…"
+    "defaultMessage": "ModelForge đang xử lý…"
   },
   "loadingGoose.thinking": {
-    "defaultMessage": "goose đang suy nghĩ…"
+    "defaultMessage": "ModelForge đang suy nghĩ…"
   },
   "loadingGoose.waiting": {
-    "defaultMessage": "goose đang chờ…"
+    "defaultMessage": "ModelForge đang chờ…"
   },
   "localInferenceSettings.deleteConfirm": {
     "defaultMessage": "Xóa mô hình này? Bạn có thể tải lại sau."
@@ -2303,6 +2747,12 @@
   "modelsBottomBar.currentModel": {
     "defaultMessage": "Mô hình hiện tại"
   },
+  "modelsBottomBar.kernelModel": {
+    "defaultMessage": "Kernel model"
+  },
+  "modelsBottomBar.kernelModelHint": {
+    "defaultMessage": "The {kernel} kernel proxies to this model; change it in Settings → Models."
+  },
   "modelsBottomBar.loadingModel": {
     "defaultMessage": "Đang tải mô hình..."
   },
@@ -2312,11 +2762,17 @@
   "modelsBottomBar.localModelSettingsTitle": {
     "defaultMessage": "Cài đặt mô hình cục bộ — {modelName}"
   },
+  "modelsBottomBar.recentModels": {
+    "defaultMessage": "Gần đây"
+  },
   "modelsBottomBar.resolvedModel": {
     "defaultMessage": "Mô hình đã phân giải"
   },
   "modelsBottomBar.selectModel": {
     "defaultMessage": "Chọn mô hình"
+  },
+  "modelsSection.kernelSlotNote": {
+    "defaultMessage": "The kernel keeps this slot at “current”; the model it actually calls is the one below."
   },
   "modelsSection.resetDescription": {
     "defaultMessage": "Xóa các cài đặt mô hình và nhà cung cấp đã chọn để bắt đầu lại từ đầu"
@@ -2324,17 +2780,38 @@
   "modelsSection.resetTitle": {
     "defaultMessage": "Đặt lại nhà cung cấp và mô hình"
   },
+  "navigation.catalogAlgorithms": {
+    "defaultMessage": "Algorithms"
+  },
+  "navigation.catalogConnectors": {
+    "defaultMessage": "Connectors"
+  },
+  "navigation.catalogPlugins": {
+    "defaultMessage": "Plugins"
+  },
+  "navigation.catalogSkills": {
+    "defaultMessage": "Skills"
+  },
+  "navigation.catalogTemplates": {
+    "defaultMessage": "Templates"
+  },
   "navigation.itemApps": {
     "defaultMessage": "Ứng dụng"
   },
-  "navigation.itemExtensions": {
-    "defaultMessage": "Tiện ích mở rộng"
+  "navigation.itemCatalog": {
+    "defaultMessage": "Extensions"
+  },
+  "navigation.itemFigures": {
+    "defaultMessage": "Figures"
   },
   "navigation.itemHome": {
     "defaultMessage": "Trò chuyện mới"
   },
-  "navigation.itemRecipes": {
-    "defaultMessage": "Công thức"
+  "navigation.itemPaper": {
+    "defaultMessage": "Paper Templates"
+  },
+  "navigation.itemProfile": {
+    "defaultMessage": "Profile"
   },
   "navigation.itemScheduler": {
     "defaultMessage": "Bộ lập lịch"
@@ -2344,9 +2821,6 @@
   },
   "navigation.itemSettings": {
     "defaultMessage": "Cài đặt"
-  },
-  "navigation.itemSkills": {
-    "defaultMessage": "Kỹ năng"
   },
   "navigationPanel.chats": {
     "defaultMessage": "Cuộc trò chuyện"
@@ -2384,11 +2858,23 @@
   "navigationPanel.untitledSession": {
     "defaultMessage": "Phiên chưa đặt tên"
   },
+  "notebookPreview.cell": {
+    "defaultMessage": "Cell {index}"
+  },
+  "notebookPreview.empty": {
+    "defaultMessage": "This notebook has no cells"
+  },
+  "notebookPreview.invalid": {
+    "defaultMessage": "This notebook could not be parsed"
+  },
+  "notebookPreview.truncated": {
+    "defaultMessage": "Only the first {count} cells are shown"
+  },
   "onboardingGuard.checkProviderErrorDescription": {
     "defaultMessage": "Máy chủ có thể đang khởi động hoặc tạm thời không khả dụng."
   },
   "onboardingGuard.checkProviderErrorTitle": {
-    "defaultMessage": "Không thể kết nối với máy chủ Goose"
+    "defaultMessage": "Không thể kết nối với máy chủ ModelForge"
   },
   "onboardingGuard.retry": {
     "defaultMessage": "Thử lại"
@@ -2397,10 +2883,10 @@
     "defaultMessage": "Tác nhân AI cục bộ của bạn. Kết nối một nhà cung cấp mô hình AI để bắt đầu."
   },
   "onboardingGuard.welcomeTitle": {
-    "defaultMessage": "Chào mừng đến với goose"
+    "defaultMessage": "Chào mừng đến với ModelForge"
   },
   "onboardingSuccess.allSet": {
-    "defaultMessage": "Bạn đã sẵn sàng bắt đầu sử dụng goose."
+    "defaultMessage": "Bạn đã sẵn sàng bắt đầu sử dụng ModelForge."
   },
   "onboardingSuccess.connectedTo": {
     "defaultMessage": "Đã kết nối với {providerName}"
@@ -2415,13 +2901,118 @@
     "defaultMessage": "Mô hình cục bộ đã sẵn sàng"
   },
   "onboardingSuccess.privacyDescription": {
-    "defaultMessage": "Dữ liệu sử dụng ẩn danh giúp cải thiện goose. Chúng tôi không bao giờ thu thập cuộc trò chuyện, mã nguồn hoặc dữ liệu cá nhân của bạn."
+    "defaultMessage": "Dữ liệu sử dụng ẩn danh giúp cải thiện ModelForge. Chúng tôi không bao giờ thu thập cuộc trò chuyện, mã nguồn hoặc dữ liệu cá nhân của bạn."
   },
   "onboardingSuccess.privacyTitle": {
     "defaultMessage": "Quyền riêng tư"
   },
   "onboardingSuccess.shareUsageData": {
     "defaultMessage": "Chia sẻ dữ liệu sử dụng ẩn danh"
+  },
+  "paperView.all": {
+    "defaultMessage": "All"
+  },
+  "paperView.available": {
+    "defaultMessage": "Bundled"
+  },
+  "paperView.availableOnly": {
+    "defaultMessage": "Available"
+  },
+  "paperView.contents": {
+    "defaultMessage": "Template contents"
+  },
+  "paperView.coverFields": {
+    "defaultMessage": "Cover page inputs"
+  },
+  "paperView.coverHint": {
+    "defaultMessage": "Declared by the template itself (题号, 队号, 学校 …). Filled values are written into the request; leave a field empty and the agent will ask."
+  },
+  "paperView.customize": {
+    "defaultMessage": "Customise from this template"
+  },
+  "paperView.customizeCancel": {
+    "defaultMessage": "Cancel"
+  },
+  "paperView.customizeConfirm": {
+    "defaultMessage": "Create the request"
+  },
+  "paperView.customizeHint": {
+    "defaultMessage": "Creates your own copy inside the project and adapts it, so the bundled template stays untouched."
+  },
+  "paperView.customizeName": {
+    "defaultMessage": "Name for your copy"
+  },
+  "paperView.customizeNamePlaceholder": {
+    "defaultMessage": "e.g. my-cumcm-2026"
+  },
+  "paperView.defaultFor": {
+    "defaultMessage": "Default for"
+  },
+  "paperView.empty": {
+    "defaultMessage": "No templates match that filter."
+  },
+  "paperView.engine": {
+    "defaultMessage": "Engine"
+  },
+  "paperView.engineLatex": {
+    "defaultMessage": "LaTeX"
+  },
+  "paperView.engineTypst": {
+    "defaultMessage": "Typst"
+  },
+  "paperView.entryFile": {
+    "defaultMessage": "Entry file"
+  },
+  "paperView.groupBundled": {
+    "defaultMessage": "Bundled · contest templates"
+  },
+  "paperView.groupVendored": {
+    "defaultMessage": "Upstream open source"
+  },
+  "paperView.langEn": {
+    "defaultMessage": "English"
+  },
+  "paperView.langZh": {
+    "defaultMessage": "Chinese"
+  },
+  "paperView.language": {
+    "defaultMessage": "Language"
+  },
+  "paperView.license": {
+    "defaultMessage": "Licence"
+  },
+  "paperView.optional": {
+    "defaultMessage": "optional"
+  },
+  "paperView.planned": {
+    "defaultMessage": "Not bundled yet"
+  },
+  "paperView.previewCaption": {
+    "defaultMessage": "First page of the compiled template (rendered by xelatex)."
+  },
+  "paperView.source": {
+    "defaultMessage": "Source"
+  },
+  "paperView.subtitle": {
+    "defaultMessage": "Pick a contest template and the agent copies it into the project, then writes and compiles the paper from the entry file."
+  },
+  "paperView.templateDir": {
+    "defaultMessage": "Template folder"
+  },
+  "paperView.title": {
+    "defaultMessage": "Competition paper templates"
+  },
+  "paperView.usage": {
+    "defaultMessage": "How it is used"
+  },
+  "paperView.usageBody": {
+    "defaultMessage": "The agent copies the whole template folder into the project and starts from the entry file. Compile with the modeling extension (compile_latex)."
+  },
+  "paperView.useTemplate": {
+    "defaultMessage": "Use this template"
+  },
+  "paperView.useTemplateHint": {
+    "defaultMessage": "Fills the home composer with the template, entry file and cover values; nothing is sent yet."
   },
   "parameterInput.defaultValue": {
     "defaultMessage": "Giá trị mặc định"
@@ -2516,6 +3107,30 @@
   "parameterInputModal.whatToDo": {
     "defaultMessage": "Bạn muốn làm gì?"
   },
+  "pdfPreview.failed": {
+    "defaultMessage": "This PDF could not be opened"
+  },
+  "pdfPreview.fitWidth": {
+    "defaultMessage": "Fit width"
+  },
+  "pdfPreview.loading": {
+    "defaultMessage": "Loading PDF…"
+  },
+  "pdfPreview.next": {
+    "defaultMessage": "Next page"
+  },
+  "pdfPreview.page": {
+    "defaultMessage": "{current} / {total}"
+  },
+  "pdfPreview.previous": {
+    "defaultMessage": "Previous page"
+  },
+  "pdfPreview.zoomIn": {
+    "defaultMessage": "Zoom in"
+  },
+  "pdfPreview.zoomOut": {
+    "defaultMessage": "Zoom out"
+  },
   "permissionModal.alwaysAllow": {
     "defaultMessage": "Luôn cho phép"
   },
@@ -2583,10 +3198,10 @@
     "defaultMessage": "Số liệu phiên (thời lượng, số lần tương tác, lượng token sử dụng)"
   },
   "privacyInfoModal.collectVersion": {
-    "defaultMessage": "Phiên bản goose và phương thức cài đặt"
+    "defaultMessage": "Phiên bản ModelForge và phương thức cài đặt"
   },
   "privacyInfoModal.description": {
-    "defaultMessage": "Dữ liệu sử dụng ẩn danh giúp chúng tôi hiểu cách goose được sử dụng và xác định các lĩnh vực cần cải thiện."
+    "defaultMessage": "Dữ liệu sử dụng ẩn danh giúp chúng tôi hiểu cách ModelForge được sử dụng và xác định các lĩnh vực cần cải thiện."
   },
   "privacyInfoModal.neverCollect": {
     "defaultMessage": "Chúng tôi không bao giờ thu thập cuộc trò chuyện, mã nguồn, đối số công cụ, thông báo lỗi hoặc bất kỳ dữ liệu cá nhân nào của bạn. Bạn có thể thay đổi cài đặt này bất cứ lúc nào trong Cài đặt."
@@ -2597,6 +3212,87 @@
   "privacyInfoModal.whatWeCollect": {
     "defaultMessage": "Những gì chúng tôi thu thập:"
   },
+  "profileView.activity": {
+    "defaultMessage": "Activity"
+  },
+  "profileView.activityHint": {
+    "defaultMessage": "Prompts per day over the last year."
+  },
+  "profileView.countValue": {
+    "defaultMessage": "{count}"
+  },
+  "profileView.daysValue": {
+    "defaultMessage": "{count} days"
+  },
+  "profileView.error": {
+    "defaultMessage": "Could not load session statistics."
+  },
+  "profileView.less": {
+    "defaultMessage": "Less"
+  },
+  "profileView.loading": {
+    "defaultMessage": "Loading statistics…"
+  },
+  "profileView.modelUsage": {
+    "defaultMessage": "Model usage"
+  },
+  "profileView.modelUsageHint": {
+    "defaultMessage": "Share of sessions per model."
+  },
+  "profileView.models": {
+    "defaultMessage": "Most used models"
+  },
+  "profileView.more": {
+    "defaultMessage": "More"
+  },
+  "profileView.none": {
+    "defaultMessage": "No data yet"
+  },
+  "profileView.projects": {
+    "defaultMessage": "Most used projects"
+  },
+  "profileView.providers": {
+    "defaultMessage": "Most used providers"
+  },
+  "profileView.recipes": {
+    "defaultMessage": "Sessions using a recipe"
+  },
+  "profileView.refresh": {
+    "defaultMessage": "Refresh"
+  },
+  "profileView.spanUnknown": {
+    "defaultMessage": "—"
+  },
+  "profileView.spanValue": {
+    "defaultMessage": "{days} days"
+  },
+  "profileView.statActiveDays": {
+    "defaultMessage": "Active days"
+  },
+  "profileView.statMessages": {
+    "defaultMessage": "Prompts"
+  },
+  "profileView.statProjects": {
+    "defaultMessage": "Projects"
+  },
+  "profileView.statSessions": {
+    "defaultMessage": "Sessions"
+  },
+  "profileView.statSpan": {
+    "defaultMessage": "History span"
+  },
+  "profileView.statStreakCurrent": {
+    "defaultMessage": "Current streak"
+  },
+  "profileView.statStreakLongest": {
+    "defaultMessage": "Longest streak"
+  },
+  "profileView.subtitle": {
+    "defaultMessage": "Local usage on this machine, derived from your session list."
+  },
+  "profileView.tokensNote": {
+    "defaultMessage": "Token and cost totals are per session — open a chat to see its usage. They are not aggregated here yet."
+  },
   "progressiveMessageList.loadingMessages": {
     "defaultMessage": "Đang tải tin nhắn... ({renderedCount}/{totalCount})"
   },
@@ -2605,6 +3301,165 @@
   },
   "progressiveMessageList.searchHint": {
     "defaultMessage": "Nhấn Cmd/Ctrl+F để tải ngay tất cả tin nhắn nhằm tìm kiếm"
+  },
+  "projectHintsModal.close": {
+    "defaultMessage": "Đóng"
+  },
+  "projectHintsModal.developer": {
+    "defaultMessage": "Nhà phát triển"
+  },
+  "projectHintsModal.dialogDescription": {
+    "defaultMessage": "Cung cấp thêm ngữ cảnh về dự án của bạn để cải thiện giao tiếp với ModelForge"
+  },
+  "projectHintsModal.dialogTitle": {
+    "defaultMessage": "Cấu hình gợi ý dự án (.goosehints)"
+  },
+  "projectHintsModal.errorReading": {
+    "defaultMessage": "Lỗi khi đọc tệp .goosehints: {error}"
+  },
+  "projectHintsModal.failedToAccess": {
+    "defaultMessage": "Không thể truy cập tệp .goosehints"
+  },
+  "projectHintsModal.failedToSave": {
+    "defaultMessage": "Không thể lưu tệp .goosehints"
+  },
+  "projectHintsModal.fileCreating": {
+    "defaultMessage": "Đang tạo tệp .goosehints mới tại: {filePath}"
+  },
+  "projectHintsModal.fileFound": {
+    "defaultMessage": "Đã tìm thấy tệp .goosehints tại: {filePath}"
+  },
+  "projectHintsModal.helpText1": {
+    "defaultMessage": ".goosehints là một tệp văn bản dùng để cung cấp thêm ngữ cảnh về dự án của bạn và cải thiện giao tiếp với ModelForge."
+  },
+  "projectHintsModal.helpText2": {
+    "defaultMessage": "Hãy đảm bảo tiện ích mở rộng {bold} được bật trong trang tiện ích mở rộng. Tiện ích mở rộng này là bắt buộc để sử dụng .goosehints. Bạn cần khởi động lại phiên để các cập nhật .goosehints có hiệu lực."
+  },
+  "projectHintsModal.helpText3": {
+    "defaultMessage": "Xem {link} để biết thêm thông tin."
+  },
+  "projectHintsModal.helpTextLink": {
+    "defaultMessage": "cách sử dụng .goosehints"
+  },
+  "projectHintsModal.placeholder": {
+    "defaultMessage": "Nhập gợi ý dự án ở đây..."
+  },
+  "projectHintsModal.save": {
+    "defaultMessage": "Lưu"
+  },
+  "projectHintsModal.savedSuccessfully": {
+    "defaultMessage": "Đã lưu thành công"
+  },
+  "projectHintsModal.saving": {
+    "defaultMessage": "Đang lưu..."
+  },
+  "projectHintsSection.configure": {
+    "defaultMessage": "Cấu hình"
+  },
+  "projectHintsSection.description": {
+    "defaultMessage": "Cấu hình tệp .goosehints của dự án để cung cấp thêm ngữ cảnh cho ModelForge"
+  },
+  "projectHintsSection.title": {
+    "defaultMessage": "Gợi ý dự án (.goosehints)"
+  },
+  "projectPanel.actionCode": {
+    "defaultMessage": "Implement the model"
+  },
+  "projectPanel.actionFigures": {
+    "defaultMessage": "Prepare figures"
+  },
+  "projectPanel.actionInputs": {
+    "defaultMessage": "Inspect problem & data"
+  },
+  "projectPanel.actionPaper": {
+    "defaultMessage": "Improve the paper"
+  },
+  "projectPanel.actionPlan": {
+    "defaultMessage": "Prepare model plan"
+  },
+  "projectPanel.actionResults": {
+    "defaultMessage": "Reproduce results"
+  },
+  "projectPanel.actionReview": {
+    "defaultMessage": "Review deliverables"
+  },
+  "projectPanel.added": {
+    "defaultMessage": "Added to your draft. Review it in the chat input, then send when ready."
+  },
+  "projectPanel.caution": {
+    "defaultMessage": "Files are grouped for navigation. Their contents still need checking."
+  },
+  "projectPanel.code": {
+    "defaultMessage": "Code & dependencies"
+  },
+  "projectPanel.collapse": {
+    "defaultMessage": "Show fewer"
+  },
+  "projectPanel.count": {
+    "defaultMessage": "{count} files"
+  },
+  "projectPanel.coverage": {
+    "defaultMessage": "{count} of 6 material types found"
+  },
+  "projectPanel.empty": {
+    "defaultMessage": "Choose the folder containing your problem and data to start a project."
+  },
+  "projectPanel.emptyFile": {
+    "defaultMessage": "Empty file"
+  },
+  "projectPanel.environment": {
+    "defaultMessage": "Check running environment"
+  },
+  "projectPanel.error": {
+    "defaultMessage": "Could not read this project. Check the folder is available, then retry."
+  },
+  "projectPanel.expand": {
+    "defaultMessage": "Show all {count} files"
+  },
+  "projectPanel.figures": {
+    "defaultMessage": "Figures"
+  },
+  "projectPanel.folder": {
+    "defaultMessage": "Choose project folder"
+  },
+  "projectPanel.inputs": {
+    "defaultMessage": "Problem & data"
+  },
+  "projectPanel.loading": {
+    "defaultMessage": "Looking for project materials…"
+  },
+  "projectPanel.missing": {
+    "defaultMessage": "No files found yet"
+  },
+  "projectPanel.next": {
+    "defaultMessage": "Suggested next step"
+  },
+  "projectPanel.openFolder": {
+    "defaultMessage": "Open project folder"
+  },
+  "projectPanel.paper": {
+    "defaultMessage": "Paper"
+  },
+  "projectPanel.partial": {
+    "defaultMessage": "Some folders were not scanned. Use Files to browse the rest."
+  },
+  "projectPanel.plan": {
+    "defaultMessage": "Model plan"
+  },
+  "projectPanel.refresh": {
+    "defaultMessage": "Refresh materials"
+  },
+  "projectPanel.results": {
+    "defaultMessage": "Computed results"
+  },
+  "projectPanel.retry": {
+    "defaultMessage": "Retry"
+  },
+  "projectPanel.subtitle": {
+    "defaultMessage": "Find your work. Decide what comes next."
+  },
+  "projectPanel.title": {
+    "defaultMessage": "Project materials"
   },
   "promptsSettings.allPromptsReset": {
     "defaultMessage": "Tất cả lời nhắc đã được đặt lại về mặc định"
@@ -2655,7 +3510,7 @@
     "defaultMessage": "Không lưu được lời nhắc"
   },
   "promptsSettings.promptEditingDescription": {
-    "defaultMessage": "Tùy chỉnh các lời nhắc xác định hành vi của goose trong các ngữ cảnh khác nhau. Các lời nhắc này sử dụng cú pháp mẫu Jinja2. Hãy cẩn thận khi sửa đổi các biến mẫu, vì thay đổi không đúng có thể làm hỏng chức năng. Vui lòng chia sẻ mọi cải tiến với cộng đồng."
+    "defaultMessage": "Tùy chỉnh các lời nhắc xác định hành vi của ModelForge trong các ngữ cảnh khác nhau. Các lời nhắc này sử dụng cú pháp mẫu Jinja2. Hãy cẩn thận khi sửa đổi các biến mẫu, vì thay đổi không đúng có thể làm hỏng chức năng. Vui lòng chia sẻ mọi cải tiến với cộng đồng."
   },
   "promptsSettings.promptEditingTitle": {
     "defaultMessage": "Chỉnh sửa lời nhắc"
@@ -2683,6 +3538,9 @@
   },
   "promptsSettings.unsavedChanges": {
     "defaultMessage": "Bạn có các thay đổi chưa lưu"
+  },
+  "providerCard.deprecatedReplacement": {
+    "defaultMessage": "Không còn được dùng — hãy sử dụng {replacement}."
   },
   "providerCard.noMetadata": {
     "defaultMessage": "Lỗi ProviderCard: Không có metadata được cung cấp"
@@ -2738,8 +3596,17 @@
   "providerConfigForm.continue": {
     "defaultMessage": "Tiếp tục"
   },
+  "providerConfigForm.deviceCodeAndEnter": {
+    "defaultMessage": "và nhập:"
+  },
+  "providerConfigForm.deviceCodeCopy": {
+    "defaultMessage": "Sao chép"
+  },
   "providerConfigForm.deviceCodeFlowHint": {
     "defaultMessage": "Một cửa sổ trình duyệt sẽ mở ra. Mã xác minh sẽ xuất hiện tại đây để bạn nhập và hoàn tất đăng nhập."
+  },
+  "providerConfigForm.deviceCodeVisit": {
+    "defaultMessage": "Truy cập"
   },
   "providerConfigForm.noApiKey": {
     "defaultMessage": "Bạn chưa có khóa API?"
@@ -2751,7 +3618,7 @@
     "defaultMessage": "Đang đăng nhập..."
   },
   "providerConfigurationModal.addApiKeyDescription": {
-    "defaultMessage": "Thêm khóa API của bạn cho nhà cung cấp này để tích hợp vào goose"
+    "defaultMessage": "Thêm khóa API của bạn cho nhà cung cấp này để tích hợp vào ModelForge"
   },
   "providerConfigurationModal.browserWindowHint": {
     "defaultMessage": "Một cửa sổ trình duyệt sẽ mở ra để bạn hoàn tất đăng nhập."
@@ -2765,6 +3632,9 @@
   "providerConfigurationModal.checkConfigAgain": {
     "defaultMessage": "Kiểm tra lại cấu hình của bạn để sử dụng nhà cung cấp này."
   },
+  "providerConfigurationModal.chooseModel": {
+    "defaultMessage": "Chọn mô hình"
+  },
   "providerConfigurationModal.close": {
     "defaultMessage": "Đóng"
   },
@@ -2777,8 +3647,17 @@
   "providerConfigurationModal.deleteConfirmation": {
     "defaultMessage": "Thao tác này sẽ xóa vĩnh viễn cấu hình nhà cung cấp hiện tại."
   },
+  "providerConfigurationModal.deviceCodeAndEnter": {
+    "defaultMessage": "và nhập:"
+  },
+  "providerConfigurationModal.deviceCodeCopy": {
+    "defaultMessage": "Sao chép"
+  },
   "providerConfigurationModal.deviceCodeFlowHint": {
     "defaultMessage": "Một cửa sổ trình duyệt sẽ mở ra. Mã xác minh sẽ xuất hiện tại đây để bạn nhập và hoàn tất đăng nhập."
+  },
+  "providerConfigurationModal.deviceCodeVisit": {
+    "defaultMessage": "Truy cập"
   },
   "providerConfigurationModal.errorCheckingConfig": {
     "defaultMessage": "Đã xảy ra lỗi khi kiểm tra cấu hình nhà cung cấp này."
@@ -2787,7 +3666,7 @@
     "defaultMessage": "Lỗi"
   },
   "providerConfigurationModal.externalSetupIntro": {
-    "defaultMessage": "Nhà cung cấp này được cấu hình bên ngoài goose. Hãy làm theo các bước sau:"
+    "defaultMessage": "Nhà cung cấp này được cấu hình bên ngoài ModelForge. Hãy làm theo các bước sau:"
   },
   "providerConfigurationModal.goBack": {
     "defaultMessage": "Quay lại"
@@ -2871,7 +3750,7 @@
     "defaultMessage": "Đang tải nhà cung cấp..."
   },
   "providerSettings.onboardingDescription": {
-    "defaultMessage": "Chọn một nhà cung cấp mô hình AI để bắt đầu với goose. Bạn sẽ cần sử dụng khóa API do mỗi nhà cung cấp tạo ra, khóa này sẽ được mã hóa và lưu trữ cục bộ. Bạn có thể thay đổi nhà cung cấp bất cứ lúc nào trong cài đặt."
+    "defaultMessage": "Chọn một nhà cung cấp mô hình AI để bắt đầu với ModelForge. Bạn sẽ cần sử dụng khóa API do mỗi nhà cung cấp tạo ra, khóa này sẽ được mã hóa và lưu trữ cục bộ. Bạn có thể thay đổi nhà cung cấp bất cứ lúc nào trong cài đặt."
   },
   "providerSettings.otherProviders": {
     "defaultMessage": "Nhà cung cấp khác"
@@ -3804,7 +4683,7 @@
     "defaultMessage": "Lịch sử trò chuyện"
   },
   "sessions.chatHistoryDesc": {
-    "defaultMessage": "Xem và tìm kiếm các cuộc trò chuyện trước đây của bạn với Goose. {shortcut} để tìm kiếm."
+    "defaultMessage": "Xem và tìm kiếm các cuộc trò chuyện trước đây của bạn với ModelForge. {shortcut} để tìm kiếm."
   },
   "sessions.close": {
     "defaultMessage": "Đóng"
@@ -3840,7 +4719,7 @@
     "defaultMessage": "Nhập liên kết"
   },
   "sessions.importNostr.description": {
-    "defaultMessage": "Dán một liên kết chia sẻ Nostr của Goose để tìm nạp, giải mã và nhập phiên."
+    "defaultMessage": "Dán một liên kết chia sẻ Nostr của ModelForge để tìm nạp, giải mã và nhập phiên."
   },
   "sessions.importNostr.placeholder": {
     "defaultMessage": "goose://sessions/nostr?nevent=...&key=..."
@@ -3924,7 +4803,7 @@
     "defaultMessage": "Đã cập nhật mô tả phiên làm việc thành công"
   },
   "settings.appearance.description": {
-    "defaultMessage": "Định cấu hình cách goose hiển thị trên hệ thống của bạn"
+    "defaultMessage": "Định cấu hình cách ModelForge hiển thị trên hệ thống của bạn"
   },
   "settings.appearance.title": {
     "defaultMessage": "Giao diện"
@@ -3939,13 +4818,13 @@
     "defaultMessage": "Theo dõi chi phí"
   },
   "settings.dockIcon.description": {
-    "defaultMessage": "Hiển thị goose trên dock"
+    "defaultMessage": "Hiển thị ModelForge trên dock"
   },
   "settings.dockIcon.title": {
     "defaultMessage": "Biểu tượng dock"
   },
   "settings.help.description": {
-    "defaultMessage": "Giúp chúng tôi cải thiện goose bằng cách báo cáo sự cố hoặc yêu cầu tính năng mới"
+    "defaultMessage": "Giúp chúng tôi cải thiện ModelForge bằng cách báo cáo sự cố hoặc yêu cầu tính năng mới"
   },
   "settings.help.reportBug": {
     "defaultMessage": "Báo cáo lỗi"
@@ -3957,7 +4836,7 @@
     "defaultMessage": "Trợ giúp & phản hồi"
   },
   "settings.language.description": {
-    "defaultMessage": "Chọn ngôn ngữ hiển thị cho goose"
+    "defaultMessage": "Chọn ngôn ngữ hiển thị cho ModelForge"
   },
   "settings.language.english": {
     "defaultMessage": "English"
@@ -4014,7 +4893,7 @@
     "defaultMessage": "Tiếng Trung (Phồn thể)"
   },
   "settings.menuBarIcon.description": {
-    "defaultMessage": "Hiển thị goose trên thanh menu"
+    "defaultMessage": "Hiển thị ModelForge trên thanh menu"
   },
   "settings.menuBarIcon.title": {
     "defaultMessage": "Biểu tượng thanh menu"
@@ -4035,7 +4914,7 @@
     "defaultMessage": "Nhấp vào Notifications"
   },
   "settings.notifications.modal.macStep3": {
-    "defaultMessage": "Tìm và chọn goose trong danh sách ứng dụng"
+    "defaultMessage": "Tìm và chọn ModelForge trong danh sách ứng dụng"
   },
   "settings.notifications.modal.macStep4": {
     "defaultMessage": "Bật thông báo và điều chỉnh cài đặt theo ý muốn"
@@ -4053,7 +4932,7 @@
     "defaultMessage": "Đi tới System > Notifications"
   },
   "settings.notifications.modal.winStep3": {
-    "defaultMessage": "Tìm và chọn goose trong danh sách ứng dụng"
+    "defaultMessage": "Tìm và chọn ModelForge trong danh sách ứng dụng"
   },
   "settings.notifications.modal.winStep4": {
     "defaultMessage": "Bật thông báo và điều chỉnh cài đặt theo ý muốn"
@@ -4062,7 +4941,7 @@
     "defaultMessage": "Mở Settings"
   },
   "settings.notifications.task.description": {
-    "defaultMessage": "Thông báo khi Goose hoàn thành một tác vụ trong khi cửa sổ đang ở chế độ nền"
+    "defaultMessage": "Thông báo khi ModelForge hoàn thành một tác vụ trong khi cửa sổ đang ở chế độ nền"
   },
   "settings.notifications.task.title": {
     "defaultMessage": "Thông báo hoàn thành tác vụ"
@@ -4071,25 +4950,31 @@
     "defaultMessage": "Thông báo"
   },
   "settings.preventSleep.description": {
-    "defaultMessage": "Giữ máy tính của bạn luôn hoạt động trong khi goose đang chạy một tác vụ (màn hình vẫn có thể khóa)"
+    "defaultMessage": "Giữ máy tính của bạn luôn hoạt động trong khi ModelForge đang chạy một tác vụ (màn hình vẫn có thể khóa)"
   },
   "settings.preventSleep.title": {
     "defaultMessage": "Ngăn chế độ ngủ"
   },
   "settings.theme.description": {
-    "defaultMessage": "Tùy chỉnh giao diện và cảm nhận của goose"
+    "defaultMessage": "Tùy chỉnh giao diện và cảm nhận của ModelForge"
   },
   "settings.theme.title": {
     "defaultMessage": "Chủ đề"
   },
   "settings.updates.description": {
-    "defaultMessage": "Kiểm tra và cài đặt bản cập nhật để goose luôn hoạt động tốt nhất"
+    "defaultMessage": "Kiểm tra và cài đặt bản cập nhật để ModelForge luôn hoạt động tốt nhất"
   },
   "settings.updates.title": {
     "defaultMessage": "Cập nhật"
   },
   "settings.version.title": {
     "defaultMessage": "Phiên bản"
+  },
+  "settingsView.backToApp": {
+    "defaultMessage": "Back to app"
+  },
+  "settingsView.searchSettings": {
+    "defaultMessage": "Search settings"
   },
   "settingsView.tabApp": {
     "defaultMessage": "Ứng dụng"
@@ -4133,35 +5018,134 @@
   "shortcutRecorder.save": {
     "defaultMessage": "Lưu"
   },
-  "skillsView.addSkill": {
-    "defaultMessage": "Thêm kỹ năng"
+  "skillsView.builtin": {
+    "defaultMessage": "Built-in"
   },
-  "skillsView.adjustSearchTerms": {
-    "defaultMessage": "Hãy thử điều chỉnh từ khóa tìm kiếm của bạn"
+  "skillsView.builtinCannotDisable": {
+    "defaultMessage": "Built-in skills ship with the app and cannot be disabled."
   },
-  "skillsView.comingSoon": {
-    "defaultMessage": "Sắp ra mắt"
+  "skillsView.cancel": {
+    "defaultMessage": "Cancel"
   },
-  "skillsView.errorLoadingSkills": {
-    "defaultMessage": "Lỗi khi tải kỹ năng"
+  "skillsView.confirmDelete": {
+    "defaultMessage": "Confirm delete"
   },
-  "skillsView.noMatchingSkills": {
-    "defaultMessage": "Không tìm thấy kỹ năng phù hợp"
+  "skillsView.contentLabel": {
+    "defaultMessage": "SKILL.md body"
   },
-  "skillsView.noSkillsDescription": {
-    "defaultMessage": "Kỹ năng được tải từ các tệp SKILL.md trong ~/.config/agents/skills/, .goose/skills/, hoặc các thư mục được hỗ trợ khác."
+  "skillsView.contentPlaceholder": {
+    "defaultMessage": "# What this skill does Steps the agent should follow…"
   },
-  "skillsView.noSkillsInstalled": {
-    "defaultMessage": "Chưa cài đặt kỹ năng nào"
+  "skillsView.descriptionLabel": {
+    "defaultMessage": "One-line description"
   },
-  "skillsView.searchSkillsPlaceholder": {
-    "defaultMessage": "Tìm kiếm kỹ năng..."
+  "skillsView.descriptionPlaceholder": {
+    "defaultMessage": "When should the agent load this skill?"
   },
-  "skillsView.skillsDescription": {
-    "defaultMessage": "Xem các kỹ năng đã cài đặt giúp mở rộng khả năng của Goose. {shortcut} để tìm kiếm."
+  "skillsView.disable": {
+    "defaultMessage": "Disable"
   },
-  "skillsView.skillsTitle": {
-    "defaultMessage": "Kỹ năng"
+  "skillsView.disabled": {
+    "defaultMessage": "Disabled"
+  },
+  "skillsView.disabledAt": {
+    "defaultMessage": "Disabled at"
+  },
+  "skillsView.edit": {
+    "defaultMessage": "Edit"
+  },
+  "skillsView.enable": {
+    "defaultMessage": "Enable"
+  },
+  "skillsView.enabled": {
+    "defaultMessage": "Enabled"
+  },
+  "skillsView.exportSkill": {
+    "defaultMessage": "Export"
+  },
+  "skillsView.exported": {
+    "defaultMessage": "Exported to {path}"
+  },
+  "skillsView.globalSkill": {
+    "defaultMessage": "Global"
+  },
+  "skillsView.importFolder": {
+    "defaultMessage": "Import folder"
+  },
+  "skillsView.importJson": {
+    "defaultMessage": "Import file"
+  },
+  "skillsView.imported": {
+    "defaultMessage": "Imported {count} skill(s)"
+  },
+  "skillsView.loadFailed": {
+    "defaultMessage": "Could not load skills"
+  },
+  "skillsView.location": {
+    "defaultMessage": "Location"
+  },
+  "skillsView.nameLabel": {
+    "defaultMessage": "Name"
+  },
+  "skillsView.namePlaceholder": {
+    "defaultMessage": "e.g. data-cleaning"
+  },
+  "skillsView.nameRequired": {
+    "defaultMessage": "A name is required."
+  },
+  "skillsView.newSkill": {
+    "defaultMessage": "New skill"
+  },
+  "skillsView.noMatch": {
+    "defaultMessage": "No skill matches that search."
+  },
+  "skillsView.noSkills": {
+    "defaultMessage": "No skills found"
+  },
+  "skillsView.notToggled": {
+    "defaultMessage": "Could not change the skill state"
+  },
+  "skillsView.projectSkill": {
+    "defaultMessage": "Project"
+  },
+  "skillsView.readOnly": {
+    "defaultMessage": "This skill is read-only and cannot be edited here."
+  },
+  "skillsView.remove": {
+    "defaultMessage": "Delete"
+  },
+  "skillsView.runError": {
+    "defaultMessage": "The action failed"
+  },
+  "skillsView.save": {
+    "defaultMessage": "Save"
+  },
+  "skillsView.saving": {
+    "defaultMessage": "Saving…"
+  },
+  "skillsView.scopeLabel": {
+    "defaultMessage": "Save to"
+  },
+  "skillsView.searchPlaceholder": {
+    "defaultMessage": "Search skills by name or description…"
+  },
+  "skillsView.source": {
+    "defaultMessage": "Source"
+  },
+  "skillsView.status": {
+    "defaultMessage": "Status"
+  },
+  "skillsView.subtitle": {
+    "defaultMessage": "Method documents (SKILL.md) that teach the agent how to work. Enabled skills can be invoked from the composer with “/”."
+  },
+  "skillsView.supportingFiles": {
+    "defaultMessage": "Supporting files"
+  },
+  "skillsView.title": {
+    "defaultMessage": "Skills"
+  },
+  "skillsView.total": {
+    "defaultMessage": "{count} skills"
   },
   "skillsView.tryAgain": {
     "defaultMessage": "Thử lại"
@@ -4171,6 +5155,24 @@
   },
   "spellcheckToggle.title": {
     "defaultMessage": "Bật kiểm tra chính tả"
+  },
+  "spreadsheetPreview.empty": {
+    "defaultMessage": "This sheet is empty"
+  },
+  "spreadsheetPreview.failed": {
+    "defaultMessage": "This workbook could not be read"
+  },
+  "spreadsheetPreview.loading": {
+    "defaultMessage": "Reading workbook…"
+  },
+  "spreadsheetPreview.sheet": {
+    "defaultMessage": "Sheet"
+  },
+  "spreadsheetPreview.summary": {
+    "defaultMessage": "{rows} rows × {cols} columns"
+  },
+  "spreadsheetPreview.truncated": {
+    "defaultMessage": "Showing the first {rows} rows and {cols} columns"
   },
   "standaloneAppView.failedToLoad": {
     "defaultMessage": "Không thể tải ứng dụng"
@@ -4400,11 +5402,20 @@
   "switchModelModal.useOtherProvider": {
     "defaultMessage": "Sử dụng nhà cung cấp khác"
   },
+  "tablePreview.empty": {
+    "defaultMessage": "This table is empty"
+  },
+  "tablePreview.summary": {
+    "defaultMessage": "{rows} rows × {cols} columns"
+  },
+  "tablePreview.truncated": {
+    "defaultMessage": "Showing the first {rows} rows and {cols} columns"
+  },
   "telemetryConsentPrompt.description": {
-    "defaultMessage": "Bạn có muốn chia sẻ dữ liệu sử dụng ẩn danh để giúp cải thiện goose không? Chúng tôi không bao giờ thu thập các cuộc trò chuyện, mã hoặc dữ liệu cá nhân của bạn."
+    "defaultMessage": "Bạn có muốn chia sẻ dữ liệu sử dụng ẩn danh để giúp cải thiện ModelForge không? Chúng tôi không bao giờ thu thập các cuộc trò chuyện, mã hoặc dữ liệu cá nhân của bạn."
   },
   "telemetryConsentPrompt.heading": {
-    "defaultMessage": "Giúp cải thiện goose"
+    "defaultMessage": "Giúp cải thiện ModelForge"
   },
   "telemetryConsentPrompt.learnMore": {
     "defaultMessage": "Tìm hiểu thêm"
@@ -4431,13 +5442,34 @@
     "defaultMessage": "Quyền riêng tư"
   },
   "telemetrySettings.toggleDescription": {
-    "defaultMessage": "Giúp cải thiện goose bằng cách chia sẻ số liệu thống kê sử dụng ẩn danh."
+    "defaultMessage": "Giúp cải thiện ModelForge bằng cách chia sẻ số liệu thống kê sử dụng ẩn danh."
   },
   "telemetrySettings.toggleLabel": {
     "defaultMessage": "Dữ liệu sử dụng ẩn danh"
   },
   "telemetrySettings.updateError": {
     "defaultMessage": "Không thể cập nhật cài đặt đo từ xa."
+  },
+  "terminalView.exited": {
+    "defaultMessage": "Session ended"
+  },
+  "terminalView.failed": {
+    "defaultMessage": "Could not start the shell"
+  },
+  "terminalView.fitWidth": {
+    "defaultMessage": "Fit panel width"
+  },
+  "terminalView.pipeMode": {
+    "defaultMessage": "Piped shell (no PTY available)"
+  },
+  "terminalView.ptyMode": {
+    "defaultMessage": "Interactive PTY"
+  },
+  "terminalView.restart": {
+    "defaultMessage": "Start a new session"
+  },
+  "terminalView.starting": {
+    "defaultMessage": "Starting the shell…"
   },
   "themeSelector.aura": {
     "defaultMessage": "Aura"
@@ -4481,6 +5513,21 @@
   "toolApprovalButtons.staleApprovalRequest": {
     "defaultMessage": "Yêu cầu phê duyệt này không còn hiệu lực."
   },
+  "toolCallGroup.collapse": {
+    "defaultMessage": "Collapse operations"
+  },
+  "toolCallGroup.done": {
+    "defaultMessage": "completed"
+  },
+  "toolCallGroup.expand": {
+    "defaultMessage": "Expand operations"
+  },
+  "toolCallGroup.running": {
+    "defaultMessage": "running"
+  },
+  "toolCallGroup.summary": {
+    "defaultMessage": "{count} operations"
+  },
   "toolCallStatusIndicator.toolStatus": {
     "defaultMessage": "Trạng thái công cụ: {status}"
   },
@@ -4512,10 +5559,10 @@
     "defaultMessage": "Cho phép {toolName}?"
   },
   "toolConfirmation.gooseWouldLikeToCallWithName": {
-    "defaultMessage": "Goose muốn gọi {toolName}. Cho phép?"
+    "defaultMessage": "ModelForge muốn gọi {toolName}. Cho phép?"
   },
   "updateSection.autoDownload": {
-    "defaultMessage": "Goose sẽ tải bản cập nhật ở chế độ nền và cài đặt vào lần tiếp theo khi bạn thoát hoặc khởi động lại."
+    "defaultMessage": "ModelForge sẽ tải bản cập nhật ở chế độ nền và cài đặt vào lần tiếp theo khi bạn thoát hoặc khởi động lại."
   },
   "updateSection.autoDownloadDisabledByEnv": {
     "defaultMessage": "Tải xuống tự động đã bị tắt thông qua biến môi trường GOOSE_DISABLE_AUTO_DOWNLOAD."
@@ -4536,7 +5583,7 @@
     "defaultMessage": "Tắt tải xuống cập nhật tự động"
   },
   "updateSection.disableAutoDownloadDesc": {
-    "defaultMessage": "Khi được bật, Goose sẽ thông báo cho bạn về các phiên bản mới nhưng sẽ không tự động tải xuống."
+    "defaultMessage": "Khi được bật, ModelForge sẽ thông báo cho bạn về các phiên bản mới nhưng sẽ không tự động tải xuống."
   },
   "updateSection.downloadNow": {
     "defaultMessage": "Tải ngay"
@@ -4622,52 +5669,202 @@
   "userMessage.removeImageFromEdit": {
     "defaultMessage": "Xóa hình ảnh khỏi tin nhắn"
   },
-  "modelsBottomBar.recentModels": {
-    "defaultMessage": "Gần đây"
+  "versionsPanel.cancel": {
+    "defaultMessage": "Cancel"
   },
-  "providerConfigurationModal.chooseModel": {
-    "defaultMessage": "Chọn mô hình"
+  "versionsPanel.changed": {
+    "defaultMessage": "{count} changed files"
   },
-  "providerCard.deprecatedReplacement": {
-    "defaultMessage": "Không còn được dùng — hãy sử dụng {replacement}."
+  "versionsPanel.empty": {
+    "defaultMessage": "No saved versions yet"
   },
-  "acpReadinessPanel.adapterFound": {
-    "defaultMessage": "Đã tìm thấy bộ điều hợp ACP"
+  "versionsPanel.failed": {
+    "defaultMessage": "Operation failed"
   },
-  "acpReadinessPanel.adapterNotFound": {
-    "defaultMessage": "Không tìm thấy bộ điều hợp ACP"
+  "versionsPanel.gitMissing": {
+    "defaultMessage": "Git is not installed"
   },
-  "acpReadinessPanel.authenticationHelp": {
-    "defaultMessage": "Đăng nhập qua CLI của nhà cung cấp, sau đó kiểm tra lại."
+  "versionsPanel.hideFiles": {
+    "defaultMessage": "Hide files"
   },
-  "acpReadinessPanel.checkAgain": {
-    "defaultMessage": "Kiểm tra lại"
+  "versionsPanel.init": {
+    "defaultMessage": "Enable version history"
   },
-  "acpReadinessPanel.checking": {
-    "defaultMessage": "Đang kiểm tra..."
+  "versionsPanel.loadingFiles": {
+    "defaultMessage": "Loading files…"
   },
-  "acpReadinessPanel.connected": {
-    "defaultMessage": "Kết nối thành công"
+  "versionsPanel.missingIdentity": {
+    "defaultMessage": "Git has no user identity configured"
   },
-  "acpReadinessPanel.connectionNotChecked": {
-    "defaultMessage": "Hãy kiểm tra kết nối tài khoản trước khi tiếp tục."
+  "versionsPanel.noChanges": {
+    "defaultMessage": "No pending changes"
   },
-  "providerConfigForm.deviceCodeAndEnter": {
-    "defaultMessage": "và nhập:"
+  "versionsPanel.noFiles": {
+    "defaultMessage": "No file changes recorded"
   },
-  "providerConfigForm.deviceCodeCopy": {
-    "defaultMessage": "Sao chép"
+  "versionsPanel.notARepo": {
+    "defaultMessage": "This working directory is not a git repository, so changes cannot be tracked."
   },
-  "providerConfigForm.deviceCodeVisit": {
-    "defaultMessage": "Truy cập"
+  "versionsPanel.nothingToCommit": {
+    "defaultMessage": "Nothing new to save"
   },
-  "providerConfigurationModal.deviceCodeAndEnter": {
-    "defaultMessage": "và nhập:"
+  "versionsPanel.refreshed": {
+    "defaultMessage": "Refreshed"
   },
-  "providerConfigurationModal.deviceCodeCopy": {
-    "defaultMessage": "Sao chép"
+  "versionsPanel.restore": {
+    "defaultMessage": "Restore to here"
   },
-  "providerConfigurationModal.deviceCodeVisit": {
-    "defaultMessage": "Truy cập"
+  "versionsPanel.restoreConfirm": {
+    "defaultMessage": "Restore all tracked files to this version? Current unsaved edits are overwritten."
+  },
+  "versionsPanel.restored": {
+    "defaultMessage": "Restored to this version"
+  },
+  "versionsPanel.restoring": {
+    "defaultMessage": "Restoring…"
+  },
+  "versionsPanel.save": {
+    "defaultMessage": "Save version"
+  },
+  "versionsPanel.saved": {
+    "defaultMessage": "Version saved"
+  },
+  "versionsPanel.saving": {
+    "defaultMessage": "Saving…"
+  },
+  "versionsPanel.showFiles": {
+    "defaultMessage": "Changed files"
+  },
+  "versionsPanel.title": {
+    "defaultMessage": "Project versions"
+  },
+  "workspaceEditor.close": {
+    "defaultMessage": "Close editor view"
+  },
+  "workspaceEditor.openFileHint": {
+    "defaultMessage": "Pick a file from the workspace tree on the right"
+  },
+  "workspaceEditor.openFileTitle": {
+    "defaultMessage": "Open a file"
+  },
+  "workspaceEditor.tab": {
+    "defaultMessage": "Files"
+  },
+  "workspaceFiles.back": {
+    "defaultMessage": "Back to files"
+  },
+  "workspaceFiles.binary": {
+    "defaultMessage": "Binary file - open it with an external program"
+  },
+  "workspaceFiles.copied": {
+    "defaultMessage": "Copied"
+  },
+  "workspaceFiles.copyPath": {
+    "defaultMessage": "Copy path"
+  },
+  "workspaceFiles.edit": {
+    "defaultMessage": "Edit"
+  },
+  "workspaceFiles.empty": {
+    "defaultMessage": "No files in this folder"
+  },
+  "workspaceFiles.incompleteFile": {
+    "defaultMessage": "Large file preview is read-only. Open it externally to edit the complete file."
+  },
+  "workspaceFiles.loadFailed": {
+    "defaultMessage": "Failed to load folder"
+  },
+  "workspaceFiles.loading": {
+    "defaultMessage": "Loading…"
+  },
+  "workspaceFiles.noMatches": {
+    "defaultMessage": "No matching file"
+  },
+  "workspaceFiles.openFileHint": {
+    "defaultMessage": "Pick a file from the workspace tree on the left"
+  },
+  "workspaceFiles.openFileTitle": {
+    "defaultMessage": "Open a file"
+  },
+  "workspaceFiles.openWith": {
+    "defaultMessage": "Open with"
+  },
+  "workspaceFiles.preview": {
+    "defaultMessage": "Preview"
+  },
+  "workspaceFiles.refresh": {
+    "defaultMessage": "Refresh"
+  },
+  "workspaceFiles.reveal": {
+    "defaultMessage": "Show in file manager"
+  },
+  "workspaceFiles.save": {
+    "defaultMessage": "Save"
+  },
+  "workspaceFiles.saveFailed": {
+    "defaultMessage": "Save failed"
+  },
+  "workspaceFiles.saved": {
+    "defaultMessage": "Saved"
+  },
+  "workspaceFiles.search": {
+    "defaultMessage": "Search files"
+  },
+  "workspaceFiles.truncated": {
+    "defaultMessage": "Showing the first portion of a large file"
+  },
+  "workspacePanel.close": {
+    "defaultMessage": "Close panel"
+  },
+  "workspacePanel.diagrams": {
+    "defaultMessage": "Diagrams"
+  },
+  "workspacePanel.environment": {
+    "defaultMessage": "Environment"
+  },
+  "workspacePanel.figures": {
+    "defaultMessage": "Figures"
+  },
+  "workspacePanel.files": {
+    "defaultMessage": "Files"
+  },
+  "workspacePanel.noWorkingDir": {
+    "defaultMessage": "This session has no working directory yet. Pick one to browse files and run commands."
+  },
+  "workspacePanel.project": {
+    "defaultMessage": "Project"
+  },
+  "workspacePanel.resize": {
+    "defaultMessage": "Drag to resize"
+  },
+  "workspacePanel.versions": {
+    "defaultMessage": "Versions"
+  },
+  "workspaceToolbar.close": {
+    "defaultMessage": "Hide panel"
+  },
+  "workspaceToolbar.diagrams": {
+    "defaultMessage": "Diagrams"
+  },
+  "workspaceToolbar.editor": {
+    "defaultMessage": "Editor view"
+  },
+  "workspaceToolbar.environment": {
+    "defaultMessage": "Environment"
+  },
+  "workspaceToolbar.figures": {
+    "defaultMessage": "Figures"
+  },
+  "workspaceToolbar.files": {
+    "defaultMessage": "Files"
+  },
+  "workspaceToolbar.open": {
+    "defaultMessage": "Open panel"
+  },
+  "workspaceToolbar.project": {
+    "defaultMessage": "Project"
+  },
+  "workspaceToolbar.versions": {
+    "defaultMessage": "Versions"
   }
 }

@@ -89,7 +89,11 @@ export const AlertBox = ({ alert, className }: AlertBoxProps) => {
       }
     } catch (error) {
       console.error('Error saving threshold:', error);
-      window.alert(intl.formatMessage(i18n.failedToSaveThreshold, { error: errorMessage(error, 'Unknown error') }));
+      window.alert(
+        intl.formatMessage(i18n.failedToSaveThreshold, {
+          error: errorMessage(error, 'Unknown error'),
+        })
+      );
     } finally {
       setIsSaving(false);
     }
@@ -107,87 +111,98 @@ export const AlertBox = ({ alert, className }: AlertBoxProps) => {
     >
       {alert.progress ? (
         <div className="flex flex-col gap-2">
+          {/* The message carries context the progress bar alone cannot (for example who owns
+              the conversation when an external kernel is running). */}
+          {alert.message && (
+            <span className="text-[10px] opacity-70 text-center break-words whitespace-pre-line">
+              {alert.message}
+            </span>
+          )}
           {/* Auto-compact threshold indicator with edit */}
-          <div className="flex items-center justify-center gap-1 min-h-[20px]">
-            {isEditingThreshold ? (
-              <>
-                <span className="text-[10px] opacity-70">{intl.formatMessage(i18n.autoCompactAt)}</span>
-                <input
-                  type="number"
-                  min="1"
-                  max="100"
-                  step="1"
-                  value={thresholdValue}
-                  onChange={(e) => {
-                    const val = parseInt(e.target.value, 10);
-                    if (e.target.value === '') {
-                      setThresholdValue(1);
-                    } else if (!isNaN(val)) {
-                      setThresholdValue(Math.max(1, Math.min(100, val)));
-                    }
-                  }}
-                  onBlur={(e) => {
-                    const val = parseInt(e.target.value, 10);
-                    if (isNaN(val) || val < 1) {
-                      setThresholdValue(1);
-                    } else if (val > 100) {
-                      setThresholdValue(100);
-                    }
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
+          {alert.showAutoCompactThreshold !== false && (
+            <div className="flex items-center justify-center gap-1 min-h-[20px]">
+              {isEditingThreshold ? (
+                <>
+                  <span className="text-[10px] opacity-70">
+                    {intl.formatMessage(i18n.autoCompactAt)}
+                  </span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    step="1"
+                    value={thresholdValue}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10);
+                      if (e.target.value === '') {
+                        setThresholdValue(1);
+                      } else if (!isNaN(val)) {
+                        setThresholdValue(Math.max(1, Math.min(100, val)));
+                      }
+                    }}
+                    onBlur={(e) => {
+                      const val = parseInt(e.target.value, 10);
+                      if (isNaN(val) || val < 1) {
+                        setThresholdValue(1);
+                      } else if (val > 100) {
+                        setThresholdValue(100);
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleSaveThreshold();
+                      } else if (e.key === 'Escape') {
+                        setIsEditingThreshold(false);
+                        const resetValue = Math.round(currentThreshold * 100);
+                        setThresholdValue(Math.max(1, resetValue));
+                      }
+                    }}
+                    onFocus={(e) => {
+                      e.target.select();
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                    }}
+                    className="w-12 px-1 text-[10px] bg-white/10 border border-current/30 rounded outline-none text-center focus:bg-white/20 focus:border-current/50 transition-colors"
+                    disabled={isSaving}
+                    autoFocus
+                  />
+                  <span className="text-[10px] opacity-70">%</span>
+                  <button
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
                       handleSaveThreshold();
-                    } else if (e.key === 'Escape') {
-                      setIsEditingThreshold(false);
-                      const resetValue = Math.round(currentThreshold * 100);
-                      setThresholdValue(Math.max(1, resetValue));
-                    }
-                  }}
-                  onFocus={(e) => {
-                    e.target.select();
-                  }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                  }}
-                  className="w-12 px-1 text-[10px] bg-white/10 border border-current/30 rounded outline-none text-center focus:bg-white/20 focus:border-current/50 transition-colors"
-                  disabled={isSaving}
-                  autoFocus
-                />
-                <span className="text-[10px] opacity-70">%</span>
-                <button
-                  type="button"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleSaveThreshold();
-                  }}
-                  disabled={isSaving}
-                  className="p-1 hover:opacity-60 transition-opacity cursor-pointer relative z-50"
-                  style={{ minWidth: '20px', minHeight: '20px', pointerEvents: 'auto' }}
-                >
-                  <FaSave className="w-3 h-3" />
-                </button>
-              </>
-            ) : (
-              <>
-                <span className="text-[10px] opacity-70">
-                  {intl.formatMessage(i18n.autoCompactAt)} {Math.round(currentThreshold * 100)}%
-                </span>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setIsEditingThreshold(true);
-                  }}
-                  className="p-1 hover:opacity-60 transition-opacity cursor-pointer relative z-10"
-                  style={{ minWidth: '20px', minHeight: '20px' }}
-                >
-                  <FaPencilAlt className="w-3 h-3 opacity-70" />
-                </button>
-              </>
-            )}
-          </div>
+                    }}
+                    disabled={isSaving}
+                    className="p-1 hover:opacity-60 transition-opacity cursor-pointer relative z-50"
+                    style={{ minWidth: '20px', minHeight: '20px', pointerEvents: 'auto' }}
+                  >
+                    <FaSave className="w-3 h-3" />
+                  </button>
+                </>
+              ) : (
+                <>
+                  <span className="text-[10px] opacity-70">
+                    {intl.formatMessage(i18n.autoCompactAt)} {Math.round(currentThreshold * 100)}%
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setIsEditingThreshold(true);
+                    }}
+                    className="p-1 hover:opacity-60 transition-opacity cursor-pointer relative z-10"
+                    style={{ minWidth: '20px', minHeight: '20px' }}
+                  >
+                    <FaPencilAlt className="w-3 h-3 opacity-70" />
+                  </button>
+                </>
+              )}
+            </div>
+          )}
           {alert.showCompactButton && alert.onCompact && (
             <button
               onClick={(e) => {

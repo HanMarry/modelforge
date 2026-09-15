@@ -1,0 +1,338 @@
+\documentclass{JXUSTmodeling}
+\usepackage{minted}
+\makeatletter
+\newlength\savefboxrule
+\newlength\savefboxsep
+\edef\example@name{\jobname-example.aux}
+\newenvironment{hexample}%
+{%
+\renewcommand{\minted@FVB@VerbatimOut}[1]{%
+  \@bsphack
+  \begingroup
+    \FV@DefineWhiteSpace
+    \def\FV@Space{\space}%
+    \FV@DefineTabOut
+    \let\FV@ProcessLine\minted@write@detok
+    \immediate\openout\FV@OutFile ##1\relax
+    \let\FV@FontScanPrep\relax
+    \let\@noligs\relax
+    \FV@Scan}
+\minted@FVB@VerbatimOut{\example@name}}%
+{\minted@FVE@VerbatimOut%
+  \trivlist\item\relax
+  \setlength{\savefboxrule}{\fboxrule}%
+  \setlength{\savefboxsep}{\fboxsep}%
+  \setlength{\fboxsep}{0.015\textwidth}%
+  \setlength{\fboxrule}{0.4pt}%
+  \fcolorbox[gray]{0}{0.95}{%
+    \begin{minipage}[c]{0.45\textwidth}%
+      \setlength{\fboxrule}{\savefboxrule}%
+      \setlength{\fboxsep}{\savefboxsep}%
+      \small\inputminted[breakanywhere,breaklines=true,numbers=left]{latex}{\example@name}%
+    \end{minipage}%
+  }%
+  \hfill%
+  \fbox{%
+    \begin{minipage}[c]{0.45\textwidth}%
+      \setlength{\fboxrule}{\savefboxrule}%
+      \setlength{\fboxsep}{\savefboxsep}%
+      \setlength{\parskip}{1ex plus 0.4ex minus 0.2ex}%
+      \normalsize\input{\example@name}%
+    \end{minipage}%
+  }%
+  \endtrivlist
+}
+\newenvironment{vexample}%
+{%
+\renewcommand{\minted@FVB@VerbatimOut}[1]{%
+  \@bsphack
+  \begingroup
+    \FV@DefineWhiteSpace
+    \def\FV@Space{\space}%
+    \FV@DefineTabOut
+    \let\FV@ProcessLine\minted@write@detok
+    \immediate\openout\FV@OutFile ##1\relax
+    \let\FV@FontScanPrep\relax
+    \let\@noligs\relax
+    \FV@Scan}
+\minted@FVB@VerbatimOut{\example@name}}%
+{\minted@FVE@VerbatimOut%
+  \trivlist\item\relax
+  \setlength{\savefboxrule}{\fboxrule}%
+  \setlength{\savefboxsep}{\fboxsep}%
+  \setlength{\fboxsep}{0.015\textwidth}%
+  \setlength{\fboxrule}{0.4pt}%
+  \begin{minipage}[c]{\textwidth}
+  \fcolorbox[gray]{0}{0.95}{%
+    \begin{minipage}[c]{\textwidth-0.03\textwidth-0.8pt}%
+      \setlength{\fboxrule}{\savefboxrule}%
+      \setlength{\fboxsep}{\savefboxsep}%
+      \small\inputminted[breakanywhere,breaklines=true,numbers=left]{latex}{\example@name}%
+    \end{minipage}%
+  }\\
+  \fbox{%
+    \begin{minipage}[c]{\textwidth-0.03\textwidth-0.8pt}%
+      \setlength{\fboxrule}{\savefboxrule}%
+      \setlength{\fboxsep}{\savefboxsep}%
+      \setlength{\parskip}{1ex plus 0.4ex minus 0.2ex}%
+      \normalsize\input{\example@name}%
+    \end{minipage}%
+  }%
+  \end{minipage}
+  \endtrivlist
+}
+\newenvironment{floatexample}%
+{%
+\renewcommand{\minted@FVB@VerbatimOut}[1]{%
+  \@bsphack
+  \begingroup
+    \FV@DefineWhiteSpace
+    \def\FV@Space{\space}%
+    \FV@DefineTabOut
+    \let\FV@ProcessLine\minted@write@detok
+    \immediate\openout\FV@OutFile ##1\relax
+    \let\FV@FontScanPrep\relax
+    \let\@noligs\relax
+    \FV@Scan}
+\minted@FVB@VerbatimOut{\example@name}}%
+{\minted@FVE@VerbatimOut%
+  \trivlist\item\relax
+  \setlength{\savefboxrule}{\fboxrule}%
+  \setlength{\savefboxsep}{\fboxsep}%
+  \setlength{\fboxsep}{0.015\textwidth}%
+  \setlength{\fboxrule}{0.4pt}%
+  \fcolorbox[gray]{0}{0.95}{%
+    \begin{minipage}[c]{\textwidth-0.03\textwidth-0.8pt}%
+      \setlength{\fboxrule}{\savefboxrule}%
+      \setlength{\fboxsep}{\savefboxsep}%
+      \small\inputminted[breakanywhere,breaklines=true,numbers=left]{latex}{\example@name}%
+    \end{minipage}%
+  }\\
+  \input{\example@name}%
+  \endtrivlist
+}
+\makeatother
+
+\biaoti{全国大学生数学建模竞赛 \LaTeX{} 模板使用手册}
+\keyword{数学建模；\LaTeX{}}
+\begin{document}
+\begin{abstract}
+  为了让参加数学建模比赛的人专注内容，而尽可能少去关注格式，特此开发出此模板．以上是套话。
+
+  编译环境：
+  \begin{itemize}
+    \item 发行版：\TeX{} Live 2020；
+    \item 编译方式：\texttt{XeLaTeX}；
+    \item 编码：UTF8。
+  \end{itemize}
+
+  使用水平：学习三个月及以上。
+
+  本模板只是个说明文档，在写论文时请不要在 \texttt{example.tex} 文件上进行修改，请在 \texttt{main.tex} 上增添内容。
+  
+  本模板不是官方模板，开发者不对此模板作任何的担保，使用者在使用此模板时出现的任何问题、造成的损失都与开发者无关。
+
+  模板代码托管地址：\url{https://github.com/sikouhjw/JXUSTmodeling}，有问题可以提 issue，但要遵守提问规范，参考我的博文《\href{https://sikouhjw.gitee.io/2020/03/08/2020-03-08-ask-questions/}{（我的）LaTeX 提问流程}》。
+\end{abstract}
+
+\section{模板规范}
+\begin{enumerate}
+  \item 页边距 \texttt{textwidth=444bp,vmargin=2.5cm}，为了满足行长是字号的整数倍，不采取 \texttt{hmargin=2.5cm}；
+  \item 多倍行距：1.25；
+  \item 标题三号黑体居中；
+  \item 一级标题四号黑体居中；
+  \item 其他标题小四宋体加粗；
+  \item 正文小四宋体；
+  \item 图表标题 5 号黑体；
+  \item 参考文献引用放右上角；
+  \item 数学公式靠右编号；
+  \item 附录内容用 5 号字体；
+  \item 英文及普通数字使用 \texttt{newtxtext} 宏包；
+  \item 用英文全角句号代替中文句号。
+\end{enumerate}
+
+\section{推荐的写作规范}
+\begin{enumerate}
+  \item 代码只出现在附录；
+  \item 列表环境使用分号，最后一个用句号；
+  \item 行内公式不要用 \mintinline{latex}{|\displaystyle|}；
+  \item 过多地图片只放几张在正文，其余在附录；
+  \item 表格尽可能用三线表。
+\end{enumerate}
+
+\section{纸质版论文格式规范}
+\begin{enumerate}
+  \item 论文用白色A4纸打印（单面、双面均可）；上下左右各留出至少 2.5 厘米的页边距；从左侧装订；
+  \item 论文第一页为承诺书，第二页为编号专用页；
+  \item 论文第三页为摘要专用页（含标题和关键词，但不需要翻译成英文），从此页开始编写页码；页码必须位于每页页脚中部，用阿拉伯数字从“1”开始连续编号．摘要专用页必须单独一页，且篇幅不能超过一页；
+  \item 从第四页开始是论文正文（不要目录，尽量控制在 20 页以内）；正文之后是论文附录（页数不限）；
+  \item 论文附录至少应包括参赛论文的所有源程序代码，如实际使用的软件名称、命令和编写的全部可运行的源程序（含 EXCEL、SPSS 等软件的交互命令）；通常还应包括自主查阅使用的数据等资料．赛题中提供的数据不要放在附录．如果缺少必要的源程序或程序不能运行（或者运行结果与正文不符），可能会被取消评奖资格．论文附录必须打印装订在论文纸质版中．如果确实没有源程序，也应在论文附录中明确说明“本论文没有源程序”；
+  \item 论文正文和附录不能有任何可能显示答题人身份和所在学校及赛区的信息；
+  \item 引用别人的成果或其他公开的资料（包括网上资料）必须按照科技论文写作的规范格式列出参考文献，并在正文引用处予以标注；
+\end{enumerate}
+
+\section{电子版论文格式规范}
+\begin{enumerate}
+  \item 参赛队应按照《全国大学生数学建模竞赛报名和参赛须知》的要求命名和提交以下两个电子文件，分别对应于参赛论文和相关的支撑材料；
+  \item 参赛论文的电子版不能包含承诺书和编号专用页（即电子版论文第一页为摘要页）．除此之外，其内容及格式必须与纸质版完全一致（包括正文及附录），且必须是一个单独的文件，文件格式只能为 \texttt{PDF} 或者 \texttt{Word} 格式之一（建议使用 \texttt{PDF} 格式），不要压缩，文件大小不要超过 \SI{20}{MB}；
+  \item 撑材料（不超过 \SI{20}{MB}）包括用于支撑论文模型、结果、结论的所有必要文件，至少应包含参赛论文的所有源程序，通常还应包含参赛论文使用的数据（赛题中提供的原始数据除外）、较大篇幅的中间结果的图形或表格、难以从公开渠道找到的相关资料等．所有支撑材料使用 WinRAR 软件压缩在一个文件中（后缀为 \texttt{RAR}）；如果支撑材料与论文内容不相符，该论文可能会被取消评奖资格．支撑材料中不能包含承诺书和编号专用页，不能有任何可能显示答题人身份和所在学校及赛区的信息．如果确实没有需要提供的支撑材料，可以不提供支撑材料．
+\end{enumerate}
+
+\section{使用例子}
+生成标题页
+\begin{hexample}
+\biaoti{标题}
+\keyword{关键词；关键词}
+\begin{abstract}
+  摘要内容摘要内容
+\end{abstract}
+\end{hexample}
+
+西文字体和数学公式用了大家喜闻乐见的 Times 风格的 \texttt{newtxtext} 和 \texttt{newtxmath} 宏包
+\begin{hexample}
+Times
+\[ \widehat{f}(\xi) = \frac{1}{(2\pi)^{d/2}}+ \int_{\mathbb{R}^d} e^{-ix \cdot \xi} f(x) \dd{x} \]
+\end{hexample}
+
+方便输入 Physical quantities 的 \texttt{siunitx} 宏包和简便数学公式输入的 \texttt{physics} 宏包
+\begin{hexample}
+\SI{123}{cm} \quad \si{Hz} \quad \num{3.45d-4}\par
+$\int f(x) \dd{x}$ \quad $\dv{x}$
+\end{hexample}
+
+规定了小于等于号的样式
+\begin{hexample}
+$\leq = \leqslant$ \quad $\geq = \geqslant$
+\end{hexample}
+
+定义了 \mintinline{latex}{tabularx} 环境中的 \mintinline{latex}{Y} 选项
+\begin{hexample}
+\begin{tabularx}{\textwidth}{XY}
+  \hline
+  左对齐 & 局中对齐\\
+  \hline
+\end{tabularx}
+\end{hexample}
+
+三线表的输入
+\begin{hexample}
+\begin{tabularx}{\textwidth}{YY}
+  \toprule
+  文字 & 文字\\
+  \midrule
+  文字 & 文字\\
+  文字 & 文字\\
+  \bottomrule
+\end{tabularx}
+\end{hexample}
+如果要添加竖线，建议用 \mintinline{latex}{\Xhline{线宽}} 制作三线表
+\begin{hexample}
+\begin{tabularx}{\textwidth}{c@{\hspace{1pc}}|@{\hspace{1pc}}X}
+  \Xhline{0.08em}
+  符号 & \multicolumn{1}{c}{符号说明}\\
+  \Xhline{0.05em}
+  $\int$ & 积分符号\\
+  \Xhline{0.08em}
+\end{tabularx}
+\end{hexample}
+表格尽量放在浮动体环境中
+\begin{floatexample}
+\begin{table}[htbp]
+  \centering
+  \caption{表注}\label{tab:example}
+  \begin{tabularx}{\textwidth}{YY}
+    \toprule
+    文字 & 文字\\
+    \midrule
+    文字 & 文字\\
+    文字 & 文字\\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+\end{floatexample}
+
+插图：图片建议放在 \texttt{figures} 文件夹里。基础使用方法
+\begin{floatexample}
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.4\textwidth]{example-image.pdf}
+  \caption{图注}\label{fig:example}
+\end{figure}
+\end{floatexample}
+使用子图
+\begin{floatexample}
+\begin{figure}[htbp]
+  \centering
+  \subfloat[子图注]{\label{sub-fig-1}% 为子图加交叉引用
+  \begin{minipage}{0.4\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{example-image-a}
+  \end{minipage}
+  }
+  \qquad
+  \subfloat[子图注]{%
+  \begin{minipage}{0.4\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{example-image-b}
+  \end{minipage}
+  }
+  \caption{图注}\label{fig:subexample}
+\end{figure}
+\end{floatexample}
+交叉引用使用方法
+\begin{hexample}
+数据拟合图像见\ref{fig:example}。
+结果图像见\ref{fig:subexample}
+的子图~\ref{sub-fig-1}。
+结果数据见\ref{tab:example}。
+推导公式见 \ref{eq:example}。
+\end{hexample}
+用 \mintinline{latex}{\labelformat} 定制了 \mintinline{latex}{\ref} 的输出格式，无需考虑加“图”、“表”、“式”等字
+
+公式输入
+\begin{hexample}
+有编号行间公式
+\begin{equation}\label{eq:example}
+  E = mc^2
+\end{equation}
+无编号行间公式
+\[ E = mc^2 \]
+行内公式
+$E = mc^2$\par
+多行公式
+\begin{align}
+  E &= mc^2\\
+  E/c^2 &= m
+\end{align}
+\end{hexample}
+
+参考文献引用，用知网/其他方式导出符合国标的参考文献
+\begin{hexample}
+文字\cite{label1}
+文字\cite{label2}
+\end{hexample}
+
+用 \mintinline{latex}{listings} 宏包排版代码环境，定制了 MATLAB 环境和 Python 环境
+\begin{hexample}
+\begin{matlab}
+clc,clear;
+\end{matlab}
+\begin{python}
+print("Hello Python world!")
+\end{python}
+\end{hexample}
+
+\begin{thebibliography}{99}
+  \bibitem{label1}参考文献
+  \bibitem{label2}参考文献
+  \bibitem{label3}参考文献
+\end{thebibliography}
+
+\begin{appendixx}
+  \section{问题一的 MATLAB 代码}
+  \begin{matlab}
+clc,clear;
+  \end{matlab}
+\end{appendixx}
+
+\end{document}

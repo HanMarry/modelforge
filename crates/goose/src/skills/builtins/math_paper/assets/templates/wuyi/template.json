@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "name": { "zh-CN": "五一杯", "en": "May Day Cup" },
+  "description": {
+    "zh-CN": "五一数学建模竞赛论文模板",
+    "en": "May Day Mathematical Modeling Contest"
+  },
+  "language": "zh-CN",
+  "entryFile": "main.tex",
+  "order": 70,
+  "defaultFor": [],
+  "fields": [
+    {
+      "id": "problemNumber",
+      "label": { "zh-CN": "参赛题号", "en": "Problem" },
+      "placeholder": { "zh-CN": "A、B 或 C", "en": "A, B, or C" },
+      "required": true
+    },
+    {
+      "id": "teamNumber",
+      "label": { "zh-CN": "参赛队号", "en": "Team number" },
+      "required": true
+    },
+    {
+      "id": "category",
+      "label": { "zh-CN": "参赛组别", "en": "Category" },
+      "required": true,
+      "options": [
+        { "value": "研究生", "label": { "zh-CN": "研究生", "en": "Graduate" } },
+        { "value": "本科", "label": { "zh-CN": "本科", "en": "Undergraduate" } },
+        { "value": "专科", "label": { "zh-CN": "专科", "en": "Vocational college" } },
+        { "value": "高中", "label": { "zh-CN": "高中", "en": "High school" } }
+      ]
+    },
+    {
+      "id": "date",
+      "label": { "zh-CN": "承诺书日期", "en": "Declaration date" },
+      "placeholder": { "zh-CN": "例如 2026-05-01", "en": "e.g. 2026-05-01" },
+      "required": false
+    }
+  ],
+  "profileFields": ["school", "members", "phone", "email"]
+}

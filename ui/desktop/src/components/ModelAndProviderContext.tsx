@@ -10,6 +10,7 @@ import {
   type AppliedSessionProviderModel,
 } from '../acp/providers';
 import { errorMessage } from '../utils/conversionUtils';
+import { syncAgentKernelProviderDefaults } from '../acp/agentKernelDefaults';
 import {
   getModelDisplayName,
   getProviderDisplayName,
@@ -227,7 +228,10 @@ export const ModelAndProviderProvider: React.FC<ModelAndProviderProviderProps> =
 
   // Load initial model and provider on mount
   useEffect(() => {
-    refreshCurrentModelAndProvider();
+    void (async () => {
+      await syncAgentKernelProviderDefaults();
+      await refreshCurrentModelAndProvider();
+    })();
   }, [refreshCurrentModelAndProvider]);
 
   const contextValue = useMemo(

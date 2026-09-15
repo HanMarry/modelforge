@@ -31,8 +31,8 @@ const i18n = defineMessages({
     defaultMessage: 'Failed to add extension',
   },
   askGoose: {
-    id: 'groupedExtensionLoadingToast.askGoose',
-    defaultMessage: 'Ask goose',
+    id: 'groupedExtensionLoadingToast.askAssistant',
+    defaultMessage: 'Ask ModelForge',
   },
   copied: {
     id: 'groupedExtensionLoadingToast.copied',

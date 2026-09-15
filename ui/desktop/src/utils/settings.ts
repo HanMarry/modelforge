@@ -11,6 +11,35 @@ export interface ExternalBackendConfig {
   workingDir?: string;
 }
 
+/**
+ * Agent kernel selection. `builtin` is goose's own agent loop (the app's default),
+ * the other two run an external CLI agent (Claude Code / Codex) that reaches the
+ * provider the user configured here through an in-app shape shim.
+ */
+export type AgentKernelId = 'builtin' | 'claude-code' | 'codex';
+
+export interface AgentKernelSettings {
+  runtime: AgentKernelId;
+  /** Provider whose endpoint/model the kernel reuses; empty means the active provider. */
+  providerId: string;
+  /** Endpoint override; empty means "take it from the provider". */
+  baseUrl: string;
+  /** Model override; empty means "take it from the provider". */
+  model: string;
+  /** Provider/model to restore when the user switches back to the built-in kernel. */
+  builtinProviderId: string;
+  builtinModel: string;
+  /** Optional per-1M-token prices, used to estimate what the kernel spends on your model. */
+  inputTokenCost: number | null;
+  outputTokenCost: number | null;
+  currency: string;
+  /**
+   * Context window per model name, for providers that do not declare one (or declare a wrong
+   * one). Takes precedence over the provider configuration.
+   */
+  contextLimits: Record<string, number>;
+}
+
 export interface KeyboardShortcuts {
   focusWindow: string | null;
   quickLauncher: string | null;
@@ -44,6 +73,7 @@ export interface Settings {
   spellcheckEnabled: boolean;
   // Key is kept as `externalGoosed` for backward compat with persisted user settings.
   externalGoosed: ExternalBackendConfig;
+  agentKernel: AgentKernelSettings;
   globalShortcut?: string | null;
   keyboardShortcuts: KeyboardShortcuts;
 
@@ -73,6 +103,19 @@ export const defaultKeyboardShortcuts: DefaultKeyboardShortcuts = {
   toggleNavigation: 'CommandOrControl+/',
 };
 
+export const defaultAgentKernel: AgentKernelSettings = {
+  runtime: 'builtin',
+  providerId: '',
+  baseUrl: '',
+  model: '',
+  builtinProviderId: '',
+  builtinModel: '',
+  inputTokenCost: null,
+  outputTokenCost: null,
+  currency: '¥',
+  contextLimits: {},
+};
+
 export const defaultSettings: Settings = {
   // Desktop app settings
   showMenuBarIcon: true,
@@ -87,6 +130,7 @@ export const defaultSettings: Settings = {
     url: '',
     secret: '',
   },
+  agentKernel: { ...defaultAgentKernel },
 
   // UI preferences
   theme: 'light',

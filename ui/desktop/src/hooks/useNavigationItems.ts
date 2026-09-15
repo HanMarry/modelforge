@@ -1,11 +1,16 @@
 import {
   AppWindow,
+  ChartNoAxesCombined,
   Clock,
   FileText,
   History,
+  ListTree,
   MessageSquarePlus,
+  Plug,
   Puzzle,
   Settings,
+  Shapes,
+  UserRound,
   Zap,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -20,66 +25,109 @@ export interface NavItem {
   tagAlign?: 'left' | 'right';
 }
 
-/** Top-level nav items (excluding Settings which is pinned to the bottom). */
+/** A top-level item that expands into sub-items (currently only 扩展). */
+export interface NavGroup {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+  /** Returns true when the current path belongs to this group. */
+  isActive: (pathname: string) => boolean;
+  children: NavItem[];
+}
+
+/** Sub-items under 扩展, mirroring the product's 技能 / 模板 / 算法 / 插件 / 连接器. */
+export const CATALOG_SUB_ITEMS: NavItem[] = [
+  { id: 'catalog-skills', path: '/skills', label: '技能', icon: Zap },
+  { id: 'catalog-templates', path: '/paper', label: '模板', icon: Shapes },
+  { id: 'catalog-algorithms', path: '/algorithms', label: '算法', icon: ListTree },
+  { id: 'catalog-plugins', path: '/extensions', label: '插件', icon: Puzzle },
+  { id: 'catalog-connectors', path: '/connectors', label: '连接器', icon: Plug },
+];
+
+export const CATALOG_GROUP: NavGroup = {
+  id: 'catalog',
+  label: '扩展',
+  icon: Puzzle,
+  isActive: (pathname) =>
+    ['/skills', '/paper', '/algorithms', '/extensions', '/connectors'].includes(pathname),
+  children: CATALOG_SUB_ITEMS,
+};
+
+/** Top-level items, in sidebar order. */
 export const NAV_ITEMS: NavItem[] = [
-  { id: 'home', path: '/', label: 'New Chat', icon: MessageSquarePlus },
-  { id: 'recipes', path: '/recipes', label: 'Recipes', icon: FileText },
-  { id: 'skills', path: '/skills', label: 'Skills', icon: Zap },
-  { id: 'apps', path: '/apps', label: 'Apps', icon: AppWindow },
-  { id: 'scheduler', path: '/schedules', label: 'Scheduler', icon: Clock },
-  { id: 'extensions', path: '/extensions', label: 'Extensions', icon: Puzzle },
-  { id: 'sessions', path: '/sessions', label: 'Session History', icon: History },
+  { id: 'home', path: '/', label: '新建会话', icon: MessageSquarePlus },
+  { id: 'figures', path: '/figures', label: '科研绘图', icon: ChartNoAxesCombined },
+  { id: 'paper', path: '/paper', label: '论文模板', icon: FileText },
+  { id: 'apps', path: '/apps', label: '应用', icon: AppWindow },
+  { id: 'scheduler', path: '/schedules', label: '自动化', icon: Clock },
+  { id: 'sessions', path: '/sessions', label: '会话历史', icon: History },
 ];
 
 /** Settings is rendered separately, pinned to the bottom of the sidebar. */
 export const SETTINGS_NAV_ITEM: NavItem = {
   id: 'settings',
   path: '/settings',
-  label: 'Settings',
+  label: '设置',
   icon: Settings,
 };
 
-// Translation descriptors for nav labels. Kept here next to NAV_ITEMS so the two
-// stay in sync.
+export const PROFILE_NAV_ITEM: NavItem = {
+  id: 'profile',
+  path: '/profile',
+  label: '个人信息',
+  icon: UserRound,
+};
+
+/**
+ * Translation descriptors for nav labels. Kept here next to the items so the two
+ * stay in sync; the returned label is localised at render time.
+ */
 const navItemMessages = defineMessages({
-  home: {
-    id: 'navigation.itemHome',
-    defaultMessage: 'New Chat',
-  },
-  recipes: {
-    id: 'navigation.itemRecipes',
-    defaultMessage: 'Recipes',
-  },
-  skills: {
-    id: 'navigation.itemSkills',
-    defaultMessage: 'Skills',
-  },
-  apps: {
-    id: 'navigation.itemApps',
-    defaultMessage: 'Apps',
-  },
-  scheduler: {
-    id: 'navigation.itemScheduler',
-    defaultMessage: 'Scheduler',
-  },
-  extensions: {
-    id: 'navigation.itemExtensions',
-    defaultMessage: 'Extensions',
-  },
-  sessions: {
-    id: 'navigation.itemSessions',
-    defaultMessage: 'Session History',
-  },
-  settings: {
-    id: 'navigation.itemSettings',
-    defaultMessage: 'Settings',
-  },
+  home: { id: 'navigation.itemHome', defaultMessage: 'New Session' },
+  figures: { id: 'navigation.itemFigures', defaultMessage: 'Figures' },
+  paper: { id: 'navigation.itemPaper', defaultMessage: 'Paper Templates' },
+  apps: { id: 'navigation.itemApps', defaultMessage: 'Apps' },
+  scheduler: { id: 'navigation.itemScheduler', defaultMessage: 'Automation' },
+  sessions: { id: 'navigation.itemSessions', defaultMessage: 'Session History' },
+  settings: { id: 'navigation.itemSettings', defaultMessage: 'Settings' },
+  profile: { id: 'navigation.itemProfile', defaultMessage: 'Profile' },
+  catalog: { id: 'navigation.itemCatalog', defaultMessage: 'Extensions' },
+  catalogSkills: { id: 'navigation.catalogSkills', defaultMessage: 'Skills' },
+  catalogTemplates: { id: 'navigation.catalogTemplates', defaultMessage: 'Templates' },
+  catalogAlgorithms: { id: 'navigation.catalogAlgorithms', defaultMessage: 'Algorithms' },
+  catalogPlugins: { id: 'navigation.catalogPlugins', defaultMessage: 'Plugins' },
+  catalogConnectors: { id: 'navigation.catalogConnectors', defaultMessage: 'Connectors' },
 });
 
-const NAV_ITEM_MESSAGES: Record<string, MessageDescriptor> = navItemMessages;
+/** Message id per nav item id. */
+const MESSAGE_ID_BY_ITEM: Record<string, keyof typeof navItemMessages> = {
+  home: 'home',
+  figures: 'figures',
+  paper: 'paper',
+  apps: 'apps',
+  scheduler: 'scheduler',
+  sessions: 'sessions',
+  settings: 'settings',
+  profile: 'profile',
+  'catalog-skills': 'catalogSkills',
+  'catalog-templates': 'catalogTemplates',
+  'catalog-algorithms': 'catalogAlgorithms',
+  'catalog-plugins': 'catalogPlugins',
+  'catalog-connectors': 'catalogConnectors',
+};
 
-/** Format a NavItem's label using the provided intl instance, falling back to `item.label`. */
+export const NAV_GROUP_MESSAGE: MessageDescriptor = navItemMessages.catalog;
+
+/** The account section of the settings page (profile and settings share one page). */
+export const PROFILE_MESSAGE: MessageDescriptor = navItemMessages.profile;
+
+/** Localised label for a nav item, falling back to the literal label. */
 export function getNavItemLabel(item: NavItem, intl: IntlShape): string {
-  const descriptor = NAV_ITEM_MESSAGES[item.id];
-  return descriptor ? intl.formatMessage(descriptor) : item.label;
+  const key = MESSAGE_ID_BY_ITEM[item.id];
+  return key ? intl.formatMessage(navItemMessages[key]) : item.label;
+}
+
+/** Localised label for the 扩展 group. */
+export function navGroupLabel(intl: IntlShape, group: NavGroup): string {
+  return group.id === 'catalog' ? intl.formatMessage(navItemMessages.catalog) : group.label;
 }

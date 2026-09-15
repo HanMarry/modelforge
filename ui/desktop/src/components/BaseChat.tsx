@@ -4,6 +4,12 @@ import { defineMessages, useIntl } from '../i18n';
 import { useLocation, useNavigate } from 'react-router';
 import { SearchView } from './conversation/SearchView';
 import LoadingGoose from './LoadingGoose';
+import ActivityStatus from './ActivityStatus';
+import WorkspacePanel from './workspace/WorkspacePanel';
+import WorkspaceEditorView from './workspace/WorkspaceEditorView';
+import WorkspaceToolbar from './workspace/WorkspaceToolbar';
+import { useWorkspacePanel } from './workspace/useWorkspacePanel';
+import { useWorkspaceShortcuts } from '../hooks/useWorkspaceShortcuts';
 import ProgressiveMessageList from './ProgressiveMessageList';
 import { MainPanelLayout } from './Layout/MainPanelLayout';
 import ChatInput from './ChatInput';
@@ -32,10 +38,12 @@ import {
 } from '../types/message';
 import { substituteParameters } from '../utils/parameterSubstitution';
 import { useAutoSubmit } from '../hooks/useAutoSubmit';
-import { Goose } from './icons';
+import { ModelForgeWordmark } from './icons/ModelForge';
+import { REPOSITORY_URL } from '../branding';
 import EnvironmentBadge from './GooseSidebar/EnvironmentBadge';
 import SessionActionsHeader from './SessionActionsHeader';
 import { isAcpRecovering, subscribeToAcpRecovery } from '../acp/acpConnection';
+import { estimateTokensFromChars } from '../utils/tokenEstimate';
 
 const i18n = defineMessages({
   failedToLoadSession: {
@@ -90,6 +98,19 @@ export default function BaseChat({
   const chatInputRef = useRef<HTMLTextAreaElement>(null);
   const disableAnimation = location.state?.disableAnimation || false;
   const [hasStartedUsingRecipe, setHasStartedUsingRecipe] = React.useState(false);
+  const workspacePanel = useWorkspacePanel(isActiveSession);
+  const { clearActiveFile } = workspacePanel;
+  const [projectPrompt, setProjectPrompt] = useState<{
+    id: string;
+    text: string;
+    mode?: 'append';
+  } | null>(null);
+
+  useWorkspaceShortcuts(isActiveSession, {
+    onTogglePanel: workspacePanel.toggle,
+    onToggleEditor: () =>
+      workspacePanel.isEditorOpen ? workspacePanel.closeEditor() : workspacePanel.openEditor(),
+  });
   const [hasNotAcceptedRecipe, setHasNotAcceptedRecipe] = useState<boolean>();
   const [hasRecipeSecurityWarnings, setHasRecipeSecurityWarnings] = useState(false);
   const [acpRecovering, setAcpRecovering] = useState(isAcpRecovering);
@@ -141,6 +162,36 @@ export default function BaseChat({
   );
 
   const recipe = session?.recipe as Recipe | null | undefined;
+  const workspaceWorkingDir = session?.working_dir ?? '';
+  useEffect(() => {
+    clearActiveFile();
+    setProjectPrompt(null);
+  }, [workspaceWorkingDir, sessionId, clearActiveFile]);
+  const editorVisible = workspacePanel.isEditorOpen && Boolean(workspaceWorkingDir);
+
+  // The backend reports context usage once per request, so the live indicator would freeze for
+  // a whole turn. Estimate what the streaming turn has produced on top of the last report and
+  // reset the baseline whenever a fresh report lands (which already includes that output).
+  const streamingChars = useMemo(() => {
+    if (chatState === ChatState.Idle) return 0;
+    for (let index = messages.length - 1; index >= 0; index -= 1) {
+      const candidate = messages[index];
+      if (candidate.role === 'assistant' && candidate.metadata.userVisible) {
+        return getTextAndImageContent(candidate).textContent.length;
+      }
+    }
+    return 0;
+  }, [chatState, messages]);
+
+  const reportedTokens = tokenState?.totalTokens ?? 0;
+  const tokenBaselineRef = useRef({ reported: -1, chars: 0 });
+  if (tokenBaselineRef.current.reported !== reportedTokens) {
+    tokenBaselineRef.current = { reported: reportedTokens, chars: streamingChars };
+  }
+  const pendingTokens =
+    chatState === ChatState.Idle
+      ? 0
+      : estimateTokensFromChars(Math.max(0, streamingChars - tokenBaselineRef.current.chars));
 
   const resolvedInitialMessage = useMemo((): UserInput | undefined => {
     if (!initialMessage) return undefined;
@@ -413,144 +464,200 @@ export default function BaseChat({
   }
 
   return (
-    <div className="h-full flex flex-col min-h-0">
-      <MainPanelLayout
-        backgroundColor={'bg-background-primary'}
-        removeTopPadding={true}
-        {...customMainLayoutProps}
+    <div className="h-full flex flex-row min-h-0">
+      <div
+        className={cn(
+          'flex h-full min-h-0 min-w-0 flex-col',
+          editorVisible ? 'w-[24vw] min-w-[260px] max-w-[360px] shrink-0' : 'flex-1'
+        )}
       >
-        {/* Custom header */}
-        {renderHeader && renderHeader()}
+        <MainPanelLayout
+          backgroundColor={'bg-background-primary'}
+          removeTopPadding={true}
+          {...customMainLayoutProps}
+        >
+          {/* Custom header */}
+          {renderHeader && renderHeader()}
 
-        {/* Chat container with sticky recipe header */}
-        <div className="flex flex-col flex-1 min-h-0 relative">
-          {/* Goose watermark - top right */}
-          <div className="absolute top-[14px] right-4 z-[60] flex flex-row items-center gap-1">
-            <a
-              href="https://goose-docs.ai"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="no-drag flex flex-row items-center gap-1 hover:opacity-80 transition-opacity"
+          {/* Chat container with sticky recipe header */}
+          <div className="flex flex-col flex-1 min-h-0 relative">
+            {/* Brand watermark - top right */}
+            <div className="absolute top-[14px] right-4 z-[60] flex flex-row items-center gap-2">
+              <WorkspaceToolbar
+                isOpen={workspacePanel.isOpen}
+                isEditorOpen={workspacePanel.isEditorOpen}
+                activeTab={workspacePanel.tab}
+                onSelect={workspacePanel.selectTab}
+                onToggleEditor={() =>
+                  workspacePanel.isEditorOpen
+                    ? workspacePanel.closeEditor()
+                    : workspacePanel.openEditor()
+                }
+                onToggle={workspacePanel.toggle}
+              />
+              <a
+                href={REPOSITORY_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="no-drag flex flex-row items-center gap-1 hover:opacity-80 transition-opacity"
+              >
+                <ModelForgeWordmark className="text-sm leading-none text-text-secondary" />
+              </a>
+              <EnvironmentBadge className="translate-y-px" />
+            </div>
+
+            <SessionActionsHeader session={session} onSessionChange={updateSession} />
+
+            <ScrollArea
+              ref={scrollRef}
+              className={`flex-1 min-h-0 relative ${contentClassName}`}
+              autoScroll
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              data-drop-zone="true"
+              paddingX={6}
+              paddingY={0}
             >
-              <Goose className="size-5 goose-icon-animation" />
-              <span className="text-sm leading-none text-text-secondary -translate-y-px">
-                goose
-              </span>
-            </a>
-            <EnvironmentBadge className="translate-y-px" />
+              {recipe?.title && (
+                <div className="sticky top-0 z-10 bg-background-primary px-0 -mx-6 mb-6 pt-6">
+                  <RecipeHeader title={recipe.title} />
+                </div>
+              )}
+
+              {recipe && (
+                <div className={hasStartedUsingRecipe ? 'mb-6' : ''}>
+                  <RecipeActivities
+                    append={appendToChat}
+                    activities={Array.isArray(recipe.activities) ? recipe.activities : null}
+                    title={recipe.title}
+                    parameterValues={session?.user_recipe_values || {}}
+                  />
+                </div>
+              )}
+
+              {messages.length > 0 || recipe ? (
+                <>
+                  <SearchView>
+                    <ProgressiveMessageList
+                      messages={messages}
+                      sessionId={sessionId}
+                      toolCallNotifications={toolCallNotifications}
+                      append={appendToChat}
+                      isUserMessage={isUserMessage}
+                      isStreamingMessage={chatState !== ChatState.Idle}
+                      onRenderingComplete={handleRenderingComplete}
+                      onMessageUpdate={onMessageUpdate}
+                      submitElicitationResponse={submitElicitationResponse}
+                    />
+                  </SearchView>
+
+                  <ActivityStatus
+                    chatState={chatState}
+                    messages={messages}
+                    progressMessage={progressMessage}
+                  />
+
+                  <div className="block h-8" />
+                </>
+              ) : null}
+            </ScrollArea>
+
+            {(chatState === ChatState.LoadingConversation ||
+              chatState === ChatState.RestartingAgent) && (
+              <div className="absolute bottom-1 left-4 z-20 pointer-events-none">
+                <LoadingGoose chatState={chatState} message={progressMessage} />
+              </div>
+            )}
           </div>
 
-          <SessionActionsHeader session={session} onSessionChange={updateSession} />
-
-          <ScrollArea
-            ref={scrollRef}
-            className={`flex-1 min-h-0 relative ${contentClassName}`}
-            autoScroll
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
-            data-drop-zone="true"
-            paddingX={6}
-            paddingY={0}
-          >
-            {recipe?.title && (
-              <div className="sticky top-0 z-10 bg-background-primary px-0 -mx-6 mb-6 pt-6">
-                <RecipeHeader title={recipe.title} />
-              </div>
-            )}
-
-            {recipe && (
-              <div className={hasStartedUsingRecipe ? 'mb-6' : ''}>
-                <RecipeActivities
-                  append={appendToChat}
-                  activities={Array.isArray(recipe.activities) ? recipe.activities : null}
-                  title={recipe.title}
-                  parameterValues={session?.user_recipe_values || {}}
-                />
-              </div>
-            )}
-
-            {messages.length > 0 || recipe ? (
-              <>
-                <SearchView>
-                  <ProgressiveMessageList
-                    messages={messages}
-                    sessionId={sessionId}
-                    toolCallNotifications={toolCallNotifications}
-                    append={appendToChat}
-                    isUserMessage={isUserMessage}
-                    isStreamingMessage={chatState !== ChatState.Idle}
-                    onRenderingComplete={handleRenderingComplete}
-                    onMessageUpdate={onMessageUpdate}
-                    submitElicitationResponse={submitElicitationResponse}
-                  />
-                </SearchView>
-
-                <div className="block h-8" />
-              </>
-            ) : null}
-          </ScrollArea>
-
-          {chatState !== ChatState.Idle && (
-            <div className="absolute bottom-1 left-4 z-20 pointer-events-none">
-              <LoadingGoose chatState={chatState} message={progressMessage} />
+          {acpRecovering && (
+            <div role="status" className="mx-4 mb-2 text-sm text-text-secondary">
+              {intl.formatMessage(i18n.reconnecting)}
             </div>
           )}
-        </div>
 
-        {acpRecovering && (
-          <div role="status" className="mx-4 mb-2 text-sm text-text-secondary">
-            {intl.formatMessage(i18n.reconnecting)}
-          </div>
-        )}
+          <ChatInputCard
+            className={cn(
+              'relative z-30 mx-4 mb-4',
+              !disableAnimation && 'animate-[fadein_400ms_ease-in_forwards]'
+            )}
+          >
+            <ChatInput
+              inputRef={chatInputRef}
+              sessionId={sessionId}
+              handleSubmit={chatInputSubmit}
+              chatState={chatState}
+              onStop={stopStreaming}
+              onSteerQueuedMessage={onSteerQueuedMessage}
+              pauseQueueOnStop={pauseQueueOnStop}
+              queueProcessingBlocked={queueProcessingBlocked || acpRecovering}
+              commandHistory={commandHistory}
+              initialValue={initialPrompt}
+              setView={setView}
+              totalTokens={tokenState?.totalTokens ?? session?.usage?.total_tokens ?? undefined}
+              pendingTokens={pendingTokens}
+              contextLimit={tokenState?.contextLimit}
+              accumulatedInputTokens={
+                tokenState?.accumulatedInputTokens ??
+                session?.accumulated_usage?.input_tokens ??
+                undefined
+              }
+              accumulatedOutputTokens={
+                tokenState?.accumulatedOutputTokens ??
+                session?.accumulated_usage?.output_tokens ??
+                undefined
+              }
+              accumulatedCost={
+                tokenState?.accumulatedCost ?? session?.accumulated_cost ?? undefined
+              }
+              droppedFiles={droppedFiles}
+              onFilesProcessed={() => setDroppedFiles([])} // Clear dropped files after processing
+              messages={messages}
+              disableAnimation={disableAnimation}
+              recipe={recipe}
+              recipeAccepted={!hasNotAcceptedRecipe}
+              initialPrompt={initialPrompt}
+              sessionModel={sessionModel}
+              sessionProvider={sessionProvider}
+              sessionLoaded={sessionLoaded}
+              workingDir={session?.working_dir}
+              onWorkingDirChange={handleWorkingDirChange}
+              latestInference={latestInference}
+              presetPrompt={projectPrompt}
+              {...customChatInputProps}
+            />
+          </ChatInputCard>
+        </MainPanelLayout>
+      </div>
 
-        <ChatInputCard
-          className={cn(
-            'relative z-30 mx-4 mb-4',
-            !disableAnimation && 'animate-[fadein_400ms_ease-in_forwards]'
-          )}
-        >
-          <ChatInput
-            inputRef={chatInputRef}
-            sessionId={sessionId}
-            handleSubmit={chatInputSubmit}
-            chatState={chatState}
-            onStop={stopStreaming}
-            onSteerQueuedMessage={onSteerQueuedMessage}
-            pauseQueueOnStop={pauseQueueOnStop}
-            queueProcessingBlocked={queueProcessingBlocked || acpRecovering}
-            commandHistory={commandHistory}
-            initialValue={initialPrompt}
-            setView={setView}
-            totalTokens={tokenState?.totalTokens ?? session?.usage?.total_tokens ?? undefined}
-            contextLimit={tokenState?.contextLimit}
-            accumulatedInputTokens={
-              tokenState?.accumulatedInputTokens ??
-              session?.accumulated_usage?.input_tokens ??
-              undefined
-            }
-            accumulatedOutputTokens={
-              tokenState?.accumulatedOutputTokens ??
-              session?.accumulated_usage?.output_tokens ??
-              undefined
-            }
-            accumulatedCost={tokenState?.accumulatedCost ?? session?.accumulated_cost ?? undefined}
-            droppedFiles={droppedFiles}
-            onFilesProcessed={() => setDroppedFiles([])} // Clear dropped files after processing
-            messages={messages}
-            disableAnimation={disableAnimation}
-            recipe={recipe}
-            recipeAccepted={!hasNotAcceptedRecipe}
-            initialPrompt={initialPrompt}
-            sessionModel={sessionModel}
-            sessionProvider={sessionProvider}
-            sessionLoaded={sessionLoaded}
-            workingDir={session?.working_dir}
-            onWorkingDirChange={handleWorkingDirChange}
-            latestInference={latestInference}
-            {...customChatInputProps}
-          />
-        </ChatInputCard>
-      </MainPanelLayout>
+      {editorVisible && (
+        <WorkspaceEditorView
+          activeFile={workspacePanel.activeFile}
+          workingDir={workspaceWorkingDir}
+          onClose={workspacePanel.closeEditor}
+          onClearFile={workspacePanel.clearActiveFile}
+        />
+      )}
+
+      {isActiveSession && workspacePanel.isMounted && (
+        <WorkspacePanel
+          isOpen={workspacePanel.isOpen && isActiveSession}
+          isAgentActive={
+            chatState !== ChatState.Idle && chatState !== ChatState.LoadingConversation
+          }
+          isEditorOpen={workspacePanel.isEditorOpen}
+          onOpenFile={workspacePanel.openFile}
+          onRevealFile={workspacePanel.revealFile}
+          onCompose={(text) =>
+            setProjectPrompt({ id: window.crypto.randomUUID(), text, mode: 'append' })
+          }
+          onWorkingDirChange={handleWorkingDirChange}
+          onSelectTab={workspacePanel.selectTab}
+          tab={workspacePanel.tab}
+          onClose={workspacePanel.close}
+          workingDir={workspaceWorkingDir}
+        />
+      )}
 
       {recipe && isActiveSession && session?.session_type !== 'scheduled' && (
         <RecipeWarningModal

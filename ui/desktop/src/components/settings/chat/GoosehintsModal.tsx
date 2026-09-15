@@ -11,77 +11,76 @@ import {
 } from '../../ui/dialog';
 import { errorMessage } from '../../../utils/conversionUtils';
 import { defineMessages, useIntl } from '../../../i18n';
+import { DOCS_URLS } from '../../../branding';
 
 const i18n = defineMessages({
   dialogTitle: {
-    id: 'goosehintsModal.dialogTitle',
+    id: 'projectHintsModal.dialogTitle',
     defaultMessage: 'Configure Project Hints (.goosehints)',
   },
   dialogDescription: {
-    id: 'goosehintsModal.dialogDescription',
-    defaultMessage:
-      'Provide additional context about your project to improve communication with Goose',
+    id: 'projectHintsModal.dialogDescription',
+    defaultMessage: 'Provide additional context about your project to improve communication with ModelForge',
   },
   helpText1: {
-    id: 'goosehintsModal.helpText1',
-    defaultMessage:
-      '.goosehints is a text file used to provide additional context about your project and improve the communication with Goose.',
+    id: 'projectHintsModal.helpText1',
+    defaultMessage: '.goosehints is a text file used to provide additional context about your project and improve the communication with ModelForge.',
   },
   helpText2: {
-    id: 'goosehintsModal.helpText2',
+    id: 'projectHintsModal.helpText2',
     defaultMessage:
       "Please make sure {bold} extension is enabled in the extensions page. This extension is required to use .goosehints. You'll need to restart your session for .goosehints updates to take effect.",
   },
   helpText3: {
-    id: 'goosehintsModal.helpText3',
+    id: 'projectHintsModal.helpText3',
     defaultMessage: 'See {link} for more information.',
   },
   helpTextLink: {
-    id: 'goosehintsModal.helpTextLink',
+    id: 'projectHintsModal.helpTextLink',
     defaultMessage: 'using .goosehints',
   },
   errorReading: {
-    id: 'goosehintsModal.errorReading',
+    id: 'projectHintsModal.errorReading',
     defaultMessage: 'Error reading .goosehints file: {error}',
   },
   fileFound: {
-    id: 'goosehintsModal.fileFound',
+    id: 'projectHintsModal.fileFound',
     defaultMessage: '.goosehints file found at: {filePath}',
   },
   fileCreating: {
-    id: 'goosehintsModal.fileCreating',
+    id: 'projectHintsModal.fileCreating',
     defaultMessage: 'Creating new .goosehints file at: {filePath}',
   },
   placeholder: {
-    id: 'goosehintsModal.placeholder',
+    id: 'projectHintsModal.placeholder',
     defaultMessage: 'Enter project hints here...',
   },
   savedSuccessfully: {
-    id: 'goosehintsModal.savedSuccessfully',
+    id: 'projectHintsModal.savedSuccessfully',
     defaultMessage: 'Saved successfully',
   },
   close: {
-    id: 'goosehintsModal.close',
+    id: 'projectHintsModal.close',
     defaultMessage: 'Close',
   },
   saving: {
-    id: 'goosehintsModal.saving',
+    id: 'projectHintsModal.saving',
     defaultMessage: 'Saving...',
   },
   save: {
-    id: 'goosehintsModal.save',
+    id: 'projectHintsModal.save',
     defaultMessage: 'Save',
   },
   failedToAccess: {
-    id: 'goosehintsModal.failedToAccess',
+    id: 'projectHintsModal.failedToAccess',
     defaultMessage: 'Failed to access .goosehints file',
   },
   failedToSave: {
-    id: 'goosehintsModal.failedToSave',
+    id: 'projectHintsModal.failedToSave',
     defaultMessage: 'Failed to save .goosehints file',
   },
   developer: {
-    id: 'goosehintsModal.developer',
+    id: 'projectHintsModal.developer',
     defaultMessage: 'Developer',
   },
 });
@@ -103,12 +102,7 @@ const HelpText = () => {
             <Button
               variant="link"
               className="text-blue-500 hover:text-blue-600 p-0 h-auto"
-              onClick={() =>
-                window.open(
-                  'https://goose-docs.ai/docs/guides/using-goosehints/',
-                  '_blank'
-                )
-              }
+              onClick={() => window.open(DOCS_URLS.goosehints, '_blank')}
             >
               {intl.formatMessage(i18n.helpTextLink)}
             </Button>
