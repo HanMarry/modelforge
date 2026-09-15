@@ -1658,7 +1658,10 @@ mod tests {
             .unwrap();
 
         assert_eq!(path.parent(), Some(gateway.voice_temp_files.parent()));
-        let filename = path.file_name().unwrap().to_str().unwrap();
+        let filename = path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .expect("filename should be valid UTF-8");
         assert!(filename.starts_with("goose_voice_"));
         assert!(filename.ends_with(".ogg"));
         assert!(!filename.chars().any(|c| matches!(c, '/' | '\\' | ':')));

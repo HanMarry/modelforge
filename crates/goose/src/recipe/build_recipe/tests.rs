@@ -632,7 +632,12 @@ instructions: Child instructions"#;
             .join("sub-recipes/child.yaml")
             .canonicalize()
             .unwrap();
-        assert_eq!(result.unwrap(), expected_path.to_str().unwrap());
+        assert_eq!(
+            result.unwrap(),
+            expected_path
+                .to_str()
+                .expect("path should be valid UTF-8")
+        );
     }
 
     #[test]
@@ -647,12 +652,17 @@ description: A recipe with absolute path
 instructions: Absolute instructions"#;
         let absolute_path =
             create_recipe_file(parent_dir, "absolute", "recipe.yaml", sub_recipe_content);
-        let absolute_path_str = absolute_path.to_str().unwrap();
+        let absolute_path_str = absolute_path
+            .to_str()
+            .expect("path should be valid UTF-8");
 
         let result = resolve_sub_recipe_path(absolute_path_str, parent_dir);
         assert!(result.is_ok());
         let expected = absolute_path.canonicalize().unwrap();
-        assert_eq!(result.unwrap(), expected.to_str().unwrap());
+        assert_eq!(
+            result.unwrap(),
+            expected.to_str().expect("path should be valid UTF-8")
+        );
     }
 
     #[test]
@@ -726,7 +736,9 @@ instructions: Child instructions
             .unwrap();
         assert_eq!(
             sub_recipes[0].path,
-            expected_absolute_path.to_str().unwrap()
+            expected_absolute_path
+                .to_str()
+                .expect("path should be valid UTF-8")
         );
     }
 }

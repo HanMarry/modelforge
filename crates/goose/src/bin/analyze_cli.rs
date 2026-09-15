@@ -30,7 +30,13 @@ fn main() {
     let path = if cli.path.is_absolute() {
         cli.path.clone()
     } else {
-        std::env::current_dir().unwrap().join(&cli.path)
+        match std::env::current_dir() {
+            Ok(cwd) => cwd.join(&cli.path),
+            Err(e) => {
+                eprintln!("Error: failed to get current directory: {}", e);
+                std::process::exit(1);
+            }
+        }
     };
 
     if !path.exists() {

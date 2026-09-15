@@ -344,7 +344,9 @@ mod local_file_tests {
         let path = temp.path().join("small.png");
         let png = base64::prelude::BASE64_STANDARD.decode(SMALL_PNG).unwrap();
         std::fs::write(&path, &png).unwrap();
-        let file_url = url::Url::from_file_path(&path).unwrap().to_string();
+        let file_url = url::Url::from_file_path(&path)
+            .expect("path should be convertible to file URL")
+            .to_string();
 
         for source in [path.to_string_lossy().into_owned(), file_url] {
             let loaded = load_image(&ImageReadParams { source, crop: None }, None)
