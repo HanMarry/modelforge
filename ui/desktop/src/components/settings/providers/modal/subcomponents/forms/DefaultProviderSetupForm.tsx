@@ -269,7 +269,7 @@ export default function DefaultProviderSetupForm({
             {parameter.required && <span className="text-red-500 ml-1">*</span>}
           </label>
           <Input
-            type="text"
+            type={parameter.secret ? 'password' : 'text'}
             value={getRenderValue(parameter)}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
               setConfigValues((prev) => {
@@ -287,6 +287,7 @@ export default function DefaultProviderSetupForm({
                 : 'border border-border-primary hover:border-border-primary'
             } bg-background-primary text-lg placeholder:text-text-secondary font-regular text-text-primary`}
             required={parameter.required}
+            autoComplete={parameter.secret ? 'off' : 'on'}
           />
           {validationErrors[parameter.name] && (
             <p className="text-red-500 text-sm mt-1">{validationErrors[parameter.name]}</p>

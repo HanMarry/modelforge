@@ -784,6 +784,7 @@ export default function CustomProviderForm({
               aria-invalid={!!validationErrors.apiKey}
               aria-describedby={validationErrors.apiKey ? 'api-key-error' : undefined}
               className={validationErrors.apiKey ? 'border-red-500' : ''}
+              autoComplete="off"
             />
             {validationErrors.apiKey && (
               <p id="api-key-error" className="text-red-500 text-sm mt-1">
