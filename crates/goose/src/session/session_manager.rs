@@ -151,6 +151,11 @@ pub struct SessionUpdateBuilder<'a> {
     session_id: String,
     name: Option<String>,
     user_set_name: Option<bool>,
+    /// When set, the name is only written if the user has not named the session.
+    /// Automatic naming decides based on a session read that happens before an
+    /// LLM round trip, so without this an explicit rename landing in that window
+    /// would be silently overwritten.
+    name_only_if_user_unset: bool,
     session_type: Option<SessionType>,
     working_dir: Option<PathBuf>,
     extension_data: Option<ExtensionData>,
@@ -189,6 +194,7 @@ impl<'a> SessionUpdateBuilder<'a> {
             session_id,
             name: None,
             user_set_name: None,
+            name_only_if_user_unset: false,
             session_type: None,
             working_dir: None,
             extension_data: None,
@@ -225,6 +231,7 @@ impl<'a> SessionUpdateBuilder<'a> {
         if !name.is_empty() {
             self.name = Some(name);
             self.user_set_name = Some(false);
+            self.name_only_if_user_unset = true;
         }
         self
     }
@@ -1778,6 +1785,11 @@ impl SessionStorage {
 
         query.push_str(", ");
         query.push_str("updated_at = datetime('now') WHERE id = ?");
+        if builder.name_only_if_user_unset {
+            // Re-check the precondition in the same statement so a concurrent
+            // rename cannot be clobbered by a name generated from stale state.
+            query.push_str(" AND user_set_name = FALSE");
+        }
 
         let mut q = sqlx::query(AssertSqlSafe(query));
 
@@ -1856,9 +1868,12 @@ impl SessionStorage {
         q = q.bind(&builder.session_id);
         let result = q.execute(&mut *tx).await?;
 
-        if result.rows_affected() == 0 {
+        if result.rows_affected() == 0 && !builder.name_only_if_user_unset {
             return Err(anyhow::anyhow!("Session not found: {}", builder.session_id));
         }
+        // With the name guard the statement is conditional, so zero rows means the
+        // user named the session first. That is a normal no-op, not a missing
+        // session, and the caller keeps the user's title.
 
         tx.commit().await?;
         Ok(())
@@ -3507,6 +3522,49 @@ mod tests {
         let reloaded = sm.get_session(&session.id, false).await.unwrap();
         assert_eq!(reloaded.name, "Manual title");
         assert!(reloaded.user_set_name);
+    }
+
+    /// The automatic namer reads the session, then spends an LLM round trip
+    /// before writing. A rename landing inside that window used to be silently
+    /// overwritten (and `user_set_name` reset), so the guard is re-checked in the
+    /// UPDATE itself. This covers the write half of that race.
+    #[tokio::test]
+    async fn test_system_generated_name_does_not_clobber_concurrent_user_rename() {
+        let temp_dir = TempDir::new().unwrap();
+        let sm = SessionManager::new(temp_dir.path().to_path_buf());
+
+        let session = sm
+            .create_session(
+                temp_dir.path().to_path_buf(),
+                "New Chat".to_string(),
+                SessionType::User,
+                GooseMode::default(),
+            )
+            .await
+            .unwrap();
+
+        // The namer checked `user_set_name == false` at this point...
+        assert!(!sm.get_session(&session.id, false).await.unwrap().user_set_name);
+
+        // ...then the user renamed the session before the generated name landed.
+        sm.update(&session.id)
+            .user_provided_name("My own title".to_string())
+            .apply()
+            .await
+            .unwrap();
+
+        sm.update(&session.id)
+            .system_generated_name("Generated title".to_string())
+            .apply()
+            .await
+            .unwrap();
+
+        let reloaded = sm.get_session(&session.id, false).await.unwrap();
+        assert_eq!(reloaded.name, "My own title");
+        assert!(
+            reloaded.user_set_name,
+            "a rejected automatic name must not reset user_set_name"
+        );
     }
 
     #[tokio::test]
