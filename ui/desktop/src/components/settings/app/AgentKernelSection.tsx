@@ -399,6 +399,7 @@ export default function AgentKernelSection() {
                   value={apiKey}
                   placeholder={intl.formatMessage(i18n.apiKeyPlaceholder)}
                   onChange={(event) => setApiKey(event.target.value)}
+                  autoComplete="off"
                 />
                 <button
                   type="button"

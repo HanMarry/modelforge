@@ -169,6 +169,7 @@ const ClassifierEndpointInputs = ({
           onBlur={(e) => onTokenBlur(e.target.value)}
           disabled={disabled}
           placeholder={tokenPlaceholder}
+          autoComplete="off"
           className={`w-full px-3 py-2 text-sm border rounded placeholder:text-text-secondary ${
             disabled
               ? 'border-border-primary bg-background-secondary text-text-secondary cursor-not-allowed'

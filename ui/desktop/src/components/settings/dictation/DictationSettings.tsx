@@ -268,6 +268,7 @@ export const DictationSettings = () => {
                     placeholder={intl.formatMessage(i18n.enterApiKey)}
                     className="max-w-md"
                     autoFocus
+                    autoComplete="off"
                   />
                   <div className="flex gap-2">
                     <Button size="sm" onClick={handleSaveKey}>

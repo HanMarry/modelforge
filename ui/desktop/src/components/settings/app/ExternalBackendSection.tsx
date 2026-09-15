@@ -263,6 +263,7 @@ export default function ExternalBackendSection() {
                   onChange={(e) => updateField('secret', e.target.value)}
                   onBlur={() => saveConfig(config)}
                   disabled={isSaving}
+                  autoComplete="off"
                 />
                 <p className="text-xs text-text-secondary">
                   {intl.formatMessage(i18n.secretKeyHelp)}

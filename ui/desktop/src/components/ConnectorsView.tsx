@@ -503,6 +503,7 @@ function SecretDialog({
                     onChange={(event) => onChange(secret.key, event.target.value)}
                     placeholder={secret.key}
                     className="mt-1 w-full rounded-lg border border-border-secondary bg-background-primary px-3 py-1.5 font-mono text-xs text-text-primary outline-none focus:border-border-primary"
+                    autoComplete="off"
                   />
                   <span className="mt-1 block text-[11px] text-text-tertiary">{secret.hint}</span>
                 </label>
