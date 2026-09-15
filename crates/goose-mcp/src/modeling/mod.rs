@@ -199,15 +199,18 @@ impl ModelingServer {
             .map_err(|error| ErrorData::new(ErrorCode::INTERNAL_ERROR, error.to_string(), None))?;
         let args: Vec<&str> = command.args.iter().map(String::as_str).collect();
         let program = command.program.as_str();
-        let (ok, stdout, stderr) = self.run_command(program, &args, Some(&command.cwd)).await;
+        let (mut ok, stdout, stderr) = self.run_command(program, &args, Some(&command.cwd)).await;
 
+        // Treat PDF validation failure as compilation failure
         if ok {
             if let Err(error) = validate_pdf(&command.pdf_path) {
-                return Ok(CallToolResult::error(vec![ContentBlock::text(format!(
-                    "{program} exited successfully but did not produce a valid PDF at {}: {error}\n{}",
+                ok = false;
+                let log = format!(
+                    "{program} exited with code 0 but did not produce a valid PDF at {}: {error}\n\nLog tail:\n{}",
                     command.pdf_path.display(),
                     tail(&format!("{stdout}\n{stderr}"), 40)
-                ))]));
+                );
+                return Ok(CallToolResult::error(vec![ContentBlock::text(log)]));
             }
             let summary = format!(
                 "Compiled successfully with {program}.\n\nOutput: {}",
