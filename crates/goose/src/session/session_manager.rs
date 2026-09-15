@@ -594,7 +594,10 @@ impl SessionManager {
         id: &str,
         provider: Arc<dyn Provider>,
     ) -> Result<Option<SessionNameUpdate>> {
-        let session = self.get_session(id, true).await?;
+        // Only the sessions row is needed to decide whether to name the session at
+        // all. This runs after every reply, and loading the conversation here
+        // parsed every message in the session just to read a few flags.
+        let session = self.get_session(id, false).await?;
 
         if session.user_set_name {
             return Ok(None);
@@ -628,9 +631,11 @@ impl SessionManager {
                 )?
             }
         };
-        let conversation = session
-            .conversation
-            .ok_or_else(|| anyhow::anyhow!("No messages found"))?;
+        let conversation = self
+            .storage
+            .get_conversation(id)
+            .await
+            .map_err(|_| anyhow::anyhow!("No messages found"))?;
 
         let user_message_count = conversation
             .messages()
