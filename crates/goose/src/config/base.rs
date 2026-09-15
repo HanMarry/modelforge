@@ -12,7 +12,7 @@ use serde_yaml::Mapping;
 use std::collections::HashMap;
 use std::env;
 use std::fs::OpenOptions;
-use std::io::Write;
+use std::io::{Seek, Write};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use thiserror::Error;
@@ -644,15 +644,22 @@ impl Config {
         let temp_path = target_path.with_extension("tmp");
 
         {
+            // Open without truncating: the previous order truncated the file and
+            // only then took the lock, so a process that lost the lock race had
+            // already destroyed the contents it was contending for.
             let mut file = OpenOptions::new()
                 .write(true)
                 .create(true)
-                .truncate(true)
+                .truncate(false)
                 .open(&temp_path)?;
 
             // Acquire an exclusive lock
             file.lock_exclusive()
                 .map_err(|e| ConfigError::LockError(e.to_string()))?;
+
+            // Only now is it safe to discard the old contents.
+            file.set_len(0)?;
+            file.rewind()?;
 
             // Write the contents using the same file handle
             file.write_all(yaml_value.as_bytes())?;

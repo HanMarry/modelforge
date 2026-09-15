@@ -843,7 +843,15 @@ impl Provider for AcpProvider {
     ) -> bool {
         let mut pending = self.pending_confirmations.lock().await;
         if let Some(tx) = pending.remove(request_id) {
-            let _ = tx.send(confirmation.clone());
+            // A dropped receiver means the confirmation never reached the waiting
+            // task. Reporting success here would leave the request unanswerable.
+            if tx.send(confirmation.clone()).is_err() {
+                tracing::warn!(
+                    request_id,
+                    "permission confirmation receiver dropped before delivery"
+                );
+                return false;
+            }
             return true;
         }
         false

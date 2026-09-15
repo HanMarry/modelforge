@@ -9,6 +9,11 @@ use crate::conversation::message::Message;
 
 static TOKENIZER: OnceCell<Arc<CoreBPE>> = OnceCell::const_new();
 
+/// The LRU inside `TokenCounter` only pays off if the same instance is reused.
+/// It used to be rebuilt per call, which made every lookup a guaranteed miss
+/// while still paying for the hashing and the allocation.
+static TOKEN_COUNTER: OnceCell<Arc<TokenCounter>> = OnceCell::const_new();
+
 const MAX_TOKEN_CACHE_SIZE: usize = 1_024;
 
 // token use for various bits of a tool calls:
@@ -212,17 +217,31 @@ async fn get_tokenizer() -> Result<Arc<CoreBPE>, String> {
         .clone())
 }
 
-pub async fn create_token_counter() -> Result<TokenCounter, String> {
-    TokenCounter::new().await
+/// Returns the process-wide token counter, creating it on first use.
+///
+/// The token cache is only useful when the counter is shared, so callers should
+/// use this rather than `TokenCounter::new()`.
+pub async fn create_token_counter() -> Result<Arc<TokenCounter>, String> {
+    TOKEN_COUNTER
+        .get_or_try_init(|| async { TokenCounter::new().await.map(Arc::new) })
+        .await
+        .cloned()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    /// Cache-size assertions need a counter no other test can touch. The shared
+    /// counter is process-wide and tests run in parallel, so clearing it is not
+    /// enough: other tests keep inserting entries into the same cache.
+    async fn isolated_counter() -> TokenCounter {
+        TokenCounter::new().await.unwrap()
+    }
+
     #[tokio::test]
     async fn test_token_caching() {
-        let counter = create_token_counter().await.unwrap();
+        let counter = isolated_counter().await;
 
         let text = "This is a test for caching functionality";
 
@@ -240,7 +259,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_cache_management() {
-        let counter = create_token_counter().await.unwrap();
+        let counter = isolated_counter().await;
 
         counter.count_tokens("First text");
         counter.count_tokens("Second text");
@@ -254,6 +273,24 @@ mod tests {
         let count = counter.count_tokens("First text");
         assert!(count > 0);
         assert_eq!(counter.cache_size(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_shared_counter_reuses_cache() {
+        let first = create_token_counter().await.unwrap();
+        let text = "shared cache probe text";
+        first.count_tokens(text);
+        let size_after_first = first.cache_size();
+
+        let second = create_token_counter().await.unwrap();
+        assert!(
+            Arc::ptr_eq(&first, &second),
+            "create_token_counter should hand out the shared instance"
+        );
+        assert!(
+            second.cache_size() >= size_after_first,
+            "the shared instance must retain entries from earlier calls"
+        );
     }
 
     #[tokio::test]
@@ -278,7 +315,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_cache_eviction_behavior() {
-        let counter = create_token_counter().await.unwrap();
+        let counter = isolated_counter().await;
 
         let mut cached_texts = Vec::new();
         for i in 0..=MAX_TOKEN_CACHE_SIZE {
@@ -298,7 +335,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_concurrent_cache_operations() {
-        let counter = std::sync::Arc::new(create_token_counter().await.unwrap());
+        let counter = Arc::new(isolated_counter().await);
 
         let handles: Vec<_> = (0..20)
             .map(|i| {

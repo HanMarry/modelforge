@@ -249,7 +249,12 @@ impl BedrockProvider {
 
         // Use load_defaults() which supports AWS SSO, profiles, and environment variables
         let mut loader = aws_config::defaults(aws_config::BehaviorVersion::latest())
-            .http_client(ReqwestHttpClient::new());
+            .http_client(ReqwestHttpClient::new())
+            // goose applies its own retry policy around the Converse call
+            // (`with_retry`). Leaving the SDK's default retry enabled stacks the
+            // two, so a failing request costs max_retries × 4 attempts instead of
+            // max_retries, with the backoff waits multiplying too.
+            .retry_config(aws_sdk_bedrockruntime::config::retry::RetryConfig::disabled());
 
         if let Ok(profile_name) = config.get_param::<String>("AWS_PROFILE") {
             if !profile_name.is_empty() {

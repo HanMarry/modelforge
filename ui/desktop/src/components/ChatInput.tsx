@@ -6,7 +6,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from './ui/Tooltip';
 import { Button } from './ui/button';
 import type { View } from '../utils/navigationUtils';
 import Stop from './ui/Stop';
-import { Attach, Close, Microphone } from './icons';
+import { Attach } from './icons';
 import { ChatState } from '../types/chatState';
 import debounce from 'lodash/debounce';
 import { LocalMessageStorage } from '../utils/localMessageStorage';
@@ -41,13 +41,22 @@ import { getInitialWorkingDir } from '../utils/workingDir';
 import { getPredefinedModelsFromEnv } from './settings/models/predefinedModelsUtils';
 import { trackFileAttached, trackVoiceDictation, trackDiagnosticsOpened } from '../utils/analytics';
 import { getNavigationShortcutText } from '../utils/keyboardShortcuts';
-import { UserInput, ImageData } from '../types/message';
+import { UserInput } from '../types/message';
 import { compressImageDataUrl } from '../utils/conversionUtils';
 import { fetchCanonicalModelInfo } from '../utils/canonical';
 import { getTextDirection } from '../utils/textDirection';
 import { defineMessages, useIntl } from '../i18n';
 import TurndownService from 'turndown';
 import type { NextChatExtensionDraft } from '../utils/nextChatExtensions';
+import {
+  FileAttachment,
+  VoiceInput,
+  convertImagesToImageData,
+  appendDroppedFilePaths,
+  hasSubmittableContent,
+  isAnyLoading,
+} from './ChatInput/index';
+import type { PastedImage } from './ChatInput/index';
 
 const turndown = new TurndownService({
   headingStyle: 'atx',
@@ -69,13 +78,6 @@ turndown.addRule('complexLinks', {
   },
 });
 
-interface PastedImage {
-  id: string;
-  dataUrl: string;
-  isLoading: boolean;
-  error?: string;
-}
-
 const moveQueuedMessageToFront = (
   messages: QueuedMessage[],
   messageId: string
@@ -88,9 +90,9 @@ const moveQueuedMessageToFront = (
 const removeQueuedMessage = (messages: QueuedMessage[], messageId: string): QueuedMessage[] =>
   messages.filter((msg) => msg.id !== messageId);
 
-const MAX_IMAGES_PER_MESSAGE = 10;
-
 const TOKEN_LIMIT_DEFAULT = 128000; // used before a session has a backend-resolved limit
+
+const MAX_IMAGES_PER_MESSAGE = 10;
 
 const getContextAlertType = (totalTokens: number, tokenLimit: number): AlertType => {
   const percentage = tokenLimit ? (totalTokens / tokenLimit) * 100 : 0;
@@ -1045,51 +1047,14 @@ export default function ChatInput({
     }));
   };
 
-  const convertImagesToImageData = useCallback((): ImageData[] => {
-    const pastedImageData: ImageData[] = pastedImages
-      .filter((img) => img.dataUrl && !img.error && !img.isLoading)
-      .map((img) => {
-        const matches = img.dataUrl.match(/^data:([^;]+);base64,(.+)$/);
-        if (matches) {
-          return {
-            data: matches[2],
-            mimeType: matches[1],
-          };
-        }
-        return null;
-      })
-      .filter((img): img is ImageData => img !== null);
+  const imageData = useMemo(
+    () => convertImagesToImageData(pastedImages, allDroppedFiles),
+    [pastedImages, allDroppedFiles]
+  );
 
-    const droppedImageData: ImageData[] = allDroppedFiles
-      .filter((file) => file.isImage && file.dataUrl && !file.error && !file.isLoading)
-      .map((file) => {
-        const matches = file.dataUrl!.match(/^data:([^;]+);base64,(.+)$/);
-        if (matches) {
-          return {
-            data: matches[2],
-            mimeType: matches[1],
-          };
-        }
-        return null;
-      })
-      .filter((img): img is ImageData => img !== null);
-
-    return [...pastedImageData, ...droppedImageData];
-  }, [pastedImages, allDroppedFiles]);
-
-  const appendDroppedFilePaths = useCallback(
-    (text: string): string => {
-      const droppedFilePaths = allDroppedFiles
-        .filter((file) => !file.isImage && !file.error && !file.isLoading)
-        .map((file) => file.path);
-
-      if (droppedFilePaths.length > 0) {
-        const pathsString = droppedFilePaths.join(' ');
-        return text ? `${text} ${pathsString}` : pathsString;
-      }
-      return text;
-    },
-    [allDroppedFiles]
+  const textWithFilePaths = useMemo(
+    () => appendDroppedFilePaths(allDroppedFiles, displayValue),
+    [allDroppedFiles, displayValue]
   );
 
   const clearInputState = useCallback(() => {
@@ -1305,12 +1270,11 @@ export default function ChatInput({
   };
 
   const handleInterruptionAndQueue = () => {
-    if (!isLoading || !hasSubmittableContent) {
+    if (!isLoading || !hasSubmittableContentValue) {
       return false;
     }
 
-    const imageData = convertImagesToImageData();
-    const contentToQueue = appendDroppedFilePaths(displayValue.trim());
+    const contentToQueue = textWithFilePaths.trim();
 
     const interruptionMatch = detectInterruption(displayValue.trim());
 
@@ -1363,8 +1327,7 @@ export default function ChatInput({
 
   const performSubmit = useCallback(
     (text?: string) => {
-      const imageData = convertImagesToImageData();
-      const textToSend = appendDroppedFilePaths(text ?? displayValue.trim());
+      const textToSend = text ?? textWithFilePaths.trim();
 
       if (textToSend || imageData.length > 0) {
         // Store original message in history
@@ -1402,8 +1365,8 @@ export default function ChatInput({
       }
     },
     [
-      convertImagesToImageData,
-      appendDroppedFilePaths,
+      imageData,
+      textWithFilePaths,
       displayValue,
       allDroppedFiles,
       handleSubmit,
@@ -1477,7 +1440,10 @@ export default function ChatInput({
     if (queueProcessingBlocked) {
       return;
     }
-    if (isLoading && hasSubmittableContent) {
+    if (
+      isLoading &&
+      (displayValue.trim() || hasSubmittableContent(pastedImages, allDroppedFiles))
+    ) {
       handleInterruptionAndQueue();
       return;
     }
@@ -1586,15 +1552,14 @@ export default function ChatInput({
     }, 0);
   };
 
-  const hasSubmittableContent =
+  const hasSubmittableContentValue =
     displayValue.trim() ||
-    pastedImages.some((img) => img.dataUrl && !img.error && !img.isLoading) ||
-    allDroppedFiles.some((file) => !file.error && !file.isLoading);
-  const isAnyImageLoading = pastedImages.some((img) => img.isLoading);
+    hasSubmittableContent(pastedImages, allDroppedFiles);
+  const isAnyImageLoading = isAnyLoading(pastedImages, allDroppedFiles);
   const isAnyDroppedFileLoading = allDroppedFiles.some((file) => file.isLoading);
 
   const isSubmitButtonDisabled =
-    !hasSubmittableContent ||
+    !hasSubmittableContentValue ||
     isAnyImageLoading ||
     isAnyDroppedFileLoading ||
     isRecording ||
@@ -1819,105 +1784,14 @@ export default function ChatInput({
       </form>
 
       {/* Combined files and images preview */}
-      {(pastedImages.length > 0 || allDroppedFiles.length > 0) && (
-        <div className="flex flex-wrap gap-2 p-4 mt-2 border-t border-border-primary">
-          {/* Render pasted images first */}
-          {pastedImages.map((img) => (
-            <div key={img.id} className="relative group w-20 h-20">
-              {img.dataUrl && (
-                <img
-                  src={img.dataUrl}
-                  alt={`Pasted image ${img.id}`}
-                  className={`w-full h-full object-cover rounded border ${img.error ? 'border-red-500' : 'border-border-primary'}`}
-                />
-              )}
-              {img.isLoading && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded">
-                  <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-white"></div>
-                </div>
-              )}
-              {img.error && !img.isLoading && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-75 rounded p-1 text-center">
-                  <p className="text-red-400 text-[10px] leading-tight break-all">
-                    {img.error.substring(0, 50)}
-                  </p>
-                </div>
-              )}
-              {!img.isLoading && (
-                <Button
-                  type="button"
-                  shape="round"
-                  onClick={() => handleRemovePastedImage(img.id)}
-                  className="absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity z-10"
-                  aria-label={intl.formatMessage(i18n.removeImage)}
-                  variant="outline"
-                  size="xs"
-                >
-                  <Close />
-                </Button>
-              )}
-            </div>
-          ))}
-
-          {/* Render dropped files after pasted images */}
-          {allDroppedFiles.map((file) => (
-            <div key={file.id} className="relative group">
-              {file.isImage ? (
-                // Image preview
-                <div className="w-20 h-20">
-                  {file.dataUrl && (
-                    <img
-                      src={file.dataUrl}
-                      alt={file.name}
-                      className={`w-full h-full object-cover rounded border ${file.error ? 'border-red-500' : 'border-border-primary'}`}
-                    />
-                  )}
-                  {file.isLoading && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded">
-                      <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-white"></div>
-                    </div>
-                  )}
-                  {file.error && !file.isLoading && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-75 rounded p-1 text-center">
-                      <p className="text-red-400 text-[10px] leading-tight break-all">
-                        {file.error.substring(0, 30)}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                // File box preview
-                <div className="flex items-center gap-2 px-3 py-2 bg-bgSubtle border border-border-primary rounded-lg min-w-[120px] max-w-[200px]">
-                  <div className="flex-shrink-0 w-8 h-8 bg-background-primary border border-border-primary rounded flex items-center justify-center text-xs font-mono text-text-secondary">
-                    {file.name.split('.').pop()?.toUpperCase() || 'FILE'}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-text-primary truncate" title={file.name}>
-                      {file.name}
-                    </p>
-                    <p className="text-xs text-text-secondary">
-                      {file.type || intl.formatMessage(i18n.unknownType)}
-                    </p>
-                  </div>
-                </div>
-              )}
-              {!file.isLoading && (
-                <Button
-                  type="button"
-                  shape="round"
-                  onClick={() => handleRemoveDroppedFile(file.id)}
-                  className="absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity z-10"
-                  aria-label={intl.formatMessage(i18n.removeFile)}
-                  variant="outline"
-                  size="xs"
-                >
-                  <Close />
-                </Button>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+      <FileAttachment
+        pastedImages={pastedImages}
+        droppedFiles={allDroppedFiles}
+        onPastedImagesChange={setPastedImages}
+        onRemovePastedImage={handleRemovePastedImage}
+        onRemoveDroppedFile={handleRemoveDroppedFile}
+        disabled={isLoading}
+      />
 
       {/* Bottom action bar. Single flat row; no dividers. Left side: model
           + working dir. Right side (after spacer): context indicator,
@@ -2035,50 +1909,14 @@ export default function ChatInput({
         )}
 
         {/* Right: mic — ghost icon, no background when idle */}
-        {dictationProvider && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                shape="round"
-                onClick={() => {
-                  if (!isEnabled) return;
-                  if (isRecording) {
-                    trackVoiceDictation('stop');
-                    stopRecording();
-                  } else {
-                    trackVoiceDictation('start');
-                    startRecording();
-                  }
-                }}
-                // Keep the button hoverable when only !isEnabled so the
-                // "Dictation not configured" tooltip stays reachable.
-                // We still natively disable while transcribing.
-                disabled={isTranscribing}
-                aria-disabled={!isEnabled}
-                className={cn(
-                  'transition-colors',
-                  isRecording
-                    ? 'text-red-500 hover:text-red-600'
-                    : 'text-text-primary/70 hover:text-text-primary',
-                  isTranscribing && 'animate-pulse',
-                  !isEnabled && 'opacity-50 cursor-not-allowed'
-                )}
-              >
-                <Microphone size={16} />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              {!isEnabled ? (
-                <p>Dictation not configured (Settings)</p>
-              ) : (
-                <p>Voice dictation{isRecording ? '' : ' • Say "submit" to send'}</p>
-              )}
-            </TooltipContent>
-          </Tooltip>
-        )}
+        <VoiceInput
+          isEnabled={isEnabled}
+          dictationProvider={dictationProvider}
+          isRecording={isRecording}
+          isTranscribing={isTranscribing}
+          onStartRecording={startRecording}
+          onStopRecording={stopRecording}
+        />
 
         {/* Right: send / stop — soft gray circle with up-arrow */}
         {isLoading && !hasSubmittableContent ? (

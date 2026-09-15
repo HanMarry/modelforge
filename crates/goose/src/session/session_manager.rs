@@ -10,7 +10,7 @@ use crate::session::extension_data::ExtensionData;
 use crate::session::session_naming::{
     generate_session_name, MSG_COUNT_FOR_SESSION_NAME_GENERATION,
 };
-use anyhow::Result;
+use anyhow::{Context, Result};
 use chrono::{DateTime, TimeZone, Utc};
 use goose_providers::conversation::token_usage::Usage;
 use goose_providers::model::ModelConfig;
@@ -705,6 +705,10 @@ pub struct SessionStorage {
     initialized: tokio::sync::OnceCell<()>,
     session_dir: PathBuf,
     action_required: Arc<crate::action_required_manager::ActionRequiredManager>,
+    /// Set when the session directory could not be prepared. Surfaced from
+    /// `pool()` so a read-only or full disk reports an error instead of
+    /// aborting the process.
+    pool_init_error: Option<anyhow::Error>,
 }
 
 pub(crate) fn role_to_string(role: &Role) -> &'static str {
@@ -925,14 +929,18 @@ async fn insert_usage_ledger_row(
 }
 
 impl SessionStorage {
-    fn create_pool(path: &Path) -> Pool<Sqlite> {
+    fn create_pool(path: &Path) -> Result<Pool<Sqlite>> {
         if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent).expect("Failed to create session database directory");
+            fs::create_dir_all(parent)
+                .with_context(|| format!("Failed to create session database directory {parent:?}"))?;
             #[cfg(unix)]
             {
                 use std::os::unix::fs::PermissionsExt;
-                fs::set_permissions(parent, fs::Permissions::from_mode(0o700))
-                    .expect("Failed to secure session database directory");
+                // Parent-only permissions are defence in depth; failing to
+                // tighten them must not prevent goose from starting.
+                if let Err(e) = fs::set_permissions(parent, fs::Permissions::from_mode(0o700)) {
+                    warn!("Failed to secure session database directory {parent:?}: {e}");
+                }
             }
         }
 
@@ -943,21 +951,37 @@ impl SessionStorage {
             .busy_timeout(std::time::Duration::from_secs(30))
             .journal_mode(sqlx::sqlite::SqliteJournalMode::Wal);
 
-        SqlitePoolOptions::new().connect_lazy_with(options)
+        Ok(SqlitePoolOptions::new().connect_lazy_with(options))
     }
 
     pub fn new(data_dir: PathBuf) -> Self {
         let session_dir = data_dir.join(SESSIONS_FOLDER);
         let db_path = session_dir.join(DB_NAME);
+        let (pool, pool_init_error) = match Self::create_pool(&db_path) {
+            Ok(pool) => (pool, None),
+            Err(e) => {
+                // Keep a usable pool so the type stays infallible here; every
+                // accessor goes through `pool()`, which returns the error.
+                let options = SqliteConnectOptions::new()
+                    .filename(&db_path)
+                    .create_if_missing(true);
+                let fallback = SqlitePoolOptions::new().connect_lazy_with(options);
+                (fallback, Some(e))
+            }
+        };
         Self {
-            pool: Self::create_pool(&db_path),
+            pool,
             initialized: tokio::sync::OnceCell::new(),
             session_dir,
             action_required: Arc::new(crate::action_required_manager::ActionRequiredManager::new()),
+            pool_init_error,
         }
     }
 
     pub(crate) async fn pool(&self) -> Result<&Pool<Sqlite>> {
+        if let Some(error) = &self.pool_init_error {
+            return Err(anyhow::anyhow!("{error}"));
+        }
         self.initialized
             .get_or_try_init(|| async {
                 let schema_exists = sqlx::query_scalar::<_, bool>(

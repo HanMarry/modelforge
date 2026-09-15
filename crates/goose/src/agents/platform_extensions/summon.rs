@@ -574,12 +574,70 @@ fn is_session_id(s: &str) -> bool {
     parts.len() == 2 && parts[0].len() == 8 && parts[0].chars().all(|c| c.is_ascii_digit())
 }
 
+/// A claimed background-task slot.
+///
+/// Setup has several await points between the limit check and the point the task
+/// is registered, so two concurrent delegates could both observe a free slot and
+/// start. Claiming adjusts the count under the same lock as the check, and the
+/// slot is released on drop unless the caller calls `keep()` after registering.
+struct BackgroundTaskSlot<'a> {
+    slots: &'a Mutex<usize>,
+    max: usize,
+    keep: bool,
+}
+
+impl<'a> BackgroundTaskSlot<'a> {
+    /// Claims a slot, or returns the error the caller should surface.
+    async fn claim(slots: &'a Mutex<usize>, max: usize) -> Result<Self, String> {
+        let mut count = slots.lock().await;
+        if *count >= max {
+            return Err(format!(
+                "Maximum {} background tasks already running. Wait for completion or use sync mode.",
+                max
+            ));
+        }
+        *count += 1;
+        Ok(Self {
+            slots,
+            max,
+            keep: false,
+        })
+    }
+
+    /// Keeps the slot claimed because the task is now registered and owns it.
+    fn keep(mut self) {
+        self.keep = true;
+    }
+}
+
+impl Drop for BackgroundTaskSlot<'_> {
+    fn drop(&mut self) {
+        if self.keep {
+            return;
+        }
+        // `drop` cannot await, and this count is only ever held briefly.
+        if let Ok(mut count) = self.slots.try_lock() {
+            *count = count.saturating_sub(1);
+        } else {
+            tracing::warn!(
+                max = self.max,
+                "background task slot released without decrementing; \
+                 the concurrency limit may be temporarily too strict"
+            );
+        }
+    }
+}
+
 pub struct SummonClient {
     info: InitializeResult,
     context: PlatformExtensionContext,
     source_cache: Mutex<Option<(Instant, PathBuf, Vec<SourceEntry>)>>,
     background_tasks: Mutex<HashMap<String, BackgroundTask>>,
     completed_tasks: Mutex<HashMap<String, CompletedTask>>,
+    /// Slots claimed by delegates that are being set up but are not yet in
+    /// `background_tasks`, so the concurrency limit cannot be exceeded by
+    /// callers racing through setup.
+    background_task_slots: Mutex<usize>,
 }
 
 impl Drop for SummonClient {
@@ -604,6 +662,7 @@ impl SummonClient {
             source_cache: Mutex::new(None),
             background_tasks: Mutex::new(HashMap::new()),
             completed_tasks: Mutex::new(HashMap::new()),
+            background_task_slots: Mutex::new(0),
         })
     }
 
@@ -2037,14 +2096,10 @@ impl SummonClient {
         session_id: &str,
         params: DelegateParams,
     ) -> Result<(Vec<ContentBlock>, String), String> {
-        let task_count = self.background_tasks.lock().await.len();
-        let max_tasks = max_background_tasks();
-        if task_count >= max_tasks {
-            return Err(format!(
-                "Maximum {} background tasks already running. Wait for completion or use sync mode.",
-                max_tasks
-            ));
-        }
+        // Claim a slot before any await so concurrent delegates cannot all pass
+        // the limit check and overshoot `GOOSE_MAX_BACKGROUND_TASKS`.
+        let slot = BackgroundTaskSlot::claim(&self.background_task_slots, max_background_tasks())
+            .await?;
 
         let session = self
             .context
@@ -2135,6 +2190,9 @@ impl SummonClient {
             .lock()
             .await
             .insert(task_id.clone(), task);
+        // The registered task now owns the slot; the guard must not release it on
+        // return, or a running task would stop counting toward the limit.
+        slot.keep();
 
         let content = vec![ContentBlock::text(format!(
             "Task {} started in background: \"{}\"\n\

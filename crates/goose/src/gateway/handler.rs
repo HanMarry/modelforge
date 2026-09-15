@@ -784,6 +784,23 @@ impl GatewayHandler {
                     // Stop typing indicator before sending error.
                     typing_cancel.cancel();
                     let _ = typing_handle.await;
+                    // The stream is over, so any approval this turn was waiting on
+                    // can never be answered here. Leaving the entry behind would
+                    // make every later message from this user look like an
+                    // approval reply and pin the agent alive.
+                    if let Some(pending) = self
+                        .pending_confirmations
+                        .lock()
+                        .await
+                        .remove(&message.user)
+                    {
+                        pending.cancel_token.cancel();
+                        tracing::warn!(
+                            session_id,
+                            pending_requests = pending.request_ids.len(),
+                            "cleared pending tool approvals after agent stream error"
+                        );
+                    }
                     self.gateway
                         .send_message(
                             &message.user,

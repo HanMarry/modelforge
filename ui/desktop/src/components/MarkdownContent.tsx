@@ -5,7 +5,11 @@ import remarkBreaks from 'remark-breaks';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+// PrismAsyncLight instead of Prism: the plain `Prism` export bundles the full
+// language registry (and its refractor dependency) into the main chunk, which is
+// the bulk of the desktop renderer's startup bundle. The async-light build pulls
+// language definitions in as separate chunks only when a code block needs them.
+import { PrismAsyncLight as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { customOneDarkTheme } from '../utils/syntaxTheme';
 
 import { Check, Copy } from './icons';

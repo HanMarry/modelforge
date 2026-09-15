@@ -209,15 +209,20 @@ impl CodexProvider {
             ))
         })?;
 
-        // Write prompt to stdin
-        if let Some(mut stdin) = child.stdin.take() {
-            use tokio::io::AsyncWriteExt;
-            stdin.write_all(prompt.as_bytes()).await.map_err(|e| {
-                ProviderError::RequestFailed(format!("Failed to write to stdin: {}", e))
-            })?;
-            // Close stdin to signal end of input
-            drop(stdin);
-        }
+        // Write the prompt without blocking the reader. The prompt grows with the
+        // conversation and can exceed the OS pipe buffer; writing it inline would
+        // block until the child drains stdin, while the child may be blocked
+        // writing its own output because nothing is draining that yet.
+        let stdin_handle = child.stdin.take().map(|mut stdin| {
+            let prompt = prompt.clone();
+            tokio::spawn(async move {
+                use tokio::io::AsyncWriteExt;
+                stdin.write_all(prompt.as_bytes()).await?;
+                // Dropping stdin closes it to signal end of input.
+                drop(stdin);
+                Ok::<(), std::io::Error>(())
+            })
+        });
 
         let stdout = child
             .stdout
@@ -237,28 +242,59 @@ impl CodexProvider {
             })
         };
 
-        let mut reader = BufReader::new(stdout);
         let mut lines = Vec::new();
-        let mut line = String::new();
 
-        loop {
-            line.clear();
-            match reader.read_line(&mut line).await {
-                Ok(0) => break, // EOF
-                Ok(_) => {
-                    let trimmed = line.trim();
-                    if !trimmed.is_empty() {
-                        lines.push(trimmed.to_string());
+        // Read stdout on its own task so that it drains while the prompt is still
+        // being written. Awaiting either side first can deadlock: the child blocks
+        // on a full stdin pipe while we block waiting for output it has not been
+        // able to produce.
+        let stdout_handle = {
+            let mut reader = BufReader::new(stdout);
+            tokio::spawn(async move {
+                let mut lines = Vec::new();
+                let mut line = String::new();
+                loop {
+                    line.clear();
+                    match reader.read_line(&mut line).await {
+                        Ok(0) => break,
+                        Ok(_) => {
+                            let trimmed = line.trim();
+                            if !trimmed.is_empty() {
+                                lines.push(trimmed.to_string());
+                            }
+                        }
+                        Err(e) => return Err(e),
                     }
+                }
+                Ok::<Vec<String>, std::io::Error>(lines)
+            })
+        };
+
+        if let Some(handle) = stdin_handle {
+            match handle.await {
+                Ok(Ok(())) => {}
+                Ok(Err(e)) => {
+                    return Err(ProviderError::RequestFailed(format!(
+                        "Failed to write to stdin: {}",
+                        e
+                    )));
                 }
                 Err(e) => {
                     return Err(ProviderError::RequestFailed(format!(
-                        "Failed to read output: {}",
+                        "Failed to write to stdin: {}",
                         e
                     )));
                 }
             }
         }
+
+        let stdout_lines = stdout_handle
+            .await
+            .map_err(|e| {
+                ProviderError::RequestFailed(format!("Failed to read output: {}", e))
+            })?
+            .map_err(|e| ProviderError::RequestFailed(format!("Failed to read output: {}", e)))?;
+        lines.extend(stdout_lines);
 
         let exit_status = child.wait().await.map_err(|e| {
             ProviderError::RequestFailed(format!("Failed to wait for command: {}", e))

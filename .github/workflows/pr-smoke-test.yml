@@ -15,6 +15,10 @@ on:
 
 name: Live Provider Tests
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check-fork:
     runs-on: ubuntu-latest

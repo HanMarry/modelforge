@@ -74,6 +74,62 @@ const SHELL_STATUS_RESERVED_WIDTH: usize = 2;
 /// built out of a whole command line has to be clipped.
 const DERIVED_EXTENSION_NAME_MAX_LEN: usize = 32;
 
+/// Holds the goose mode that was active before a temporary override, and puts it
+/// back when the override ends.
+///
+/// The CLI needs auto mode to act on an approved plan, but the mode must never
+/// outlive that single call: auto approves every tool call, so leaking it is a
+/// safety downgrade that silently persists to the session and to disk.
+///
+/// Owns its handles rather than borrowing the session so that callers can keep
+/// mutating the session while the override is in effect.
+struct GooseModeGuard {
+    agent: Arc<Agent>,
+    session_id: String,
+    original: GooseMode,
+    restored: bool,
+}
+
+impl GooseModeGuard {
+    async fn new(agent: Arc<Agent>, session_id: String) -> Self {
+        Self {
+            original: agent.goose_mode().await,
+            agent,
+            session_id,
+            restored: false,
+        }
+    }
+
+    fn original(&self) -> GooseMode {
+        self.original
+    }
+
+    /// Returns the mode to its previous value. Callers should invoke this on
+    /// every path, including the error path, rather than relying on `Drop`.
+    async fn restore(mut self) -> Result<()> {
+        self.restored = true;
+        if self.agent.goose_mode().await == self.original {
+            return Ok(());
+        }
+        self.agent
+            .update_goose_mode(self.original, &self.session_id)
+            .await
+    }
+}
+
+impl Drop for GooseModeGuard {
+    // Async work can't run here, so this is only a last-resort signal. Every
+    // caller is expected to have called `restore()` already.
+    fn drop(&mut self) {
+        if !self.restored {
+            warn!(
+                "goose mode override was dropped without being restored; \
+                 the session may be left in auto mode"
+            );
+        }
+    }
+}
+
 pub(crate) fn split_extension_name_prefix(extension_command: &str) -> (Option<String>, &str) {
     let Some((candidate, rest)) = extension_command.split_once(':') else {
         return (None, extension_command);
@@ -1451,11 +1507,21 @@ impl CliSession {
                 if should_act {
                     output::render_act_on_plan();
                     self.run_mode = RunMode::Normal;
-                    // set goose mode: auto if that isn't already the case
-                    let config = Config::global();
-                    let curr_goose_mode = config.get_goose_mode().unwrap_or_default();
-                    if curr_goose_mode != GooseMode::Auto {
-                        config.set_goose_mode(GooseMode::Auto).unwrap();
+                    // Act on the plan requires auto mode, but the previous implementation
+                    // set it by writing GOOSE_MODE to the global config file. Two problems
+                    // with that: the restore sat after a `?`, so any failure left auto mode
+                    // persisted (auto approves every tool call), and a single plan approval
+                    // was needlessly rewriting a user preference. Keep the switch in the
+                    // agent for the duration of the call, and restore it from the guard.
+                    let mode_guard = GooseModeGuard::new(
+                        Arc::clone(&self.agent),
+                        self.session_id.clone(),
+                    )
+                    .await;
+                    if mode_guard.original() != GooseMode::Auto {
+                        self.agent
+                            .update_goose_mode(GooseMode::Auto, &self.session_id)
+                            .await?;
                     }
 
                     // clear the messages before acting on the plan
@@ -1465,14 +1531,17 @@ impl CliSession {
                     self.push_message(plan_message);
                     // act on the plan
                     output::show_thinking();
-                    self.process_agent_response(true, CancellationToken::default())
-                        .await?;
+                    let acted = self
+                        .process_agent_response(true, CancellationToken::default())
+                        .await;
                     output::hide_thinking();
 
-                    // Reset run & goose mode
-                    if curr_goose_mode != GooseMode::Auto {
-                        config.set_goose_mode(curr_goose_mode)?;
-                    }
+                    // Restore the user's mode before propagating any error. `mode_guard`
+                    // alone is not enough here because restoring is async and must not be
+                    // left to a detached task.
+                    let mode_restored = mode_guard.restore().await;
+                    acted?;
+                    mode_restored?;
                 } else {
                     // add the plan response (assistant message) & carry the conversation forward
                     // in the next round, the user might wanna slightly modify the plan
