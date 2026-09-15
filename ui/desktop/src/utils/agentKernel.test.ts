@@ -372,4 +372,46 @@ describe('createAgentKernelManager', () => {
     expect(status.error).toContain('shim port busy');
     expect(status.shimUrl).toBeNull();
   });
+
+  it('persists kernel key across manager recreation', async () => {
+    const configDir = tempDir();
+    const secretsFile = path.join(tempDir(), 'secrets.json');
+    writeGooseConfig(configDir);
+
+    const manager1 = createAgentKernelManager({
+      runtimeRoot: tempDir(),
+      secretsFile,
+      codec,
+      gooseConfigDir: configDir,
+      provision: vi.fn().mockResolvedValue({ env: {}, shimUrl: 'http://127.0.0.1:9' }),
+      env: {},
+    });
+
+    manager1.setKernelKey('custom_deepseek', 'sk-test-key');
+    await manager1.dispose();
+
+    const manager2 = createAgentKernelManager({
+      runtimeRoot: tempDir(),
+      secretsFile,
+      codec,
+      gooseConfigDir: configDir,
+      provision: vi.fn().mockResolvedValue({ env: {}, shimUrl: 'http://127.0.0.1:9' }),
+      env: {},
+    });
+
+    const status = await manager2.apply(kernelSettings());
+
+    expect(status.apiKeySource).toBe('kernel');
+    expect(status.error).toBeNull();
+  });
+
+  it('rejects setKernelKey when providerId is empty', async () => {
+    const { manager } = makeManager();
+
+    manager.setKernelKey('', 'sk-test-key');
+
+    const status = await manager.apply(kernelSettings());
+
+    expect(status.apiKeySource).toBe('none');
+  });
 });

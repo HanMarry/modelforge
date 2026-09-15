@@ -169,6 +169,14 @@ const i18n = defineMessages({
     defaultMessage:
       'The provider declares no window for this model, so the bar cannot warn you in time — filling it in here is recommended.',
   },
+  keyNotSavedNoProvider: {
+    id: 'agentKernelSection.keyNotSavedNoProvider',
+    defaultMessage: 'Provider not resolved — save the provider settings first.',
+  },
+  keyButtonDisabledReason: {
+    id: 'agentKernelSection.keyButtonDisabledReason',
+    defaultMessage: 'Save provider settings before adding a key',
+  },
 });
 
 const KERNEL_OPTIONS: {
@@ -221,7 +229,11 @@ export default function AgentKernelSection() {
   };
 
   const saveKey = async () => {
-    if (!apiKey.trim() || !status?.providerId) {
+    if (!apiKey.trim()) {
+      return;
+    }
+    if (!status?.providerId) {
+      setNotice(intl.formatMessage(i18n.keyNotSavedNoProvider));
       return;
     }
     setIsBusy(true);
@@ -390,8 +402,9 @@ export default function AgentKernelSection() {
                 />
                 <button
                   type="button"
-                  disabled={isBusy || !apiKey.trim()}
+                  disabled={isBusy || !apiKey.trim() || !status?.providerId}
                   onClick={() => void saveKey()}
+                  title={!status?.providerId ? intl.formatMessage(i18n.keyButtonDisabledReason) : ''}
                   className="rounded-md border border-border-default px-3 py-2 text-xs text-text-primary hover:border-blue-400 disabled:opacity-50"
                 >
                   {intl.formatMessage(i18n.saveKey)}
