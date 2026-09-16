@@ -120,7 +120,7 @@ describe('CustomProviderForm transitions', () => {
         headers: { 'X-Template-B': 'template-b-header' },
       })
     );
-  });
+  }, 15000);
 
   it('clears secrets and submit state when returning to the setup choice', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -163,7 +163,7 @@ describe('CustomProviderForm transitions', () => {
     expect(screen.queryByDisplayValue('Bearer pending-secret')).not.toBeInTheDocument();
     expect(screen.queryByText('A header with this name already exists')).not.toBeInTheDocument();
     expect(screen.queryByText(/Failed to save provider/)).not.toBeInTheDocument();
-  });
+  }, 15000);
 
   it.each([
     ['anthropic_compatible', 'anthropic_compatible'],

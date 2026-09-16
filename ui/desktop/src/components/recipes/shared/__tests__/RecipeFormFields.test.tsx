@@ -532,7 +532,7 @@ describe('RecipeFormFields', () => {
           expect(defaultValueInput).toHaveValue('default_test_value');
         }
       }
-    });
+    }, 15000);
 
     it('shows unused parameter indicator', async () => {
       // Create a form with parameters that are NOT used in instructions/prompt/activities

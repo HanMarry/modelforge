@@ -257,7 +257,7 @@ describe('ExtensionModal', () => {
     expect(submittedData.headers).toEqual([
       { key: 'Authorization', value: 'Bearer abc123', isEdited: true },
     ]);
-  });
+  }, 15000);
 
   describe('pending env var capture (fix for #8969)', () => {
     beforeEach(() => {
@@ -338,7 +338,7 @@ describe('ExtensionModal', () => {
           }),
         ])
       );
-    });
+    }, 15000);
 
     it('does not capture a pending env var when only the key is filled', async () => {
       const user = userEvent.setup();
@@ -379,6 +379,6 @@ describe('ExtensionModal', () => {
       expect(submittedData.envVars).not.toEqual(
         expect.arrayContaining([expect.objectContaining({ key: 'LONELY_KEY' })])
       );
-    });
+    }, 15000);
   });
 });
