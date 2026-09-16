@@ -13,7 +13,7 @@
 | P0-2 | 仓库基线未固定（改动未提交） | ✅ 已完成（4 批提交 + tag `p0-baseline`） | 两仓库 `git status` 归零 + tag `p0-baseline` |
 | P0-3 | compile_latex 假成功（残留/超时/校验） | ✅ **已修复并验证**（`d0e56ec`，[验证记录](../reports/P0-3-verification.md)） | 定向测试通过：清旧产物、杀进程树、PDF 四重校验 |
 | P0-4 | HTTP 凭据明文（自定义头 + CLI configure） | ✅ **已修复并验证**（`072f711`，[验证记录](../reports/P0-4-verification.md)） | config.yaml 无明文（自定义头 + CLI 路径） |
-| P0-5 | /plan 失败永久落盘 GOOSE_MODE=auto | ✅ 已修（自证未独立复验） | 独立重放：/mode 恢复、config sha256 不变、错误上抛 |
+| P0-5 | /plan 失败永久落盘 GOOSE_MODE=auto | ✅ **已修复并独立复验**（`1600180`，[验证记录](../reports/P0-5-plan-mode-verification.md)） | 独立重放：/mode 恢复、config sha256 不变、错误上抛 |
 
 ## 1. 范围与方法
 
@@ -86,7 +86,7 @@
 | 3.4 | 交付链路未跑通：make 未执行、release 未编、adapter 未进依赖、CLI 单平台、adapter settingSources 未隔离、合规需改首启下载 | `ui/desktop/package.json`、`prepare-platform-binaries.js` | 见 RUNTIME-PACKAGING-PLAN |
 | 3.5 | 首启无国内推荐 provider | `components/onboarding/*` | 桌面端体验 |
 | 3.6 | 状态机迁移硬前置：每 step 全量重载会话、thinking 双路径分歧 | `state_machine/session.rs:198`、`state_machine/inference.rs:105-121` | = Week 2 Track 1 |
-| 3.7 | 桌面 9 条失败测试（全为上游 PRISTINE 文件，非本 fork 回归） | 5 个测试文件（desktopFileAccess 等） | 待 CI 定性 |
+| 3.7 | 桌面 9 条失败测试（全为上游 PRISTINE 文件，非本 fork 回归）；另有 goose-cli 3 条环境敏感失败（thinking_effort/home-dir，测试读真实用户配置未隔离） | 5 个测试文件（desktopFileAccess 等）+ goose-cli session 测试 | 待 CI 定性 |
 | 3.8 | 无 fork 自有 CI（docs:check/check-skills/brand:check 无自动触发） | `.github/workflows/` | 建自有远端后 |
 | 3.9 | 双源码树漂移（robocopy 复制编译）；中文路径 + 缺 MSVC（mklink+BuildTools 方案未落地） | `build-kernel.ps1` | 方案就绪待收敛 |
 
@@ -134,3 +134,5 @@
 | 2026-09-16 | **P0-1 修复并验证**（自愈 refresh + 补录引导 + e2e 重放 22.6s 通过）；附带修复 e2e 基建 `17ddb51` | `52d60fc`，见 [验证记录](../reports/P0-1-verification.md) |
 | 2026-09-16 | **P0-3 修复并验证**（清旧产物 + 杀进程树实测 + PDF 四重校验，真 latexmk 集成测试通过） | `d0e56ec`，见 [验证记录](../reports/P0-3-verification.md) |
 | 2026-09-16 | **P0-4 修复并验证**（自定义认证头识别扩展 + CLI configure 密钥化，测试 37+334 通过） | `072f711`，见 [验证记录](../reports/P0-4-verification.md) |
+| 2026-09-16 | **P0-5 独立复验**（静态证据链 + 现场无残留 + 190 回归通过；交互重放受 TTY 限制，步骤文档化） | `1600180` 已修，见 [验证记录](../reports/P0-5-plan-mode-verification.md) |
+| 2026-09-16 | **P0 五项全部完成** ✅（P0-1/3/4 修复验证，P0-2 基线，P0-5 复验） | 下一步：按 §5 回到 Week 2 四轨道 / P1 清单 |
