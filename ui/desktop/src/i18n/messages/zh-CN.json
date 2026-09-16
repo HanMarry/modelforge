@@ -44,6 +44,9 @@
   "agentKernelSection.activeBadge": {
     "defaultMessage": "使用中"
   },
+  "agentKernelSection.apiKeyCopyMissing": {
+    "defaultMessage": "如果密钥已保存在服务提供方设置中：goose 会将其存入系统凭据库，且不会回传给应用——外部内核需要应用内的独立副本。请在下方输入一次密钥，内核将立即启动。"
+  },
   "agentKernelSection.apiKeyHelp": {
     "defaultMessage": "密钥在本机加密保存。goose 不会把服务提供方密钥回传给应用，因此若提示缺少密钥，在此填写一次即可。"
   },
@@ -97,6 +100,12 @@
   },
   "agentKernelSection.inputPrice": {
     "defaultMessage": "输入 / 百万"
+  },
+  "agentKernelSection.keyButtonDisabledReason": {
+    "defaultMessage": "请先保存服务提供方设置，再添加密钥"
+  },
+  "agentKernelSection.keyNotSavedNoProvider": {
+    "defaultMessage": "未解析到服务提供方——请先保存服务提供方设置。"
   },
   "agentKernelSection.keySaved": {
     "defaultMessage": "密钥已保存。"
@@ -1663,6 +1672,15 @@
   },
   "fileArtifact.open": {
     "defaultMessage": "在工作区编辑器中打开"
+  },
+  "fileAttachment.removeFile": {
+    "defaultMessage": "移除文件"
+  },
+  "fileAttachment.removeImage": {
+    "defaultMessage": "移除图片"
+  },
+  "fileAttachment.unknownType": {
+    "defaultMessage": "未知类型"
   },
   "filePreview.binary": {
     "defaultMessage": "二进制文件"

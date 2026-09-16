@@ -44,6 +44,9 @@
   "agentKernelSection.activeBadge": {
     "defaultMessage": "Active"
   },
+  "agentKernelSection.apiKeyCopyMissing": {
+    "defaultMessage": "If the key is already saved in the provider settings, goose keeps it in the system credential store and never hands it back to the app — the external kernel needs its own copy. Enter the key once below; the kernel starts right away."
+  },
   "agentKernelSection.apiKeyHelp": {
     "defaultMessage": "Stored encrypted on this device. goose never hands the provider key back to the app, so save it here once if the kernel reports the key is missing."
   },
@@ -97,6 +100,12 @@
   },
   "agentKernelSection.inputPrice": {
     "defaultMessage": "Input / 1M"
+  },
+  "agentKernelSection.keyButtonDisabledReason": {
+    "defaultMessage": "Save provider settings before adding a key"
+  },
+  "agentKernelSection.keyNotSavedNoProvider": {
+    "defaultMessage": "Provider not resolved — save the provider settings first."
   },
   "agentKernelSection.keySaved": {
     "defaultMessage": "Key saved."
@@ -1663,6 +1672,15 @@
   },
   "fileArtifact.open": {
     "defaultMessage": "Open in the workspace editor"
+  },
+  "fileAttachment.removeFile": {
+    "defaultMessage": "Remove file"
+  },
+  "fileAttachment.removeImage": {
+    "defaultMessage": "Remove image"
+  },
+  "fileAttachment.unknownType": {
+    "defaultMessage": "Unknown type"
   },
   "filePreview.binary": {
     "defaultMessage": "Binary file"

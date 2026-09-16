@@ -186,12 +186,14 @@ describe('createAgentKernelManager', () => {
     const configDir = tempDir();
     writeGooseConfig(configDir, options.activeProvider);
     const setModel = vi.fn();
+    const setApiKey = vi.fn();
     const provision = vi.fn(async (selection: { runtime: string }) => ({
       runtime: selection.runtime as 'claude-code',
       env: { CLAUDE_CONFIG_DIR: 'C:\\runtime\\claude' },
       shimUrl: 'http://127.0.0.1:9',
       configDir: 'C:\\runtime\\claude',
       setModel,
+      setApiKey,
       dispose: vi.fn(async () => {}),
     }));
 
@@ -199,6 +201,7 @@ describe('createAgentKernelManager', () => {
       configDir,
       provision,
       setModel,
+      setApiKey,
       manager: createAgentKernelManager({
         runtimeRoot: tempDir(),
         secretsFile: path.join(tempDir(), 'secrets.json'),
@@ -351,6 +354,55 @@ describe('createAgentKernelManager', () => {
 
     expect(provision).not.toHaveBeenCalled();
     expect(status.error).toContain('API Key');
+  });
+
+  it('starts the kernel on the next refresh when a key arrives after a failed start', async () => {
+    const { manager, provision } = makeManager();
+    const failed = await manager.apply(kernelSettings());
+    expect(failed.error).toContain('API Key');
+    expect(provision).not.toHaveBeenCalled();
+
+    manager.setKernelKey('custom_deepseek', 'sk-saved-late');
+    const healed = await manager.refresh(kernelSettings());
+
+    expect(provision).toHaveBeenCalledTimes(1);
+    expect(healed.error).toBeNull();
+    expect(healed.shimUrl).toBe('http://127.0.0.1:9');
+    expect(healed.apiKeySource).toBe('kernel');
+  });
+
+  it('pushes a key that changed afterwards into the running kernel without re-provisioning', async () => {
+    const { manager, provision, setApiKey } = makeManager();
+    manager.setKernelKey('custom_deepseek', 'sk-first');
+    await manager.apply(kernelSettings());
+
+    manager.setKernelKey('custom_deepseek', 'sk-rotated');
+    const status = await manager.refresh(kernelSettings());
+
+    expect(provision).toHaveBeenCalledTimes(1);
+    expect(setApiKey).toHaveBeenCalledWith('sk-rotated');
+    expect(status.error).toBeNull();
+    expect(status.apiKeySource).toBe('kernel');
+  });
+
+  it('asks for a restart instead of provisioning when the kernel is switched', async () => {
+    const { manager, provision } = makeManager({ apiKeyEnv: { DEEPSEEK_API_KEY: 'sk-env' } });
+    await manager.apply(kernelSettings({ runtime: 'builtin' }));
+
+    const status = await manager.refresh(kernelSettings({ runtime: 'claude-code' }));
+
+    expect(status.restartRequired).toBe(true);
+    expect(provision).not.toHaveBeenCalled();
+  });
+
+  it('leaves the built-in kernel alone on refresh', async () => {
+    const { manager, provision } = makeManager();
+
+    const status = await manager.refresh(kernelSettings({ runtime: 'builtin' }));
+
+    expect(provision).not.toHaveBeenCalled();
+    expect(status.runtime).toBe('builtin');
+    expect(status.error).toBeNull();
   });
 
   it('reports provisioning failures without breaking the app', async () => {

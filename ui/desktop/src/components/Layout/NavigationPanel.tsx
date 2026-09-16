@@ -503,6 +503,7 @@ export const Navigation: React.FC<{ className?: string }> = ({ className }) => {
         <Tooltip>
           <TooltipTrigger asChild>
             <button
+              data-testid="sidebar-settings-button"
               onClick={() => handleNavClick(SETTINGS_NAV_ITEM.path)}
               aria-label={getNavItemLabel(SETTINGS_NAV_ITEM, intl)}
               className="no-drag flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-background-tertiary/60 hover:text-text-primary"

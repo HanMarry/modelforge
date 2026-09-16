@@ -44,6 +44,9 @@
   "agentKernelSection.activeBadge": {
     "defaultMessage": "使用中"
   },
+  "agentKernelSection.apiKeyCopyMissing": {
+    "defaultMessage": "如果金鑰已儲存在服務提供者設定中：goose 會將其存入系統認證儲存庫，且不會回傳給應用程式——外部核心需要應用內的獨立副本。請在下方輸入一次金鑰，核心將立即啟動。"
+  },
   "agentKernelSection.apiKeyHelp": {
     "defaultMessage": "密钥在本机加密保存。goose 不会把服务提供方密钥回传给应用，因此若提示缺少密钥，在此填写一次即可。"
   },
@@ -97,6 +100,12 @@
   },
   "agentKernelSection.inputPrice": {
     "defaultMessage": "输入 / 百万"
+  },
+  "agentKernelSection.keyButtonDisabledReason": {
+    "defaultMessage": "請先儲存服務提供者設定，再新增金鑰"
+  },
+  "agentKernelSection.keyNotSavedNoProvider": {
+    "defaultMessage": "未解析到服務提供者——請先儲存服務提供者設定。"
   },
   "agentKernelSection.keySaved": {
     "defaultMessage": "密钥已保存。"
@@ -1663,6 +1672,15 @@
   },
   "fileArtifact.open": {
     "defaultMessage": "在工作區編輯器中開啟"
+  },
+  "fileAttachment.removeFile": {
+    "defaultMessage": "移除檔案"
+  },
+  "fileAttachment.removeImage": {
+    "defaultMessage": "移除圖片"
+  },
+  "fileAttachment.unknownType": {
+    "defaultMessage": "未知類型"
   },
   "filePreview.binary": {
     "defaultMessage": "二進位檔案"

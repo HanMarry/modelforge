@@ -74,9 +74,11 @@ export interface AgentKernelManager {
   /**
    * Applies settings changes to a kernel that is already provisioned, without restarting the
    * shim underneath the running backend. A kernel switch cannot be applied this way and is
-   * reported through `restartRequired`.
+   * reported through `restartRequired`. When an external kernel is selected but nothing is
+   * running (the first attempt failed on a missing key), the full apply runs again so a key
+   * saved afterwards takes effect without restarting the app.
    */
-  refresh: (settings: AgentKernelSettings) => AgentKernelStatus;
+  refresh: (settings: AgentKernelSettings) => Promise<AgentKernelStatus>;
   getStatus: () => AgentKernelStatus;
   /** Switches the model the kernel proxies to, without restarting it. */
   setModel: (model: string) => AgentKernelStatus;
@@ -219,6 +221,10 @@ export function createAgentKernelManager({
       return { apiKey: env[apiKeyEnv] as string, source: 'env' };
     }
     if (apiKeyEnv) {
+      // Last resort only: goose keeps provider secrets in the OS credential store by default,
+      // so secrets.yaml exists just when the keyring is disabled (GOOSE_DISABLE_KEYRING=1).
+      // When neither an in-app copy nor an environment value is present the kernel stays
+      // unprovisioned until the user enters the key for it in the app.
       const fileKey = readSecretFromFile(path.join(gooseConfigDir, 'secrets.yaml'), apiKeyEnv);
       if (fileKey) {
         return { apiKey: fileKey, source: 'env' };
@@ -339,13 +345,20 @@ export function createAgentKernelManager({
    * spawn time), so a new key or model is pushed into the running shim and only a kernel switch
    * asks for a restart.
    */
-  const refresh = (settings: AgentKernelSettings): AgentKernelStatus => {
+  const refresh = async (settings: AgentKernelSettings): Promise<AgentKernelStatus> => {
     currentSettings = settings;
 
     if (settings.runtime !== status.runtime) {
       status.restartRequired = true;
       log(`agent kernel: kernel switched to ${settings.runtime} — restart the app to provision it`);
       return { ...status };
+    }
+
+    // Nothing is running although an external kernel is selected — typically the first
+    // provisioning failed on a missing key. Re-run the full apply so a key saved afterwards
+    // (or any other fix) takes effect without restarting the app.
+    if (settings.runtime !== 'builtin' && !active) {
+      return apply(settings);
     }
 
     const goose = resolveProvider(settings);
@@ -373,6 +386,7 @@ export function createAgentKernelManager({
       contextLimit: window.limit,
       contextLimitSource: window.source,
       restartRequired: false,
+      error: null,
     };
     return { ...status };
   };

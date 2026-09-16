@@ -177,6 +177,11 @@ const i18n = defineMessages({
     id: 'agentKernelSection.keyButtonDisabledReason',
     defaultMessage: 'Save provider settings before adding a key',
   },
+  apiKeyCopyMissing: {
+    id: 'agentKernelSection.apiKeyCopyMissing',
+    defaultMessage:
+      'If the key is already saved in the provider settings, goose keeps it in the system credential store and never hands it back to the app — the external kernel needs its own copy. Enter the key once below; the kernel starts right away.',
+  },
 });
 
 const KERNEL_OPTIONS: {
@@ -199,9 +204,11 @@ export default function AgentKernelSection() {
 
   const refreshStatus = useCallback(async () => {
     try {
-      setStatus(await window.electron.getAgentKernelStatus());
+      // refresh (not the cached status) so a key captured elsewhere takes effect on open:
+      // it re-resolves the key and re-provisions the kernel when nothing is running yet.
+      setStatus(await window.electron.refreshAgentKernel());
     } catch (error) {
-      console.error('Failed to read agent kernel status', error);
+      console.error('Failed to refresh agent kernel status', error);
     }
   }, []);
 
@@ -211,6 +218,12 @@ export default function AgentKernelSection() {
       .then((value) => setKernel(value ?? defaultSettings.agentKernel))
       .catch((error) => console.error('Failed to read agent kernel settings', error));
     refreshStatus();
+  }, [refreshStatus]);
+
+  useEffect(() => {
+    const onKernelChanged = () => void refreshStatus();
+    window.addEventListener(AppEvents.AGENT_KERNEL_CHANGED, onKernelChanged);
+    return () => window.removeEventListener(AppEvents.AGENT_KERNEL_CHANGED, onKernelChanged);
   }, [refreshStatus]);
 
   const selectKernel = async (runtime: AgentKernelId) => {
@@ -422,6 +435,11 @@ export default function AgentKernelSection() {
               <p className="text-xs text-text-secondary mt-[2px]">
                 {intl.formatMessage(i18n.apiKeyHelp)}
               </p>
+              {status?.error && status.apiKeySource === 'none' && (
+                <p className="text-xs text-text-secondary mt-[2px]">
+                  {intl.formatMessage(i18n.apiKeyCopyMissing)}
+                </p>
+              )}
               {notice && <p className="text-xs text-text-secondary mt-[2px]">{notice}</p>}
             </div>
 
