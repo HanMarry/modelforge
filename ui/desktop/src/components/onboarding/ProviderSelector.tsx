@@ -13,6 +13,7 @@ import { HardDrive, Key, Plus } from 'lucide-react';
 import { defineMessages, useIntl } from '../../i18n';
 import { rememberProviderApiKey } from '../../utils/agentKernelCapture';
 import { useFeatures } from '../../contexts/FeaturesContext';
+import { sortSetupProviders } from './providerOrdering';
 
 const i18n = defineMessages({
   useLocalModel: {
@@ -84,18 +85,11 @@ export default function ProviderSelector({
   }, []);
 
   const options: ProviderOption[] = useMemo(() => {
-    return [...providerList]
-      .sort((a, b) => {
-        const aPreferred = a.provider_type === 'Preferred' ? 0 : 1;
-        const bPreferred = b.provider_type === 'Preferred' ? 0 : 1;
-        if (aPreferred !== bPreferred) return aPreferred - bPreferred;
-        return a.metadata.display_name.localeCompare(b.metadata.display_name);
-      })
-      .map((provider) => ({
-        value: provider.name,
-        label: provider.metadata.display_name,
-        provider,
-      }));
+    return sortSetupProviders(providerList).map((provider) => ({
+      value: provider.name,
+      label: provider.metadata.display_name,
+      provider,
+    }));
   }, [providerList]);
 
   const fuzzyFilterOption = (option: { label: string; value: string }, inputValue: string) => {
