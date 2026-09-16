@@ -12,7 +12,7 @@
 | P0-1 | API Key 保存静默失效 | ✅ **已修复并验证**（`52d60fc`，[验证记录](../reports/P0-1-verification.md)） | 保存 key 后不重启即 Ready；重启后仍 Ready；编辑 provider 不回退 |
 | P0-2 | 仓库基线未固定（改动未提交） | ✅ 已完成（4 批提交 + tag `p0-baseline`） | 两仓库 `git status` 归零 + tag `p0-baseline` |
 | P0-3 | compile_latex 假成功（残留/超时/校验） | ✅ **已修复并验证**（`d0e56ec`，[验证记录](../reports/P0-3-verification.md)） | 定向测试通过：清旧产物、杀进程树、PDF 四重校验 |
-| P0-4 | HTTP 凭据明文（自定义头 + CLI configure） | ⚠️ 部分修（ACP 层已迁密钥） | config.yaml 无明文（自定义头 + CLI 路径） |
+| P0-4 | HTTP 凭据明文（自定义头 + CLI configure） | ✅ **已修复并验证**（`072f711`，[验证记录](../reports/P0-4-verification.md)） | config.yaml 无明文（自定义头 + CLI 路径） |
 | P0-5 | /plan 失败永久落盘 GOOSE_MODE=auto | ✅ 已修（自证未独立复验） | 独立重放：/mode 恢复、config sha256 不变、错误上抛 |
 
 ## 1. 范围与方法
@@ -100,6 +100,7 @@
 | 4.4 | 结构债：`include_dir!` 204MB 内容内核耦合、文档重叠失真（本次已部分解决） | 优化审查 §2/3.5 |
 | 4.5 | 修复轮遗留：09:29-10:01 无记录开发（已归档溯源）、REPLICATION_PLAN 三待办、clippy -D warnings 不可达、debug shim 误开风险、密钥 raw base64 与易变 id | 重审 §3/P2 |
 | 4.6 | 商业化差距（账号/积分/广场/协作/机器人/回溯/市场） | 差距审查 2.3/3，战略未决 |
+| 4.7 | provider `collect_custom_headers`（`configure.rs`）明文写入 `custom_providers.json`——P0-4 修复时发现的同类项，需对齐 provider 配置的引用机制后处理 | P0-4 验证记录 §4 |
 
 ## 5. 与 7 周计划（EXECUTION_LOG）的关系
 
@@ -132,3 +133,4 @@
 | 2026-09-16 | P0-2 基线固定（4 批提交 + tag `p0-baseline`） | 见 git log |
 | 2026-09-16 | **P0-1 修复并验证**（自愈 refresh + 补录引导 + e2e 重放 22.6s 通过）；附带修复 e2e 基建 `17ddb51` | `52d60fc`，见 [验证记录](../reports/P0-1-verification.md) |
 | 2026-09-16 | **P0-3 修复并验证**（清旧产物 + 杀进程树实测 + PDF 四重校验，真 latexmk 集成测试通过） | `d0e56ec`，见 [验证记录](../reports/P0-3-verification.md) |
+| 2026-09-16 | **P0-4 修复并验证**（自定义认证头识别扩展 + CLI configure 密钥化，测试 37+334 通过） | `072f711`，见 [验证记录](../reports/P0-4-verification.md) |
