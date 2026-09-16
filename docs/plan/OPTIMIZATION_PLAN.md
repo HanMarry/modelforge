@@ -78,6 +78,8 @@
 
 ## 3. P1 清单（登记，P0 完成后按周计划节奏执行）
 
+> **2026-09-16 晚追加批次**（用户指令「把产品的毛病修好」）：本清单已修复并独立复验——3.2 latexmk 引擎适配 ✅、3.3 更新器占位仓库（优雅降级 + 单点配置）✅、fault-surface #1 hints 泄 .env（高危安全）✅、vector_db PoC 坏提交治理 ✅、桌面 6 条负载型超时 ✅、fmt 债清零 ✅。逐项证据见 [docs/reports/PRODUCT-FIXES-20260916-verification.md](../reports/PRODUCT-FIXES-20260916-verification.md)。下表未逐行改写，未提及项照旧。
+
 | # | 项 | 位置 | 备注 |
 |---|----|------|------|
 | 3.1 | Rust 故障面 7 条：子目录 hints 空 gitignore 泄 .env、持锁递归扫 skills 树、hints 重复膨胀、hook 超时孤儿进程、gateway 消息任务不可取消、Config 无缓存、pairing fsync 持锁 | `hints/load_hints.rs:130`、`agents/extension_manager.rs:1698`、`hooks/mod.rs:1050`、`gateway/telegram.rs:1061` 等 | 详见 fault-surface 报告，修复前逐条复验 |

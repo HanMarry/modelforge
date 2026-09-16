@@ -530,3 +530,15 @@
 **最后更新**: 2026-09-15  
 **下次更新**: 2026-09-22 (Week 2 结束)  
 **文档维护者**: Goose 优化项目组
+
+---
+
+## 2026-09-16 晚 · 产品毛病修复批次（Agent Teams 执行）
+
+用户指令「把产品的毛病修好」。多智能体小队（team `modelforge-fix`，Manager-Workers）：4 队员并行修复 7 项产品问题并全部独立复验——检查更新必然 404（优雅降级）、中文模板编译引擎（真编译出 PDF）、首启国内模型推荐（6 provider 置顶 + 单测）、vector_db 坏提交治理（编译修复 + 报告诚实化）、hints 泄 .env 安全修复（先复现后修复，2 对称测试）、桌面 6 条负载型超时、fmt 债清零。
+
+**验收基线**：桌面 948 passed / 0 failed（965）；tsc 0；i18n 15 locale 全绿；`cargo fmt --all --check` 0；goose-mcp modeling 11+1（真编译）；goose hints 44/44（干净 TMP）。
+
+**详情**：[docs/reports/PRODUCT-FIXES-20260916-verification.md](../reports/PRODUCT-FIXES-20260916-verification.md)（含逐项证据、本机 TMP 环境注意、未验证项与归档建议）。
+
+**状态**：工作树未提交（43 改 + 3 新增，+541/−162）。
