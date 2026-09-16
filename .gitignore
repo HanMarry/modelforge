@@ -3,7 +3,7 @@
 /ui/desktop/dist/
 /ui/desktop/.playwright-cli/
 /target/
-/E:/goose-build/
+# 说明：内核编译目录在仓库外 E:\goose-build（git 不能忽略仓库外路径，不再列假条目）
 
 # Development
 node_modules/
