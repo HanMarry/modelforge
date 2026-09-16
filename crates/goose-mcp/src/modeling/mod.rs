@@ -321,7 +321,7 @@ impl CompileCommand {
                 input,
             ],
             "latexmk" => vec![
-                "-pdf".into(),
+                latexmk_flag(&source).into(),
                 "-interaction=nonstopmode".into(),
                 "-halt-on-error".into(),
                 format!("-outdir={output}"),
@@ -337,6 +337,49 @@ impl CompileCommand {
             pdf_path,
         })
     }
+}
+
+/// Pick the `latexmk` PDF flag for `source`. pdflatex cannot typeset CJK, so a
+/// Chinese paper (ctex / xeCJK / fontspec / CJK code points) must use `-xelatex`;
+/// the templates' `%! TEX program = xelatex` magic comment is honored first.
+fn latexmk_flag(source: &std::path::Path) -> &'static str {
+    let Ok(text) = std::fs::read_to_string(source) else {
+        return "-pdf";
+    };
+
+    for line in text.lines().take(10) {
+        let trimmed = line.trim();
+        if let Some(rest) = trimmed.strip_prefix("%! TEX program") {
+            let program = rest.trim_start_matches(['=', ' ']).to_ascii_lowercase();
+            return match program.as_str() {
+                "xelatex" | "xetex" => "-xelatex",
+                "lualatex" | "luatex" => "-lualatex",
+                "pdflatex" | "pdftex" | "latex" => "-pdf",
+                _ => continue,
+            };
+        }
+    }
+
+    let lowered = text.to_ascii_lowercase();
+    let cjk_marker = ["ctex", "xecjk", "fontspec", "setcjk", "requirexetex"]
+        .iter()
+        .any(|marker| lowered.contains(marker))
+        || text.chars().any(is_cjk);
+    if cjk_marker {
+        "-xelatex"
+    } else {
+        "-pdf"
+    }
+}
+
+fn is_cjk(c: char) -> bool {
+    matches!(
+        c,
+        '\u{3000}'..='\u{303F}' // CJK punctuation
+            | '\u{3400}'..='\u{4DBF}' // Extension A
+            | '\u{4E00}'..='\u{9FFF}' // Unified Ideographs
+            | '\u{FF00}'..='\u{FFEF}' // fullwidth forms
+    )
 }
 
 /// Kills a process together with its descendants. Call while the process is still alive:
@@ -379,7 +422,9 @@ fn validate_pdf(path: &std::path::Path, started_at: std::time::SystemTime) -> an
     // Filesystem timestamps can be coarser than SystemTime; allow a small tolerance, but a
     // file clearly older than this run means the compiler did not write a new product.
     let tolerance = std::time::Duration::from_secs(2);
-    let earliest = started_at.checked_sub(tolerance).unwrap_or(std::time::UNIX_EPOCH);
+    let earliest = started_at
+        .checked_sub(tolerance)
+        .unwrap_or(std::time::UNIX_EPOCH);
     anyhow::ensure!(
         metadata.modified()? >= earliest,
         "PDF predates this compilation run"
@@ -480,6 +525,57 @@ mod tests {
         assert_eq!(command.pdf_path, output.join("paper.tex.notes.pdf"));
     }
 
+    fn latexmk_args_for(path: &std::path::Path) -> Vec<String> {
+        CompileCommand::new(&CompileLatexParams {
+            path: path.to_string_lossy().into_owned(),
+            engine: None,
+            output_dir: None,
+        })
+        .unwrap()
+        .args
+    }
+
+    #[test]
+    fn latexmk_selects_xelatex_for_chinese_sources() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("paper.tex");
+        std::fs::write(
+            &path,
+            "\\documentclass{ctexart}\n\\begin{document}\n中文正文\n\\end{document}",
+        )
+        .unwrap();
+        let args = latexmk_args_for(&path);
+        assert!(args.iter().any(|arg| arg == "-xelatex"), "got {args:?}");
+        assert!(!args.iter().any(|arg| arg == "-pdf"));
+    }
+
+    #[test]
+    fn latexmk_selects_pdf_for_plain_english_sources() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("paper.tex");
+        std::fs::write(
+            &path,
+            "\\documentclass{article}\n\\begin{document}\nHello world\n\\end{document}",
+        )
+        .unwrap();
+        let args = latexmk_args_for(&path);
+        assert!(args.iter().any(|arg| arg == "-pdf"), "got {args:?}");
+        assert!(!args.iter().any(|arg| arg == "-xelatex"));
+    }
+
+    #[test]
+    fn latexmk_honors_magic_comment_over_content() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("paper.tex");
+        std::fs::write(
+            &path,
+            "%! TEX program = xelatex\n\\documentclass{article}\n\\begin{document}\nHello\n\\end{document}",
+        )
+        .unwrap();
+        let args = latexmk_args_for(&path);
+        assert!(args.iter().any(|arg| arg == "-xelatex"), "got {args:?}");
+    }
+
     #[test]
     fn missing_empty_or_non_pdf_output_is_not_success() {
         let dir = tempfile::tempdir().unwrap();
@@ -577,7 +673,10 @@ Set-Content -Path '{pid_path}' -Value \"$PID`n$($g.Id)\"; Start-Sleep -Seconds 6
             }
             tokio::time::sleep(Duration::from_millis(100)).await;
         }
-        assert!(pids.len() >= 2, "child/grandchild never recorded their pids: {pids:?}");
+        assert!(
+            pids.len() >= 2,
+            "child/grandchild never recorded their pids: {pids:?}"
+        );
 
         let pid_alive = |pid: &str| {
             let pid = pid.to_string();
@@ -653,6 +752,28 @@ Set-Content -Path '{pid_path}' -Value \"$PID`n$($g.Id)\"; Start-Sleep -Seconds 6
     }
 
     #[tokio::test]
+    #[ignore = "requires a local xelatex + ctex installation"]
+    async fn real_chinese_compilation_selects_xelatex_and_writes_pdf() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("paper.tex");
+        std::fs::write(
+            &path,
+            "\\documentclass{ctexart}\n\\begin{document}\n中文正文测试。\n\\end{document}",
+        )
+        .unwrap();
+        let result = ModelingServer::new()
+            .compile_latex(Parameters(CompileLatexParams {
+                path: path.to_string_lossy().into_owned(),
+                engine: None,
+                output_dir: None,
+            }))
+            .await
+            .unwrap();
+        assert_ne!(result.is_error, Some(true), "{result:?}");
+        assert!(dir.path().join("paper.pdf").is_file());
+    }
+
+    #[tokio::test]
     #[ignore = "requires a local latexmk and TeX installation"]
     async fn failed_compilation_does_not_leave_a_stale_pdf_behind() {
         let dir = tempfile::tempdir().unwrap();
@@ -686,7 +807,11 @@ First version.
 
         // Break the source: the rerun must fail and must not leave the previous PDF as a
         // product that a caller could mistake for this run's output.
-        std::fs::write(&path, r"\documentclass{article}\begin{document}\undefinedcommand").unwrap();
+        std::fs::write(
+            &path,
+            r"\documentclass{article}\begin{document}\undefinedcommand",
+        )
+        .unwrap();
         let second = compile(path.clone()).await;
         assert_eq!(second.is_error, Some(true), "{second:?}");
         assert!(!pdf.exists(), "stale PDF survived a failed recompilation");
