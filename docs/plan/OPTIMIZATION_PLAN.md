@@ -9,8 +9,8 @@
 
 | # | P0 项 | 状态（2026-09-16） | 验收标准 |
 |---|-------|-------------------|----------|
-| P0-1 | API Key 保存静默失效 | ❌ 未修（本机可复现，根因已锁定） | 保存 key 后不重启即 Ready；重启后仍 Ready；编辑 provider 不回退 |
-| P0-2 | 仓库基线未固定（改动未提交） | 🔄 本次执行（2026-09-16） | 两仓库 `git status` 归零 + tag `p0-baseline` |
+| P0-1 | API Key 保存静默失效 | ✅ **已修复并验证**（`52d60fc`，[验证记录](../reports/P0-1-verification.md)） | 保存 key 后不重启即 Ready；重启后仍 Ready；编辑 provider 不回退 |
+| P0-2 | 仓库基线未固定（改动未提交） | ✅ 已完成（4 批提交 + tag `p0-baseline`） | 两仓库 `git status` 归零 + tag `p0-baseline` |
 | P0-3 | compile_latex 假成功（残留/超时/校验） | ⚠️ 部分修（error 态与头校验已修） | 定向测试通过：清旧产物、杀进程树、PDF 四重校验 |
 | P0-4 | HTTP 凭据明文（自定义头 + CLI configure） | ⚠️ 部分修（ACP 层已迁密钥） | config.yaml 无明文（自定义头 + CLI 路径） |
 | P0-5 | /plan 失败永久落盘 GOOSE_MODE=auto | ✅ 已修（自证未独立复验） | 独立重放：/mode 恢复、config sha256 不变、错误上抛 |
@@ -130,3 +130,4 @@
 |------|------|------|
 | 2026-09-16 | 建立本计划 v1；目录清理（顶层 + goose docs 归位）；WEEK2 六合一 | 见 `chore`/`docs` 提交 |
 | 2026-09-16 | P0-2 基线固定（4 批提交 + tag `p0-baseline`） | 见 git log |
+| 2026-09-16 | **P0-1 修复并验证**（自愈 refresh + 补录引导 + e2e 重放 22.6s 通过）；附带修复 e2e 基建 `17ddb51` | `52d60fc`，见 [验证记录](../reports/P0-1-verification.md) |
