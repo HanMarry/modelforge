@@ -27,7 +27,10 @@ Test
 
     // Validate should fail
     let result = validate_pdf_helper(&fake_pdf);
-    assert!(result.is_err(), "PDF validation should fail for invalid PDF");
+    assert!(
+        result.is_err(),
+        "PDF validation should fail for invalid PDF"
+    );
     assert!(
         result.unwrap_err().to_string().contains("not a PDF"),
         "Error should mention invalid PDF format"

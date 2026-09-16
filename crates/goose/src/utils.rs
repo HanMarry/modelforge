@@ -277,7 +277,10 @@ mod tests {
             assert!(is_sensitive_header_name(name), "{name} should be sensitive");
         }
         for name in ["Content-Type", "Accept", "User-Agent", "X-Origin-Client-Id"] {
-            assert!(!is_sensitive_header_name(name), "{name} should not be sensitive");
+            assert!(
+                !is_sensitive_header_name(name),
+                "{name} should not be sensitive"
+            );
         }
     }
 }

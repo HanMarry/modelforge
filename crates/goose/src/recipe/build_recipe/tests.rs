@@ -634,9 +634,7 @@ instructions: Child instructions"#;
             .unwrap();
         assert_eq!(
             result.unwrap(),
-            expected_path
-                .to_str()
-                .expect("path should be valid UTF-8")
+            expected_path.to_str().expect("path should be valid UTF-8")
         );
     }
 
@@ -652,9 +650,7 @@ description: A recipe with absolute path
 instructions: Absolute instructions"#;
         let absolute_path =
             create_recipe_file(parent_dir, "absolute", "recipe.yaml", sub_recipe_content);
-        let absolute_path_str = absolute_path
-            .to_str()
-            .expect("path should be valid UTF-8");
+        let absolute_path_str = absolute_path.to_str().expect("path should be valid UTF-8");
 
         let result = resolve_sub_recipe_path(absolute_path_str, parent_dir);
         assert!(result.is_ok());

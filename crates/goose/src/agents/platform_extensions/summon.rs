@@ -2098,8 +2098,8 @@ impl SummonClient {
     ) -> Result<(Vec<ContentBlock>, String), String> {
         // Claim a slot before any await so concurrent delegates cannot all pass
         // the limit check and overshoot `GOOSE_MAX_BACKGROUND_TASKS`.
-        let slot = BackgroundTaskSlot::claim(&self.background_task_slots, max_background_tasks())
-            .await?;
+        let slot =
+            BackgroundTaskSlot::claim(&self.background_task_slots, max_background_tasks()).await?;
 
         let session = self
             .context

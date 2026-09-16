@@ -943,8 +943,9 @@ async fn insert_usage_ledger_row(
 impl SessionStorage {
     fn create_pool(path: &Path) -> Result<Pool<Sqlite>> {
         if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent)
-                .with_context(|| format!("Failed to create session database directory {parent:?}"))?;
+            fs::create_dir_all(parent).with_context(|| {
+                format!("Failed to create session database directory {parent:?}")
+            })?;
             #[cfg(unix)]
             {
                 use std::os::unix::fs::PermissionsExt;
@@ -3549,7 +3550,12 @@ mod tests {
             .unwrap();
 
         // The namer checked `user_set_name == false` at this point...
-        assert!(!sm.get_session(&session.id, false).await.unwrap().user_set_name);
+        assert!(
+            !sm.get_session(&session.id, false)
+                .await
+                .unwrap()
+                .user_set_name
+        );
 
         // ...then the user renamed the session before the generated name landed.
         sm.update(&session.id)

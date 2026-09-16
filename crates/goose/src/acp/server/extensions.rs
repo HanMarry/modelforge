@@ -318,7 +318,8 @@ fn goose_extension_to_config(
             }
             McpServer::Http(mut http) => {
                 let mut env_keys = env_keys;
-                static ENV_REFERENCE: std::sync::OnceLock<regex::Regex> = std::sync::OnceLock::new();
+                static ENV_REFERENCE: std::sync::OnceLock<regex::Regex> =
+                    std::sync::OnceLock::new();
                 let reference = ENV_REFERENCE.get_or_init(|| {
                     regex::Regex::new(
                         r"\$\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*\}|\$([A-Za-z_][A-Za-z0-9_]*)",

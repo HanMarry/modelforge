@@ -290,9 +290,7 @@ impl CodexProvider {
 
         let stdout_lines = stdout_handle
             .await
-            .map_err(|e| {
-                ProviderError::RequestFailed(format!("Failed to read output: {}", e))
-            })?
+            .map_err(|e| ProviderError::RequestFailed(format!("Failed to read output: {}", e)))?
             .map_err(|e| ProviderError::RequestFailed(format!("Failed to read output: {}", e)))?;
         lines.extend(stdout_lines);
 

@@ -1513,11 +1513,8 @@ impl CliSession {
                     // persisted (auto approves every tool call), and a single plan approval
                     // was needlessly rewriting a user preference. Keep the switch in the
                     // agent for the duration of the call, and restore it from the guard.
-                    let mode_guard = GooseModeGuard::new(
-                        Arc::clone(&self.agent),
-                        self.session_id.clone(),
-                    )
-                    .await;
+                    let mode_guard =
+                        GooseModeGuard::new(Arc::clone(&self.agent), self.session_id.clone()).await;
                     if mode_guard.original() != GooseMode::Auto {
                         self.agent
                             .update_goose_mode(GooseMode::Auto, &self.session_id)
