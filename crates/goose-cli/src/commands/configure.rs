@@ -1144,30 +1144,60 @@ fn collect_env_vars() -> anyhow::Result<(HashMap<String, String>, Vec<String>)> 
     Ok((envs, env_keys))
 }
 
-fn collect_headers() -> anyhow::Result<HashMap<String, String>> {
+fn collect_headers() -> anyhow::Result<(HashMap<String, String>, Vec<String>)> {
+    let config = Config::global();
     let mut headers = HashMap::new();
+    let mut env_keys = Vec::new();
 
     if !cliclack::confirm("Would you like to add custom headers?").interact()? {
-        return Ok(headers);
+        return Ok((headers, env_keys));
     }
 
     loop {
-        let key: String = cliclack::input("Header name:")
+        let name: String = cliclack::input("Header name:")
             .placeholder("Authorization")
             .interact()?;
 
-        let value: String = cliclack::input("Header value:")
-            .placeholder("Bearer token123")
-            .interact()?;
+        let entry = if goose::utils::is_sensitive_header_name(&name) {
+            // Credential-bearing values are stored in the secret store; the config keeps
+            // only a ${KEY} reference, resolved at runtime from env_keys. Plaintext never
+            // reaches the config file.
+            let secret: String = cliclack::password(format!("Value for '{name}':"))
+                .mask('▪')
+                .interact()?;
+            let key_name = format!(
+                "MODELFORGE_MCP_HEADER_{}",
+                name.to_ascii_uppercase()
+                    .chars()
+                    .map(|c| if c.is_ascii_alphanumeric() { c } else { '_' })
+                    .collect::<String>()
+            );
+            if try_store_secret(config, &key_name, secret)? {
+                if !env_keys.contains(&key_name) {
+                    env_keys.push(key_name.clone());
+                }
+                Some((name, format!("${{{key_name}}}")))
+            } else {
+                cliclack::log::warning(format!(
+                    "Header '{name}' was not added because its value could not be stored securely."
+                ))?;
+                None
+            }
+        } else {
+            let value: String = cliclack::input(format!("Value for '{name}':")).interact()?;
+            Some((name, value))
+        };
 
-        headers.insert(key, value);
+        if let Some((name, value)) = entry {
+            headers.insert(name, value);
+        }
 
         if !cliclack::confirm("Add another header?").interact()? {
             break;
         }
     }
 
-    Ok(headers)
+    Ok((headers, env_keys))
 }
 
 fn configure_builtin_extension() -> anyhow::Result<()> {
@@ -1304,11 +1334,10 @@ fn configure_streamable_http_extension() -> anyhow::Result<()> {
 
     let timeout = prompt_extension_timeout()?;
     let description = prompt_extension_description()?;
-    let headers = collect_headers()?;
+    let (headers, env_keys) = collect_headers()?;
 
-    // Original behavior: no env var collection for Streamable HTTP
+    // envs stay empty; env_keys carry the secrets referenced by credential headers.
     let envs = HashMap::new();
-    let env_keys = Vec::new();
 
     set_extension(ExtensionEntry {
         enabled: true,

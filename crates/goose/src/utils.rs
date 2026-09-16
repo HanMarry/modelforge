@@ -28,6 +28,33 @@ pub fn contains_unicode_tags(text: &str) -> bool {
     text.chars().any(is_in_unicode_tag_range)
 }
 
+/// Header names whose values carry credentials. Beside the well-known names, this catches
+/// custom authentication schemes (`X-DeepSeek-Token`, `Private-Token`, ...) that would
+/// otherwise be written to config files in plain text.
+pub fn is_sensitive_header_name(name: &str) -> bool {
+    let lower = name.to_ascii_lowercase();
+    const KNOWN: [&str; 6] = [
+        "authorization",
+        "proxy-authorization",
+        "x-api-key",
+        "api-key",
+        "x-auth-token",
+        "cookie",
+    ];
+    KNOWN.contains(&lower.as_str())
+        || [
+            "token",
+            "key",
+            "secret",
+            "auth",
+            "password",
+            "credential",
+            "session",
+        ]
+        .iter()
+        .any(|marker| lower.contains(marker))
+}
+
 pub fn strip_unicode_tags(text: &str) -> String {
     text.chars()
         .filter(|&c| !is_in_unicode_tag_range(c))
@@ -230,5 +257,27 @@ mod tests {
     fn test_split_command_args_unmatched_quote() {
         assert!(split_command_args(r#""unmatched"#).is_err());
         assert!(split_command_args("'unmatched").is_err());
+    }
+
+    #[test]
+    fn test_is_sensitive_header_name() {
+        for name in [
+            "Authorization",
+            "proxy-authorization",
+            "X-API-Key",
+            "api-key",
+            "X-Auth-Token",
+            "Cookie",
+            "Private-Token",
+            "X-DeepSeek-Token",
+            "X-Subscription-Key",
+            "X-Secret",
+            "X-Session-Id",
+        ] {
+            assert!(is_sensitive_header_name(name), "{name} should be sensitive");
+        }
+        for name in ["Content-Type", "Accept", "User-Agent", "X-Origin-Client-Id"] {
+            assert!(!is_sensitive_header_name(name), "{name} should not be sensitive");
+        }
     }
 }

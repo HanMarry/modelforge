@@ -318,23 +318,18 @@ fn goose_extension_to_config(
             }
             McpServer::Http(mut http) => {
                 let mut env_keys = env_keys;
-                let reference = regex::Regex::new(
-                    r"\$\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*\}|\$([A-Za-z_][A-Za-z0-9_]*)",
-                )
-                .expect("valid environment reference pattern");
+                static ENV_REFERENCE: std::sync::OnceLock<regex::Regex> = std::sync::OnceLock::new();
+                let reference = ENV_REFERENCE.get_or_init(|| {
+                    regex::Regex::new(
+                        r"\$\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*\}|\$([A-Za-z_][A-Za-z0-9_]*)",
+                    )
+                    .expect("valid environment reference pattern")
+                });
                 for header in &mut http.headers {
                     let sensitive = env_keys
                         .iter()
                         .any(|key| key.eq_ignore_ascii_case(&header.name))
-                        || matches!(
-                            header.name.to_ascii_lowercase().as_str(),
-                            "authorization"
-                                | "proxy-authorization"
-                                | "x-api-key"
-                                | "api-key"
-                                | "x-auth-token"
-                                | "cookie"
-                        );
+                        || crate::utils::is_sensitive_header_name(&header.name);
                     let has_reference = reference.captures_iter(&header.value).any(|capture| {
                         let key = capture.get(1).or_else(|| capture.get(2)).unwrap().as_str();
                         env_keys.iter().any(|stored| stored == key)
