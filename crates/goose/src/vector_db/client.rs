@@ -1,19 +1,19 @@
 /// Qdrant vector database client
 ///
 /// Provides high-level interface for storing and searching vectors.
-
 use anyhow::{Context, Result};
-use qdrant_client::prelude::*;
 use qdrant_client::qdrant::{
-    vectors_config::Config, CreateCollection, Distance, SearchPoints, VectorParams, VectorsConfig,
+    point_id::PointIdOptions, CreateCollectionBuilder, DeletePointsBuilder, Distance, PointId,
+    PointStruct, SearchPointsBuilder, UpsertPointsBuilder, VectorParamsBuilder,
 };
+use qdrant_client::{Payload, Qdrant};
 use serde::{Deserialize, Serialize};
 
 use super::{DistanceMetric, VectorDbConfig};
 
 /// Client for interacting with Qdrant vector database
 pub struct VectorDbClient {
-    client: QdrantClient,
+    client: Qdrant,
     config: VectorDbConfig,
 }
 
@@ -40,7 +40,7 @@ impl VectorDbClient {
     /// - `Ok(VectorDbClient)` if connection succeeds
     /// - `Err` if connection or initialization fails
     pub async fn new(config: VectorDbConfig) -> Result<Self> {
-        let client = QdrantClient::from_url(&config.url)
+        let client = Qdrant::from_url(&config.url)
             .build()
             .context("Failed to create Qdrant client")?;
 
@@ -77,17 +77,11 @@ impl VectorDbClient {
         };
 
         self.client
-            .create_collection(&CreateCollection {
-                collection_name: self.config.collection_name.clone(),
-                vectors_config: Some(VectorsConfig {
-                    config: Some(Config::Params(VectorParams {
-                        size: self.config.vector_size as u64,
-                        distance: distance.into(),
-                        ..Default::default()
-                    })),
-                }),
-                ..Default::default()
-            })
+            .create_collection(
+                CreateCollectionBuilder::new(self.config.collection_name.clone()).vectors_config(
+                    VectorParamsBuilder::new(self.config.vector_size as u64, distance),
+                ),
+            )
             .await
             .context("Failed to create collection")?;
 
@@ -120,18 +114,14 @@ impl VectorDbClient {
             );
         }
 
-        let mut payload = serde_json::json!({
-            "text": text,
-        });
-
-        if let Some(meta) = metadata {
-            payload["metadata"] = meta;
-        }
-
-        let point = PointStruct::new(id.to_string(), embedding, payload);
+        let payload = build_payload(text, metadata)?;
+        let point = PointStruct::new(PointId::from(id.to_string()), embedding, payload);
 
         self.client
-            .upsert_points_blocking(&self.config.collection_name, None, vec![point], None)
+            .upsert_points(
+                UpsertPointsBuilder::new(self.config.collection_name.clone(), vec![point])
+                    .wait(true),
+            )
             .await
             .context("Failed to insert point")?;
 
@@ -162,20 +152,15 @@ impl VectorDbClient {
                     );
                 }
 
-                let mut payload = serde_json::json!({
-                    "text": text,
-                });
-
-                if let Some(meta) = metadata {
-                    payload["metadata"] = meta;
-                }
-
-                Ok(PointStruct::new(id, embedding, payload))
+                let payload = build_payload(&text, metadata)?;
+                Ok(PointStruct::new(PointId::from(id), embedding, payload))
             })
             .collect::<Result<Vec<_>>>()?;
 
         self.client
-            .upsert_points_blocking(&self.config.collection_name, None, points, None)
+            .upsert_points(
+                UpsertPointsBuilder::new(self.config.collection_name.clone(), points).wait(true),
+            )
             .await
             .context("Failed to insert batch")?;
 
@@ -206,13 +191,14 @@ impl VectorDbClient {
 
         let search_result = self
             .client
-            .search_points(&SearchPoints {
-                collection_name: self.config.collection_name.clone(),
-                vector: query_embedding,
-                limit: limit as u64,
-                with_payload: Some(true.into()),
-                ..Default::default()
-            })
+            .search_points(
+                SearchPointsBuilder::new(
+                    self.config.collection_name.clone(),
+                    query_embedding,
+                    limit as u64,
+                )
+                .with_payload(true),
+            )
             .await
             .context("Failed to search points")?;
 
@@ -220,12 +206,12 @@ impl VectorDbClient {
             .result
             .into_iter()
             .filter_map(|point| {
-                let payload = point.payload;
-                let text = payload.get("text")?.as_str()?.to_string();
-                let metadata = payload.get("metadata").cloned();
+                let id = point_id_to_string(point.id.as_ref()?)?;
+                let text = point.payload.get("text")?.as_str()?.to_string();
+                let metadata = point.payload.get("metadata").cloned().map(Into::into);
 
                 Some(SearchResult {
-                    id: point.id?.to_string(),
+                    id,
                     score: point.score,
                     text,
                     metadata,
@@ -247,10 +233,9 @@ impl VectorDbClient {
     pub async fn delete(&self, id: &str) -> Result<()> {
         self.client
             .delete_points(
-                &self.config.collection_name,
-                None,
-                &[id.into()],
-                None,
+                DeletePointsBuilder::new(self.config.collection_name.clone())
+                    .points(vec![id.to_string()])
+                    .wait(true),
             )
             .await
             .context("Failed to delete point")?;
@@ -266,16 +251,29 @@ impl VectorDbClient {
     pub async fn stats(&self) -> Result<(usize, usize)> {
         let info = self
             .client
-            .collection_info(&self.config.collection_name)
+            .collection_info(self.config.collection_name.clone())
             .await
             .context("Failed to get collection info")?;
 
-        let point_count = info
-            .result
-            .and_then(|r| r.points_count)
-            .unwrap_or(0) as usize;
+        let point_count = info.result.and_then(|r| r.points_count).unwrap_or(0) as usize;
 
         Ok((point_count, self.config.vector_size))
+    }
+}
+
+fn build_payload(text: &str, metadata: Option<serde_json::Value>) -> Result<Payload> {
+    let mut payload = serde_json::json!({ "text": text });
+    if let Some(meta) = metadata {
+        payload["metadata"] = meta;
+    }
+    Payload::try_from(payload).context("Failed to convert payload")
+}
+
+fn point_id_to_string(id: &PointId) -> Option<String> {
+    match &id.point_id_options {
+        Some(PointIdOptions::Num(n)) => Some(n.to_string()),
+        Some(PointIdOptions::Uuid(s)) => Some(s.clone()),
+        None => None,
     }
 }
 
@@ -309,10 +307,7 @@ mod tests {
             .expect("Failed to insert");
 
         // Search
-        let results = client
-            .search(embedding, 5)
-            .await
-            .expect("Failed to search");
+        let results = client.search(embedding, 5).await.expect("Failed to search");
 
         assert!(!results.is_empty());
         assert_eq!(results[0].text, "Test document");

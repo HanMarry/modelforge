@@ -1,9 +1,8 @@
 /// Embedding generation using FastEmbed
 ///
 /// Generates vector embeddings for text using locally-run models.
-
 use anyhow::{Context, Result};
-use fastembed::{EmbeddingModel, InitOptions, TextEmbedding};
+use fastembed::{EmbeddingModel, TextEmbedding, TextInitOptions};
 
 /// Generates embeddings for text using FastEmbed
 pub struct EmbeddingGenerator {
@@ -32,12 +31,9 @@ impl EmbeddingGenerator {
     pub fn with_model(model: EmbeddingModel) -> Result<Self> {
         let dimension = Self::model_dimension(&model);
 
-        let text_embedding = TextEmbedding::try_new(InitOptions {
-            model_name: model,
-            show_download_progress: true,
-            ..Default::default()
-        })
-        .context("Failed to initialize FastEmbed model")?;
+        let text_embedding =
+            TextEmbedding::try_new(TextInitOptions::new(model).with_show_download_progress(true))
+                .context("Failed to initialize FastEmbed model")?;
 
         Ok(Self {
             model: text_embedding,
@@ -53,7 +49,7 @@ impl EmbeddingGenerator {
     /// # Returns
     /// - `Ok(Vec<Vec<f32>>)` - One embedding vector per input text
     /// - `Err` if embedding generation fails
-    pub fn embed(&self, texts: &[String]) -> Result<Vec<Vec<f32>>> {
+    pub fn embed(&mut self, texts: &[String]) -> Result<Vec<Vec<f32>>> {
         let embeddings = self
             .model
             .embed(texts.to_vec(), None)
@@ -70,7 +66,7 @@ impl EmbeddingGenerator {
     /// # Returns
     /// - `Ok(Vec<f32>)` - Embedding vector
     /// - `Err` if embedding generation fails
-    pub fn embed_single(&self, text: &str) -> Result<Vec<f32>> {
+    pub fn embed_single(&mut self, text: &str) -> Result<Vec<f32>> {
         let mut embeddings = self.embed(&[text.to_string()])?;
         embeddings
             .pop()
@@ -113,7 +109,7 @@ mod tests {
     #[test]
     #[ignore] // Requires model download
     fn test_embed_single() {
-        let generator = EmbeddingGenerator::new().expect("Failed to create generator");
+        let mut generator = EmbeddingGenerator::new().expect("Failed to create generator");
         let embedding = generator
             .embed_single("Hello, world!")
             .expect("Failed to generate embedding");
@@ -125,9 +121,11 @@ mod tests {
     #[test]
     #[ignore] // Requires model download
     fn test_embed_batch() {
-        let generator = EmbeddingGenerator::new().expect("Failed to create generator");
+        let mut generator = EmbeddingGenerator::new().expect("Failed to create generator");
         let texts = vec!["First text".to_string(), "Second text".to_string()];
-        let embeddings = generator.embed(&texts).expect("Failed to generate embeddings");
+        let embeddings = generator
+            .embed(&texts)
+            .expect("Failed to generate embeddings");
 
         assert_eq!(embeddings.len(), 2);
         assert!(embeddings.iter().all(|emb| emb.len() == 384));

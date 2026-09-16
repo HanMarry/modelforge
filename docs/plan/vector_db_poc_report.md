@@ -14,8 +14,10 @@
 
 ```toml
 # Vector database and embeddings
-qdrant-client = { version = "1.19", default-features = false }
-fastembed = { version = "5.13", default-features = false }
+# `serde` 是 vector_db 中 serde_json payload 往返所必需
+qdrant-client = { version = "1.19", default-features = false, features = ["serde"] }
+# `hf-hub` 是 TextEmbedding::try_new（模型下载）所必需
+fastembed = { version = "5.13", default-features = false, features = ["hf-hub"] }
 ```
 
 ### Feature Flag 配置
@@ -84,10 +86,10 @@ pub enum DistanceMetric {
 
 ```rust
 // 创建默认生成器 (all-MiniLM-L6-v2, 384维)
-let generator = EmbeddingGenerator::new()?;
+let mut generator = EmbeddingGenerator::new()?;
 
 // 使用特定模型
-let generator = EmbeddingGenerator::with_model(EmbeddingModel::BGEBaseENV15)?;
+let mut generator = EmbeddingGenerator::with_model(EmbeddingModel::BGEBaseENV15)?;
 
 // 单个文本转向量
 let embedding = generator.embed_single("Hello, world!")?;
@@ -180,7 +182,7 @@ use goose::vector_db::{EmbeddingGenerator, VectorDbClient, VectorDbConfig};
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // 1. 初始化 embedding 生成器
-    let generator = EmbeddingGenerator::new()?;
+    let mut generator = EmbeddingGenerator::new()?;
     
     // 2. 连接向量数据库
     let config = VectorDbConfig::default();
@@ -237,7 +239,7 @@ Query: safe programming language
 ```rust
 async fn answer_with_context(
     question: &str,
-    generator: &EmbeddingGenerator,
+    generator: &mut EmbeddingGenerator,
     db: &VectorDbClient,
 ) -> anyhow::Result<String> {
     // 1. 将问题转换为向量
@@ -284,7 +286,7 @@ mod tests {
     #[tokio::test]
     #[ignore] // 需要下载模型
     async fn test_embed_single() {
-        let generator = EmbeddingGenerator::new().unwrap();
+        let mut generator = EmbeddingGenerator::new().unwrap();
         let embedding = generator.embed_single("Hello").unwrap();
         assert_eq!(embedding.len(), 384);
     }
@@ -326,18 +328,27 @@ cargo test -p goose --features vector-db --test vector_db_integration_test -- --
 
 ## 编译验证
 
+> 2026-09-16 治理修订：原报告此处标注「编译验证未完成」不实——实际代码（qdrant-client 1.19 / fastembed 5.17 真实 API）在提交时无法编译。已按依赖真实源码 API 修复，并实测通过（gnu 工具链）。
+
+修复后实测（`1.96.1-x86_64-pc-windows-gnu`，`CARGO_TARGET_DIR=E:/goose-build/target`）：
+
 ```bash
-# 仅编译 (不运行)
-cargo build -p goose --features vector-db
-
-# 检查语法
-cargo check -p goose --features vector-db
-
-# Clippy 检查
-cargo clippy -p goose --features vector-db --all-targets -- -D warnings
+cargo check -p goose --features vector-db --lib   # exit 0（无错误，仅 2 条既有无关 warning）
+cargo check -p goose --lib                        # exit 0（默认构建不受影响）
+cargo check -p goose --features vector-db --tests # exit 0（含 vector_db_integration_test 编译）
+cargo fmt --package goose                         # exit 0
 ```
 
-**注意**: 由于环境限制 (Hermit 未激活), 编译验证在任务执行期间未完成，但代码遵循 Rust 惯例且语法正确。
+主要修复点：
+
+- `qdrant_client::prelude` 不存在 → 改 `use qdrant_client::{Qdrant, Payload}` + `qdrant_client::qdrant::*`（builder 类型）。
+- 客户端类型 `QdrantClient` → `Qdrant`；`from_url().build()` 沿用。
+- `create_collection`/`search_points`/`upsert_points`/`delete_points`/`collection_info` 均改为 builder 传值（`impl Into<...>`），不再传 `&T`；`upsert_points_blocking` 不存在 → `upsert_points`。
+- `PointStruct::new(id, vec, payload)` 的 id 需 `PointId`、payload 需 `Payload`（`serde_json::Value` → `Payload::try_from`）。
+- `PointId` 无 `Display`，搜索结果 id 需手动从 `point_id::PointIdOptions` 提取。
+- fastembed：`InitOptions{..}` 字段构造已废弃 → `TextInitOptions::new(model).with_show_download_progress(true)`；`TextEmbedding::embed` 需 `&mut self`，故 `EmbeddingGenerator::embed/embed_single` 改为 `&mut self`。
+
+**运行时未验证项**（PoC 集成测试均 `#[ignore]`，未起 Qdrant 实例、未下载模型）：模型下载（hf-hub TLS）、Qdrant 连接、真实 upsert/search/delete 往返均未实测。
 
 ## 性能考虑
 
@@ -433,4 +444,4 @@ cargo clippy -p goose --features vector-db --all-targets -- -D warnings
 ✅ **测试完备**: 单元测试 + 集成测试覆盖  
 ✅ **文档齐全**: 内联文档 + 使用示例  
 
-代码已准备好合并到主分支，建议先进行小规模试用后再推广到生产环境。
+2026-09-16 治理修订：原结论「已准备好合并」不实，已撤回。当前状态为「实测 `cargo check` 通过」（见上方「编译验证」），但运行时行为（模型下载、Qdrant 往返）尚未验证，仍为 PoC，不建议在实测运行通过前合并。修正后的 `embed`/`embed_single` 为 `&mut self` 签名，调用方需 `let mut generator`。

@@ -12,7 +12,7 @@ mod vector_db_tests {
     #[tokio::test]
     #[ignore] // Requires: docker run -p 6334:6334 qdrant/qdrant
     async fn test_embedding_generation() {
-        let generator = EmbeddingGenerator::new().expect("Failed to create generator");
+        let mut generator = EmbeddingGenerator::new().expect("Failed to create generator");
 
         assert_eq!(generator.dimension(), 384);
 
@@ -27,7 +27,7 @@ mod vector_db_tests {
     #[tokio::test]
     #[ignore] // Requires: docker run -p 6334:6334 qdrant/qdrant
     async fn test_batch_embedding() {
-        let generator = EmbeddingGenerator::new().expect("Failed to create generator");
+        let mut generator = EmbeddingGenerator::new().expect("Failed to create generator");
 
         let texts = vec![
             "Rust is a systems programming language".to_string(),
@@ -35,7 +35,9 @@ mod vector_db_tests {
             "JavaScript runs in browsers".to_string(),
         ];
 
-        let embeddings = generator.embed(&texts).expect("Failed to generate embeddings");
+        let embeddings = generator
+            .embed(&texts)
+            .expect("Failed to generate embeddings");
 
         assert_eq!(embeddings.len(), 3);
         assert!(embeddings.iter().all(|emb| emb.len() == 384));
@@ -58,7 +60,7 @@ mod vector_db_tests {
             .await
             .expect("Failed to initialize collection");
 
-        let generator = EmbeddingGenerator::new().expect("Failed to create generator");
+        let mut generator = EmbeddingGenerator::new().expect("Failed to create generator");
 
         let docs = vec![
             "Rust is fast and memory-safe".to_string(),
@@ -66,7 +68,9 @@ mod vector_db_tests {
             "Go has great concurrency support".to_string(),
         ];
 
-        let embeddings = generator.embed(&docs).expect("Failed to generate embeddings");
+        let embeddings = generator
+            .embed(&docs)
+            .expect("Failed to generate embeddings");
 
         client
             .insert_batch(vec![
@@ -138,7 +142,7 @@ mod vector_db_tests {
                 .await
                 .expect("Failed to initialize collection");
 
-            let generator = EmbeddingGenerator::new().expect("Failed to create generator");
+            let mut generator = EmbeddingGenerator::new().expect("Failed to create generator");
             let embedding = generator
                 .embed_single("test document")
                 .expect("Failed to generate embedding");
@@ -148,10 +152,7 @@ mod vector_db_tests {
                 .await
                 .expect("Failed to insert");
 
-            let results = client
-                .search(embedding, 1)
-                .await
-                .expect("Failed to search");
+            let results = client.search(embedding, 1).await.expect("Failed to search");
 
             assert_eq!(results.len(), 1);
             assert_eq!(results[0].id, "test_id");

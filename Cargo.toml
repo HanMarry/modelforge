@@ -105,8 +105,10 @@ tree-sitter-swift = { version = "0.7", default-features = false }
 tree-sitter-typescript = { version = "0.23", default-features = false }
 
 # Vector database and embeddings
-qdrant-client = { version = "1.19", default-features = false }
-fastembed = { version = "5.13", default-features = false }
+# `serde` is required for the serde_json payload round-trip in vector_db.
+qdrant-client = { version = "1.19", default-features = false, features = ["serde"] }
+# `hf-hub` is required for TextEmbedding::try_new (model download).
+fastembed = { version = "5.13", default-features = false, features = ["hf-hub"] }
 
 # llama-cpp-2 doesn't pin the version of its sys crate, so we do it here. it also has breaking changes in patch releases, so we use an exact version pin
 llama-cpp-2 = { version = "=0.1.146", default-features = false, features = ["sampler", "mtmd"] }
