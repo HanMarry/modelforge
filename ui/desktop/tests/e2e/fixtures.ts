@@ -1,9 +1,43 @@
 import { test as base, Page, Browser, chromium } from '@playwright/test';
 import { exec, spawn, ChildProcess } from 'child_process';
+import { createServer } from 'net';
 import { join } from 'path';
 import { promisify } from 'util';
 
 const execAsync = promisify(exec);
+
+/**
+ * Kills forge/electron processes from this checkout that a previous run left behind.
+ * The npx -> pnpm -> forge chain can outlive the shell pid that spawn() reports, so a
+ * plain `taskkill /T` on it is not enough; without this sweep a stale instance keeps the
+ * debug port and the next run silently attaches to it (or fails to open DevTools).
+ */
+async function sweepStaleAppProcesses(): Promise<void> {
+  if (process.platform !== 'win32') {
+    return;
+  }
+  const script =
+    "$procs = Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -match 'goose.*electron-forge' -or $_.CommandLine -match 'goose.*electron\\\\dist' }; " +
+    '$procs | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }';
+  // EncodedCommand sidesteps cmd/powershell quoting pitfalls (the checkout path is non-ASCII).
+  const encoded = Buffer.from(script, 'utf16le').toString('base64');
+  await execAsync(`powershell -NoProfile -EncodedCommand ${encoded}`, { timeout: 30_000 }).catch(
+    () => {}
+  );
+}
+
+/** Picks a currently free loopback port; fixed ports collide with other local tooling. */
+async function getFreePort(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const server = createServer();
+    server.on('error', reject);
+    server.listen(0, '127.0.0.1', () => {
+      const address = server.address();
+      const port = typeof address === 'object' && address ? address.port : 0;
+      server.close(() => resolve(port));
+    });
+  });
+}
 
 type GooseTestFixtures = {
   goosePage: Page;
@@ -36,17 +70,26 @@ export const test = base.extend<GooseTestFixtures>({
     let browser: Browser | null = null;
 
     try {
-      // Assign a unique debug port for this test to enable parallel execution
-      // Base port 9222, offset by worker index * 100 + parallel slot
-      const debugPort = 9222 + (testInfo.parallelIndex * 10);
+      // A fresh free port per test: fixed ports (9222, 9333, ...) are taken by other local
+      // tooling on some developer machines, which makes the CDP dial attach to the wrong
+      // service or fail outright.
+      const debugPort = await getFreePort();
       console.log(`Using debug port ${debugPort} for parallel test execution`);
 
-      // Start the electron-forge process with Playwright remote debugging enabled
-      // Use detached mode on Unix to create a process group we can kill together
-      appProcess = spawn('pnpm', ['run', 'start-gui'], {
+      // Start from a clean slate: a stale instance would hold the debug port and the CDP
+      // connection below would attach to it instead of the freshly launched app.
+      await sweepStaleAppProcesses();
+
+      // Start the electron-forge process with Playwright remote debugging enabled.
+      // Use detached mode on Unix to create a process group we can kill together.
+      // pnpm >= 10.30 is required by engines and only guaranteed through npx (same pattern
+      // as start-modelforge.ps1); Windows needs a shell for the npx.cmd shim.
+      appProcess = spawn('npx', ['--yes', 'pnpm@10.30.0', 'exec', 'electron-forge', 'start'], {
         cwd: join(__dirname, '../..'),
-        stdio: 'pipe',
+        // 'ignore' avoids pipe-buffer stalls when debug logging is off
+        stdio: process.env.DEBUG_TESTS ? 'pipe' : 'ignore',
         detached: process.platform !== 'win32',
+        shell: process.platform === 'win32',
         env: {
           ...process.env,
           ELECTRON_IS_DEV: '1',
@@ -55,6 +98,14 @@ export const test = base.extend<GooseTestFixtures>({
           ENABLE_PLAYWRIGHT: 'true',
           PLAYWRIGHT_DEBUG_PORT: debugPort.toString(), // Unique port per test for parallel execution
           RUST_LOG: 'info', // Enable info-level logging for goosed backend
+          // Dev builds look for a self-compiled kernel (repo paths hold non-ASCII characters
+          // here, so the build lives outside the tree — same setup as start-modelforge.ps1).
+          // Without it `goose serve` fails and the app comes up half-broken.
+          GOOSE_BINARY: process.env.GOOSE_BINARY ?? 'E:\\goose-build\\target\\debug\\goose.exe',
+          GOOSE_TELEMETRY_OFF: '1',
+          // Keep loopback traffic off any system proxy (a proxied CDP dial gets a 502).
+          NO_PROXY: '127.0.0.1,localhost',
+          no_proxy: '127.0.0.1,localhost',
         }
       });
 
@@ -72,8 +123,8 @@ export const test = base.extend<GooseTestFixtures>({
       // Wait for the app to start and remote debugging to be available
       // Retry connection until it succeeds (app is ready) or timeout
       console.log(`Waiting for Electron app to start on port ${debugPort}...`);
-      const maxRetries = 100; // 100 retries * 100ms = 10 seconds max
-      const retryDelay = 100; // 100ms between retries
+      const maxRetries = 180; // 180 retries * 1s = 3 minutes max (forge start can be slow)
+      const retryDelay = 1000; // 1s between retries
 
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
@@ -83,7 +134,10 @@ export const test = base.extend<GooseTestFixtures>({
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : String(error);
           if (attempt === maxRetries) {
-            throw new Error(`Failed to connect to Electron app after ${maxRetries} attempts (${(maxRetries * retryDelay) / 1000}s). Last error: ${errorMessage}`);
+            throw new Error(
+              `Failed to connect to Electron app after ${maxRetries} attempts (${(maxRetries * retryDelay) / 1000}s). Last error: ${errorMessage}`,
+              { cause: error }
+            );
           }
           // Wait before next retry
           await new Promise(resolve => setTimeout(resolve, retryDelay));
@@ -171,6 +225,11 @@ export const test = base.extend<GooseTestFixtures>({
           }
         }
       }
+
+      // The taskkill above can miss the forge/electron tree when the shell pid is gone, and a
+      // still-booting chain can spawn children after the kill. Let it settle, then sweep.
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      await sweepStaleAppProcesses();
     }
   },
 });
