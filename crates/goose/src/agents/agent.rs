@@ -1181,14 +1181,17 @@ impl Agent {
                 cancellation_token.unwrap_or_default(),
             )
             .await;
-        let result = result.unwrap_or_else(|error_data| {
-            #[cfg(feature = "telemetry")]
-            crate::posthog::emit_error(
-                "tool_execution_failed",
-                &format!("{}: {}", tool_call.name, error_data),
-            );
-            ToolCallResult::from(Err(error_data))
-        });
+        let result = match result {
+            Ok(tool_result) => tool_result,
+            Err(error_data) => {
+                #[cfg(feature = "telemetry")]
+                crate::posthog::emit_error(
+                    "tool_execution_failed",
+                    &format!("{}: {}", tool_call.name, error_data),
+                );
+                ToolCallResult::from(Err(error_data))
+            }
+        };
 
         debug!("WAITING_TOOL_END: {}", tool_call.name);
 
@@ -3380,39 +3383,41 @@ impl Agent {
                         None if self.has_pending_steers(&session_config.id).await => {}
                         None if self.goal.lock().await.is_some() && !goal_check_pending => {
                             goal_check_pending = true;
-                            let goal = self.goal.lock().await.clone().unwrap();
-                            let nudge = format!(
-                                "Before finishing, check whether the following goal has been fully met:\n\n\
-                                 **Goal:** {goal}\n\n\
-                                 If not, continue working toward it."
-                            );
-                            let message = Message::user().with_text(&nudge)
-                                .with_visibility(false, true);
-                            push_message_with_id(&mut messages_to_add, message);
-                            yield AgentEvent::Message(
-                                Message::assistant().with_system_notification(
-                                    SystemNotificationType::InlineMessage,
-                                    format!("Goal: {goal}"),
-                                )
-                            );
+                            if let Some(goal) = self.goal.lock().await.clone() {
+                                let nudge = format!(
+                                    "Before finishing, check whether the following goal has been fully met:\n\n\
+                                     **Goal:** {goal}\n\n\
+                                     If not, continue working toward it."
+                                );
+                                let message = Message::user().with_text(&nudge)
+                                    .with_visibility(false, true);
+                                push_message_with_id(&mut messages_to_add, message);
+                                yield AgentEvent::Message(
+                                    Message::assistant().with_system_notification(
+                                        SystemNotificationType::InlineMessage,
+                                        format!("Goal: {goal}"),
+                                    )
+                                );
+                            }
                         }
 
                         None if self.grind.lock().await.is_some() => {
-                            let grind = self.grind.lock().await.clone().unwrap();
-                            let nudge = format!(
-                                "Keep working. The grind goal is not yet complete:\n\n\
-                                 **Goal:** {grind}\n\n\
-                                 Continue until it is fully done."
-                            );
-                            let message = Message::user().with_text(&nudge)
-                                .with_visibility(false, true);
-                            push_message_with_id(&mut messages_to_add, message);
-                            yield AgentEvent::Message(
-                                Message::assistant().with_system_notification(
-                                    SystemNotificationType::InlineMessage,
-                                    format!("Grind: {grind}"),
-                                )
-                            );
+                            if let Some(grind) = self.grind.lock().await.clone() {
+                                let nudge = format!(
+                                    "Keep working. The grind goal is not yet complete:\n\n\
+                                     **Goal:** {grind}\n\n\
+                                     Continue until it is fully done."
+                                );
+                                let message = Message::user().with_text(&nudge)
+                                    .with_visibility(false, true);
+                                push_message_with_id(&mut messages_to_add, message);
+                                yield AgentEvent::Message(
+                                    Message::assistant().with_system_notification(
+                                        SystemNotificationType::InlineMessage,
+                                        format!("Grind: {grind}"),
+                                    )
+                                );
+                            }
                         }
 
                         None => {
