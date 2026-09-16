@@ -5624,6 +5624,9 @@
   "updateSection.loading": {
     "defaultMessage": "Загрузка..."
   },
+  "updateSection.notConfigured": {
+    "defaultMessage": "Онлайн-обновления недоступны для этой сборки."
+  },
   "updateSection.upToDate": {
     "defaultMessage": "(актуально)"
   },

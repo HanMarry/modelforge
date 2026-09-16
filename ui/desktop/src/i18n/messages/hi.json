@@ -5624,6 +5624,9 @@
   "updateSection.loading": {
     "defaultMessage": "लोड हो रहा है..."
   },
+  "updateSection.notConfigured": {
+    "defaultMessage": "इस बिल्ड के लिए ऑनलाइन अपडेट उपलब्ध नहीं हैं।"
+  },
   "updateSection.upToDate": {
     "defaultMessage": "(अप टू डेट)"
   },

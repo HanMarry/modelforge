@@ -5624,6 +5624,9 @@
   "updateSection.loading": {
     "defaultMessage": "加载中…"
   },
+  "updateSection.notConfigured": {
+    "defaultMessage": "当前版本未开通在线更新"
+  },
   "updateSection.upToDate": {
     "defaultMessage": "（已是最新）"
   },

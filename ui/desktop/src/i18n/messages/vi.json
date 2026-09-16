@@ -5624,6 +5624,9 @@
   "updateSection.loading": {
     "defaultMessage": "Đang tải..."
   },
+  "updateSection.notConfigured": {
+    "defaultMessage": "Bản dựng này không hỗ trợ cập nhật trực tuyến."
+  },
   "updateSection.upToDate": {
     "defaultMessage": "(đã cập nhật)"
   },

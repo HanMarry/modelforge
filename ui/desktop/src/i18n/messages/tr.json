@@ -5624,6 +5624,9 @@
   "updateSection.loading": {
     "defaultMessage": "Yükleniyor..."
   },
+  "updateSection.notConfigured": {
+    "defaultMessage": "Bu sürüm için çevrimiçi güncellemeler kullanılamıyor."
+  },
   "updateSection.upToDate": {
     "defaultMessage": "(güncel)"
   },

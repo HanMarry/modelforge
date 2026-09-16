@@ -17,5 +17,13 @@ export const DOCS_URLS = {
   diagnostics: `${DOCS_BASE}/docs/troubleshooting/diagnostics-and-reporting/`,
 } as const;
 
+/**
+ * GitHub release feed defaults. `your-org` is a placeholder until the ModelForge
+ * release repository exists; the updater treats it as "not configured" and skips
+ * network requests. Keep in sync with src/app-update.yml and forge.config.ts.
+ */
+export const DEFAULT_GITHUB_OWNER = 'your-org';
+export const DEFAULT_GITHUB_REPO = 'modelforge';
+
 /** Repository for the customized build; keep in sync with src/app-update.yml. */
-export const REPOSITORY_URL = 'https://github.com/your-org/modelforge';
+export const REPOSITORY_URL = `https://github.com/${DEFAULT_GITHUB_OWNER}/${DEFAULT_GITHUB_REPO}`;

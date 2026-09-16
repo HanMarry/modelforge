@@ -1,4 +1,5 @@
 provider: github
+# Keep owner/repo in sync with DEFAULT_GITHUB_OWNER / DEFAULT_GITHUB_REPO in src/branding.ts.
 owner: your-org
 repo: modelforge
 updaterCacheDirName: modelforge-updater

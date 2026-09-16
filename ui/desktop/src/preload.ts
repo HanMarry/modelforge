@@ -250,7 +250,11 @@ type ElectronAPI = {
   openExternal: (url: string) => Promise<OpenExternalUrlResult>;
   // Update-related functions
   getVersion: () => string;
-  checkForUpdates: () => Promise<{ updateInfo: unknown; error: string | null }>;
+  checkForUpdates: () => Promise<{
+    updateInfo: unknown;
+    error: string | null;
+    status?: 'not-configured';
+  }>;
   downloadUpdate: () => Promise<{ success: boolean; error: string | null }>;
   installUpdate: () => void;
   restartApp: () => void;
@@ -463,7 +467,11 @@ const electronAPI: ElectronAPI = {
   getVersion: (): string => {
     return config.GOOSE_VERSION || ipcRenderer.sendSync('get-app-version') || '';
   },
-  checkForUpdates: (): Promise<{ updateInfo: unknown; error: string | null }> => {
+  checkForUpdates: (): Promise<{
+    updateInfo: unknown;
+    error: string | null;
+    status?: 'not-configured';
+  }> => {
     return ipcRenderer.invoke('check-for-updates');
   },
   downloadUpdate: (): Promise<{ success: boolean; error: string | null }> => {

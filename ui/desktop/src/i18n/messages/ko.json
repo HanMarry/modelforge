@@ -5624,6 +5624,9 @@
   "updateSection.loading": {
     "defaultMessage": "로드 중..."
   },
+  "updateSection.notConfigured": {
+    "defaultMessage": "이 빌드에서는 온라인 업데이트를 사용할 수 없습니다."
+  },
   "updateSection.upToDate": {
     "defaultMessage": "(최신 상태)"
   },

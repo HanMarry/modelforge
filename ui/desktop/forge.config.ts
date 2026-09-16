@@ -65,6 +65,8 @@ module.exports = {
       name: '@electron-forge/publisher-github',
       config: {
         repository: {
+          // Keep these defaults in sync with DEFAULT_GITHUB_OWNER / DEFAULT_GITHUB_REPO
+          // in src/branding.ts (the homepage URLs below share the same placeholder).
           owner: process.env.GITHUB_OWNER || 'your-org',
           name: process.env.GITHUB_REPO || 'modelforge',
         },

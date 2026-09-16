@@ -5624,6 +5624,9 @@
   "updateSection.loading": {
     "defaultMessage": "Wird geladen..."
   },
+  "updateSection.notConfigured": {
+    "defaultMessage": "Online-Updates sind für diesen Build nicht verfügbar."
+  },
   "updateSection.upToDate": {
     "defaultMessage": "(aktuell)"
   },

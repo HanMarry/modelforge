@@ -30,6 +30,10 @@ const i18n = defineMessages({
     id: 'updateSection.loading',
     defaultMessage: 'Loading...',
   },
+  notConfigured: {
+    id: 'updateSection.notConfigured',
+    defaultMessage: 'Online updates are not available for this build.',
+  },
   currentVersion: {
     id: 'updateSection.currentVersion',
     defaultMessage: 'Current version',
@@ -91,7 +95,8 @@ type UpdateStatus =
   | 'installing'
   | 'success'
   | 'error'
-  | 'ready';
+  | 'ready'
+  | 'notConfigured';
 
 interface UpdateInfo {
   currentVersion: string;
@@ -214,6 +219,11 @@ export default function UpdateSection() {
     try {
       const result = await window.electron.checkForUpdates();
 
+      if (result.status === 'not-configured') {
+        setUpdateStatus('notConfigured');
+        return;
+      }
+
       if (result.error) {
         throw new Error(result.error);
       }
@@ -273,6 +283,8 @@ export default function UpdateSection() {
         return updateInfo.isUpdateAvailable === false
           ? intl.formatMessage(i18n.latestVersion)
           : intl.formatMessage(i18n.updateAvailable);
+      case 'notConfigured':
+        return intl.formatMessage(i18n.notConfigured);
       case 'error':
         return updateInfo.error || 'An error occurred';
       default:
@@ -294,6 +306,8 @@ export default function UpdateSection() {
         return <AlertCircle className="w-4 h-4 text-red-500" />;
       case 'ready':
         return <CheckCircle className="w-4 h-4 text-blue-500" />;
+      case 'notConfigured':
+        return null;
       default:
         return updateInfo.isUpdateAvailable ? <Download className="w-4 h-4" /> : null;
     }
@@ -327,7 +341,9 @@ export default function UpdateSection() {
         <div className="flex items-center gap-2">
           <Button
             onClick={checkForUpdates}
-            disabled={updateStatus !== 'idle' && updateStatus !== 'error'}
+            disabled={
+              updateStatus !== 'idle' && updateStatus !== 'error' && updateStatus !== 'notConfigured'
+            }
             variant="secondary"
             size="sm"
           >

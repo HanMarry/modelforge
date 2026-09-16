@@ -12,7 +12,7 @@ import {
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import log from './logger';
-import { githubUpdater } from './githubUpdater';
+import { githubUpdater, isUpdateChannelConfigured } from './githubUpdater';
 import { loadRecentDirs } from './recentDirs';
 import { errorMessage } from './conversionUtils';
 import {
@@ -74,6 +74,12 @@ export function registerUpdateIpcHandlers() {
       log.info('=== MANUAL UPDATE CHECK INITIATED ===');
       log.info(`Manual check for updates requested at ${new Date().toISOString()}`);
       log.info(`Current version: ${currentVersion}`);
+
+      if (!isUpdateChannelConfigured()) {
+        log.info('Update channel not configured; skipping manual update check');
+        return { updateInfo: null, error: null, status: 'not-configured' as const };
+      }
+
       trackUpdateCheckStarted('manual', currentVersion);
 
       // Reset state for new update check
@@ -399,6 +405,11 @@ export function setupAutoUpdater(tray?: Tray) {
 
   // Check for updates on startup
   setTimeout(() => {
+    if (!isUpdateChannelConfigured()) {
+      log.info('Update channel not configured; skipping startup update check');
+      return;
+    }
+
     const currentVersion = autoUpdater.currentVersion?.version || app.getVersion();
     const checkStartTime = Date.now();
     log.info('=== STARTUP UPDATE CHECK INITIATED ===');

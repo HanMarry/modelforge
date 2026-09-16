@@ -5624,6 +5624,9 @@
   "updateSection.loading": {
     "defaultMessage": "A carregar..."
   },
+  "updateSection.notConfigured": {
+    "defaultMessage": "Atualizações online não estão disponíveis para esta versão."
+  },
   "updateSection.upToDate": {
     "defaultMessage": "(atualizado)"
   },

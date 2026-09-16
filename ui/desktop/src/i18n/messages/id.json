@@ -5624,6 +5624,9 @@
   "updateSection.loading": {
     "defaultMessage": "Memuat..."
   },
+  "updateSection.notConfigured": {
+    "defaultMessage": "Pembaruan online tidak tersedia untuk versi ini."
+  },
   "updateSection.upToDate": {
     "defaultMessage": "(terbaru)"
   },

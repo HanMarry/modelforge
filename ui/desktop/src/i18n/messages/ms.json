@@ -5624,6 +5624,9 @@
   "updateSection.loading": {
     "defaultMessage": "Memuatkan..."
   },
+  "updateSection.notConfigured": {
+    "defaultMessage": "Kemas kini dalam talian tidak tersedia untuk binaan ini."
+  },
   "updateSection.upToDate": {
     "defaultMessage": "(terkini)"
   },

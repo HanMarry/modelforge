@@ -6,6 +6,7 @@ import * as path from 'path';
 import * as os from 'os';
 import log from './logger';
 import { safeJsonParse, errorMessage } from './conversionUtils';
+import { DEFAULT_GITHUB_OWNER, DEFAULT_GITHUB_REPO } from '../branding';
 
 interface GitHubRelease {
   tag_name: string;
@@ -25,6 +26,7 @@ interface UpdateCheckResult {
   downloadUrl?: string;
   releaseUrl?: string;
   error?: string;
+  status?: 'not-configured';
 }
 
 interface InstallTarget {
@@ -453,13 +455,24 @@ export async function prepareUpdateInstall(options: {
   });
 }
 
+// The release feed only works once a real owner is configured; the placeholder
+// owner would make the GitHub release endpoint 404 on every request.
+export function isUpdateChannelConfigured(): boolean {
+  return (process.env.GITHUB_OWNER || DEFAULT_GITHUB_OWNER) !== DEFAULT_GITHUB_OWNER;
+}
+
 export class GitHubUpdater {
-  private readonly owner = process.env.GITHUB_OWNER || 'your-org';
-  private readonly repo = process.env.GITHUB_REPO || 'modelforge';
+  private readonly owner = process.env.GITHUB_OWNER || DEFAULT_GITHUB_OWNER;
+  private readonly repo = process.env.GITHUB_REPO || DEFAULT_GITHUB_REPO;
   private readonly bundleName = process.env.GOOSE_BUNDLE_NAME || 'ModelForge';
   private readonly apiUrl = `https://api.github.com/repos/${this.owner}/${this.repo}/releases/latest`;
 
   async checkForUpdates(): Promise<UpdateCheckResult> {
+    if (!isUpdateChannelConfigured()) {
+      log.info('GitHubUpdater: Update channel not configured; skipping network check');
+      return { updateAvailable: false, status: 'not-configured' };
+    }
+
     const startTime = Date.now();
     try {
       log.info('=== GitHubUpdater: STARTING UPDATE CHECK ===');
