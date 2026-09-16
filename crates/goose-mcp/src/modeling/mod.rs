@@ -81,22 +81,52 @@ impl ModelingServer {
         timeout: Duration,
     ) -> (bool, String, String) {
         let mut cmd = tokio::process::Command::new(program);
-        cmd.args(args).kill_on_drop(true).set_no_window();
+        cmd.args(args)
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .kill_on_drop(true)
+            .set_no_window();
         if let Some(dir) = cwd {
             cmd.current_dir(dir);
         }
-        match tokio::time::timeout(timeout, cmd.output()).await {
-            Ok(Ok(output)) => (
-                output.status.success(),
-                String::from_utf8_lossy(&output.stdout).into_owned(),
-                String::from_utf8_lossy(&output.stderr).into_owned(),
-            ),
-            Ok(Err(e)) => (false, String::new(), e.to_string()),
-            Err(_) => (
-                false,
-                String::new(),
-                format!("Command timed out after {} seconds", timeout.as_secs()),
-            ),
+        // Own process group on Unix so the timeout path below can kill the whole tree.
+        #[cfg(unix)]
+        cmd.process_group(0);
+
+        let child = match cmd.spawn() {
+            Ok(child) => child,
+            Err(e) => return (false, String::new(), e.to_string()),
+        };
+        let pid = child.id();
+        let mut running = Box::pin(child.wait_with_output());
+
+        // Compilers such as latexmk spawn grandchildren (pdflatex, xelatex) that must not
+        // outlive a timeout: on Windows they keep file locks on the output directory, and
+        // everywhere they would keep burning CPU. A child-only kill (what dropping the
+        // child does) leaves those grandchildren running, so the tree is killed explicitly
+        // while the direct child is still alive and the parent/child links are intact.
+        tokio::select! {
+            result = &mut running => match result {
+                Ok(output) => (
+                    output.status.success(),
+                    String::from_utf8_lossy(&output.stdout).into_owned(),
+                    String::from_utf8_lossy(&output.stderr).into_owned(),
+                ),
+                Err(e) => (false, String::new(), e.to_string()),
+            },
+            _ = tokio::time::sleep(timeout) => {
+                if let Some(pid) = pid {
+                    kill_process_tree(pid).await;
+                }
+                (
+                    false,
+                    String::new(),
+                    format!(
+                        "Command timed out after {} seconds and was terminated",
+                        timeout.as_secs()
+                    ),
+                )
+            }
         }
     }
 
@@ -197,14 +227,21 @@ impl ModelingServer {
             .map_err(|error| ErrorData::new(ErrorCode::INVALID_PARAMS, error.to_string(), None))?;
         std::fs::create_dir_all(&command.output_dir)
             .map_err(|error| ErrorData::new(ErrorCode::INTERNAL_ERROR, error.to_string(), None))?;
+
+        // A stale PDF from an earlier run must not pass as this run's product: drop it up
+        // front and remember the start time, so validate_pdf can require a fresh file.
+        let started_at = std::time::SystemTime::now();
+        let _ = std::fs::remove_file(&command.pdf_path);
+
         let args: Vec<&str> = command.args.iter().map(String::as_str).collect();
         let program = command.program.as_str();
-        let (mut ok, stdout, stderr) = self.run_command(program, &args, Some(&command.cwd)).await;
+        let (ok, stdout, stderr) = self.run_command(program, &args, Some(&command.cwd)).await;
 
         // Treat PDF validation failure as compilation failure
         if ok {
-            if let Err(error) = validate_pdf(&command.pdf_path) {
-                ok = false;
+            if let Err(error) = validate_pdf(&command.pdf_path, started_at) {
+                // Never leave a half-written product behind for a later run to mistake it.
+                let _ = std::fs::remove_file(&command.pdf_path);
                 let log = format!(
                     "{program} exited with code 0 but did not produce a valid PDF at {}: {error}\n\nLog tail:\n{}",
                     command.pdf_path.display(),
@@ -220,6 +257,9 @@ impl ModelingServer {
                 TextContent::new(summary),
             )]));
         }
+
+        // Failed (or timed out): drop any partial product as well.
+        let _ = std::fs::remove_file(&command.pdf_path);
 
         let log = format!("{stdout}\n{stderr}");
         let errors = extract_errors(&log);
@@ -299,12 +339,65 @@ impl CompileCommand {
     }
 }
 
-fn validate_pdf(path: &std::path::Path) -> anyhow::Result<()> {
-    use std::io::Read;
+/// Kills a process together with its descendants. Call while the process is still alive:
+/// once it exits, the tree relationship is gone and the descendants cannot be found.
+async fn kill_process_tree(pid: u32) {
+    #[cfg(windows)]
+    let mut cmd = {
+        let mut cmd = tokio::process::Command::new("taskkill");
+        cmd.args(["/F", "/T", "/PID", &pid.to_string()]);
+        cmd
+    };
+    #[cfg(unix)]
+    let mut cmd = {
+        // The child leads its own process group (process_group(0) at spawn), so a negative
+        // pid reaches every process in the tree.
+        let mut cmd = tokio::process::Command::new("kill");
+        cmd.args(["-KILL", &format!("-{pid}")]);
+        cmd
+    };
+
+    let _ = cmd
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .await;
+}
+
+fn validate_pdf(path: &std::path::Path, started_at: std::time::SystemTime) -> anyhow::Result<()> {
+    use std::io::{Read, Seek, SeekFrom};
+
     let mut file = std::fs::File::open(path)?;
+    let metadata = file.metadata()?;
+    anyhow::ensure!(
+        metadata.len() > 1024,
+        "PDF is smaller than 1 KiB ({} bytes)",
+        metadata.len()
+    );
+
+    // Filesystem timestamps can be coarser than SystemTime; allow a small tolerance, but a
+    // file clearly older than this run means the compiler did not write a new product.
+    let tolerance = std::time::Duration::from_secs(2);
+    let earliest = started_at.checked_sub(tolerance).unwrap_or(std::time::UNIX_EPOCH);
+    anyhow::ensure!(
+        metadata.modified()? >= earliest,
+        "PDF predates this compilation run"
+    );
+
     let mut signature = [0; 5];
     file.read_exact(&mut signature)?;
     anyhow::ensure!(&signature == b"%PDF-", "Output is not a PDF");
+
+    // A truncated writer stops mid-file: require the EOF marker within the last KiB.
+    let tail_start = metadata.len().saturating_sub(1024);
+    file.seek(SeekFrom::Start(tail_start))?;
+    let mut tail = Vec::with_capacity((metadata.len() - tail_start) as usize);
+    file.read_to_end(&mut tail)?;
+    anyhow::ensure!(
+        tail.windows(5).any(|window| window == b"%%EOF"),
+        "PDF is truncated (no %%EOF trailer)"
+    );
     Ok(())
 }
 
@@ -391,13 +484,29 @@ mod tests {
     fn missing_empty_or_non_pdf_output_is_not_success() {
         let dir = tempfile::tempdir().unwrap();
         let pdf = dir.path().join("paper.pdf");
-        assert!(validate_pdf(&pdf).is_err());
+        let started_at = std::time::SystemTime::now();
+        assert!(validate_pdf(&pdf, started_at).is_err());
         std::fs::write(&pdf, "").unwrap();
-        assert!(validate_pdf(&pdf).is_err());
+        assert!(validate_pdf(&pdf, started_at).is_err());
         std::fs::write(&pdf, "not a PDF").unwrap();
-        assert!(validate_pdf(&pdf).is_err());
-        std::fs::write(&pdf, "%PDF-1.7\n").unwrap();
-        assert!(validate_pdf(&pdf).is_ok());
+        assert!(validate_pdf(&pdf, started_at).is_err());
+
+        // Header alone is not enough: a truncated writer stops before the EOF trailer.
+        let mut truncated = b"%PDF-1.7\n".to_vec();
+        truncated.resize(4096, b' ');
+        std::fs::write(&pdf, &truncated).unwrap();
+        assert!(validate_pdf(&pdf, started_at).is_err());
+
+        // A complete shape passes: header, more than 1 KiB of body, EOF trailer.
+        let mut valid = b"%PDF-1.7\n".to_vec();
+        valid.resize(4096, b' ');
+        valid.extend_from_slice(b"%%EOF\n");
+        std::fs::write(&pdf, &valid).unwrap();
+        assert!(validate_pdf(&pdf, started_at).is_ok());
+
+        // A product older than the run means this run wrote nothing.
+        let later_start = started_at + std::time::Duration::from_secs(60);
+        assert!(validate_pdf(&pdf, later_start).is_err());
     }
 
     #[tokio::test]
@@ -418,6 +527,97 @@ mod tests {
         assert!(!ok);
         assert!(error.contains("timed out"));
         assert!(start.elapsed() < Duration::from_secs(5));
+    }
+
+    #[tokio::test]
+    #[ignore = "starts real processes; run manually to verify tree termination"]
+    async fn timeout_terminates_the_whole_process_tree() {
+        let dir = tempfile::tempdir().unwrap();
+        let pid_file = dir.path().join("pids.txt");
+        let pid_path = pid_file.to_string_lossy().into_owned();
+
+        // The direct child records its own pid and spawns a grandchild (a minute of sleep)
+        // whose pid it records too; a child-only kill would leave the grandchild running.
+        let server = ModelingServer::new();
+        let (ok, _, error) = if cfg!(windows) {
+            let script = format!(
+                "$g = Start-Process powershell -ArgumentList '-NoProfile','-Command','Start-Sleep -Seconds 60' -PassThru -WindowStyle Hidden; \
+Set-Content -Path '{pid_path}' -Value \"$PID`n$($g.Id)\"; Start-Sleep -Seconds 60"
+            );
+            server
+                .run_command_with_timeout(
+                    "powershell",
+                    &["-NoProfile", "-Command", &script],
+                    None,
+                    Duration::from_secs(2),
+                )
+                .await
+        } else {
+            let script =
+                format!("echo $$ > '{pid_path}'; sleep 60 & echo $! >> '{pid_path}'; sleep 60");
+            server
+                .run_command_with_timeout("sh", &["-c", &script], None, Duration::from_secs(2))
+                .await
+        };
+        assert!(!ok);
+        assert!(error.contains("timed out"));
+
+        let mut pids: Vec<String> = Vec::new();
+        for _ in 0..40 {
+            if let Ok(contents) = std::fs::read_to_string(&pid_file) {
+                pids = contents
+                    .lines()
+                    .map(str::trim)
+                    .filter(|line| !line.is_empty())
+                    .map(String::from)
+                    .collect();
+                if pids.len() >= 2 {
+                    break;
+                }
+            }
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+        assert!(pids.len() >= 2, "child/grandchild never recorded their pids: {pids:?}");
+
+        let pid_alive = |pid: &str| {
+            let pid = pid.to_string();
+            let server = ModelingServer::new();
+            async move {
+                if cfg!(windows) {
+                    let filter = format!("PID eq {pid}");
+                    let (_, stdout, _) = server
+                        .run_command_with_timeout(
+                            "tasklist",
+                            &["/FI", &filter, "/NH"],
+                            None,
+                            Duration::from_secs(10),
+                        )
+                        .await;
+                    stdout.contains(&pid)
+                } else {
+                    let (ok, _, _) = server
+                        .run_command_with_timeout(
+                            "kill",
+                            &["-0", &pid],
+                            None,
+                            Duration::from_secs(10),
+                        )
+                        .await;
+                    ok
+                }
+            }
+        };
+
+        // Give the kill a moment, then assert both the child and the grandchild are gone.
+        tokio::time::sleep(Duration::from_millis(1500)).await;
+        let child_alive = pid_alive(&pids[0]).await;
+        let grandchild_alive = pid_alive(&pids[1]).await;
+        assert!(
+            !child_alive && !grandchild_alive,
+            "survivors after timeout kill: child={child_alive} ({}) grandchild={grandchild_alive} ({})",
+            pids[0],
+            pids[1]
+        );
     }
 
     #[tokio::test]
@@ -450,6 +650,46 @@ mod tests {
         assert_ne!(result.is_error, Some(true), "{result:?}");
         assert!(source.join("output files/paper.pdf").is_file());
         assert!(!source.join("paper.pdf").exists());
+    }
+
+    #[tokio::test]
+    #[ignore = "requires a local latexmk and TeX installation"]
+    async fn failed_compilation_does_not_leave_a_stale_pdf_behind() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("paper.tex");
+        std::fs::write(
+            &path,
+            r"\documentclass{article}
+\begin{document}
+First version.
+\end{document}",
+        )
+        .unwrap();
+        let compile = |path: std::path::PathBuf| {
+            let server = ModelingServer::new();
+            async move {
+                server
+                    .compile_latex(Parameters(CompileLatexParams {
+                        path: path.to_string_lossy().into_owned(),
+                        engine: Some("latexmk".into()),
+                        output_dir: None,
+                    }))
+                    .await
+                    .unwrap()
+            }
+        };
+
+        let first = compile(path.clone()).await;
+        assert_ne!(first.is_error, Some(true), "{first:?}");
+        let pdf = dir.path().join("paper.pdf");
+        assert!(pdf.is_file());
+
+        // Break the source: the rerun must fail and must not leave the previous PDF as a
+        // product that a caller could mistake for this run's output.
+        std::fs::write(&path, r"\documentclass{article}\begin{document}\undefinedcommand").unwrap();
+        let second = compile(path.clone()).await;
+        assert_eq!(second.is_error, Some(true), "{second:?}");
+        assert!(!pdf.exists(), "stale PDF survived a failed recompilation");
     }
 
     #[tokio::test]
