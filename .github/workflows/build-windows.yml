@@ -1,0 +1,56 @@
+name: Build ModelForge (Windows)
+
+# 云端构建 goose.exe,本地无需 Rust 工具链
+# 触发方式:1) 手动(workflow_dispatch)  2) push 修改 Rust 源码时自动
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'crates/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'rust-toolchain.toml'
+      - '.github/workflows/build-windows.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    name: Build goose.exe (x86_64-pc-windows-msvc)
+    runs-on: windows-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: windows-msvc
+
+      - name: Setup Rust toolchain
+        shell: bash
+        run: |
+          rustup show
+          rustup target add x86_64-pc-windows-msvc
+
+      - name: Build goose.exe (release)
+        shell: pwsh
+        run: |
+          cargo build --release --target x86_64-pc-windows-msvc -p goose-cli --bin goose
+          $binaryPath = "./target/x86_64-pc-windows-msvc/release/goose.exe"
+          if (-not (Test-Path $binaryPath)) {
+            Write-Error "构建失败: 未找到 $binaryPath"
+            exit 1
+          }
+          Get-Item $binaryPath | Select-Object Name, Length, LastWriteTime
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: modelforge-goose-windows-x64
+          path: target/x86_64-pc-windows-msvc/release/goose.exe
+          if-no-files-found: error
+          retention-days: 90

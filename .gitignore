@@ -1,0 +1,32 @@
+# ModelForge Build Outputs
+/ui/desktop/output/
+/ui/desktop/dist/
+/ui/desktop/.playwright-cli/
+/target/
+# 说明：内核编译目录在仓库外 E:\goose-build（git 不能忽略仓库外路径，不再列假条目）
+
+# Development
+node_modules/
+.vite/
+*.log
+.DS_Store
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+Thumbs.db
+Desktop.ini
+
+# Test
+coverage/
+.nyc_output/
+
+# Backup
+.repair-backups/

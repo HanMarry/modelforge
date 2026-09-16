@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "name": { "zh-CN": "数维杯", "en": "Shuwei Cup" },
+  "description": {
+    "zh-CN": "数维杯大学生数学建模挑战赛论文模板",
+    "en": "Shuwei Cup Mathematical Modeling Challenge"
+  },
+  "language": "zh-CN",
+  "entryFile": "main.tex",
+  "order": 80,
+  "defaultFor": [],
+  "fields": [
+    {
+      "id": "problemNumber",
+      "label": { "zh-CN": "题号", "en": "Problem" },
+      "required": true
+    },
+    {
+      "id": "teamNumber",
+      "label": { "zh-CN": "参赛队号", "en": "Team number" },
+      "required": true
+    }
+  ],
+  "profileFields": []
+}

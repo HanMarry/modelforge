@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "name": { "zh-CN": "统计建模大赛", "en": "Statistical Modeling Contest" },
+  "description": {
+    "zh-CN": "全国大学生统计建模大赛论文模板",
+    "en": "National Undergraduate Statistical Modeling Contest"
+  },
+  "language": "zh-CN",
+  "entryFile": "main.tex",
+  "order": 130,
+  "defaultFor": [],
+  "fields": [
+    {
+      "id": "year",
+      "label": { "zh-CN": "竞赛年份", "en": "Contest year" },
+      "placeholder": { "zh-CN": "例如 2026", "en": "e.g. 2026" },
+      "required": true
+    },
+    {
+      "id": "edition",
+      "label": { "zh-CN": "届数", "en": "Edition" },
+      "placeholder": { "zh-CN": "例如 第十二届填写 12", "en": "e.g. 12" },
+      "required": true
+    },
+    {
+      "id": "workNumber",
+      "label": { "zh-CN": "作品编号", "en": "Entry number" },
+      "required": false
+    }
+  ],
+  "profileFields": ["school", "members", "advisor"]
+}

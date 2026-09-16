@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=ModelForge
+Exec=/usr/lib/modelforge/ModelForge %U
+Icon=/usr/share/pixmaps/modelforge.png
+Terminal=false
+Type=Application
+Categories=Development;
+MimeType=x-scheme-handler/modelforge;

@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "name": { "zh-CN": "东三省赛", "en": "Northeast China Contest" },
+  "description": {
+    "zh-CN": "东三省数学建模联赛论文模板",
+    "en": "Northeast China Mathematical Modeling League"
+  },
+  "language": "zh-CN",
+  "entryFile": "main.tex",
+  "order": 110,
+  "defaultFor": [],
+  "fields": [
+    {
+      "id": "problemNumber",
+      "label": { "zh-CN": "参赛题号", "en": "Problem" },
+      "placeholder": { "zh-CN": "A、B、C 或 D", "en": "A, B, C, or D" },
+      "required": true
+    },
+    {
+      "id": "category",
+      "label": { "zh-CN": "参赛组别", "en": "Category" },
+      "required": true,
+      "options": [
+        { "value": "研究生", "label": { "zh-CN": "研究生", "en": "Graduate" } },
+        { "value": "本科生", "label": { "zh-CN": "本科生", "en": "Undergraduate" } },
+        { "value": "专科生", "label": { "zh-CN": "专科生", "en": "Vocational college" } }
+      ]
+    }
+  ],
+  "profileFields": ["school", "members", "advisor", "phone"]
+}

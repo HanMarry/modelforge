@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": { "zh-CN": "电工杯", "en": "Electrical Engineering Cup" },
+  "description": {
+    "zh-CN": "电工杯数学建模竞赛论文模板",
+    "en": "Electrical Engineering Cup Mathematical Modeling Contest"
+  },
+  "language": "zh-CN",
+  "entryFile": "main.tex",
+  "order": 90,
+  "defaultFor": [],
+  "fields": [
+    {
+      "id": "problemNumber",
+      "label": { "zh-CN": "题号", "en": "Problem" },
+      "placeholder": { "zh-CN": "A 或 B", "en": "A or B" },
+      "required": true
+    },
+    {
+      "id": "teamNumber",
+      "label": { "zh-CN": "报名序号", "en": "Registration number" },
+      "required": true
+    }
+  ],
+  "profileFields": []
+}

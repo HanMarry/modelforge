@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "name": { "zh-CN": "美赛 MCM/ICM", "en": "MCM/ICM" },
+  "description": {
+    "zh-CN": "美国大学生数学建模竞赛英文论文模板",
+    "en": "Mathematical Contest in Modeling and Interdisciplinary Contest in Modeling"
+  },
+  "language": "en",
+  "entryFile": "main.tex",
+  "order": 20,
+  "defaultFor": ["en"],
+  "fields": [
+    {
+      "id": "problemNumber",
+      "label": { "zh-CN": "题号", "en": "Problem chosen" },
+      "placeholder": { "zh-CN": "例如 A、B、C", "en": "e.g. A, B, or C" },
+      "required": true
+    },
+    {
+      "id": "teamNumber",
+      "label": { "zh-CN": "队伍控制号", "en": "Team control number" },
+      "placeholder": { "zh-CN": "例如 2512345", "en": "e.g. 2512345" },
+      "required": true
+    }
+  ],
+  "profileFields": []
+}

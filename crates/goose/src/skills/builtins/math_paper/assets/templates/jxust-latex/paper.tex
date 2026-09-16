@@ -1,0 +1,92 @@
+%% Paper skeleton for the JXUST modeling class (MIT).
+%%
+%% This is the ModelForge adapter for `JXUSTmodeling.cls` (vendored from
+%% sikouhjw/JXUSTmodeling, MIT). The upstream class defines its own front matter
+%% commands — `\biaoti` for the title and `\keyword` for the keywords — and an
+%% `abstract` environment plus an `appendixx` environment, so the body is written
+%% against those rather than against ctexart.
+%%
+%% Compile:  latexmk -xelatex -interaction=nonstopmode paper.tex
+%% Needs:    JXUSTmodeling.cls in the same directory (it is).
+%%
+%% See `example.tex` in this directory for the upstream's full feature tour
+%% (tables, TikZ figures, flow charts).
+%%
+\documentclass{JXUSTmodeling}
+
+\biaoti{论文标题}
+\keyword{关键词一；关键词二；关键词三}
+
+\begin{document}
+
+\begin{abstract}
+  摘要用 300--500 字概括：针对什么问题、建立了什么模型、用什么方法求解、
+  得到了哪些主要定量结论、模型有何特点。先写完全文结果，再回来完成摘要。
+
+  \textbf{针对问题一，} 建立了\ldots 模型，采用\ldots 求解，得到\ldots。
+
+  \textbf{针对问题二，} 应用了\ldots 方法，发现\ldots。
+
+  \textbf{针对问题三，} 提出了\ldots，其优势在于\ldots。
+\end{abstract}
+
+\section{问题的提出}\label{sec:1}
+\subsection{问题的背景}\label{sub:1.1}
+\subsection{已知的条件}\label{sub:1.2}
+\subsection{问题的提出}\label{sub:1.3}
+
+\section{问题的分析}\label{sec:2}
+\subsection{问题的整体分析}\label{sub:2.1}
+\subsection{问题一的分析}\label{sub:2.2}
+\subsection{问题二的分析}\label{sub:2.3}
+
+\section{模型的假设}\label{sec:3}
+为简化问题，本文做出以下假设：
+\begin{enumerate}
+  \item 假设一\ldots
+  \item 假设二\ldots
+\end{enumerate}
+
+\section{符号说明}\label{sec:4}
+\begin{table}[htbp]
+  \centering
+  \caption{符号说明表}
+  \begin{tabular}{cll}
+    \toprule
+    符号 & 说明 & 单位 \\
+    \midrule
+    $m$ & 质量 & kg \\
+    $t$ & 时间 & s \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{模型的建立与求解}\label{sec:5}
+\subsection{问题一的模型建立}
+给出目标函数、决策变量与约束条件，并说明模型选择的理由与局限。
+\begin{equation}
+  \label{eq:objective}
+  \min_{x \in X} f(x) \quad \text{s.t.} \quad g_i(x) \le 0 .
+\end{equation}
+
+\subsection{问题一的模型求解}
+说明算法步骤、参数取值与实现方式，固定随机种子以便复现。
+
+\subsection{求解结果与分析}
+给出求解结果；图表紧随首次引用处。
+
+\section{模型的检验}\label{sec:6}
+给出灵敏度分析、误差指标与与基线方法的对比。
+
+\section{模型的评价及推广}\label{sec:7}
+列出模型的优点、局限与可推广的方向。
+
+\begin{thebibliography}{99}
+  \bibitem{ref1} 作者. 论文名. 期刊, 年份.
+\end{thebibliography}
+
+\begin{appendixx}
+  \section{问题一的求解代码}
+\end{appendixx}
+
+\end{document}

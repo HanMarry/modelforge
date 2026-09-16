@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": { "zh-CN": "亚太赛 APMCM（英文）", "en": "APMCM (English)" },
+  "description": {
+    "zh-CN": "亚太地区大学生数学建模竞赛英文论文模板",
+    "en": "English paper template for APMCM"
+  },
+  "language": "en",
+  "entryFile": "main.tex",
+  "order": 31,
+  "defaultFor": [],
+  "fields": [
+    {
+      "id": "problemNumber",
+      "label": { "zh-CN": "题号", "en": "Problem" },
+      "placeholder": { "zh-CN": "例如 A、B、C", "en": "e.g. A, B, or C" },
+      "required": true
+    },
+    {
+      "id": "teamNumber",
+      "label": { "zh-CN": "队伍编号", "en": "Team number" },
+      "required": true
+    }
+  ],
+  "profileFields": ["school", "members"]
+}

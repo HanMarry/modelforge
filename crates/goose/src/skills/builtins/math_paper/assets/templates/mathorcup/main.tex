@@ -1,0 +1,71 @@
+% !TeX program = xelatex
+% !TeX encoding = UTF-8
+\documentclass{MathorCupmodeling}
+
+% === 额外宏包 ===
+\usepackage{algorithm2e}
+\usepackage{float}
+\usepackage[section]{placeins}
+\usepackage{needspace}
+
+% === TikZ ===
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit,calc}
+\usepackage{longtable}
+
+% === 竞赛信息 ===
+\bianhao{[队伍编号]}
+\tihao{[题号]}
+\timu{[论文标题]}
+\keyword{[关键词1]；[关键词2]；[关键词3]}
+
+% === 引用上标格式 ===
+\makeatletter
+\def\@cite#1#2{\textsuperscript{[{#1\if@tempswa , #2\fi}]}}
+\makeatother
+
+\begin{document}
+
+% === 摘要 ===
+\begin{abstract}
+
+% 写作提示：摘要最后写；按子问题说明所用方法/模型、关键处理、实际数值与单位、结论和验证，突出真正创新。
+% 不复述题面、不堆砌模型名、不放复杂公式和表格；下方仅为占位，篇幅以当届赛事规则为准。
+[中文摘要内容：问题概述 + 每个子问题的方法和数值结果 + 结论，400-600字]
+
+\end{abstract}
+
+% === 目录 ===
+\newpage
+\tableofcontents
+\newpage
+
+% === 正文 ===
+\input{sections/1_restatement}
+\input{sections/2_analysis}
+\input{sections/3_assumptions}
+\input{sections/4_symbols}
+\input{sections/5_problem1}
+\input{sections/6_problem2}
+\input{sections/7_problem3}
+\input{sections/8_evaluation}
+
+% === 参考文献 ===
+% 参考文献必须真实：一律用 paper-search Skill 先 search 检索，再 verify 按 DOI 核对元数据。
+% 仅将核验通过的文献整理为下方 \bibitem；禁止凭记忆编造题名、作者、期刊、卷期页。
+% paper-search 未启用或网络不可用时，只保留能人工核验的真实文献，宁缺毋滥。
+\phantomsection
+\addcontentsline{toc}{section}{参考文献}
+\begin{thebibliography}{99}
+% \bibitem{ref1} 作者. 标题[J]. 期刊, 年份.
+\end{thebibliography}
+
+% === 附录 ===
+\appendix
+\ctexset{section={format={\zihao{-4}\heiti\raggedright}}}
+\begin{center}
+  \heiti\zihao{4} 附\hspace{1pc}录
+\end{center}
+\input{sections/A_code}
+
+\end{document}
