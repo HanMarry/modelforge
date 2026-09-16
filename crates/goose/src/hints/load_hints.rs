@@ -79,6 +79,8 @@ impl SubdirectoryHintTracker {
             return Vec::new();
         };
 
+        let ignore_patterns = build_gitignore(&working_dir);
+
         let mut results = Vec::new();
         for dir in pending {
             let Ok(dir) = dir.canonicalize() else {
@@ -90,9 +92,12 @@ impl SubdirectoryHintTracker {
             if self.loaded_dirs.contains(&dir) {
                 continue;
             }
-            if let Some(content) =
-                load_hints_from_directory(&dir, &working_dir, &self.hints_filenames)
-            {
+            if let Some(content) = load_hints_from_directory(
+                &dir,
+                &working_dir,
+                &self.hints_filenames,
+                &ignore_patterns,
+            ) {
                 let key = format!("subdir_hints:{}", dir.display());
                 results.push((key, content));
             }
@@ -116,6 +121,7 @@ fn load_hints_from_directory(
     directory: &Path,
     working_dir: &Path,
     hints_filenames: &[String],
+    ignore_patterns: &Gitignore,
 ) -> Option<String> {
     if !directory.is_dir() || !directory.is_absolute() {
         return None;
@@ -127,7 +133,6 @@ fn load_hints_from_directory(
 
     let git_root = find_git_root(working_dir);
     let import_boundary = git_root.unwrap_or(working_dir);
-    let gitignore = Gitignore::empty();
 
     let mut directories: Vec<PathBuf> = directory
         .ancestors()
@@ -147,7 +152,7 @@ fn load_hints_from_directory(
                     import_boundary,
                     &mut visited,
                     0,
-                    &gitignore,
+                    ignore_patterns,
                 );
                 if !expanded.is_empty() {
                     contents.push(expanded);
@@ -252,9 +257,7 @@ pub fn load_hint_files(
         if global_hints_path.is_file() {
             let mut visited = HashSet::new();
             let hints_dir = global_hints_path.parent().unwrap();
-            let global_ignore_patterns = GitignoreBuilder::new(hints_dir)
-                .build()
-                .unwrap_or_else(|_| Gitignore::empty());
+            let global_ignore_patterns = build_gitignore(hints_dir);
             let expanded_content = read_referenced_files(
                 global_hints_path,
                 hints_dir,
@@ -397,6 +400,40 @@ mod tests {
         std::env::remove_var("GOOSE_PATH_ROOT");
 
         assert!(hints.contains("Imported policy content"));
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn test_global_hints_filters_gitignored_references() {
+        let root = TempDir::new().unwrap();
+        std::env::set_var("GOOSE_PATH_ROOT", root.path());
+
+        let agents_home = root.path().join(".agents");
+        fs::create_dir_all(&agents_home).unwrap();
+        fs::write(agents_home.join(".gitignore"), "*.env\n").unwrap();
+        fs::write(agents_home.join("secret.env"), "SECRET_KEY=abc123").unwrap();
+        fs::write(
+            agents_home.join(AGENTS_MD_FILENAME),
+            "Global header\n@secret.env\n",
+        )
+        .unwrap();
+
+        let project = TempDir::new().unwrap();
+        let gitignore = create_dummy_gitignore();
+        let hints = load_hint_files(
+            project.path(),
+            &[
+                GOOSE_HINTS_FILENAME.to_string(),
+                AGENTS_MD_FILENAME.to_string(),
+            ],
+            &gitignore,
+        );
+
+        std::env::remove_var("GOOSE_PATH_ROOT");
+
+        assert!(hints.contains("Global header"));
+        assert!(!hints.contains("SECRET_KEY=abc123"));
+        assert!(hints.contains("@secret.env"));
     }
 
     #[test]
@@ -1035,5 +1072,37 @@ mod gitignore_tests {
         assert!(!hints.contains("temp data"));
         assert!(hints.contains("@../debug.log"));
         assert!(hints.contains("@cache.tmp"));
+    }
+
+    #[test]
+    fn test_subdirectory_hints_filters_gitignored_references() {
+        let dir = TempDir::new().unwrap();
+        let project_root = dir.path();
+
+        fs::create_dir(project_root.join(".git")).unwrap();
+        fs::write(project_root.join(".gitignore"), "*.env\n").unwrap();
+        fs::write(project_root.join("secret.env"), "SECRET_KEY=abc123").unwrap();
+
+        let subdir = project_root.join("subdir");
+        fs::create_dir(&subdir).unwrap();
+        fs::write(
+            subdir.join(GOOSE_HINTS_FILENAME),
+            "Subdir hints\n@../secret.env\nEnd",
+        )
+        .unwrap();
+
+        let working_dir = project_root.canonicalize().unwrap();
+        let ignore_patterns = build_gitignore(&working_dir);
+        let content = load_hints_from_directory(
+            &subdir.canonicalize().unwrap(),
+            &working_dir,
+            &[GOOSE_HINTS_FILENAME.to_string()],
+            &ignore_patterns,
+        )
+        .unwrap();
+
+        assert!(content.contains("Subdir hints"));
+        assert!(!content.contains("SECRET_KEY=abc123"));
+        assert!(content.contains("@../secret.env"));
     }
 }
