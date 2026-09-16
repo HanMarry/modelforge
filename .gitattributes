@@ -1,1 +1,34 @@
-crates/goose/src/agents/snapshots/*.snap linguist-language=Text
+# 行尾规范化：仓库内统一 LF，消除 Windows autocrlf 假修改噪音（2026-09-16）
+* text=auto eol=lf
+
+# 二进制显式标记，防止 text=auto 误判
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.icns binary
+*.webp binary
+*.pdf binary
+*.zip binary
+*.gz binary
+*.tar binary
+*.7z binary
+*.exe binary
+*.dll binary
+*.dylib binary
+*.so binary
+*.bin binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.eot binary
+*.mp4 binary
+*.wav binary
+*.mp3 binary
+*.xlsx binary
+*.docx binary
+*.vsdx binary
+
+crates/goose/src/agents/snapshots/*.snap text linguist-language=Text
