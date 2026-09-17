@@ -5410,6 +5410,7 @@ echo start >> "$PLUGIN_ROOT/hook.log"
     async fn skipped_user_message_does_not_enter_empty_response_retry_loop() -> Result<()> {
         use rmcp::model::{Annotations, Role, TextContent};
 
+        let _guard = env_lock::lock_env([("GOOSE_LEGACY_LOOP", Some("1"))]);
         let env = SessionStartHookTestEnv::new()?;
         let provider = Arc::new(CountingTextProvider::new());
         let hook_manager = env.hook_manager();
@@ -5610,6 +5611,7 @@ echo start >> "$PLUGIN_ROOT/hook.log"
 
     #[tokio::test]
     async fn stop_hook_payload_excludes_non_user_visible_assistant_content() -> Result<()> {
+        let _guard = env_lock::lock_env([("GOOSE_LEGACY_LOOP", Some("1"))]);
         let env = StopHookTestEnv::new(RECORD_PAYLOAD_SCRIPT)?;
         let provider = Arc::new(VisibilityTextProvider);
         let (agent, session_id) =
