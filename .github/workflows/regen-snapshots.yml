@@ -1,0 +1,36 @@
+name: regen-snapshots
+
+on:
+  workflow_dispatch:
+
+jobs:
+  regen:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659 # v1.17.0
+
+      - name: Repair stale v8 prebuilt marker
+        run: .github/scripts/repair-v8-prebuilt.sh
+
+      - name: Install Dependencies
+        run: |
+          sudo apt update -y
+          sudo apt install -y libdbus-1-dev gnome-keyring libxcb1-dev
+
+      - name: Regenerate prompt_manager snapshots
+        run: |
+          export CARGO_INCREMENTAL=0
+          export INSTA_UPDATE=always
+          cargo test -p goose --lib prompt_manager
+        env:
+          RUST_MIN_STACK: 8388608
+
+      - name: Upload regenerated snapshots
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: snapshots
+          path: crates/goose/src/agents/snapshots/
+          if-no-files-found: error
