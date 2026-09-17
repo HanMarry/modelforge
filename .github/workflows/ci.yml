@@ -4,12 +4,15 @@ on:
   push:
     branches:
       - main
+      - modelforge
   pull_request:
     branches:
       - main
+      - modelforge
   merge_group:
     branches:
       - main
+      - modelforge
   workflow_dispatch:
 
 concurrency:
@@ -223,7 +226,7 @@ jobs:
   rust-build-windows:
     name: Build Rust Project on Windows
     runs-on: windows-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/modelforge')
     steps:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
