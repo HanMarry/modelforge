@@ -71,7 +71,13 @@ pub(super) use ops_toolcalling::ToolExecutionOperation;
 pub(super) use ops_unknown_tool::UnknownToolOperation;
 
 pub fn enabled() -> bool {
+    // 默认启用状态机；GOOSE_STATE_MACHINE 保留为显式开关（0 仍可强制禁用），
+    // GOOSE_LEGACY_LOOP=1 回退到老引擎。
     std::env::var("GOOSE_STATE_MACHINE")
         .map(|v| matches!(v.as_str(), "1" | "true" | "TRUE" | "yes"))
-        .unwrap_or(false)
+        .unwrap_or_else(|_| {
+            !std::env::var("GOOSE_LEGACY_LOOP")
+                .map(|v| matches!(v.as_str(), "1" | "true" | "TRUE" | "yes"))
+                .unwrap_or(false)
+        })
 }

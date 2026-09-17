@@ -3618,7 +3618,7 @@ mod tests {
         async fn legacy_structured_output_fails_before_provider_inference() -> Result<()> {
             use goose::recipe::Response;
 
-            let _guard = env_lock::lock_env([("GOOSE_STATE_MACHINE", None::<&str>)]);
+            let _guard = env_lock::lock_env([("GOOSE_LEGACY_LOOP", Some("1"))]);
             let agent = Agent::new();
             let session = agent
                 .config
