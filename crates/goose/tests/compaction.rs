@@ -254,7 +254,7 @@ async fn setup_test_session(
 }
 
 #[tokio::test]
-async fn context_owning_provider_rejects_clear_and_compact_without_changing_session() -> Result<()>
+async fn context_owning_provider_passes_through_clear_and_compact_without_changing_session() -> Result<()>
 {
     let temp_dir = TempDir::new()?;
     let agent = Agent::new();
@@ -281,17 +281,14 @@ async fn context_owning_provider_rejects_clear_and_compact_without_changing_sess
         .update_provider(provider, ModelConfig::new("mock-model"), &session.id)
         .await?;
 
+    // The provider owns its conversation history, so /clear and /compact are passed
+    // through as normal prompts instead of modifying the session locally.
     for command in ["clear", "compact"] {
-        let error = agent
+        let result = agent
             .execute_command(&format!("/{command}"), &session.id)
             .await
-            .unwrap_err();
-        assert_eq!(
-            error.to_string(),
-            format!(
-                "/{command} is not available for provider 'mock-compaction' because it manages its own conversation context"
-            )
-        );
+            .unwrap();
+        assert!(result.is_none(), "/{command} should be passed through");
     }
 
     let unchanged = agent
