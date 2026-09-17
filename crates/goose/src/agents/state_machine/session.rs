@@ -209,12 +209,18 @@ async fn mirror_effects(session: &mut Session, effects: &[GooseEffect]) -> Resul
                     continue;
                 };
                 for message in conversation.messages_mut().iter_mut().rev() {
-                    let tool_request = message.content.iter_mut().find_map(|content| match content {
-                        MessageContent::ToolRequest(request) if request.id == *tool_call_id => {
-                            Some(request)
-                        }
-                        _ => None,
-                    });
+                    let tool_request =
+                        message
+                            .content
+                            .iter_mut()
+                            .find_map(|content| match content {
+                                MessageContent::ToolRequest(request)
+                                    if request.id == *tool_call_id =>
+                                {
+                                    Some(request)
+                                }
+                                _ => None,
+                            });
                     if let Some(tool_request) = tool_request {
                         let meta = tool_request
                             .tool_meta
