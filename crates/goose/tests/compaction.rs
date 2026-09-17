@@ -254,8 +254,8 @@ async fn setup_test_session(
 }
 
 #[tokio::test]
-async fn context_owning_provider_passes_through_clear_and_compact_without_changing_session() -> Result<()>
-{
+async fn context_owning_provider_passes_through_clear_and_compact_without_changing_session(
+) -> Result<()> {
     let temp_dir = TempDir::new()?;
     let agent = Agent::new();
     let messages = vec![
