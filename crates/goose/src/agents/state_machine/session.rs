@@ -166,19 +166,113 @@ impl EffectUsage<GooseEffect> for SessionManager {
     }
 }
 
+/// Folds persisted effects into the in-memory session after every apply, so each
+/// later step observes the same state a fresh `load()` would have returned —
+/// without re-reading the whole session from SQLite on every step.
+///
+/// Must stay in sync with `SessionManager::apply_effects` above: every effect
+/// variant persisted there is mirrored here with the same semantics.
+async fn mirror_effects(session: &mut Session, effects: &[GooseEffect]) -> Result<()> {
+    for effect in effects {
+        match effect {
+            GooseEffect::Conversation(ConversationEffect::AppendMessage(message)) => {
+                let Some(conversation) = session.conversation.as_mut() else {
+                    continue;
+                };
+                let mut message = message.clone();
+                if let Some(last) = conversation.messages().last() {
+                    message.created = message.created.max(last.created);
+                }
+                conversation.messages_mut().push(message);
+            }
+            GooseEffect::Conversation(ConversationEffect::ReplaceConversation(conversation)) => {
+                session.conversation = Some(conversation.clone());
+                session.usage = usage::estimate_context(conversation).await?;
+            }
+            GooseEffect::ReplaceConversation {
+                conversation,
+                usage: replacement_usage,
+            } => {
+                if let Some(provider_usage) = replacement_usage {
+                    session.accumulated_usage += provider_usage.usage;
+                }
+                session.conversation = Some(conversation.clone());
+                session.usage = usage::estimate_context(conversation).await?;
+            }
+            GooseEffect::Conversation(ConversationEffect::PatchToolRequestMeta {
+                tool_call_id,
+                patch,
+            }) => {
+                let (Some(conversation), Some(source)) =
+                    (session.conversation.as_mut(), patch.as_object())
+                else {
+                    continue;
+                };
+                for message in conversation.messages_mut().iter_mut().rev() {
+                    let tool_request = message.content.iter_mut().find_map(|content| match content {
+                        MessageContent::ToolRequest(request) if request.id == *tool_call_id => {
+                            Some(request)
+                        }
+                        _ => None,
+                    });
+                    if let Some(tool_request) = tool_request {
+                        let meta = tool_request
+                            .tool_meta
+                            .get_or_insert_with(|| serde_json::json!({}));
+                        if let Some(target) = meta.as_object_mut() {
+                            for (key, value) in source {
+                                target.insert(key.clone(), value.clone());
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+            GooseEffect::Conversation(ConversationEffect::SetMessageVisibility {
+                message_id,
+                user_visible,
+                agent_visible,
+            }) => {
+                let Some(conversation) = session.conversation.as_mut() else {
+                    continue;
+                };
+                if let Some(message) = conversation
+                    .messages_mut()
+                    .iter_mut()
+                    .find(|message| message.id.as_deref() == Some(message_id.as_str()))
+                {
+                    message.metadata.user_visible = *user_visible;
+                    message.metadata.agent_visible = *agent_visible;
+                }
+            }
+            GooseEffect::SetRecipe(recipe) => {
+                session.recipe = (**recipe).clone();
+            }
+            GooseEffect::SetExtensionData(extension_data) => {
+                session.extension_data = extension_data.clone();
+            }
+            GooseEffect::RecordUsage(provider_usage) => {
+                session.usage = provider_usage.usage;
+                session.accumulated_usage += provider_usage.usage;
+            }
+        }
+    }
+    Ok(())
+}
+
 pub(crate) async fn run(
     machine: &crate::agents::state_machine::StateMachine<'_, Session, GooseEffect>,
     runtime: &SessionManager,
     session_id: &str,
     emit: &Emitter,
 ) -> Result<Session> {
-    let entry_session = runtime.load(session_id).await?;
+    let mut session = runtime.load(session_id).await?;
     tracing::Span::current().record(
         "gen_ai.agent.name",
-        crate::agents::gen_ai_telemetry::agent_name(&entry_session),
+        crate::agents::gen_ai_telemetry::agent_name(&session),
     );
     let trace_input = if crate::agents::gen_ai_telemetry::capture_message_content() {
-        entry_session
+        session
             .conversation()
             .and_then(|conversation| {
                 crate::agents::state_machine::messages_since_kickoff(conversation).ok()
@@ -196,7 +290,7 @@ pub(crate) async fn run(
 
     let mut turn_usage = goose_providers::conversation::token_usage::Usage::default();
     loop {
-        let session = runtime.load(session_id).await?;
+        // session 在每步 apply 后由 mirror_effects 同步到与持久层一致，无需逐步重载
         let Some(mut result) = machine.step(&session, emit).await? else {
             break;
         };
@@ -207,12 +301,12 @@ pub(crate) async fn run(
             }
         }
         machine.apply(runtime, &session, &mut result, emit).await?;
+        mirror_effects(&mut session, &result.effects).await?;
         if result.yield_to_client {
             break;
         }
     }
 
-    let session = runtime.load(session_id).await?;
     let last_assistant_text = session
         .conversation()
         .and_then(|conversation| {
