@@ -21,8 +21,8 @@ class ResizeObserverMock implements ResizeObserver {
   disconnect() {}
 }
 
-(globalThis as any).ResizeObserver = ResizeObserverMock;
-(window as any).ResizeObserver = ResizeObserverMock;
+globalThis.ResizeObserver = ResizeObserverMock as unknown as typeof ResizeObserver;
+window.ResizeObserver = ResizeObserverMock as unknown as typeof ResizeObserver;
 
 // --- pdfjs-dist mock ------------------------------------------------------
 

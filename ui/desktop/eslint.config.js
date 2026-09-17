@@ -115,6 +115,10 @@ module.exports = [
         MediaTrackConstraints: 'readonly',
         Blob: 'readonly',
         FormData: 'readonly',
+        ResizeObserverCallback: 'readonly',
+        ResizeObserverEntry: 'readonly',
+        btoa: 'readonly',
+        NodeJS: 'readonly',
       },
     },
     plugins: {
