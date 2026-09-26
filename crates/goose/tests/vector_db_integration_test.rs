@@ -224,10 +224,7 @@ mod vector_db_tests {
         assert_eq!(results[0].id, "doc_a1");
         assert!(results[0].score > results[2].score);
         assert!(results[0].metadata.is_some());
-        assert_eq!(
-            results[0].metadata.as_ref().unwrap()["topic"],
-            "math"
-        );
+        assert_eq!(results[0].metadata.as_ref().unwrap()["topic"], "math");
 
         // Test delete
         client.delete("doc_b1").await.expect("Failed to delete");

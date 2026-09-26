@@ -330,11 +330,8 @@ fn resolve_bundled_uv() -> Option<PathBuf> {
 
 /// Extract the interpreter path from one `uv python list --only-installed` line.
 fn uv_python_path(line: &str) -> Option<String> {
-    let idx = line
-        .char_indices()
-        .find(|(_, c)| c.is_whitespace())
-        .map(|(i, _)| i)?;
-    let path = line[idx..].trim();
+    let (_, rest) = line.split_once(char::is_whitespace)?;
+    let path = rest.trim();
     if path.is_empty() || path.starts_with('<') {
         return None;
     }

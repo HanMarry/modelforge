@@ -128,7 +128,7 @@ export default function Hub({
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const { time, meridiem, hour } = useClock();
   const workspacePanel = useWorkspacePanel();
-  const { clearActiveFile } = workspacePanel;
+  const { clearActiveFile, selectTab: selectWorkspaceTab } = workspacePanel;
 
   useWorkspaceShortcuts(true, {
     onTogglePanel: workspacePanel.toggle,
@@ -274,7 +274,7 @@ export default function Hub({
         }
         handleWorkingDirChange(result.projectDir);
         window.electron.addRecentDir(result.projectDir);
-        workspacePanel.selectTab('project');
+        selectWorkspaceTab('project');
         applyPreset(workflow, contest, problem.prompt);
         toastSuccess({
           title: intl.formatMessage(i18n.exampleProjectCreated, { name: problem.folderName }),
@@ -297,7 +297,7 @@ export default function Hub({
       contest,
       applyPreset,
       handleWorkingDirChange,
-      workspacePanel.selectTab,
+      selectWorkspaceTab,
     ]
   );
 
