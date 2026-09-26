@@ -1,6 +1,6 @@
 ---
 name: doctor
-description: MathModel 数学建模环境检查与安装向导。仅当用户明确要求“环境检查”“doctor”“检查依赖”“修复数学建模环境”或安装论文/绘图依赖时使用。检查 CUMCM LaTeX、Python 科学计算、科研绘图工具链与 Git，输出缺失项和按平台安装方案（含中国大陆网络的镜像方案），并只在用户明确确认后执行安装。
+description: ModelForge 数学建模环境检查与安装向导。仅当用户明确要求“环境检查”“doctor”“检查依赖”“修复数学建模环境”或安装论文/绘图依赖时使用。检查 CUMCM LaTeX、Python 科学计算、科研绘图工具链与 Git，输出缺失项和按平台安装方案（含中国大陆网络的镜像方案），并只在用户明确确认后执行安装。
 allowed-tools: Bash(*), Read, AskUserQuestion
 ---
 
@@ -24,7 +24,7 @@ allowed-tools: Bash(*), Read, AskUserQuestion
 | 项目 | 用途 |
 | --- | --- |
 | Python 3 | 建模求解与绘图脚本 |
-| `git` | MathModel 的本地项目版本存档与回合快照恢复 |
+| `git` | ModelForge 的本地项目版本存档与回合快照恢复 |
 | `xelatex` | `mma-paper` 的 CUMCM 中文 LaTeX 模板 |
 | `latexmk` | 论文自动多轮编译 |
 | `bibtex` | 参考文献编译 |
@@ -35,7 +35,7 @@ allowed-tools: Bash(*), Read, AskUserQuestion
 
 | 项目 | 用途 |
 | --- | --- |
-| `uv` | Python、虚拟环境与依赖管理；MathModel 安装包通常自带 |
+| `uv` | Python、虚拟环境与依赖管理；ModelForge 安装包通常自带 |
 | `drawio` / `draw.io` | 技术路线图与流程图导出 |
 | `pdftoppm` / `mutool` / `magick` 任一 | PDF 转图片后的视觉检查 |
 | 可用中文字体 | SimSun、STSong、Songti SC 或 Noto Serif CJK SC |
@@ -153,7 +153,7 @@ curl -sI -m 5 https://pypi.org/simple/ >/dev/null 2>&1 && echo "OK pypi" || echo
 - **Windows 复检要当心 PATH 快照**：安装器把新目录写进注册表后，当前已运行的
   shell 与 agent 进程仍是旧 PATH，`git`、`xelatex` 直接敲会「找不到」，看起来
   像装失败。这时用绝对路径复检（例如 `& "C:\Program Files\Git\cmd\git.exe" --version`），
-  并告诉用户 MathModel「设置 → 运行环境」点「重新检查」即可识别，不必重启电脑。
+  并告诉用户重新调用 modeling 扩展的 check_env（或在设置 → 扩展里重载 modeling）即可识别，不必重启电脑。
 - 只有复检通过后才能声称环境已就绪。
 
 ## R 后端补充检查

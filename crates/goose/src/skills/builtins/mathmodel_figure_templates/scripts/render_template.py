@@ -410,7 +410,7 @@ def write_readme(project: Path, template_id: str, script_path: Path) -> None:
     block = f"""
 ## {template_id}
 
-Generated from the bundled MathModel figure-template skill.
+Generated from the bundled ModelForge figure-template skill.
 
 ```bash
 python3 {script_path.as_posix()}
@@ -432,7 +432,7 @@ Outputs:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Render a bundled MathModel figure template."
+        description="Render a bundled ModelForge figure template."
     )
     parser.add_argument(
         "template", nargs="?", help="Template id, alias, or Chinese title fragment"

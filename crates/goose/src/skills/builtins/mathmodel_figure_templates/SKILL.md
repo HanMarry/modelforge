@@ -1,13 +1,13 @@
 ---
 name: mathmodel-figure-templates
-description: Generate reproducible scientific figures from bundled MathModel templates, including model evaluation, statistical distributions, multivariate analysis, feature attribution, composition, networks, spatial grids, and time series. Use when the user invokes /mathmodel-figure-templates or requests a matching scientific chart; provides Python scripts, PNG/PDF/SVG export, previews, and data-mapping guidance.
+description: Generate reproducible scientific figures from bundled ModelForge templates, including model evaluation, statistical distributions, multivariate analysis, feature attribution, composition, networks, spatial grids, and time series. Use when the user invokes /mathmodel-figure-templates or requests a matching scientific chart; provides Python scripts, PNG/PDF/SVG export, previews, and data-mapping guidance.
 allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob
 ---
 
-# MathModel Figure Templates
+# ModelForge Figure Templates
 
-This skill ships with MathModel and contains ready-to-run Python/matplotlib scripts for the
-figure templates available to the MathModel agent. Resolve paths relative to
+This skill ships with ModelForge and contains ready-to-run Python/matplotlib scripts for the
+figure templates available to the ModelForge agent. Resolve paths relative to
 the directory containing this `SKILL.md`; do not depend on a fixed home-directory or sandbox path.
 
 ## Fast Path
