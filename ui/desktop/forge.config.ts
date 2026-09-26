@@ -94,6 +94,7 @@ module.exports = {
       platforms: ['win32'],
       config: {
         name: 'ModelForge',
+        authors: 'ModelForge Team',
         setupIcon: 'src/images/icon.ico',
       },
     },
