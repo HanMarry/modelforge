@@ -493,6 +493,24 @@ fn should_skip_dir(path: &Path) -> bool {
     )
 }
 
+/// Absolute paths of every file under `dir`, used to populate a built-in
+/// skill's supporting files after its assets have been extracted to disk.
+fn collect_supporting_files(dir: &Path) -> Vec<String> {
+    let mut files = Vec::new();
+    let mut visited_dirs = HashSet::new();
+    walk_files_recursively(
+        dir,
+        &mut visited_dirs,
+        &mut |path| !should_skip_dir(path),
+        &mut |path| {
+            if path.is_file() {
+                files.push(path.to_string_lossy().into_owned());
+            }
+        },
+    );
+    files
+}
+
 fn walk_files_recursively<F, G>(
     dir: &Path,
     visited_dirs: &mut HashSet<PathBuf>,
@@ -626,11 +644,25 @@ fn discover_skills_with_config(working_dir: Option<&Path>, config: &Config) -> V
         }
     }
 
+    // Built-in skills keep their scripts and references compiled into the
+    // binary. Extract them once so `supporting_files` resolves to real paths;
+    // without this, instructions that point at `scripts/...` cannot be followed.
+    let builtin_root = Paths::in_data_dir("builtin-skills");
+    if let Err(error) = builtin::materialize_assets(&builtin_root) {
+        warn!("Failed to extract built-in skill assets: {error}");
+    }
+
     for content in builtin::get_all() {
-        if let Some(source) = parse_skill_content(content, &PathBuf::new(), true, true) {
+        if let Some(mut source) = parse_skill_content(content, &PathBuf::new(), true, true) {
             if !seen.contains(&source.name) {
+                let support_dir = builtin_root.join(&source.name);
+                let path = if support_dir.is_dir() {
+                    source.supporting_files = collect_supporting_files(&support_dir);
+                    support_dir.to_string_lossy().into_owned()
+                } else {
+                    format!("builtin://skills/{}", source.name)
+                };
                 seen.insert(source.name.clone());
-                let path = format!("builtin://skills/{}", source.name);
                 sources.push(SourceEntry {
                     source_type: SourceType::BuiltinSkill,
                     path,
