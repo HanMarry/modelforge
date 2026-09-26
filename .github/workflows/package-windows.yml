@@ -1,0 +1,159 @@
+name: "Package ModelForge (Windows)"
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - modelforge
+
+permissions:
+  contents: read
+  # Needed only by the optional Azure Trusted Signing step (OIDC); harmless when
+  # no signing secrets are configured.
+  id-token: write
+
+jobs:
+  package-windows:
+    name: Package Windows (ModelForge)
+    runs-on: windows-latest
+    env:
+      # Azure Trusted Signing secrets mapped to env vars so the signing steps can
+      # be skipped cleanly when the secrets are not configured.
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      AZURE_SIGNING_ENDPOINT: ${{ secrets.AZURE_SIGNING_ENDPOINT }}
+      AZURE_SIGNING_ACCOUNT_NAME: ${{ secrets.AZURE_SIGNING_ACCOUNT_NAME }}
+      AZURE_CERTIFICATE_PROFILE_NAME: ${{ secrets.AZURE_CERTIFICATE_PROFILE_NAME }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6  # v2.9.2
+        with:
+          key: windows-msvc-desktop-standard
+
+      - name: Setup Rust
+        shell: bash
+        run: |
+          rustup show
+          rustup target add x86_64-pc-windows-msvc
+
+      - name: Build Windows kernel (goose.exe)
+        shell: pwsh
+        run: |
+          cargo build --release --target x86_64-pc-windows-msvc -p goose-cli --bin goose
+
+          $binaryPath = "./target/x86_64-pc-windows-msvc/release/goose.exe"
+          if (-not (Test-Path $binaryPath)) {
+            Write-Error "Windows binary not found: $binaryPath"
+            Get-ChildItem ./target/x86_64-pc-windows-msvc/release/ -ErrorAction SilentlyContinue
+            exit 1
+          }
+          Get-Item $binaryPath
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020  # v7.0.0
+        with:
+          node-version: 24.10.0
+
+      - name: Install pnpm
+        run: npm install -g pnpm@10.30.3
+
+      - name: Cache node_modules
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        with:
+          path: |
+            node_modules
+            ui/desktop/node_modules
+            .hermit/node/cache
+          key: windows-pnpm-cache-v1-${{ runner.os }}-node24-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            windows-pnpm-cache-v1-${{ runner.os }}-node24-
+
+      - name: Prepare Windows binary
+        shell: bash
+        run: |
+          rm -rf ./ui/desktop/src/bin
+          mkdir -p ./ui/desktop/src/bin
+          cp -f ./target/x86_64-pc-windows-msvc/release/goose.exe ./ui/desktop/src/bin/
+
+          if [ -d "./ui/desktop/src/platform/windows/bin" ]; then
+            for file in ./ui/desktop/src/platform/windows/bin/*.{exe,dll,cmd}; do
+              filename="$(basename "$file")"
+              if [ -f "$file" ] && [ "$filename" != "goose.exe" ]; then
+                cp -f "$file" ./ui/desktop/src/bin/
+              fi
+            done
+
+            if [ -d "./ui/desktop/src/platform/windows/bin/goose-npm" ]; then
+              cp -r ./ui/desktop/src/platform/windows/bin/goose-npm/ ./ui/desktop/src/bin/goose-npm/
+            fi
+          fi
+
+      - name: Prepare built-in exam examples
+        shell: bash
+        run: |
+          rm -rf ./ui/desktop/resources/builtin-examples
+          mkdir -p ./ui/desktop/resources/builtin-examples
+          cp -r ./crates/goose/src/skills/builtins/math_modeling/assets/examples/. ./ui/desktop/resources/builtin-examples/
+
+      - name: Sign kernel binary (Azure login)
+        if: env.AZURE_CLIENT_ID != '' && env.AZURE_SIGNING_ENDPOINT != ''
+        uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c  # v3.0.2
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Sign goose.exe (Azure Trusted Signing)
+        if: env.AZURE_CLIENT_ID != '' && env.AZURE_SIGNING_ENDPOINT != ''
+        uses: azure/trusted-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82  # v2.0.0
+        with:
+          endpoint: ${{ env.AZURE_SIGNING_ENDPOINT }}
+          trusted-signing-account-name: ${{ env.AZURE_SIGNING_ACCOUNT_NAME }}
+          certificate-profile-name: ${{ env.AZURE_CERTIFICATE_PROFILE_NAME }}
+          files: |
+            ${{ github.workspace }}/ui/desktop/src/bin/goose.exe
+
+      - name: Force GitHub HTTPS for npm git dependencies
+        shell: bash
+        run: |
+          git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
+          git config --global url."https://github.com/".insteadOf "git+ssh://git@github.com/"
+
+      # Expected outputs (relative to ui/desktop):
+      #   out/ModelForge-win32-x64/                              packaged app dir
+      #   out/make/squirrel.windows/x64/ModelForge-<ver> Setup.exe   installer
+      #   out/make/squirrel.windows/x64/ModelForge-<ver>-full.nupkg  update package
+      #   out/make/zip/win32/x64/ModelForge-win32-x64-<ver>.zip      portable zip
+      - name: Build desktop UI and installers
+        shell: bash
+        env:
+          ELECTRON_PLATFORM: win32
+          ELECTRON_ARCH: x64
+        run: |
+          cd ui/desktop
+          pnpm install --frozen-lockfile
+          node scripts/build-main.js
+          node scripts/prepare-platform-binaries.js
+          pnpm run make --platform=win32 --arch=x64
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: ModelForge-win32-x64-setup
+          path: |
+            ui/desktop/out/make/squirrel.windows/x64/*Setup.exe
+            ui/desktop/out/make/squirrel.windows/x64/*.nupkg
+            ui/desktop/out/make/squirrel.windows/x64/RELEASES
+          if-no-files-found: error
+
+      - name: Upload Windows zip
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: ModelForge-win32-x64
+          path: ui/desktop/out/make/zip/win32/x64/*.zip
+          if-no-files-found: error

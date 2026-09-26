@@ -35,7 +35,7 @@ allowed-tools: Bash(*), Read
 
 | 项目 | 用途 |
 | --- | --- |
-| `uv` | Python、虚拟环境与依赖管理；ModelForge 安装包通常自带 |
+| `uv` | Python、虚拟环境与依赖管理；Windows 安装包自带，源码/CLI 运行时需自行安装 |
 | `drawio` / `draw.io` | 技术路线图与流程图导出 |
 | `pdftoppm` / `mutool` / `magick` 任一 | PDF 转图片后的视觉检查 |
 | 可用中文字体 | SimSun、STSong、Songti SC 或 Noto Serif CJK SC |
@@ -79,7 +79,8 @@ elseif (Get-Command python3 -ErrorAction SilentlyContinue) { $PYTHON = "python3"
 else { Write-Output "MISS python" }
 ```
 
-如果没有 Python，先报告这一项，继续用 `command -v`（PowerShell 用 `Get-Command`）
+如果没有 Python，先报告这一项（有 `uv` 时提示用户用 `uv python install` 安装托管
+Python，不会动系统 Python），继续用 `command -v`（PowerShell 用 `Get-Command`）
 检查 LaTeX 和建议工具；不要尝试运行 Python 检查脚本。
 
 ### 2. 运行结构化检查

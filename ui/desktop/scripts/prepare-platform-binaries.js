@@ -107,6 +107,7 @@ function extractZip(zipPath, destDir) {
     execFileSync('unzip', ['-q', zipPath, '-d', destDir], { stdio: 'inherit' });
 }
 
+// TODO: pin darwin/linux uv binaries once official hashes are available.
 async function ensureWindowsUvBinaries() {
     const allPresent = Object.entries(uvBinaryHashes).every(([name, expectedHash]) =>
         hasExpectedHash(path.join(srcBinDir, name), expectedHash)

@@ -160,6 +160,82 @@ mod vector_db_tests {
     }
 
     #[tokio::test]
+    #[ignore] // Requires running Qdrant instance
+    async fn test_qdrant_lifecycle_manual_vectors() {
+        let config = VectorDbConfig {
+            collection_name: "test_manual_vectors".to_string(),
+            ..Default::default()
+        };
+
+        let client = VectorDbClient::new(config)
+            .await
+            .expect("Failed to create client");
+
+        client
+            .init_collection()
+            .await
+            .expect("Failed to initialize collection");
+
+        // Manually constructed 384-dim vectors with clearly distinct directions
+        let mut v1 = vec![0.0f32; 384];
+        v1[0] = 1.0; // "topic A" (math)
+        let mut v2 = vec![0.0f32; 384];
+        v2[0] = 0.9;
+        v2[1] = 0.1; // similar to v1
+        let mut v3 = vec![0.0f32; 384];
+        v3[383] = 1.0; // "topic B" (biology, dissimilar)
+
+        client
+            .insert_batch(vec![
+                (
+                    "doc_a1".to_string(),
+                    "Document about linear algebra matrix vector".to_string(),
+                    v1.clone(),
+                    Some(serde_json::json!({"topic": "math"})),
+                ),
+                (
+                    "doc_a2".to_string(),
+                    "Document about matrix operations".to_string(),
+                    v2.clone(),
+                    Some(serde_json::json!({"topic": "math"})),
+                ),
+                (
+                    "doc_b1".to_string(),
+                    "Document about cell biology mitosis".to_string(),
+                    v3.clone(),
+                    Some(serde_json::json!({"topic": "biology"})),
+                ),
+            ])
+            .await
+            .expect("Failed to insert batch");
+
+        let (point_count, vector_size) = client.stats().await.expect("Failed to get stats");
+        assert_eq!(point_count, 3);
+        assert_eq!(vector_size, 384);
+
+        // Search with query near v1 - math docs should rank first
+        let mut query = vec![0.0f32; 384];
+        query[0] = 0.95;
+        query[1] = 0.05;
+
+        let results = client.search(query, 3).await.expect("Failed to search");
+        assert_eq!(results.len(), 3);
+        // v1 is closest to query (both have large component in dim 0)
+        assert_eq!(results[0].id, "doc_a1");
+        assert!(results[0].score > results[2].score);
+        assert!(results[0].metadata.is_some());
+        assert_eq!(
+            results[0].metadata.as_ref().unwrap()["topic"],
+            "math"
+        );
+
+        // Test delete
+        client.delete("doc_b1").await.expect("Failed to delete");
+        let (count_after, _) = client.stats().await.expect("Failed to get stats");
+        assert_eq!(count_after, 2);
+    }
+
+    #[tokio::test]
     #[ignore] // Requires: docker run -p 6334:6334 qdrant/qdrant
     async fn test_dimension_mismatch_error() {
         let config = VectorDbConfig {

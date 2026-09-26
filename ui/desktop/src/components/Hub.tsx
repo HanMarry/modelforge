@@ -26,7 +26,7 @@ import {
   type NextChatExtensionDraft,
 } from '../utils/nextChatExtensions';
 import { formatAcpError } from '../acp/errors';
-import { toastError } from '../toasts';
+import { toastError, toastSuccess } from '../toasts';
 import { formatClockDisplay } from '../utils/timeUtils';
 import { takeComposerSeed } from '../utils/composerSeed';
 import { ModelForgeMark } from './icons/ModelForge';
@@ -39,6 +39,7 @@ import {
   ClipboardCheck,
   Database,
   FileText,
+  Loader2,
   MessageSquare,
   PenLine,
 } from 'lucide-react';
@@ -58,6 +59,7 @@ import {
   EXAMPLE_PROBLEMS,
   WORKFLOW_PRESETS,
   type ContestPreset,
+  type ExampleProblem,
   type WorkflowPreset,
 } from '../catalog/homePresets';
 import { cn } from '../utils';
@@ -82,6 +84,15 @@ const i18n = defineMessages({
     defaultMessage: 'No preset workflow; start from your own input',
   },
   examplesTitle: { id: 'hub.examplesTitle', defaultMessage: 'Try one of these contest problems' },
+  examplePreparing: { id: 'hub.examplePreparing', defaultMessage: 'Loading example…' },
+  exampleLoadFailed: {
+    id: 'hub.exampleLoadFailed',
+    defaultMessage: "Couldn't load the example. Please try again.",
+  },
+  exampleProjectCreated: {
+    id: 'hub.exampleProjectCreated',
+    defaultMessage: 'Created project "{name}" for this problem',
+  },
   exampleNeedsInput: {
     id: 'hub.exampleNeedsInput',
     defaultMessage: 'Statement not bundled — add it yourself',
@@ -173,6 +184,7 @@ export default function Hub({
     text: string;
     mode?: 'append';
   } | null>(null);
+  const [loadingExampleId, setLoadingExampleId] = useState<string | null>(null);
   useEffect(() => clearActiveFile(), [workingDir, clearActiveFile]);
 
   // The figure and paper catalogue pages queue a prompt before navigating here, because
@@ -239,10 +251,54 @@ export default function Hub({
   );
 
   const handleExampleSelect = useCallback(
-    (problem: (typeof EXAMPLE_PROBLEMS)[number]) => {
-      applyPreset(workflow, contest, problem.prompt);
+    async (problem: ExampleProblem) => {
+      if (loadingExampleId) return;
+      setLoadingExampleId(problem.id);
+      try {
+        let targetDir = workingDir;
+        if (!targetDir) {
+          const picked = await window.electron.directoryChooser();
+          if (picked.canceled || !picked.filePaths?.[0]) return;
+          targetDir = picked.filePaths[0];
+        }
+        const result = await window.electron.copyBuiltinExample({
+          folderName: problem.folderName,
+          targetDir,
+        });
+        if (!result.ok) {
+          toastError({
+            title: intl.formatMessage(i18n.exampleLoadFailed),
+            msg: result.error,
+          });
+          return;
+        }
+        handleWorkingDirChange(result.projectDir);
+        window.electron.addRecentDir(result.projectDir);
+        workspacePanel.selectTab('project');
+        applyPreset(workflow, contest, problem.prompt);
+        toastSuccess({
+          title: intl.formatMessage(i18n.exampleProjectCreated, { name: problem.folderName }),
+        });
+      } catch (error) {
+        console.error('Failed to prepare example project:', error);
+        toastError({
+          title: intl.formatMessage(i18n.exampleLoadFailed),
+          msg: formatAcpError(error),
+        });
+      } finally {
+        setLoadingExampleId(null);
+      }
     },
-    [workflow, contest, applyPreset]
+    [
+      loadingExampleId,
+      workingDir,
+      intl,
+      workflow,
+      contest,
+      applyPreset,
+      handleWorkingDirChange,
+      workspacePanel.selectTab,
+    ]
   );
 
   const handleSubmit = async (input: UserInput) => {
@@ -396,37 +452,52 @@ export default function Hub({
                 {intl.formatMessage(i18n.examplesTitle)}
               </h2>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                {EXAMPLE_PROBLEMS.map((problem) => (
-                  <button
-                    key={problem.id}
-                    onClick={() => handleExampleSelect(problem)}
-                    className="flex flex-col rounded-xl border border-border-secondary p-3 text-left transition-colors hover:border-border-primary"
-                  >
-                    <span className="text-[11px] text-text-tertiary">{problem.label}</span>
-                    <span className="mt-1 line-clamp-2 text-sm text-text-primary">
-                      {problem.title}
-                    </span>
-                    <span className="mt-2 flex flex-wrap gap-1">
-                      {problem.methods.map((method) => (
-                        <span
-                          key={method}
-                          className="rounded-full bg-background-secondary px-1.5 py-0.5 text-[10px] text-text-secondary"
-                        >
-                          {method}
+                {EXAMPLE_PROBLEMS.map((problem) => {
+                  const preparing = loadingExampleId === problem.id;
+                  return (
+                    <button
+                      key={problem.id}
+                      onClick={() => handleExampleSelect(problem)}
+                      disabled={loadingExampleId !== null}
+                      className={cn(
+                        'flex flex-col rounded-xl border border-border-secondary p-3 text-left transition-colors hover:border-border-primary',
+                        preparing && 'opacity-60'
+                      )}
+                    >
+                      <span className="text-[11px] text-text-tertiary">{problem.label}</span>
+                      <span className="mt-1 line-clamp-2 text-sm text-text-primary">
+                        {problem.title}
+                      </span>
+                      <span className="mt-2 flex flex-wrap gap-1">
+                        {problem.methods.map((method) => (
+                          <span
+                            key={method}
+                            className="rounded-full bg-background-secondary px-1.5 py-0.5 text-[10px] text-text-secondary"
+                          >
+                            {method}
+                          </span>
+                        ))}
+                      </span>
+                      {preparing ? (
+                        <span className="mt-2 flex items-center gap-1 text-[10px] text-text-tertiary">
+                          <Loader2
+                            aria-hidden="true"
+                            className="h-3 w-3 animate-spin motion-reduce:animate-none"
+                          />
+                          {intl.formatMessage(i18n.examplePreparing)}
                         </span>
-                      ))}
-                    </span>
-                    {problem.dataReady ? (
-                      <span className="mt-2 text-[10px] text-text-tertiary">
-                        {intl.formatMessage(i18n.exampleReady)}
-                      </span>
-                    ) : (
-                      <span className="mt-2 text-[10px] text-text-tertiary">
-                        {intl.formatMessage(i18n.exampleNeedsInput)}
-                      </span>
-                    )}
-                  </button>
-                ))}
+                      ) : problem.dataReady ? (
+                        <span className="mt-2 text-[10px] text-text-tertiary">
+                          {intl.formatMessage(i18n.exampleReady)}
+                        </span>
+                      ) : (
+                        <span className="mt-2 text-[10px] text-text-tertiary">
+                          {intl.formatMessage(i18n.exampleNeedsInput)}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </section>
           </div>

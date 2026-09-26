@@ -60,6 +60,8 @@ export interface ExampleProblem {
   methods: string[];
   /** Directory under math_modeling/assets/examples/. */
   sourceDir: string;
+  /** Bundled folder under builtin-examples/ that gets copied into the project. */
+  folderName: string;
   /** Attachments are committed, so the problem runs without any setup step. */
   dataReady: boolean;
   prompt: string;
@@ -72,11 +74,12 @@ export const EXAMPLE_PROBLEMS: ExampleProblem[] = [
     title: '定日镜场的优化设计',
     methods: ['优化', '物理建模', '几何计算'],
     sourceDir: '2023国赛A题',
+    folderName: '2023国赛A题',
     dataReady: true,
     prompt:
-      '请按数学建模流程完成 2023 国赛 A 题「定日镜场的优化设计」。题目与数据位于 math-modeling 技能的 ' +
-      'assets/examples/2023国赛A题/（questions.txt 为题面全文，A题.pdf 为官方题面，附件.xlsx 为数据，' +
-      'result2.xlsx / result3.xlsx 为结果文件模板）。先读 questions.txt 全文再动手；' +
+      '请按数学建模流程完成 2023 国赛 A 题「定日镜场的优化设计」。题目与数据已在当前工作目录下：' +
+      'questions.txt 为题面全文，A题.pdf 为官方题面，附件.xlsx 为数据，' +
+      'result2.xlsx / result3.xlsx 为结果文件模板。先读 questions.txt 全文再动手；' +
       '加载 optimization-modeling 与 differential-equation-modeling 技能，' +
       '完成光学效率建模、镜场布局优化与灵敏度分析，并给出结论成立的参数区间。',
   },
@@ -86,11 +89,12 @@ export const EXAMPLE_PROBLEMS: ExampleProblem[] = [
     title: '母亲身心健康对婴儿成长的影响',
     methods: ['统计', '回归分析', '分类预测'],
     sourceDir: '2023华数杯C题',
+    folderName: '2023华数杯C题',
     dataReady: true,
     prompt:
-      '请按数学建模流程完成 2023 华数杯 C 题「母亲身心健康对婴儿成长的影响」。题目与数据位于 math-modeling 技能的 ' +
-      'assets/examples/2023华数杯C题/（questions.txt 为题面，华数杯2023年C题.pdf 为官方题面，附件.xlsx 为 ' +
-      '390 名婴儿及其母亲的数据）。先读 questions.txt 全文再动手；加载 data-prep、regression-modeling 与 ' +
+      '请按数学建模流程完成 2023 华数杯 C 题「母亲身心健康对婴儿成长的影响」。题目与数据已在当前工作目录下：' +
+      'questions.txt 为题面，华数杯2023年C题.pdf 为官方题面，附件.xlsx 为 ' +
+      '390 名婴儿及其母亲的数据。先读 questions.txt 全文再动手；加载 data-prep、regression-modeling 与 ' +
       'classification-modeling 技能，交代缺失值与异常处理、变量编码，做统计检验并给出效应量与置信区间。',
   },
   {
@@ -99,11 +103,12 @@ export const EXAMPLE_PROBLEMS: ExampleProblem[] = [
     title: '农作物的种植策略',
     methods: ['优化', '规划', '种植策略'],
     sourceDir: '2024高教杯C题',
+    folderName: '2024高教杯C题',
     dataReady: true,
     prompt:
-      '请按数学建模流程完成 2024 高教社杯 C 题「农作物的种植策略」。题目与数据位于 math-modeling 技能的 ' +
-      'assets/examples/2024高教杯C题/（questions.txt 为题面，C题.pdf 为官方题面，附件1.xlsx / 附件2.xlsx 为 ' +
-      '地块与作物数据，result1_*.xlsx / result2.xlsx 为结果模板）。先读 questions.txt 全文再动手；' +
+      '请按数学建模流程完成 2024 高教社杯 C 题「农作物的种植策略」。题目与数据已在当前工作目录下：' +
+      'questions.txt 为题面，C题.pdf 为官方题面，附件1.xlsx / 附件2.xlsx 为 ' +
+      '地块与作物数据，result1_*.xlsx / result2.xlsx 为结果模板。先读 questions.txt 全文再动手；' +
       '加载 optimization-modeling 与 sensitivity-analysis 技能，建立多年期种植规划的优化模型，' +
       '说明约束与求解器选型，并做价格与产量波动下的稳健性检验。',
   },

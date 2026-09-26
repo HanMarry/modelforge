@@ -1790,8 +1790,17 @@
   "hub.contestLabel": {
     "defaultMessage": "Contest"
   },
+  "hub.exampleLoadFailed": {
+    "defaultMessage": "Couldn't load the example. Please try again."
+  },
   "hub.exampleNeedsInput": {
     "defaultMessage": "Statement not bundled — add it yourself"
+  },
+  "hub.examplePreparing": {
+    "defaultMessage": "Loading example…"
+  },
+  "hub.exampleProjectCreated": {
+    "defaultMessage": "Created project \"{name}\" for this problem"
   },
   "hub.exampleReady": {
     "defaultMessage": "Sample data included"

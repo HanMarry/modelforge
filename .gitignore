@@ -28,5 +28,8 @@ Desktop.ini
 coverage/
 .nyc_output/
 
+# vector-db PoC 本地模型缓存（fastembed 下载产物，勿提交）
+.fastembed_cache/
+
 # Backup
 .repair-backups/

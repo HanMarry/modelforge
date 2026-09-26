@@ -1,12 +1,15 @@
 const { FusesPlugin } = require('@electron-forge/plugin-fuses');
 const { FuseV1Options, FuseVersion } = require('@electron/fuses');
+const { existsSync } = require('fs');
 const { resolve } = require('path');
 
 const isLinuxVulkanBuild = process.env.GOOSE_DESKTOP_LINUX_VARIANT === 'vulkan';
+// Built-in exam questions; present only after the packaging workflow copies them in.
+const builtinExamplesResource = existsSync('resources/builtin-examples') ? ['resources/builtin-examples'] : [];
 
 let cfg = {
   asar: true,
-  extraResource: ['src/bin', 'src/images', 'src/app-update.yml'],
+  extraResource: ['src/bin', 'src/images', 'src/app-update.yml', ...builtinExamplesResource],
   icon: 'src/images/icon',
   // Windows specific configuration
   win32: {
@@ -67,7 +70,7 @@ module.exports = {
         repository: {
           // Keep these defaults in sync with DEFAULT_GITHUB_OWNER / DEFAULT_GITHUB_REPO
           // in src/branding.ts (the homepage URLs below share the same placeholder).
-          owner: process.env.GITHUB_OWNER || 'your-org',
+          owner: process.env.GITHUB_OWNER || 'HanMarry',
           name: process.env.GITHUB_REPO || 'modelforge',
         },
         prerelease: false,
@@ -87,12 +90,20 @@ module.exports = {
       },
     },
     {
+      name: '@electron-forge/maker-squirrel',
+      platforms: ['win32'],
+      config: {
+        name: 'ModelForge',
+        setupIcon: 'src/images/icon.ico',
+      },
+    },
+    {
       name: '@electron-forge/maker-deb',
       config: {
         name: 'ModelForge',
         bin: 'ModelForge',
         maintainer: 'ModelForge Team',
-        homepage: 'https://github.com/your-org/modelforge',
+        homepage: 'https://github.com/HanMarry/modelforge',
         categories: ['Development'],
         desktopTemplate: './forge.deb.desktop',
         options: {
@@ -108,7 +119,7 @@ module.exports = {
         name: 'ModelForge',
         bin: 'ModelForge',
         maintainer: 'ModelForge Team',
-        homepage: 'https://github.com/your-org/modelforge',
+        homepage: 'https://github.com/HanMarry/modelforge',
         categories: ['Development'],
         desktopTemplate: './forge.rpm.desktop',
         options: {
@@ -122,14 +133,14 @@ module.exports = {
       name: '@electron-forge/maker-flatpak',
       config: {
         options: {
-          id: 'io.github.yourorg.modelforge', // NOTE: kept for backwards compat with existing installs
+          id: 'io.github.hanmarry.modelforge',
           categories: ['Development'],
           mimeType: ['x-scheme-handler/modelforge'],
           icon: {
             scalable: 'src/images/icon.svg',
             '512x512': 'src/images/icon-512.png',
           },
-          homepage: 'https://github.com/your-org/modelforge',
+          homepage: 'https://github.com/HanMarry/modelforge',
           runtimeVersion: '25.08',
           baseVersion: '25.08',
           bin: 'ModelForge',

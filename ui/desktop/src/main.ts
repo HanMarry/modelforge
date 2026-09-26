@@ -1993,6 +1993,125 @@ ipcMain.handle('directory-chooser', async () => {
   });
 });
 
+// --- Built-in contest examples -----------------------------------------------
+//
+// The bundled examples live under `resources/builtin-examples/<folderName>/` in
+// packaged builds (wired up by forge.config.ts) and under the repo checkout when
+// running via `electron-forge start`. Copying them into the user's project
+// directory makes the statement and data readable by the agent.
+
+function resolveBuiltinExamplesDir(): string | null {
+  const candidates: string[] = [];
+  if (app.isPackaged) {
+    candidates.push(path.join(process.resourcesPath, 'builtin-examples'));
+  } else {
+    // The Vite main bundle is emitted to ui/desktop/.vite/build, so the repo
+    // root is four levels up from __dirname.
+    candidates.push(
+      path.join(
+        __dirname,
+        '..',
+        '..',
+        '..',
+        '..',
+        'crates',
+        'goose',
+        'src',
+        'skills',
+        'builtins',
+        'math_modeling',
+        'assets',
+        'examples'
+      )
+    );
+  }
+  return candidates.find((dir) => fsSync.existsSync(dir)) ?? null;
+}
+
+function sanitizeFolderName(name: unknown): string | null {
+  if (typeof name !== 'string') return null;
+  const trimmed = name.trim();
+  if (
+    !trimmed ||
+    trimmed === '.' ||
+    trimmed === '..' ||
+    trimmed.includes('/') ||
+    trimmed.includes('\\')
+  ) {
+    return null;
+  }
+  return trimmed;
+}
+
+async function listFilesRecursive(dir: string): Promise<string[]> {
+  const files: string[] = [];
+  const entries = await fs.readdir(dir, { withFileTypes: true });
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...(await listFilesRecursive(fullPath)));
+    } else {
+      files.push(fullPath);
+    }
+  }
+  return files;
+}
+
+type CopyBuiltinExampleResult =
+  | { ok: true; projectDir: string }
+  | { ok: false; error: string };
+
+ipcMain.handle(
+  'copy-builtin-example',
+  async (
+    _event,
+    request: { folderName: string; targetDir: string }
+  ): Promise<CopyBuiltinExampleResult> => {
+    const folderName = sanitizeFolderName(request.folderName);
+    if (!folderName) {
+      return { ok: false, error: '无效的案例名称' };
+    }
+    const targetDir = request.targetDir.trim();
+    if (!targetDir) {
+      return { ok: false, error: '目标目录无效' };
+    }
+
+    const examplesDir = resolveBuiltinExamplesDir();
+    if (!examplesDir) {
+      return { ok: false, error: '未找到内置真题，请确认安装完整后重试' };
+    }
+
+    const source = path.join(examplesDir, folderName);
+    try {
+      if (!(await fs.stat(source)).isDirectory()) {
+        return { ok: false, error: `未找到内置真题「${folderName}」` };
+      }
+    } catch {
+      return { ok: false, error: `未找到内置真题「${folderName}」` };
+    }
+
+    const dest = path.join(targetDir, folderName);
+    try {
+      const sourceFiles = await listFilesRecursive(source);
+      const conflicts = sourceFiles
+        .map((file) => path.relative(source, file))
+        .filter((relative) => fsSync.existsSync(path.join(dest, relative)));
+      if (conflicts.length > 0) {
+        return {
+          ok: false,
+          error: `目标目录已存在同名文件：${conflicts.slice(0, 5).join('、')}`,
+        };
+      }
+      await fs.cp(source, dest, { recursive: true });
+    } catch (error) {
+      log.error('[Main] Failed to copy built-in example', error);
+      return { ok: false, error: `复制失败：${errorMessage(error)}` };
+    }
+
+    return { ok: true, projectDir: dest };
+  }
+);
+
 ipcMain.handle('add-recent-dir', (_event, dir: string) => {
   if (dir) {
     addRecentDir(dir);

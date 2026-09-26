@@ -18,11 +18,12 @@ export const DOCS_URLS = {
 } as const;
 
 /**
- * GitHub release feed defaults. `your-org` is a placeholder until the ModelForge
- * release repository exists; the updater treats it as "not configured" and skips
- * network requests. Keep in sync with src/app-update.yml and forge.config.ts.
+ * GitHub release feed defaults. `isUpdateChannelConfigured` treats this default
+ * owner as "not configured", so the updater skips network requests unless
+ * GITHUB_OWNER is overridden at build time. Keep in sync with src/app-update.yml
+ * and forge.config.ts.
  */
-export const DEFAULT_GITHUB_OWNER = 'your-org';
+export const DEFAULT_GITHUB_OWNER = 'HanMarry';
 export const DEFAULT_GITHUB_REPO = 'modelforge';
 
 /** Repository for the customized build; keep in sync with src/app-update.yml. */

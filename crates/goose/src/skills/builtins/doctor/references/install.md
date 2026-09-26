@@ -7,7 +7,7 @@
 
 ## Python 与项目环境
 
-优先使用 MathModel 自带或 PATH 中的 `uv`：
+优先使用 ModelForge 自带或 PATH 中的 `uv`：
 
 ```bash
 uv python install
@@ -23,11 +23,11 @@ Windows 项目的解释器路径改为 `.venv\Scripts\python.exe`。如果项目
 uv pip install --python .venv/bin/python cartopy shapely scikit-learn openpyxl plotnine plotly networkx shap optuna geopandas folium graphviz wordcloud
 ```
 
-如果 `uv` 不可用，优先引导用户从 MathModel“设置 → Environment”安装托管 Python。除非用户明确要求，不对系统 Python 执行全局 `pip install`。
+如果 `uv` 不可用，引导用户按 uv 官方安装说明（https://docs.astral.sh/uv/getting-started/installation/）先装 uv，再用 `uv python install` 装托管 Python。除非用户明确要求，不对系统 Python 执行全局 `pip install`。
 
 ## Git
 
-MathModel 的项目版本存档与回合快照恢复依赖本机 Git，缺失会阻断这些能力。
+ModelForge 的项目版本存档与回合快照恢复依赖本机 Git，缺失会阻断这些能力。
 只装二进制；不要初始化仓库，也不要写用户的 `git config`。
 
 - **macOS**：`brew install git`；没有 Homebrew 时用 `xcode-select --install`
@@ -106,8 +106,7 @@ winget install MiKTeX.MiKTeX
 UV_PYTHON_INSTALL_MIRROR=https://gh-proxy.com/https://github.com/astral-sh/python-build-standalone/releases/download uv python install
 ```
 
-GitHub 加速代理地址不稳定；失败时更换代理前缀（执行前告知用户所用地址），或引导
-用户从 MathModel「设置 → Environment」安装托管 Python。
+GitHub 加速代理地址不稳定；失败时更换代理前缀（执行前告知用户所用地址）后重试。
 
 ### PyPI（uv pip）
 

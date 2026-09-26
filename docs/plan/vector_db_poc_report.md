@@ -433,6 +433,118 @@ cargo fmt --package goose                         # exit 0
 - [Sentence Transformers](https://www.sbert.net/)
 - [Vector Database 比较](https://benchmark.vectorview.ai/)
 
+## 运行时验证决策（2026-09-16）
+
+### 结论：**缓（PoC 核心链路可通，但有已知 bug 需修复，暂不合并到主路径）**
+
+> **前期错误订正**：本报告第一版曾误判为"Windows gnu 目标上 fastembed 无法链接"。经队长复验 + 本⼈再次精确复现，确认 `cargo build --lib` 和 `cargo test --test vector_db_integration_test` 均能成功编译链接，`libgoose.rlib` 正常产出。此前的链接错误来⾃其他场景（非 vector-db 的 bin target），与本 PoC 无关。特此订正。
+
+### 实测环境
+- 工具链：`1.96.1-x86_64-pc-windows-gnu`
+- 工作目录：`E:\goose-en`（junction 到仓库）
+- `CARGO_TARGET_DIR=E:/goose-en-target`
+- Qdrant：`E:\qdrant\qdrant.exe` 版本 1.19.1，本地启动，REST 6333 / gRPC 6334
+- FastEmbed 模型：all-MiniLM-L6-v2（首次运行自动下载，~22MB ONNX + 词表）
+
+### 编译验证（已确认）
+
+| 命令 | 结果 | 说明 |
+|------|------|------|
+| `cargo check -p goose --features vector-db --lib` | ✅ 通过 | 2 条既有 dead_code warning |
+| `cargo build -p goose --features vector-db --lib` | ✅ 通过 | `libgoose.rlib` 正常产出 |
+| `cargo test -p goose --features vector-db --test vector_db_integration_test --no-run` | ✅ 通过 | 测试 .exe 生成在 target/debug/deps |
+
+**结论：编译无问题**，ONNX Runtime (ort) 在 gnu 目标上能正确链接（ort-sys 通过 fastembed 的 build script 处理了二进制获取）。
+
+### 运行时验证（集成测试 `--ignored --test-threads=1`）
+
+共 5 个测试，结果：**3 passed / 2 failed**
+
+#### ✅ 通过的测试
+
+1. **test_dimension_mismatch_error** — 验证维度不匹配时报错正确。纯 Qdrant 操作（建集合 + 插入错误维度向量），不涉及 embedding。
+2. **test_embedding_generation** — `EmbeddingGenerator::new()` 成功初始化（首次下载 all-MiniLM-L6-v2 模型），`embed_single` 返回 384 维向量，所有值有限。
+3. **test_batch_embedding** — 批量 embedding 生成正确，3 条文本 → 3 个 384 维向量。
+
+#### ❌ 失败的测试（真实 bug）
+
+4. **test_vector_db_end_to_end** — 端到端流程（建集合 → embedding → 批量插入 → 搜索 → 删除）。在 `insert_batch` 步骤失败：
+   ```
+   Unable to parse UUID: doc1
+   Client specified an invalid argument
+   ```
+5. **test_different_distance_metrics** — 不同距离度量测试。在 `insert` 步骤失败，同样错误：
+   ```
+   Unable to parse UUID: test_id
+   ```
+
+#### Bug 根因
+
+`crates/goose/src/vector_db/client.rs:118`：
+```rust
+let point = PointStruct::new(PointId::from(id.to_string()), embedding, payload);
+```
+
+`qdrant-client` 1.19 中，`PointId::from(String)` 的实现是**直接把字符串塞进 `PointIdOptions::Uuid`**，服务端会把它当 UUID 解析。传 "doc1"、"test_id" 这种非 UUID 字符串就会报 `Unable to parse UUID`。
+
+Qdrant 支持两种 ID：
+- `PointIdOptions::Num(u64)` — 数字 ID
+- `PointIdOptions::Uuid(String)` — 必须是合法 UUID 字符串
+
+PoC 代码假设字符串可以直接当 ID 用，这是对 qdrant-client API 的误解。
+
+#### 修复方向（不实施，仅记录）
+- 方案 A：把 API 改成 `id: u64`，用 `PointId::from(id)`
+- 方案 B：内部把字符串 ID hash 成 u64 再存，对外仍暴露 `&str` 接口
+- 方案 C：用 `uuid::Uuid::new_v4()` 生成真正的 UUID，另建一个 "外部 ID → UUID" 的映射表
+
+方案 B 对外接口最友好，也与现有测试用例（"doc1"/"test_id"）兼容，推荐。
+
+### 并发问题（次要）
+
+`cargo test` 默认多线程并发，5 个测试同时初始化 `EmbeddingGenerator` 会抢同一把模型文件锁（fastembed 的 hf-hub 下载锁），导致 3 个测试直接 panic "Lock acquisition failed"。加 `--test-threads=1` 后消失。这是测试组织问题，不是功能 bug，正式落地时在 `mod tests` 顶部加 `serial_test` 或用 `OnceLock` 共享 generator 即可。
+
+### 综合评估
+
+| 维度 | 状态 |
+|------|------|
+| 编译（lib + test bin） | ✅ 无问题 |
+| Qdrant 连接/建集合/维度校验 | ✅ 工作正常 |
+| Embedding 生成（本地 + 模型自动下载） | ✅ 工作正常 |
+| 插入/搜索/删除 | ❌ 被 PointId bug 阻塞，未验证 |
+| 测试并发组织 | ⚠️ 需加串行化 |
+| 产品需求明确性 | ❌ 无明确杀手级场景 |
+
+### 建议动作
+
+1. **暂缓合并**：PoC 证明了技术可行性（embedding 生成 + Qdrant 集成都能跑），但 PointId bug 表明代码质量还没到可合并水平，且当前无明确产品需求驱动。
+2. **代码保留为实验性 feature**：`vector-db` feature flag 保持，`vector_db/` 模块保留，集成测试保持 `#[ignore]`。
+3. **如果未来要推进**，先做这几件事：
+   - 修复 PointId 字符串转 u64 的映射（推荐方案 B）
+   - 集成测试加串行化（`serial_test` 或共享 `OnceLock`）
+   - 搜索/删除 端到端跑通
+   - 明确一个产品场景（如"论文语义检索"）再做上层封装
+4. **不做的事**：不在桌面端 / CLI 暴露入口，不进默认 feature，不进 CI。
+
+### 完整复现命令
+
+```bash
+# 启动 Qdrant
+cd E:\qdrant && .\qdrant.exe
+
+# 编译（验证链接）
+cd E:\goose-en
+$env:RUSTUP_TOOLCHAIN='1.96.1-x86_64-pc-windows-gnu'
+$env:CARGO_TARGET_DIR='E:\goose-en-target'
+cargo build -p goose --features vector-db --lib    # exit 0
+
+# 跑集成测试（串行，避免锁竞争）
+cargo test -p goose --features vector-db --test vector_db_integration_test -- --ignored --test-threads=1
+# 预期: 3 passed, 2 failed (Unable to parse UUID)
+```
+
+---
+
 ## 总结
 
 本次 PoC 成功集成了向量数据库能力到 goose 项目：

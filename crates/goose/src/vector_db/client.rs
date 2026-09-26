@@ -8,8 +8,22 @@ use qdrant_client::qdrant::{
 };
 use qdrant_client::{Payload, Qdrant};
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use super::{DistanceMetric, VectorDbConfig};
+
+/// UUID namespace for deriving deterministic point IDs from user-supplied strings.
+const ID_NAMESPACE: Uuid = Uuid::from_bytes([
+    0x6b, 0xa7, 0xb8, 0x20, 0x9d, 0xad, 0x11, 0xd1, 0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8,
+]);
+
+/// Convert a user-supplied string ID to a Qdrant-compatible point ID.
+///
+/// Qdrant only accepts u64 or UUID point IDs. We derive a deterministic UUID v5
+/// from the user string so that arbitrary string IDs work end-to-end.
+fn str_to_point_id(id: &str) -> PointId {
+    PointId::from(Uuid::new_v5(&ID_NAMESPACE, id.as_bytes()).to_string())
+}
 
 /// Client for interacting with Qdrant vector database
 pub struct VectorDbClient {
@@ -114,8 +128,8 @@ impl VectorDbClient {
             );
         }
 
-        let payload = build_payload(text, metadata)?;
-        let point = PointStruct::new(PointId::from(id.to_string()), embedding, payload);
+        let payload = build_payload(id, text, metadata)?;
+        let point = PointStruct::new(str_to_point_id(id), embedding, payload);
 
         self.client
             .upsert_points(
@@ -152,8 +166,8 @@ impl VectorDbClient {
                     );
                 }
 
-                let payload = build_payload(&text, metadata)?;
-                Ok(PointStruct::new(PointId::from(id), embedding, payload))
+                let payload = build_payload(&id, &text, metadata)?;
+                Ok(PointStruct::new(str_to_point_id(&id), embedding, payload))
             })
             .collect::<Result<Vec<_>>>()?;
 
@@ -206,7 +220,7 @@ impl VectorDbClient {
             .result
             .into_iter()
             .filter_map(|point| {
-                let id = point_id_to_string(point.id.as_ref()?)?;
+                let id = point.payload.get("id")?.as_str()?.to_string();
                 let text = point.payload.get("text")?.as_str()?.to_string();
                 let metadata = point.payload.get("metadata").cloned().map(Into::into);
 
@@ -234,7 +248,7 @@ impl VectorDbClient {
         self.client
             .delete_points(
                 DeletePointsBuilder::new(self.config.collection_name.clone())
-                    .points(vec![id.to_string()])
+                    .points(vec![str_to_point_id(id)])
                     .wait(true),
             )
             .await
@@ -261,20 +275,12 @@ impl VectorDbClient {
     }
 }
 
-fn build_payload(text: &str, metadata: Option<serde_json::Value>) -> Result<Payload> {
-    let mut payload = serde_json::json!({ "text": text });
+fn build_payload(id: &str, text: &str, metadata: Option<serde_json::Value>) -> Result<Payload> {
+    let mut payload = serde_json::json!({ "id": id, "text": text });
     if let Some(meta) = metadata {
         payload["metadata"] = meta;
     }
     Payload::try_from(payload).context("Failed to convert payload")
-}
-
-fn point_id_to_string(id: &PointId) -> Option<String> {
-    match &id.point_id_options {
-        Some(PointIdOptions::Num(n)) => Some(n.to_string()),
-        Some(PointIdOptions::Uuid(s)) => Some(s.clone()),
-        None => None,
-    }
 }
 
 #[cfg(test)]

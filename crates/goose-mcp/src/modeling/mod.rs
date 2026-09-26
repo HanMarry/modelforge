@@ -148,6 +148,34 @@ impl ModelingServer {
         }
     }
 
+    /// Resolve uv: bundled binary first, then PATH; the source is reported to the user.
+    async fn detect_uv(&self) -> Option<(String, String, &'static str)> {
+        if let Some(path) = resolve_bundled_uv() {
+            let program = path.to_string_lossy().into_owned();
+            if let Some(version) = self.detect_version(&program, "--version").await {
+                return Some((program, version, "bundled"));
+            }
+        }
+        let version = self.detect_version("uv", "--version").await?;
+        Some(("uv".to_string(), version, "PATH"))
+    }
+
+    /// List uv-managed Python interpreters without triggering a download.
+    async fn uv_managed_pythons(&self, uv: &str) -> Vec<String> {
+        let (ok, stdout, _) = self
+            .run_command_with_timeout(
+                uv,
+                &["python", "list", "--only-installed"],
+                None,
+                Duration::from_secs(8),
+            )
+            .await;
+        if !ok {
+            return Vec::new();
+        }
+        stdout.lines().filter_map(uv_python_path).collect()
+    }
+
     /// Detect the Python, uv, and LaTeX/Typst toolchains and report versions.
     #[tool(
         name = "check_env",
@@ -161,12 +189,25 @@ impl ModelingServer {
 
         let mut report = String::from("Environment check\n=================\n\nPython\n------\n");
 
-        let mut python = None;
+        let uv = self.detect_uv().await;
+
+        let mut python: Option<String> = None;
         for candidate in ["python3", "python", "py"] {
             if let Some(version) = self.detect_version(candidate, "--version").await {
                 report.push_str(&format!("{candidate}: {version}\n"));
-                python = Some(candidate);
+                python = Some(candidate.to_string());
                 break;
+            }
+        }
+        if python.is_none() {
+            if let Some((uv, _, _)) = &uv {
+                for path in self.uv_managed_pythons(uv).await {
+                    if let Some(version) = self.detect_version(&path, "--version").await {
+                        report.push_str(&format!("{path}: {version} (uv-managed)\n"));
+                        python = Some(path);
+                        break;
+                    }
+                }
             }
         }
         if python.is_none() {
@@ -174,16 +215,14 @@ impl ModelingServer {
         }
 
         report.push_str("\nuv\n--\n");
-        let mut has_uv = false;
-        match self.detect_version("uv", "--version").await {
-            Some(version) => {
-                report.push_str(&format!("{version}\n"));
-                has_uv = true;
+        match &uv {
+            Some((_, version, source)) => {
+                report.push_str(&format!("{version} ({source})\n"));
             }
             None => report.push_str("not found\n"),
         }
 
-        if !has_uv && params.install_uv {
+        if uv.is_none() && params.install_uv {
             report.push_str("\nuv is missing. No installer was executed. Obtain the user's approval before installing.\nOfficial installation instructions: https://docs.astral.sh/uv/getting-started/installation/\n");
         }
 
@@ -279,6 +318,29 @@ impl ModelingServer {
             TextContent::new(message),
         )]))
     }
+}
+
+/// Absolute path to a uv binary bundled beside this executable (resources/bin), if present.
+fn resolve_bundled_uv() -> Option<PathBuf> {
+    let dir = std::env::current_exe().ok()?.parent()?.to_path_buf();
+    let name = if cfg!(windows) { "uv.exe" } else { "uv" };
+    let candidate = dir.join(name);
+    candidate.is_file().then_some(candidate)
+}
+
+/// Extract the interpreter path from one `uv python list --only-installed` line.
+fn uv_python_path(line: &str) -> Option<String> {
+    let idx = line
+        .char_indices()
+        .find(|(_, c)| c.is_whitespace())
+        .map(|(i, _)| i)?;
+    let path = line[idx..].trim();
+    if path.is_empty() || path.starts_with('<') {
+        return None;
+    }
+    let path = std::path::Path::new(path);
+    path.is_file()
+        .then_some(path.to_string_lossy().into_owned())
 }
 
 struct CompileCommand {

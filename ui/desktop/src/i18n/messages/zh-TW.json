@@ -1790,8 +1790,17 @@
   "hub.contestLabel": {
     "defaultMessage": "赛事"
   },
+  "hub.exampleLoadFailed": {
+    "defaultMessage": "案例載入失敗，請重試"
+  },
   "hub.exampleNeedsInput": {
     "defaultMessage": "题目未内置，请自行补充"
+  },
+  "hub.examplePreparing": {
+    "defaultMessage": "正在載入案例"
+  },
+  "hub.exampleProjectCreated": {
+    "defaultMessage": "已為這道真題建立專案「{name}」"
   },
   "hub.exampleReady": {
     "defaultMessage": "已附带题目与附件"

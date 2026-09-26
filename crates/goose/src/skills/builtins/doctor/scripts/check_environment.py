@@ -38,6 +38,13 @@ def git_candidates() -> tuple[str, ...]:
     return ("git", *fallbacks)
 
 
+def uv_candidates() -> tuple[str, ...]:
+    """uv 的候选命令：先内置（goosed 同级目录），再 PATH。"""
+    exe_dir = os.path.dirname(sys.executable)
+    bundled = os.path.join(exe_dir, "uv.exe" if os.name == "nt" else "uv")
+    return (bundled, "uv")
+
+
 REQUIRED_TOOLS = (
     ("git", git_candidates(), "local project version snapshots"),
     ("xelatex", ("xelatex",), "CUMCM Chinese LaTeX compiler"),
@@ -46,7 +53,7 @@ REQUIRED_TOOLS = (
 )
 
 RECOMMENDED_TOOLS = (
-    ("uv", ("uv",), "Python and environment manager"),
+    ("uv", uv_candidates(), "Python and environment manager"),
     ("drawio", ("drawio", "draw.io"), "flowchart export"),
     ("pdf-preview", ("pdftoppm", "mutool", "magick"), "PDF visual QA"),
 )
@@ -220,7 +227,7 @@ def build_report() -> dict[str, Any]:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Check the MathModel paper and figure environment.")
+    parser = argparse.ArgumentParser(description="Check the ModelForge paper and figure environment.")
     parser.add_argument("--compact", action="store_true", help="Emit compact JSON")
     args = parser.parse_args()
     indent = None if args.compact else 2
