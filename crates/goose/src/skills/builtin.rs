@@ -1,4 +1,5 @@
 use include_dir::{include_dir, Dir};
+use std::collections::HashMap;
 use std::io;
 use std::path::Path;
 use std::sync::OnceLock;
@@ -49,4 +50,49 @@ fn extract(dest: &Path) -> io::Result<()> {
     }
     BUILTIN_SKILLS_DIR.extract(dest)?;
     std::fs::write(stamp, BUILTIN_ASSETS_VERSION)
+}
+
+/// Skill name → absolute paths of its supporting files.
+///
+/// Built once per process. The bundled tree cannot change while the process
+/// runs, and skill discovery consults this on every lookup — walking ~790 files
+/// per call made the test suite crawl.
+pub fn supporting_file_index(dest: &Path) -> &'static HashMap<String, Vec<String>> {
+    static INDEX: OnceLock<HashMap<String, Vec<String>>> = OnceLock::new();
+
+    INDEX.get_or_init(|| {
+        let mut index = HashMap::new();
+        let Ok(entries) = std::fs::read_dir(dest) else {
+            return index;
+        };
+        for entry in entries.flatten() {
+            let dir = entry.path();
+            if !dir.is_dir() {
+                continue;
+            }
+            let Some(name) = dir.file_name().and_then(|name| name.to_str()) else {
+                continue;
+            };
+            let mut files = Vec::new();
+            collect_files(&dir, &mut files);
+            if !files.is_empty() {
+                index.insert(name.to_string(), files);
+            }
+        }
+        index
+    })
+}
+
+fn collect_files(dir: &Path, files: &mut Vec<String>) {
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            collect_files(&path, files);
+        } else if path.is_file() {
+            files.push(path.to_string_lossy().into_owned());
+        }
+    }
 }

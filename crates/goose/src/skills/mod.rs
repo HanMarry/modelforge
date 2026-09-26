@@ -493,24 +493,6 @@ fn should_skip_dir(path: &Path) -> bool {
     )
 }
 
-/// Absolute paths of every file under `dir`, used to populate a built-in
-/// skill's supporting files after its assets have been extracted to disk.
-fn collect_supporting_files(dir: &Path) -> Vec<String> {
-    let mut files = Vec::new();
-    let mut visited_dirs = HashSet::new();
-    walk_files_recursively(
-        dir,
-        &mut visited_dirs,
-        &mut |path| !should_skip_dir(path),
-        &mut |path| {
-            if path.is_file() {
-                files.push(path.to_string_lossy().into_owned());
-            }
-        },
-    );
-    files
-}
-
 fn walk_files_recursively<F, G>(
     dir: &Path,
     visited_dirs: &mut HashSet<PathBuf>,
@@ -651,16 +633,17 @@ fn discover_skills_with_config(working_dir: Option<&Path>, config: &Config) -> V
     if let Err(error) = builtin::materialize_assets(&builtin_root) {
         warn!("Failed to extract built-in skill assets: {error}");
     }
+    let builtin_support = builtin::supporting_file_index(&builtin_root);
 
     for content in builtin::get_all() {
         if let Some(mut source) = parse_skill_content(content, &PathBuf::new(), true, true) {
             if !seen.contains(&source.name) {
-                let support_dir = builtin_root.join(&source.name);
-                let path = if support_dir.is_dir() {
-                    source.supporting_files = collect_supporting_files(&support_dir);
-                    support_dir.to_string_lossy().into_owned()
-                } else {
-                    format!("builtin://skills/{}", source.name)
+                let path = match builtin_support.get(&source.name) {
+                    Some(files) => {
+                        source.supporting_files = files.clone();
+                        builtin_root.join(&source.name).to_string_lossy().into_owned()
+                    }
+                    None => format!("builtin://skills/{}", source.name),
                 };
                 seen.insert(source.name.clone());
                 sources.push(SourceEntry {
