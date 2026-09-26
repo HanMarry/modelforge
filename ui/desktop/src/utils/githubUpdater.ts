@@ -455,10 +455,11 @@ export async function prepareUpdateInstall(options: {
   });
 }
 
-// The release feed only works once a real owner is configured; the placeholder
-// owner would make the GitHub release endpoint 404 on every request.
+// The release feed stays off unless a build explicitly opts in by setting
+// GITHUB_OWNER. Comparing against DEFAULT_GITHUB_OWNER would stop working once
+// the default became the real repository, leaving no way to enable the feed.
 export function isUpdateChannelConfigured(): boolean {
-  return (process.env.GITHUB_OWNER || DEFAULT_GITHUB_OWNER) !== DEFAULT_GITHUB_OWNER;
+  return Boolean(process.env.GITHUB_OWNER);
 }
 
 export class GitHubUpdater {

@@ -23,8 +23,8 @@ afterEach(() => {
 });
 
 describe('GitHubUpdater.checkForUpdates', () => {
-  it('returns not-configured without fetching when the owner matches the default', async () => {
-    vi.stubEnv('GITHUB_OWNER', 'HanMarry');
+  it('returns not-configured without fetching when no owner is configured', async () => {
+    vi.stubEnv('GITHUB_OWNER', '');
     vi.stubEnv('GITHUB_REPO', 'modelforge');
     const fetchSpy = vi.fn();
     vi.stubGlobal('fetch', fetchSpy);
