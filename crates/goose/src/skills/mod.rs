@@ -641,7 +641,10 @@ fn discover_skills_with_config(working_dir: Option<&Path>, config: &Config) -> V
                 let path = match builtin_support.get(&source.name) {
                     Some(files) => {
                         source.supporting_files = files.clone();
-                        builtin_root.join(&source.name).to_string_lossy().into_owned()
+                        builtin_root
+                            .join(&source.name)
+                            .to_string_lossy()
+                            .into_owned()
                     }
                     None => format!("builtin://skills/{}", source.name),
                 };
