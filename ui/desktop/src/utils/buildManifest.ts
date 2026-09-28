@@ -332,6 +332,21 @@ export function describeReleaseBlocker(blocker: ReleaseBlocker): string[] {
   }
 }
 
+/**
+ * The last check before a release is published: the manifest as it will be shipped must parse,
+ * and `releaseBlockers` must find nothing. One line per problem; empty when it may be published.
+ */
+export function releaseProblems(
+  manifestJson: string,
+  actual: Readonly<Record<string, string>>
+): string[] {
+  const parsed = parseManifest(manifestJson);
+  if (!parsed.ok) {
+    return [`the manifest is invalid: ${parsed.reason}`];
+  }
+  return releaseBlockers(parsed.manifest, actual).flatMap(describeReleaseBlocker);
+}
+
 export function parseKernelBuildInfo(json: string): KernelBuildInfoResult {
   let value: unknown;
   try {
