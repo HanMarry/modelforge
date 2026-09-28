@@ -1,5 +1,7 @@
 # ModelForge 复刻计划（对齐截图的信息架构）
 
+> 本文是复刻过程的背景与记录，不是执行计划。条目状态、owner 与验证证据以唯一执行计划 [docs/plan/OPTIMIZATION_PLAN.md](docs/plan/OPTIMIZATION_PLAN.md) 为准。
+
 目标：把 ModelForge（goose 白标 fork）做成截图里那个数学建模桌面产品。
 **视觉沿用 goose 现有设计系统**，只对齐信息架构与交互；资产只用宽松许可（MIT/Apache/LPPL）
 的开源件自建，并在 `NOTICE.md` 登记。

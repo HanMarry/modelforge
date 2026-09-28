@@ -216,7 +216,7 @@ cargo build
 | 3.15 | 让 agent「画一张技术路线图」（内容来自当前题目） | 走 `paper-diagram`：套用 5 套内置版式之一，产出**可编辑 `.drawio`** + PNG/PDF；用 `check_layout.py` 自检（应当 FAIL 0 / WARN 0），不靠位图交差 |
 | 3.16 | 让 agent「给论文配一张 SHAP 蜂群图」 | 走 `mathmodel-figure-templates`：先用 `render_template.py --list` 匹配 id，渲染到 `绘图复刻/` 并返回脚本与图片路径；**不会声称演示数据是真实测量值** |
 | 3.17 | 让 agent 用 doctor 检查环境 | 它跑 `scripts/check_environment.py` 并**按 JSON 报告**逐项说明缺失项与安装命令（含大陆镜像）；安装前必须先问用户 |
-| 3.18 | 点主页三张真题卡片 | 输入框写入对应 `math_modeling/assets/examples/<赛题>/` 的路径与该题要加载的技能；agent 先读 `questions.txt`（题面全文），不需要 PDF 工具 |
+| 3.18 | 点主页三张真题卡片 | 本机 `ui/desktop/resources/builtin-examples/<赛题>/` 有副本时（git 忽略，只供本机学习），复制到项目目录并在输入框写入该题要加载的技能，agent 先读 `questions.txt`（题面全文），不需要 PDF 工具；没有副本时卡片显示官方来源链接与下载指引，不报错（安装包不带真题，需求 9.6） |
 
 ---
 
