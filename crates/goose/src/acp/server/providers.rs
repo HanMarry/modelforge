@@ -1468,7 +1468,9 @@ mod tests {
         assert!(unresolved_secret_error(&anyhow::anyhow!("network down")).is_none());
         assert_eq!(
             acp_error.data,
-            Some(serde_json::json!("Failed to initialize provider: network down"))
+            Some(serde_json::json!(
+                "Failed to initialize provider: network down"
+            ))
         );
     }
 

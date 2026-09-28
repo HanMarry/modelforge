@@ -356,6 +356,8 @@ fn acp_catalog_and_custom_provider_methods_use_core_provider_store() {
                 "apiKeyEnv": "CUSTOM_STARK_ACP_PROVIDER_API_KEY",
                 "apiKeySet": true,
                 "preservesThinking": true,
+                "sensitiveHeaders": [],
+                "storedSecretHeaders": [],
             }))
         );
 

@@ -98,7 +98,9 @@ const savedReferences = {
 const savedValueLabel = (name: string) =>
   `Saved value of ${name} is hidden. Type a new value to replace it.`;
 
-const renderSavedProvider = (onSubmit: ReturnType<typeof vi.fn>) =>
+// Same parameter typing as `renderForm`: `ReturnType<typeof vi.fn>` also admits constructable
+// mocks, which `onSubmit` does not accept.
+const renderSavedProvider = (onSubmit = vi.fn()) =>
   render(
     <CustomProviderForm
       initialData={{
