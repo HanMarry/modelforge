@@ -35,6 +35,7 @@
     "figures:all": "node scripts/build-mathmodel-figures.js && node scripts/generate-figures-catalog.js",
     "assets:pdfjs": "node scripts/copy-pdfjs-assets.js",
     "templates:vendor": "node scripts/vendor-paper-templates.js",
+    "release:build": "node scripts/release/build-release.mts",
     "start-gui": "pnpm run build-goose-acp-client && pnpm run i18n:compile && pnpm run assets:pdfjs && electron-forge start",
     "start-gui-debug": "pnpm run build-goose-acp-client && pnpm run i18n:compile && pnpm run assets:pdfjs && electron-forge start -- --inspect=9229",
     "start": "cd ../.. && just run-ui",
