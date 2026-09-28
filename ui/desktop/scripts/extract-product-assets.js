@@ -14,7 +14,10 @@
  *    permit redistribution. Pass `--include-fonts` for a local tree that needs them.
  *  - **Contest statements and attachments** (`resources/builtin-examples/`) — the
  *    organisers' copyrighted material. Pass `--include-examples` to copy them for local
- *    use; `NOTICE.md` records that they are not licensed for redistribution.
+ *    use; `NOTICE.md` records that they are not licensed for redistribution. They go to
+ *    `ui/desktop/resources/builtin-examples/`, which is git-ignored and not packaged, and
+ *    never into the skills tree: everything under `builtins/` is compiled into goose by
+ *    `include_dir!` (spec requirement 9.6).
  *
  * Usage:
  *   node scripts/extract-product-assets.js --app "<install dir>" [--dry-run]
@@ -54,7 +57,8 @@ const SKIP_FILES = [
 
 /**
  * What to copy: `from` is relative to the app's `resources/`, `to` is relative to the
- * repository's builtins directory (`resources` may be omitted by using `fromSkills`).
+ * repository's builtins directory (`resources` may be omitted by using `fromSkills`), or
+ * to `ui/desktop/` when the job sets `toDesktop`.
  */
 const JOBS = [
   {
@@ -108,9 +112,12 @@ const JOBS = [
   {
     label: 'example problems',
     from: 'builtin-examples',
-    to: 'math_modeling/assets/examples',
+    // Local only: git-ignored, left out of the installer, and outside the skills tree
+    // so the kernel binary does not carry the organisers' material.
+    to: 'resources/builtin-examples',
+    toDesktop: true,
     optionalFlag: 'includeExamples',
-    note: 'three real contest problem sets (statements, attachments, results)',
+    note: 'three real contest problem sets (statements, attachments, results), local use only',
   },
   {
     label: 'pdf viewer',
@@ -199,7 +206,7 @@ function main() {
     const source = job.fromSkills
       ? path.join(skillsRoot, job.fromSkills)
       : path.join(resources, job.from);
-    const target = path.join(BUILTINS, job.to);
+    const target = path.join(job.toDesktop ? DESKTOP : BUILTINS, job.to);
 
     if (!fs.existsSync(source)) {
       console.error(`MISSING   ${job.label}: ${source}`);

@@ -1,15 +1,16 @@
 const { FusesPlugin } = require('@electron-forge/plugin-fuses');
 const { FuseV1Options, FuseVersion } = require('@electron/fuses');
-const { existsSync } = require('fs');
 const { resolve } = require('path');
 
 const isLinuxVulkanBuild = process.env.GOOSE_DESKTOP_LINUX_VARIANT === 'vulkan';
-// Built-in exam questions; present only after the packaging workflow copies them in.
-const builtinExamplesResource = existsSync('resources/builtin-examples') ? ['resources/builtin-examples'] : [];
 
 let cfg = {
   asar: true,
-  extraResource: ['src/bin', 'src/images', 'src/app-update.yml', ...builtinExamplesResource],
+  // `resources/builtin-examples/` (real contest statements, local study copies only) is
+  // deliberately not listed: the organisers' material is not licensed for redistribution
+  // (spec requirement 9.6), so the installer ships without it and the home cards link to
+  // the official source instead.
+  extraResource: ['src/bin', 'src/images', 'src/app-update.yml'],
   icon: 'src/images/icon',
   // Windows specific configuration
   win32: {

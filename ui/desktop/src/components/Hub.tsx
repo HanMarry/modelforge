@@ -38,6 +38,7 @@ import {
   FolderOpen,
   ClipboardCheck,
   Database,
+  ExternalLink,
   FileText,
   Loader2,
   MessageSquare,
@@ -58,6 +59,7 @@ import {
   CONTEST_PRESETS,
   EXAMPLE_PROBLEMS,
   WORKFLOW_PRESETS,
+  isMissingBuiltinExample,
   type ContestPreset,
   type ExampleProblem,
   type WorkflowPreset,
@@ -93,11 +95,27 @@ const i18n = defineMessages({
     id: 'hub.exampleProjectCreated',
     defaultMessage: 'Created project "{name}" for this problem',
   },
-  exampleNeedsInput: {
-    id: 'hub.exampleNeedsInput',
-    defaultMessage: 'Statement not bundled — add it yourself',
+  exampleNotBundled: {
+    id: 'hub.exampleNotBundled',
+    defaultMessage: 'Statement not bundled; a local copy is used if present',
   },
-  exampleReady: { id: 'hub.exampleReady', defaultMessage: 'Statement and attachments included' },
+  exampleMissingLocal: {
+    id: 'hub.exampleMissingLocal',
+    defaultMessage: 'No local copy of this problem',
+  },
+  exampleDownloadGuide: {
+    id: 'hub.exampleDownloadGuide',
+    defaultMessage:
+      'Download the statement and attachments from the official site, put them in your project folder, then start.',
+  },
+  exampleOfficialSource: {
+    id: 'hub.exampleOfficialSource',
+    defaultMessage: 'Official source: {source}',
+  },
+  exampleOfficialSourcePending: {
+    id: 'hub.exampleOfficialSourcePending',
+    defaultMessage: 'Official link for {source}: to be confirmed',
+  },
 });
 
 function useClock() {
@@ -185,6 +203,8 @@ export default function Hub({
     mode?: 'append';
   } | null>(null);
   const [loadingExampleId, setLoadingExampleId] = useState<string | null>(null);
+  // Problems found to have no local copy; their cards show the official source instead.
+  const [missingExampleIds, setMissingExampleIds] = useState<ReadonlySet<string>>(() => new Set());
   useEffect(() => clearActiveFile(), [workingDir, clearActiveFile]);
 
   // The figure and paper catalogue pages queue a prompt before navigating here, because
@@ -266,12 +286,22 @@ export default function Hub({
           targetDir,
         });
         if (!result.ok) {
+          if (isMissingBuiltinExample(result.error)) {
+            setMissingExampleIds((ids) => new Set(ids).add(problem.id));
+            return;
+          }
           toastError({
             title: intl.formatMessage(i18n.exampleLoadFailed),
             msg: result.error,
           });
           return;
         }
+        setMissingExampleIds((ids) => {
+          if (!ids.has(problem.id)) return ids;
+          const next = new Set(ids);
+          next.delete(problem.id);
+          return next;
+        });
         handleWorkingDirChange(result.projectDir);
         window.electron.addRecentDir(result.projectDir);
         selectWorkspaceTab('project');
@@ -454,48 +484,83 @@ export default function Hub({
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 {EXAMPLE_PROBLEMS.map((problem) => {
                   const preparing = loadingExampleId === problem.id;
+                  const missing = missingExampleIds.has(problem.id);
+                  const officialUrl = problem.officialUrl;
                   return (
-                    <button
+                    <div
                       key={problem.id}
-                      onClick={() => handleExampleSelect(problem)}
-                      disabled={loadingExampleId !== null}
                       className={cn(
-                        'flex flex-col rounded-xl border border-border-secondary p-3 text-left transition-colors hover:border-border-primary',
+                        'flex flex-col rounded-xl border border-border-secondary transition-colors hover:border-border-primary',
                         preparing && 'opacity-60'
                       )}
                     >
-                      <span className="text-[11px] text-text-tertiary">{problem.label}</span>
-                      <span className="mt-1 line-clamp-2 text-sm text-text-primary">
-                        {problem.title}
-                      </span>
-                      <span className="mt-2 flex flex-wrap gap-1">
-                        {problem.methods.map((method) => (
-                          <span
-                            key={method}
-                            className="rounded-full bg-background-secondary px-1.5 py-0.5 text-[10px] text-text-secondary"
-                          >
-                            {method}
+                      <button
+                        type="button"
+                        onClick={() => handleExampleSelect(problem)}
+                        disabled={loadingExampleId !== null}
+                        className="flex flex-col rounded-xl p-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring-info"
+                      >
+                        <span className="text-[11px] text-text-tertiary">{problem.label}</span>
+                        <span className="mt-1 line-clamp-2 text-sm text-text-primary">
+                          {problem.title}
+                        </span>
+                        <span className="mt-2 flex flex-wrap gap-1">
+                          {problem.methods.map((method) => (
+                            <span
+                              key={method}
+                              className="rounded-full bg-background-secondary px-1.5 py-0.5 text-[10px] text-text-secondary"
+                            >
+                              {method}
+                            </span>
+                          ))}
+                        </span>
+                        {preparing ? (
+                          <span className="mt-2 flex items-center gap-1 text-[10px] text-text-tertiary">
+                            <Loader2
+                              aria-hidden="true"
+                              className="h-3 w-3 animate-spin motion-reduce:animate-none"
+                            />
+                            {intl.formatMessage(i18n.examplePreparing)}
                           </span>
-                        ))}
-                      </span>
-                      {preparing ? (
-                        <span className="mt-2 flex items-center gap-1 text-[10px] text-text-tertiary">
-                          <Loader2
-                            aria-hidden="true"
-                            className="h-3 w-3 animate-spin motion-reduce:animate-none"
-                          />
-                          {intl.formatMessage(i18n.examplePreparing)}
-                        </span>
-                      ) : problem.dataReady ? (
-                        <span className="mt-2 text-[10px] text-text-tertiary">
-                          {intl.formatMessage(i18n.exampleReady)}
-                        </span>
-                      ) : (
-                        <span className="mt-2 text-[10px] text-text-tertiary">
-                          {intl.formatMessage(i18n.exampleNeedsInput)}
-                        </span>
-                      )}
-                    </button>
+                        ) : missing ? null : (
+                          <span className="mt-2 text-[10px] text-text-tertiary">
+                            {intl.formatMessage(i18n.exampleNotBundled)}
+                          </span>
+                        )}
+                      </button>
+                      {missing && !preparing ? (
+                        <div
+                          role="status"
+                          className="flex flex-col gap-1 border-t border-border-secondary px-3 pb-3 pt-2 text-[11px]"
+                        >
+                          <span className="text-text-primary">
+                            {intl.formatMessage(i18n.exampleMissingLocal)}
+                          </span>
+                          <span className="text-text-tertiary">
+                            {intl.formatMessage(i18n.exampleDownloadGuide)}
+                          </span>
+                          {officialUrl ? (
+                            <button
+                              type="button"
+                              onClick={() => window.open(officialUrl, '_blank')}
+                              title={officialUrl}
+                              className="flex items-center gap-1 self-start rounded text-text-info hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring-info"
+                            >
+                              <ExternalLink aria-hidden="true" className="h-3 w-3 shrink-0" />
+                              {intl.formatMessage(i18n.exampleOfficialSource, {
+                                source: problem.officialSource,
+                              })}
+                            </button>
+                          ) : (
+                            <span className="text-text-tertiary">
+                              {intl.formatMessage(i18n.exampleOfficialSourcePending, {
+                                source: problem.officialSource,
+                              })}
+                            </span>
+                          )}
+                        </div>
+                      ) : null}
+                    </div>
                   );
                 })}
               </div>

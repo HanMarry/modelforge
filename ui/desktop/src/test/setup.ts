@@ -35,12 +35,18 @@ global.console = {
   error: vi.fn(),
 };
 
+// Script tests (`scripts/**/*.test.js`) run with `// @vitest-environment node`, where
+// there is no window to mock; everything below that touches the DOM is skipped there.
+const hasDom = typeof window !== 'undefined';
+
 // Mock window.navigator.clipboard for copy functionality tests
-Object.assign(navigator, {
-  clipboard: {
-    writeText: vi.fn(() => Promise.resolve()),
-  },
-});
+if (hasDom) {
+  Object.assign(navigator, {
+    clipboard: {
+      writeText: vi.fn(() => Promise.resolve()),
+    },
+  });
+}
 
 // Mock settings store for tests
 const mockSettings: Record<string, unknown> = {
@@ -74,21 +80,23 @@ const mockSettings: Record<string, unknown> = {
 };
 
 // Mock window.electron for renderer process
-Object.defineProperty(window, 'electron', {
-  writable: true,
-  value: {
-    platform: 'darwin',
-    getSetting: vi.fn((key: string) => Promise.resolve(mockSettings[key])),
-    setSetting: vi.fn((key: string, value: unknown) => {
-      mockSettings[key] = value;
-      return Promise.resolve();
-    }),
-    reloadApp: vi.fn(),
-    showMessageBox: vi.fn(() => Promise.resolve({ response: 0 })),
-    getIsFullScreen: vi.fn(() => Promise.resolve(false)),
-    logInfo: vi.fn(),
-    logError: vi.fn(),
-    on: vi.fn(),
-    off: vi.fn(),
-  },
-});
+if (hasDom) {
+  Object.defineProperty(window, 'electron', {
+    writable: true,
+    value: {
+      platform: 'darwin',
+      getSetting: vi.fn((key: string) => Promise.resolve(mockSettings[key])),
+      setSetting: vi.fn((key: string, value: unknown) => {
+        mockSettings[key] = value;
+        return Promise.resolve();
+      }),
+      reloadApp: vi.fn(),
+      showMessageBox: vi.fn(() => Promise.resolve({ response: 0 })),
+      getIsFullScreen: vi.fn(() => Promise.resolve(false)),
+      logInfo: vi.fn(),
+      logError: vi.fn(),
+      on: vi.fn(),
+      off: vi.fn(),
+    },
+  });
+}

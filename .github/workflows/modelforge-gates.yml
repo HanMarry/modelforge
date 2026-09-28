@@ -1,0 +1,148 @@
+# ModelForge 内容门禁（规格 mathmodel-parity-and-beyond，需求 24.3–24.6）
+#
+# 依次运行三项只读检查：品牌检查、文档检查（含 plan-check）、技能索引检查。
+# 每项 continue-on-error，全部跑完后汇总失败项的名称与原因，任一失败则 job 失败；
+# 检查前后比较工作树，检查改动了文件同样判为失败（只读检查模式）。
+# 三个脚本只用 Node 内置模块，不需要 pnpm install。
+name: ModelForge Gates
+
+on:
+  push:
+    branches:
+      - modelforge
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - modelforge
+      # 规格的并行分支（mp/*）先经 PR 合入这条集成分支，在这里提前跑门禁
+      - feat/mathmodel-parity
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    # 显式指定 bash，GitHub 才会加 -o pipefail，`| tee` 不会吞掉检查的退出码
+    shell: bash
+
+jobs:
+  gates:
+    name: Brand, docs, plan and skills gates (read-only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          # plan-check 用 `git merge-base --is-ancestor <sha> origin/modelforge` 判断「已验证」
+          # 条目的 commit 是否可达，需要完整历史和 origin/modelforge
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020  # v7.0.0
+        with:
+          node-version: 24.10.0
+
+      - name: Make origin/modelforge available
+        run: |
+          if ! git rev-parse --verify --quiet "origin/modelforge^{commit}" > /dev/null; then
+            git fetch --no-tags origin +refs/heads/modelforge:refs/remotes/origin/modelforge \
+              || echo "::warning::could not fetch modelforge; plan-check cannot verify 已验证 commits"
+          fi
+          git log -1 --format='origin/modelforge at %h %s' origin/modelforge || true
+
+      - name: Snapshot the working tree
+        run: |
+          git status --porcelain=v1 --untracked-files=all > "$RUNNER_TEMP/status-before.txt"
+          git diff --binary HEAD | sha256sum > "$RUNNER_TEMP/diff-before.txt"
+          echo "$(wc -l < "$RUNNER_TEMP/status-before.txt") path(s) differ from HEAD before the checks"
+
+      - name: 品牌检查（brand:check）
+        id: brand
+        continue-on-error: true
+        working-directory: ui/desktop
+        run: node scripts/build-brand-vector.js --check 2>&1 | tee "$RUNNER_TEMP/brand.log"
+
+      - name: 文档检查与 plan-check（docs:check:ci）
+        id: docs
+        continue-on-error: true
+        working-directory: ui/desktop
+        run: node scripts/docs-check.js --check 2>&1 | tee "$RUNNER_TEMP/docs.log"
+
+      - name: 技能索引检查（skills:check）
+        id: skills
+        continue-on-error: true
+        working-directory: ui/desktop
+        run: node scripts/check-skills.js --check 2>&1 | tee "$RUNNER_TEMP/skills.log"
+
+      - name: 只读检查模式（工作树不得改动）
+        id: readonly
+        continue-on-error: true
+        run: |
+          git status --porcelain=v1 --untracked-files=all > "$RUNNER_TEMP/status-after.txt"
+          git diff --binary HEAD | sha256sum > "$RUNNER_TEMP/diff-after.txt"
+          if cmp -s "$RUNNER_TEMP/status-before.txt" "$RUNNER_TEMP/status-after.txt" \
+            && cmp -s "$RUNNER_TEMP/diff-before.txt" "$RUNNER_TEMP/diff-after.txt"; then
+            echo "working tree unchanged"
+            exit 0
+          fi
+          {
+            echo "read-only check mode violated: the checks changed these files"
+            # diff exits 1 when the snapshots differ, which is the case being reported
+            diff "$RUNNER_TEMP/status-before.txt" "$RUNNER_TEMP/status-after.txt" \
+              | sed -n 's/^> /  changed: /p' || true
+            git diff --stat HEAD
+          } | tee "$RUNNER_TEMP/readonly.log"
+          exit 1
+
+      - name: Summarize gates
+        if: always()
+        env:
+          BRAND: ${{ steps.brand.outcome }}
+          DOCS: ${{ steps.docs.outcome }}
+          SKILLS: ${{ steps.skills.outcome }}
+          READONLY: ${{ steps.readonly.outcome }}
+        run: |
+          # name, outcome, log, pattern of the lines that carry the reasons
+          summarize() {
+            local name="$1" outcome="$2" log="$3" pattern="$4"
+            if [ "$outcome" = "success" ]; then
+              echo "PASS  $name"
+              return
+            fi
+            echo "FAIL  $name (${outcome:-not run})"
+            if [ ! -s "$log" ]; then
+              echo "      no output: the step did not run"
+            elif grep -E "$pattern" "$log" > "$RUNNER_TEMP/reasons.txt"; then
+              sed 's/^/      /' "$RUNNER_TEMP/reasons.txt"
+            else
+              tail -n 20 "$log" | sed 's/^/      /'
+            fi
+          }
+          {
+            summarize "品牌检查（brand:check）" "$BRAND" "$RUNNER_TEMP/brand.log" \
+              '^(STALE|Error)'
+            summarize "文档检查与 plan-check（docs:check:ci）" "$DOCS" "$RUNNER_TEMP/docs.log" \
+              '^ *(MISMATCH|BROKEN|FAIL|MISSING FILE|missing:|should not contain:|ERROR|CONFLICT)|^Error|problem\(s\) found'
+            summarize "技能索引检查（skills:check）" "$SKILLS" "$RUNNER_TEMP/skills.log" \
+              '^(FAIL| +- )|^Error'
+            summarize "只读检查模式" "$READONLY" "$RUNNER_TEMP/readonly.log" \
+              '^(read-only|  changed:)'
+          } | tee "$RUNNER_TEMP/summary.txt"
+          {
+            echo '## ModelForge gates'
+            echo
+            echo '```'
+            cat "$RUNNER_TEMP/summary.txt"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          failed=$(grep -c '^FAIL  ' "$RUNNER_TEMP/summary.txt" || true)
+          if [ "$failed" -gt 0 ]; then
+            echo "::error::$failed gate(s) failed; the reasons are listed above"
+            exit 1
+          fi

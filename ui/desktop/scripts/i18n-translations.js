@@ -196,8 +196,11 @@ const ZH_CN = {
   'hub.contestLabel': '赛事',
   'hub.contestInfo': '赛事信息',
   'hub.examplesTitle': '试试这些数模真题案例',
-  'hub.exampleNeedsInput': '题目未内置，请自行补充',
-  'hub.exampleReady': '已附带题目与附件',
+  'hub.exampleNotBundled': '题面与附件不随应用分发，本机有副本时直接使用',
+  'hub.exampleMissingLocal': '本机没有这道题的题面与附件',
+  'hub.exampleDownloadGuide': '请到官网下载题面与附件，放进项目文件夹后再开始。',
+  'hub.exampleOfficialSource': '官方来源：{source}',
+  'hub.exampleOfficialSourcePending': '{source}官网链接：待确认',
 
   // Profile
   'profileView.title': '个人信息',
