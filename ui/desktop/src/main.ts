@@ -32,7 +32,12 @@ import { installBackendCertificateVerifiers } from './backendCertificateVerifier
 import * as skillEnablement from './utils/skillEnablement';
 import { configureProxy } from './proxy';
 import { startGooseServe } from './gooseServe';
-import { createAgentKernelManager, resolveGooseConfigDir } from './utils/agentKernel';
+import {
+  createAgentKernelManager,
+  createAgentKernelSecretStore,
+  resolveGooseConfigDir,
+} from './utils/agentKernel';
+import { createKernelKeyIpcHandlers, registerCredentialIpc } from './utils/credentialIpc';
 import {
   bundledCodexSearchPathEnv,
   resolveBundledCodexRuntime,
@@ -42,7 +47,7 @@ import { getLoginShellPath } from './loginShellPath';
 import { GooseServeLeaseRegistry, type GooseServeLease } from './gooseServeLeaseRegistry';
 import { acpWebSocketUrlFromHttpBase, normalizeAcpHttpBaseUrl } from './acp/url';
 import { expandTilde, sanitizeGoosePathRoot } from './utils/pathUtils';
-import log from './utils/logger';
+import log, { registerLogSecrets } from './utils/logger';
 import { ensureWinShims } from './utils/winShims';
 import { addRecentDir, loadRecentDirs } from './utils/recentDirs';
 import { formatAppName, errorMessage, formatErrorForLogging } from './utils/conversionUtils';
@@ -198,36 +203,44 @@ const SETTINGS_FILE = path.join(app.getPath('userData'), 'settings.json');
 const STARTUP_LOGS_DIR = path.join(app.getPath('userData'), 'logs', 'startup');
 
 /**
+ * Keys the app keeps for itself (requirement 2): encrypted with the OS secure storage, or held
+ * in memory for this session when there is none. Nothing reversible reaches the disk.
+ */
+const credentialStore = createAgentKernelSecretStore({
+  file: path.join(app.getPath('userData'), 'agent-kernel-secrets.json'),
+  crypto: {
+    available: () => safeStorage.isEncryptionAvailable(),
+    encrypt: (plaintext) => safeStorage.encryptString(plaintext),
+    decrypt: (ciphertext) => safeStorage.decryptString(ciphertext),
+  },
+  log: (message) => log.info(`[credentials] ${message}`),
+});
+// Every key value the store handled is masked in the logs (requirement 1.10).
+registerLogSecrets(() => credentialStore.sensitiveValues());
+registerCredentialIpc(ipcMain, credentialStore);
+
+// Keys older versions stored as `raw:` Base64 are encrypted once secure storage is ready; an
+// entry that fails stays as it is and is retried on the next start (requirement 2.4, 2.5).
+app
+  .whenReady()
+  .then(async () => {
+    const { migrated, failed } = await credentialStore.migrateRawEntries();
+    if (migrated > 0 || failed > 0) {
+      log.info(`[credentials] legacy keys: ${migrated} encrypted, ${failed} left for a retry`);
+    }
+  })
+  .catch((error) => log.error('[credentials] migrating legacy keys failed', error));
+
+/**
  * External agent kernels (Claude Code / Codex) reach the provider configured in the app
  * through an in-app loopback shim. The manager owns that shim and the isolated CLI config
  * directory, and contributes the environment the kernel process inherits.
  */
 const agentKernel = createAgentKernelManager({
   runtimeRoot: path.join(app.getPath('userData'), 'agent-runtimes'),
-  secretsFile: path.join(app.getPath('userData'), 'agent-kernel-secrets.json'),
+  secrets: credentialStore,
   gooseConfigDir: resolveGooseConfigDir(),
   log: (message) => log.info(`[agent-kernel] ${message}`),
-  codec: {
-    encode: (plaintext) =>
-      safeStorage.isEncryptionAvailable()
-        ? `enc:${safeStorage.encryptString(plaintext).toString('base64')}`
-        : `raw:${Buffer.from(plaintext, 'utf8').toString('base64')}`,
-    decode: (stored) => {
-      try {
-        if (stored.startsWith('enc:')) {
-          return safeStorage.isEncryptionAvailable()
-            ? safeStorage.decryptString(Buffer.from(stored.slice(4), 'base64'))
-            : null;
-        }
-        if (stored.startsWith('raw:')) {
-          return Buffer.from(stored.slice(4), 'base64').toString('utf8');
-        }
-      } catch (error) {
-        log.error('[agent-kernel] failed to decode stored secret', error);
-      }
-      return null;
-    },
-  },
 });
 
 /** Codex runtime shipped with packaged Windows builds; resolved once, it cannot change at runtime. */
@@ -2231,32 +2244,30 @@ ipcMain.handle('agent-kernel-status', () => agentKernel.getStatus());
 
 ipcMain.handle('agent-kernel-bundled-codex', () => bundledCodexRuntime);
 
+/** Kernel key channels; they save into the credential store and report the outcome. */
+const kernelKeyIpc = createKernelKeyIpcHandlers(credentialStore, agentKernel);
+
 /**
  * Remembers the provider key the user typed in the app's provider settings so the external
  * kernels can reuse it. goose masks secrets over ACP, hence the app-side copy.
  */
 ipcMain.handle(
   'agent-kernel-remember-provider-key',
-  (_event, providerId: string, apiKey: string) => {
-    agentKernel.rememberProviderKey(providerId, apiKey);
-    return true;
-  }
+  (_event, providerId: unknown, apiKey: unknown) =>
+    kernelKeyIpc.rememberProviderKey(providerId, apiKey)
 );
 
-ipcMain.handle('agent-kernel-forget-provider-key', (_event, providerId: string) => {
-  agentKernel.forgetProviderKey(providerId);
-  return true;
-});
+ipcMain.handle('agent-kernel-forget-provider-key', (_event, providerId: unknown) =>
+  kernelKeyIpc.forgetProviderKey(providerId)
+);
 
-ipcMain.handle('agent-kernel-set-key', (_event, providerId: string, apiKey: string) => {
-  agentKernel.setKernelKey(providerId, apiKey);
-  return true;
-});
+ipcMain.handle('agent-kernel-set-key', (_event, providerId: unknown, apiKey: unknown) =>
+  kernelKeyIpc.setKernelKey(providerId, apiKey)
+);
 
-ipcMain.handle('agent-kernel-clear-key', (_event, providerId: string) => {
-  agentKernel.clearKernelKey(providerId);
-  return true;
-});
+ipcMain.handle('agent-kernel-clear-key', (_event, providerId: unknown) =>
+  kernelKeyIpc.clearKernelKey(providerId)
+);
 
 /** Re-provisions the kernel for the saved settings; a running backend keeps its old env. */
 ipcMain.handle('agent-kernel-apply', async () => {

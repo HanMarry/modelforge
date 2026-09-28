@@ -4,6 +4,9 @@ import type { GooseApp } from './types/apps';
 import type { Settings, SettingKey } from './utils/settings';
 import type { AgentKernelStatus } from './utils/agentKernel';
 import type { BundledCodexRuntimeStatus } from './utils/bundledCodexRuntime';
+import type { CredentialSaveResult } from './utils/credentialIpc';
+import type { CredentialStoreStatus, MigrationResult } from './utils/credentialStore';
+import type { IpcResult } from './utils/ipcResult';
 import { defaultSettings } from './utils/settings';
 import type { DisabledSkillRecord } from './utils/skillEnablement';
 import type { OpenExternalUrlResult } from './utils/urlSecurity';
@@ -220,11 +223,17 @@ type ElectronAPI = {
   /** Codex runtime shipped with packaged Windows builds, and why it is unavailable if so. */
   getBundledCodexRuntime: () => Promise<BundledCodexRuntimeStatus>;
   /** Stores the key the external kernels use for the active provider. */
-  setAgentKernelKey: (providerId: string, apiKey: string) => Promise<boolean>;
-  clearAgentKernelKey: (providerId: string) => Promise<boolean>;
+  setAgentKernelKey: (providerId: string, apiKey: string) => Promise<CredentialSaveResult>;
+  clearAgentKernelKey: (providerId: string) => Promise<IpcResult<null>>;
   /** Keeps a copy of a provider key saved in the app so kernels can reuse it. */
-  rememberProviderApiKey: (providerId: string, apiKey: string) => Promise<boolean>;
-  forgetProviderApiKey: (providerId: string) => Promise<boolean>;
+  rememberProviderApiKey: (providerId: string, apiKey: string) => Promise<CredentialSaveResult>;
+  forgetProviderApiKey: (providerId: string) => Promise<IpcResult<null>>;
+  /** Saves a key in the desktop credential store; `memory-only` means it lasts this session. */
+  credentialSave: (id: string, value: string) => Promise<CredentialSaveResult>;
+  /** Whether keys are encrypted on disk, and whether the secrets file needs attention. */
+  credentialStatus: () => Promise<IpcResult<CredentialStoreStatus>>;
+  /** Retries encrypting keys older versions stored as `raw:` Base64. */
+  credentialMigrate: () => Promise<IpcResult<MigrationResult>>;
   /** Re-provisions the kernel now; a running backend only picks it up after a restart. */
   applyAgentKernel: () => Promise<AgentKernelStatus>;
   /** Applies settings edits to the running kernel without re-provisioning it. */
@@ -430,6 +439,9 @@ const electronAPI: ElectronAPI = {
     ipcRenderer.invoke('agent-kernel-remember-provider-key', providerId, apiKey),
   forgetProviderApiKey: (providerId: string) =>
     ipcRenderer.invoke('agent-kernel-forget-provider-key', providerId),
+  credentialSave: (id: string, value: string) => ipcRenderer.invoke('credential-save', id, value),
+  credentialStatus: () => ipcRenderer.invoke('credential-status'),
+  credentialMigrate: () => ipcRenderer.invoke('credential-migrate'),
   applyAgentKernel: () => ipcRenderer.invoke('agent-kernel-apply'),
   refreshAgentKernel: () => ipcRenderer.invoke('agent-kernel-refresh'),
   setAgentKernelModel: (model: string) => ipcRenderer.invoke('agent-kernel-set-model', model),
