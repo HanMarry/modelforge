@@ -8,6 +8,7 @@ pub mod paths;
 pub mod permission;
 pub mod providers;
 pub mod search_path;
+pub mod secret_headers;
 pub mod signup_openrouter;
 pub mod signup_tetrate;
 pub mod tls;
