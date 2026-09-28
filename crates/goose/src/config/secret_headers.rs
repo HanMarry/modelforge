@@ -309,6 +309,7 @@ pub(crate) mod testing {
         entries: BTreeMap<String, String>,
         calls: usize,
         fail_on_call: Option<usize>,
+        mismatch_on_call: Option<usize>,
         unavailable: bool,
     }
 
@@ -343,6 +344,12 @@ pub(crate) mod testing {
 
         pub(crate) fn set_unavailable(&self, unavailable: bool) {
             self.lock().unavailable = unavailable;
+        }
+
+        /// When the k-th call is a `get`, it reads back something other than what is stored,
+        /// like a store that does not keep what it was given.
+        pub(crate) fn mismatch_on_call(&self, call: usize) {
+            self.lock().mismatch_on_call = Some(call);
         }
 
         /// The stored entries; reading them is not counted as a call.
@@ -380,7 +387,12 @@ pub(crate) mod testing {
         }
 
         fn get(&self, key: &str) -> Result<Option<String>, SecretStoreError> {
-            Ok(self.begin()?.entries.get(key).cloned())
+            let state = self.begin()?;
+            let value = state.entries.get(key).cloned();
+            if state.mismatch_on_call == Some(state.calls) {
+                return Ok(value.map(|value| format!("{value}~")));
+            }
+            Ok(value)
         }
 
         fn delete(&self, key: &str) -> Result<(), SecretStoreError> {
