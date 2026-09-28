@@ -119,9 +119,6 @@
   "agentKernelSection.keyNotSavedNoProvider": {
     "defaultMessage": "未解析到服務提供者——請先儲存服務提供者設定。"
   },
-  "agentKernelSection.keySaved": {
-    "defaultMessage": "密钥已保存。"
-  },
   "agentKernelSection.keySource": {
     "defaultMessage": "密钥来源：{source}"
   },
@@ -835,6 +832,51 @@
   },
   "createSubRecipeInline.validationMsg": {
     "defaultMessage": "名稱、標題、食譜描述與指示為必填。"
+  },
+  "credentialStorageStatus.checkAgain": {
+    "defaultMessage": "重新檢查"
+  },
+  "credentialStorageStatus.corrupted": {
+    "defaultMessage": "金鑰檔案已損壞：{path}。在你修復或刪除該檔案之前，ModelForge 不會寫入它。"
+  },
+  "credentialStorageStatus.migrationFailed": {
+    "defaultMessage": "舊版本儲存的金鑰中有 {count} 個未能遷移為加密儲存，已保持原樣，下次啟動時會重試。"
+  },
+  "credentialStorageStatus.reasonCorrupted": {
+    "defaultMessage": "金鑰檔案已損壞"
+  },
+  "credentialStorageStatus.reasonEncryptionFailed": {
+    "defaultMessage": "系統安全儲存無法加密該金鑰"
+  },
+  "credentialStorageStatus.reasonInvalid": {
+    "defaultMessage": "金鑰為空或格式無效"
+  },
+  "credentialStorageStatus.reasonWriteFailed": {
+    "defaultMessage": "金鑰檔案寫入失敗，原有金鑰保持不變"
+  },
+  "credentialStorageStatus.removeFailed": {
+    "defaultMessage": "已儲存的金鑰未能刪除：{reason}"
+  },
+  "credentialStorageStatus.retryMigration": {
+    "defaultMessage": "立即重試"
+  },
+  "credentialStorageStatus.saveFailed": {
+    "defaultMessage": "金鑰儲存失敗：{reason}"
+  },
+  "credentialStorageStatus.savedEncrypted": {
+    "defaultMessage": "已加密儲存"
+  },
+  "credentialStorageStatus.savedMemoryOnly": {
+    "defaultMessage": "未持久化：該金鑰在 ModelForge 結束後失效"
+  },
+  "credentialStorageStatus.statusUnavailable": {
+    "defaultMessage": "無法讀取金鑰儲存狀態：{reason}"
+  },
+  "credentialStorageStatus.unavailable": {
+    "defaultMessage": "加密不可用，金鑰僅在本次工作階段內有效"
+  },
+  "credentialStorageStatus.unavailableDetail": {
+    "defaultMessage": "系統安全儲存無法加密金鑰，ModelForge 只在記憶體中保留，結束後即捨棄；重新啟動後需要重新填寫。"
   },
   "creditsExhaustedNotification.addCredits": {
     "defaultMessage": "新增點數"
