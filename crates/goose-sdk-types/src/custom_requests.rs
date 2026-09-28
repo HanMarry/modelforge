@@ -1220,6 +1220,12 @@ pub struct CustomProviderConfigDto {
     pub api_key_env: Option<String>,
     pub api_key_set: bool,
     pub preserves_thinking: bool,
+    /// Header names the user marked as sensitive, besides the well-known auth headers.
+    #[serde(default)]
+    pub sensitive_headers: Vec<String>,
+    /// Headers whose values are in the credential store; their `headers` value is a reference.
+    #[serde(default)]
+    pub stored_secret_headers: Vec<String>,
 }
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize, JsonSchema)]
@@ -1243,6 +1249,9 @@ pub struct CustomProviderUpsertDto {
     pub base_path: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub preserves_thinking: Option<bool>,
+    /// Header names to store like auth headers. Omitted on update, the current marks are kept.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sensitive_headers: Option<Vec<String>>,
 }
 
 /// Create a custom provider backed by goose's declarative provider store.

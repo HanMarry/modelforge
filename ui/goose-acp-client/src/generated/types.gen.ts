@@ -1085,6 +1085,10 @@ export type CustomProviderCreateRequest_unstable = {
     catalogProviderId?: string | null;
     basePath?: string | null;
     preservesThinking?: boolean | null;
+    /**
+     * Header names to store like auth headers. Omitted on update, the current marks are kept.
+     */
+    sensitiveHeaders?: Array<string> | null;
     toolshim: boolean;
 };
 
@@ -1150,6 +1154,14 @@ export type CustomProviderConfigDto = {
     apiKeyEnv?: string | null;
     apiKeySet: boolean;
     preservesThinking: boolean;
+    /**
+     * Header names the user marked as sensitive, besides the well-known auth headers.
+     */
+    sensitiveHeaders?: Array<string>;
+    /**
+     * Headers whose values are in the credential store; their `headers` value is a reference.
+     */
+    storedSecretHeaders?: Array<string>;
 };
 
 /**
@@ -1170,6 +1182,10 @@ export type CustomProviderUpdateRequest_unstable = {
     catalogProviderId?: string | null;
     basePath?: string | null;
     preservesThinking?: boolean | null;
+    /**
+     * Header names to store like auth headers. Omitted on update, the current marks are kept.
+     */
+    sensitiveHeaders?: Array<string> | null;
     toolshim: boolean;
 };
 

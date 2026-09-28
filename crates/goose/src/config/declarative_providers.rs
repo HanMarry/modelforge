@@ -13,6 +13,7 @@ use crate::providers::inventory::declarative_inventory_identity;
 use crate::providers::ollama_def::OllamaProviderDef;
 use crate::providers::openai_def::OpenAiProviderDef;
 use anyhow::Result;
+use goose_providers::errors::ProviderError;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
@@ -564,7 +565,14 @@ pub fn resolve_header_secrets(
     if let Some(headers) = &config.headers {
         let resolved = match resolve_headers(headers, store) {
             Ok(resolved) => resolved,
-            Err(error) => anyhow::bail!("provider {}: {error}", config.name),
+            Err(error) => {
+                let error = ProviderError::UnresolvedSecret {
+                    provider: config.display_name.clone(),
+                    header: error.header,
+                    reason: error.reason.to_string(),
+                };
+                return Err(error.into());
+            }
         };
         config.headers = Some(resolved);
     }
@@ -1394,6 +1402,12 @@ mod credential_tests {
         let empty = MemorySecretStore::new();
         let error = resolve_header_secrets(&mut unresolvable, &empty).unwrap_err();
         assert!(error.to_string().contains("Authorization"), "{error}");
+        let expected = ProviderError::UnresolvedSecret {
+            provider: DISPLAY_NAME.to_string(),
+            header: "Authorization".to_string(),
+            reason: "no credential is stored for it".to_string(),
+        };
+        assert_eq!(error.downcast_ref::<ProviderError>(), Some(&expected));
     }
 
     // Feature: mathmodel-parity-and-beyond, Property 2: 凭据保存往返且配置无明文

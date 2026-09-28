@@ -1,8 +1,11 @@
 use super::*;
 use crate::config::declarative_providers;
+use crate::config::provider_credentials::ProviderSaveError;
+use crate::config::secret_headers::{parse_secret_ref, secret_ref_for, SecretOwner};
 use crate::providers::inventory::ensure_refresh_identity_current;
 use crate::providers::provider_secrets;
 use goose_providers::base::ModelInfo;
+use goose_providers::errors::ProviderError;
 use std::str::FromStr;
 
 const ACP_READINESS_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
@@ -420,6 +423,126 @@ fn load_declarative_provider_for_client(
     })
 }
 
+/// `error.data.code` when a header credential of a custom provider cannot be resolved.
+const SECRET_UNRESOLVED_CODE: &str = "SECRET_UNRESOLVED";
+
+/// Structured `error.data` for provider credential failures: a stable `code`, the provider's
+/// display name, the header when one is involved, the cause and the full message. Clients show
+/// the provider and header names from here (requirements 1.3, 1.5).
+fn provider_error_data(
+    code: &str,
+    provider: &str,
+    header: Option<&str>,
+    reason: &str,
+    message: &str,
+) -> serde_json::Value {
+    let mut data = serde_json::json!({
+        "code": code,
+        "provider": provider,
+        "reason": reason,
+        "message": message
+    });
+    if let Some(header) = header {
+        data["header"] = serde_json::Value::from(header);
+    }
+    data
+}
+
+/// The ACP error for a provider that could not be built because a header credential cannot be
+/// resolved, or `None` when `error` has another cause.
+fn unresolved_secret_error(error: &anyhow::Error) -> Option<agent_client_protocol::Error> {
+    let cause = error
+        .chain()
+        .find_map(|cause| cause.downcast_ref::<ProviderError>())?;
+    match cause {
+        ProviderError::UnresolvedSecret {
+            provider,
+            header,
+            reason,
+        } => {
+            let message = cause.to_string();
+            let data = provider_error_data(
+                SECRET_UNRESOLVED_CODE,
+                provider,
+                Some(header.as_str()),
+                reason,
+                &message,
+            );
+            Some(agent_client_protocol::Error::new(-32603, message).data(data))
+        }
+        _ => None,
+    }
+}
+
+/// Maps a failure to build a provider to an ACP error, keeping an unresolved header
+/// credential recognizable for the client.
+pub(super) fn provider_init_error(
+    error: anyhow::Error,
+    context: &str,
+) -> agent_client_protocol::Error {
+    unresolved_secret_error(&error).unwrap_or_else(|| {
+        agent_client_protocol::Error::internal_error().data(format!("{context}: {error}"))
+    })
+}
+
+/// [`provider_init_error`] for switching a session's provider or model.
+pub(super) fn recreate_provider_error(error: anyhow::Error) -> agent_client_protocol::Error {
+    provider_init_error(error, "Failed to recreate provider")
+}
+
+/// Maps a failed save or removal of a custom provider to an ACP error. A [`ProviderSaveError`]
+/// becomes structured data with its code, the provider name and the cause, so the client can
+/// say which provider failed and why while it keeps the form for a retry (requirement 1.3).
+fn provider_save_error(error: anyhow::Error, context: &str) -> agent_client_protocol::Error {
+    let save_error = error
+        .chain()
+        .find_map(|cause| cause.downcast_ref::<ProviderSaveError>());
+    let Some(save_error) = save_error else {
+        let message = format!("{context}: {error}");
+        return agent_client_protocol::Error::internal_error().data(message);
+    };
+    let (provider, header, reason) = match save_error {
+        ProviderSaveError::CredentialWrite { provider, cause } => {
+            (provider.as_str(), None, cause.as_str())
+        }
+        ProviderSaveError::ConfigWrite { provider, cause } => {
+            (provider.as_str(), None, cause.as_str())
+        }
+        ProviderSaveError::InvalidHeader {
+            provider,
+            header,
+            problem,
+        } => (provider.as_str(), Some(header.as_str()), *problem),
+    };
+    let message = save_error.to_string();
+    let data = provider_error_data(save_error.code(), provider, header, reason, &message);
+    match save_error {
+        ProviderSaveError::InvalidHeader { .. } => {
+            agent_client_protocol::Error::invalid_params().data(data)
+        }
+        _ => agent_client_protocol::Error::new(-32603, message).data(data),
+    }
+}
+
+/// Names of the headers whose values are kept in the credential store, that is, whose value is
+/// the header's own secret reference. Sorted, so clients get a stable order.
+fn stored_secret_header_names(
+    config: &declarative_providers::DeclarativeProviderConfig,
+) -> Vec<String> {
+    let owner = SecretOwner::Provider(&config.name);
+    let mut names: Vec<String> = config
+        .headers
+        .iter()
+        .flatten()
+        .filter(|(name, value)| {
+            parse_secret_ref(value).as_ref() == Some(&secret_ref_for(owner, name))
+        })
+        .map(|(name, _)| name.clone())
+        .collect();
+    names.sort();
+    names
+}
+
 fn custom_provider_config_to_dto(
     config: &declarative_providers::DeclarativeProviderConfig,
 ) -> CustomProviderConfigDto {
@@ -452,6 +575,8 @@ fn custom_provider_config_to_dto(
         api_key_env,
         api_key_set,
         preserves_thinking: config.preserves_thinking,
+        sensitive_headers: config.sensitive_headers.clone(),
+        stored_secret_headers: stored_secret_header_names(config),
     }
 }
 
@@ -506,7 +631,7 @@ impl GooseAcpAgent {
         let provider = self
             .create_provider(&req.provider_id, Vec::new(), None, true)
             .await
-            .internal_err_ctx("Failed to initialize provider")?;
+            .map_err(|error| provider_init_error(error, "Failed to initialize provider"))?;
         let models = match provider.fetch_supported_models().await {
             Ok(models) => models,
             Err(goose_providers::errors::ProviderError::Authentication(error)) => {
@@ -647,7 +772,7 @@ impl GooseAcpAgent {
                 ),
                 supports_streaming: provider.supports_streaming,
                 headers: custom_provider_headers(provider.headers),
-                sensitive_headers: Vec::new(),
+                sensitive_headers: provider.sensitive_headers.unwrap_or_default(),
                 requires_auth: provider.requires_auth,
                 catalog_provider_id: provider.catalog_provider_id,
                 base_path: provider.base_path,
@@ -656,7 +781,7 @@ impl GooseAcpAgent {
                 auth: None,
             },
         )
-        .internal_err_ctx("Failed to create custom provider")?;
+        .map_err(|error| provider_save_error(error, "Failed to create custom provider"))?;
 
         Config::global().invalidate_secrets_cache();
         crate::providers::refresh_custom_providers()
@@ -727,7 +852,7 @@ impl GooseAcpAgent {
                 ),
                 supports_streaming: provider.supports_streaming,
                 headers: Some(provider.headers),
-                sensitive_headers: None,
+                sensitive_headers: provider.sensitive_headers,
                 requires_auth: provider.requires_auth,
                 catalog_provider_id: provider.catalog_provider_id,
                 base_path: provider.base_path,
@@ -744,7 +869,7 @@ impl GooseAcpAgent {
                 },
             },
         )
-        .internal_err_ctx("Failed to update custom provider")?;
+        .map_err(|error| provider_save_error(error, "Failed to update custom provider"))?;
 
         Config::global().invalidate_secrets_cache();
         crate::providers::refresh_custom_providers()
@@ -779,7 +904,7 @@ impl GooseAcpAgent {
         }
 
         declarative_providers::remove_custom_provider(&req.provider_id)
-            .internal_err_ctx("Failed to delete custom provider")?;
+            .map_err(|error| provider_save_error(error, "Failed to delete custom provider"))?;
 
         Config::global().invalidate_secrets_cache();
         crate::providers::refresh_custom_providers()
@@ -793,6 +918,33 @@ impl GooseAcpAgent {
                 skipped: Vec::new(),
             },
         })
+    }
+
+    /// Rebuilds the provider of a session whose provider could not be built when the session
+    /// was activated. A credential fixed in the meantime then takes effect on the next prompt,
+    /// and a header credential that still cannot be resolved reaches the client as
+    /// `SECRET_UNRESOLVED` instead of "Provider not set" (requirements 1.5, 1.6).
+    pub(super) async fn ensure_session_provider(
+        &self,
+        agent: &Agent,
+        session_id: &str,
+    ) -> Result<(), agent_client_protocol::Error> {
+        if agent.provider().await.is_ok() {
+            return Ok(());
+        }
+        let session = self
+            .session_manager
+            .get_session(session_id, false)
+            .await
+            .internal_err_ctx("Failed to read session")?;
+        if session.provider_name.is_none() {
+            return Ok(());
+        }
+        agent
+            .restore_provider_from_session(&session)
+            .await
+            .map_err(|error| provider_init_error(error, "Failed to restore provider"))?;
+        Ok(())
     }
 
     pub(super) async fn provider_config_status(provider_id: String) -> ProviderConfigStatusDto {
@@ -1262,7 +1414,97 @@ impl GooseAcpAgent {
 
 #[cfg(test)]
 mod tests {
-    use super::mask_secret_value;
+    use super::*;
+    use crate::config::DeclarativeProviderConfig;
+
+    fn gateway_config(headers: serde_json::Value) -> DeclarativeProviderConfig {
+        let config = serde_json::json!({
+            "name": "custom_gw",
+            "engine": "openai",
+            "display_name": "Gateway",
+            "base_url": "https://gw.example.invalid/v1",
+            "models": [],
+            "headers": headers
+        });
+        serde_json::from_value(config).unwrap()
+    }
+
+    #[test]
+    fn stored_secret_headers_list_only_own_references() {
+        let own = secret_ref_for(SecretOwner::Provider("custom_gw"), "Authorization");
+        let foreign = secret_ref_for(SecretOwner::Provider("other"), "X-Token");
+        let config = gateway_config(serde_json::json!({
+            "Authorization": own.to_string(),
+            "X-Token": foreign.to_string(),
+            "X-Team": "alpha"
+        }));
+
+        assert_eq!(stored_secret_header_names(&config), vec!["Authorization"]);
+    }
+
+    #[test]
+    fn unresolved_secret_reaches_the_client_as_secret_unresolved() {
+        let unresolved = ProviderError::UnresolvedSecret {
+            provider: "Gateway".to_string(),
+            header: "Authorization".to_string(),
+            reason: "no credential is stored for it".to_string(),
+        };
+        let error = anyhow::Error::new(unresolved).context("Could not create provider");
+
+        let data = recreate_provider_error(error).data.unwrap();
+
+        assert_eq!(data["code"], "SECRET_UNRESOLVED");
+        assert_eq!(data["provider"], "Gateway");
+        assert_eq!(data["header"], "Authorization");
+        assert_eq!(data["reason"], "no credential is stored for it");
+    }
+
+    #[test]
+    fn other_provider_failures_keep_the_text_error() {
+        let error = anyhow::anyhow!("network down");
+
+        let acp_error = provider_init_error(error, "Failed to initialize provider");
+
+        assert!(unresolved_secret_error(&anyhow::anyhow!("network down")).is_none());
+        assert_eq!(
+            acp_error.data,
+            Some(serde_json::json!("Failed to initialize provider: network down"))
+        );
+    }
+
+    #[test]
+    fn save_failures_carry_the_code_and_provider() {
+        let failure = ProviderSaveError::CredentialWrite {
+            provider: "Gateway".to_string(),
+            cause: "keyring locked".to_string(),
+        };
+        let error = anyhow::Error::new(failure).context("saving");
+
+        let data = provider_save_error(error, "Failed to create custom provider")
+            .data
+            .unwrap();
+
+        assert_eq!(data["code"], "CREDENTIAL_WRITE_FAILED");
+        assert_eq!(data["provider"], "Gateway");
+        assert_eq!(data["reason"], "keyring locked");
+        assert!(data.get("header").is_none());
+    }
+
+    #[test]
+    fn invalid_headers_are_invalid_params_naming_the_header() {
+        let failure = ProviderSaveError::InvalidHeader {
+            provider: "Gateway".to_string(),
+            header: "X-Token".to_string(),
+            problem: "is a malformed secret reference",
+        };
+
+        let error = provider_save_error(anyhow::Error::new(failure), "Failed to update");
+
+        assert_eq!(error.code, agent_client_protocol::ErrorCode::InvalidParams);
+        let data = error.data.unwrap();
+        assert_eq!(data["code"], "INVALID_HEADER");
+        assert_eq!(data["header"], "X-Token");
+    }
 
     #[test]
     fn mask_secret_value_hides_suffix_and_never_reveals_majority() {

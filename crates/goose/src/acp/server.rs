@@ -179,7 +179,7 @@ fn agent_creation_error(error: anyhow::Error, context: &str) -> agent_client_pro
     if crate::acp::is_auth_required(&error) {
         agent_client_protocol::Error::auth_required()
     } else {
-        agent_client_protocol::Error::internal_error().data(format!("{context}: {error}"))
+        providers::provider_init_error(error, context)
     }
 }
 
@@ -2271,6 +2271,7 @@ impl GooseAcpAgent {
         // which agent owns it; registration stays atomic, so the cross-connection
         // guard still admits only one run per session.
         let agent = self.get_session_agent(&session_id).await?;
+        self.ensure_session_provider(&agent, &session_id).await?;
         self.start_active_run(
             &session_id,
             run_id.clone(),
@@ -2450,7 +2451,7 @@ impl GooseAcpAgent {
         agent
             .recreate_provider_for_session(session_id, &provider_name, model_config)
             .await
-            .internal_err_ctx("Failed to recreate provider")?;
+            .map_err(providers::recreate_provider_error)?;
         self.subscribe_thinking_effort_updates(session_id, &agent)
             .await;
         // model_config is already updated on the session by the agent's update_provider call.
@@ -2598,7 +2599,7 @@ impl GooseAcpAgent {
         agent
             .recreate_provider_for_session(session_id, &resolved_provider_name, model_config)
             .await
-            .internal_err_ctx("Failed to recreate provider")?;
+            .map_err(providers::recreate_provider_error)?;
         self.subscribe_thinking_effort_updates(session_id, &agent)
             .await;
 

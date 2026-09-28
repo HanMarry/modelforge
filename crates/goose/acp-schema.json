@@ -2305,6 +2305,16 @@
             "null"
           ]
         },
+        "sensitiveHeaders": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "Header names to store like auth headers. Omitted on update, the current marks are kept."
+        },
         "toolshim": {
           "type": "boolean"
         }
@@ -2505,6 +2515,22 @@
         },
         "preservesThinking": {
           "type": "boolean"
+        },
+        "sensitiveHeaders": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Header names the user marked as sensitive, besides the well-known auth headers.",
+          "default": []
+        },
+        "storedSecretHeaders": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Headers whose values are in the credential store; their `headers` value is a reference.",
+          "default": []
         }
       },
       "required": [
@@ -2579,6 +2605,16 @@
             "boolean",
             "null"
           ]
+        },
+        "sensitiveHeaders": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "Header names to store like auth headers. Omitted on update, the current marks are kept."
         },
         "toolshim": {
           "type": "boolean"
