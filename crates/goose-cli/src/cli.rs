@@ -817,6 +817,13 @@ enum Command {
         check: bool,
     },
 
+    /// Show the version and the build provenance embedded at compile time
+    #[command(about = "Show the goose version and build information")]
+    Version {
+        #[arg(long, help = "Print version, commit, dirty flag and features as JSON")]
+        json: bool,
+    },
+
     #[command(about = "Check that your Goose setup is working")]
     Doctor {},
 
@@ -1383,6 +1390,7 @@ fn get_command_name(command: &Option<Command>) -> &'static str {
         Some(Command::Configure {}) => "configure",
         Some(Command::Doctor {}) => "doctor",
         Some(Command::Info { .. }) => "info",
+        Some(Command::Version { .. }) => "version",
         Some(Command::Mcp { .. }) => "mcp",
         Some(Command::Acp { .. }) => "acp",
         #[cfg(feature = "roaming")]
@@ -2803,6 +2811,7 @@ pub async fn cli() -> anyhow::Result<()> {
         Some(Command::Configure {}) => handle_configure().await,
         Some(Command::Doctor {}) => crate::commands::doctor::handle_doctor().await,
         Some(Command::Info { verbose, check }) => handle_info(verbose, check).await,
+        Some(Command::Version { json }) => crate::commands::version::handle_version(json),
         Some(Command::Mcp { server }) => handle_mcp_command(server).await,
         Some(Command::Acp {
             builtins,
@@ -2976,6 +2985,25 @@ mod tests {
             }) => {}
             _ => panic!("expected nu completion shell"),
         }
+    }
+
+    #[test]
+    fn version_command_accepts_json_flag() {
+        let cli = Cli::try_parse_from(["goose", "version", "--json"]).expect("parse failed");
+
+        match cli.command {
+            Some(Command::Version { json }) => assert!(json),
+            _ => panic!("expected version command"),
+        }
+    }
+
+    #[test]
+    fn version_flag_keeps_printing_the_plain_version() {
+        let Err(error) = Cli::try_parse_from(["goose", "--version"]) else {
+            panic!("--version should print the version and stop");
+        };
+
+        assert_eq!(error.kind(), clap::error::ErrorKind::DisplayVersion);
     }
 
     #[test]
