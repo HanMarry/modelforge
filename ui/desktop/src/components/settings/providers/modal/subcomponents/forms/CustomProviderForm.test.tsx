@@ -82,6 +82,49 @@ const addHeader = async (user: ReturnType<typeof userEvent.setup>, name: string,
   await user.click(screen.getByRole('button', { name: 'Add' }));
 };
 
+const fillManualProvider = async (user: ReturnType<typeof userEvent.setup>) => {
+  await user.click(screen.getByText('Configure manually'));
+  await user.type(screen.getByLabelText(/Display Name/), 'Gateway');
+  await user.type(screen.getByLabelText(/API URL/), 'https://gw.example.com');
+  await user.type(screen.getByLabelText(/Available Models/), 'model-a');
+};
+
+// Secret references as the Kernel returns them for values kept in the credential store.
+const savedReferences = {
+  authorization: '${secret:provider_custom_gw__header__authorization_0123456789abcdef}',
+  tenantToken: '${secret:provider_custom_gw__header__x_tenant_token_fedcba9876543210}',
+};
+
+const savedValueLabel = (name: string) =>
+  `Saved value of ${name} is hidden. Type a new value to replace it.`;
+
+const renderSavedProvider = (onSubmit: ReturnType<typeof vi.fn>) =>
+  render(
+    <CustomProviderForm
+      initialData={{
+        engine: 'openai_compatible',
+        display_name: 'Gateway',
+        api_url: 'https://gw.example.com',
+        api_key: '',
+        models: ['model-a'],
+        supports_streaming: true,
+        requires_auth: false,
+        toolshim: false,
+        headers: {
+          Authorization: savedReferences.authorization,
+          'X-Tenant-Token': savedReferences.tenantToken,
+          'X-Team': 'alpha',
+        },
+        sensitive_headers: ['X-Tenant-Token'],
+        stored_secret_headers: ['Authorization', 'X-Tenant-Token'],
+      }}
+      isEditable
+      onSubmit={onSubmit}
+      onCancel={vi.fn()}
+    />,
+    { wrapper: IntlTestWrapper }
+  );
+
 describe('CustomProviderForm transitions', () => {
   it('does not carry credentials from a cleared template into the next template', async () => {
     const user = userEvent.setup();
@@ -199,6 +242,142 @@ describe('CustomProviderForm transitions', () => {
     await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ engine: expectedEngine }));
   });
+
+  it('marks auth headers as sensitive and submits the marks of other headers', async () => {
+    const user = userEvent.setup();
+    const onSubmit = renderForm();
+    await fillManualProvider(user);
+
+    const names = screen.getAllByPlaceholderText('Header name');
+    await user.type(names[names.length - 1], 'x-api-key');
+    const newHeaderToggle = screen.getByLabelText('Mark the new header as sensitive');
+    expect(newHeaderToggle).toBeChecked();
+    expect(newHeaderToggle).toBeDisabled();
+    const values = screen.getAllByPlaceholderText('Value');
+    await user.type(values[values.length - 1], 'sk-1');
+    await user.click(screen.getByRole('button', { name: 'Add' }));
+
+    const authToggle = screen.getByLabelText('Mark x-api-key as sensitive');
+    expect(authToggle).toBeChecked();
+    expect(authToggle).toBeDisabled();
+    expect(screen.getByDisplayValue('sk-1')).toHaveAttribute('type', 'password');
+
+    const pendingNames = screen.getAllByPlaceholderText('Header name');
+    await user.type(pendingNames[pendingNames.length - 1], 'X-Tenant-Token');
+    expect(screen.getByLabelText('Mark the new header as sensitive')).toBeEnabled();
+    await user.click(screen.getByLabelText('Mark the new header as sensitive'));
+    const pendingValues = screen.getAllByPlaceholderText('Value');
+    await user.type(pendingValues[pendingValues.length - 1], 'tenant-1');
+    await user.click(screen.getByRole('button', { name: 'Add' }));
+    await addHeader(user, 'X-Team', 'alpha');
+
+    expect(screen.getByLabelText('Mark X-Tenant-Token as sensitive')).toBeChecked();
+    expect(screen.getByDisplayValue('tenant-1')).toHaveAttribute('type', 'password');
+    expect(screen.getByLabelText('Mark X-Team as sensitive')).not.toBeChecked();
+    expect(screen.getByDisplayValue('alpha')).toHaveAttribute('type', 'text');
+
+    await user.click(screen.getByRole('button', { name: 'Create Provider' }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        headers: { 'x-api-key': 'sk-1', 'X-Tenant-Token': 'tenant-1', 'X-Team': 'alpha' },
+        sensitive_headers: ['X-Tenant-Token'],
+      })
+    );
+  }, 15000);
+
+  it('shows saved sensitive values only as a mask and sends them back unchanged', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    renderSavedProvider(onSubmit);
+
+    expect(screen.queryByDisplayValue(/secret:/)).not.toBeInTheDocument();
+    const savedAuth = screen.getByLabelText(savedValueLabel('Authorization'));
+    expect(savedAuth).toHaveValue('');
+    expect(savedAuth).toHaveAttribute('placeholder', '••••••••');
+    expect(savedAuth).toHaveAttribute('type', 'password');
+    expect(screen.getByLabelText(savedValueLabel('X-Tenant-Token'))).toHaveValue('');
+    expect(screen.getByLabelText('Mark Authorization as sensitive')).toBeDisabled();
+    expect(screen.getByLabelText('Mark X-Tenant-Token as sensitive')).toBeChecked();
+    expect(screen.getByDisplayValue('alpha')).toHaveAttribute('type', 'text');
+
+    await user.click(screen.getByRole('button', { name: 'Update Provider' }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        headers: {
+          Authorization: savedReferences.authorization,
+          'X-Tenant-Token': savedReferences.tenantToken,
+          'X-Team': 'alpha',
+        },
+        sensitive_headers: ['X-Tenant-Token'],
+      })
+    );
+  });
+
+  it('replaces a saved value and asks for a new one when a saved header is unmarked', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    renderSavedProvider(onSubmit);
+
+    await user.type(screen.getByLabelText(savedValueLabel('Authorization')), 'Bearer new');
+    await user.click(screen.getByLabelText('Mark X-Tenant-Token as sensitive'));
+
+    expect(screen.queryByLabelText(savedValueLabel('X-Tenant-Token'))).not.toBeInTheDocument();
+    const tenantValue = screen.getAllByPlaceholderText('Value')[0];
+    expect(tenantValue).toHaveValue('');
+    await user.type(tenantValue, 'plain-token');
+    await user.click(screen.getByRole('button', { name: 'Update Provider' }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        headers: { Authorization: 'Bearer new', 'X-Tenant-Token': 'plain-token', 'X-Team': 'alpha' },
+        sensitive_headers: [],
+      })
+    );
+  });
+
+  it('keeps the entries and names the provider when writing the credentials fails', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const user = userEvent.setup();
+    const onSubmit = vi
+      .fn()
+      .mockRejectedValueOnce({
+        code: -32603,
+        message: 'CREDENTIAL_WRITE_FAILED: provider Gateway: keyring locked',
+        data: {
+          code: 'CREDENTIAL_WRITE_FAILED',
+          provider: 'Gateway',
+          reason: 'keyring locked',
+          message: 'CREDENTIAL_WRITE_FAILED: provider Gateway: keyring locked',
+        },
+      })
+      .mockResolvedValueOnce(undefined);
+    renderForm(onSubmit);
+    await fillManualProvider(user);
+    await addHeader(user, 'Authorization', 'Bearer sk-1');
+
+    await user.click(screen.getByRole('button', { name: 'Create Provider' }));
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('Gateway');
+    expect(alert).toHaveTextContent('keyring locked');
+    expect(screen.getByLabelText(/Display Name/)).toHaveValue('Gateway');
+    expect(screen.getByLabelText(/API URL/)).toHaveValue('https://gw.example.com');
+    expect(screen.getByDisplayValue('Bearer sk-1')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Create Provider' }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(2));
+    expect(onSubmit.mock.calls[1][0]).toEqual(onSubmit.mock.calls[0][0]);
+    expect(onSubmit.mock.calls[1][0]).toEqual(
+      expect.objectContaining({ headers: { Authorization: 'Bearer sk-1' }, sensitive_headers: [] })
+    );
+    await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
+  }, 15000);
 
   it('clears form validation when returning to the setup choice', async () => {
     const user = userEvent.setup();

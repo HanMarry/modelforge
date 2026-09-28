@@ -9,6 +9,15 @@ import { Plus, X, Trash2, AlertTriangle, ExternalLink, Search, Settings } from '
 import { cn } from '../../../../../../utils';
 import ProviderCatalogPicker from '../ProviderCatalogPicker';
 import { defineMessages, useIntl } from '../../../../../../i18n';
+import { parseAcpProviderError } from '../../../../../../acp/errors';
+import {
+  SAVED_VALUE_MASK,
+  headerRowsFrom,
+  headersForSubmit,
+  isAuthHeaderName,
+  isSensitiveRow,
+} from './sensitiveHeaders';
+import type { HeaderRow } from './sensitiveHeaders';
 
 const i18n = defineMessages({
   chooseSetup: {
@@ -181,6 +190,41 @@ const i18n = defineMessages({
     id: 'customProviderForm.headerDuplicate',
     defaultMessage: 'A header with this name already exists',
   },
+  sensitive: {
+    id: 'customProviderForm.sensitive',
+    defaultMessage: 'Sensitive',
+  },
+  markSensitive: {
+    id: 'customProviderForm.markSensitive',
+    defaultMessage: 'Mark {name} as sensitive',
+  },
+  markNewSensitive: {
+    id: 'customProviderForm.markNewSensitive',
+    defaultMessage: 'Mark the new header as sensitive',
+  },
+  sensitiveHint: {
+    id: 'customProviderForm.sensitiveHint',
+    defaultMessage:
+      'Sensitive values are kept in the system credential store and are not shown again. Authorization, Proxy-Authorization, X-API-Key and api-key are always sensitive.',
+  },
+  savedValueLabel: {
+    id: 'customProviderForm.savedValueLabel',
+    defaultMessage: 'Saved value of {name} is hidden. Type a new value to replace it.',
+  },
+  credentialWriteFailed: {
+    id: 'customProviderForm.credentialWriteFailed',
+    defaultMessage:
+      'Could not save the credentials of {provider}: {reason}. Your entries are kept, so you can try again.',
+  },
+  configWriteFailed: {
+    id: 'customProviderForm.configWriteFailed',
+    defaultMessage:
+      'Could not write the configuration of {provider}: {reason}. Your entries are kept, so you can try again.',
+  },
+  invalidHeader: {
+    id: 'customProviderForm.invalidHeader',
+    defaultMessage: 'Header {header} of {provider} cannot be saved: {reason}.',
+  },
   displayNameRequired: {
     id: 'customProviderForm.displayNameRequired',
     defaultMessage: 'Display name is required',
@@ -277,9 +321,10 @@ export default function CustomProviderForm({
   const [requiresAuth, setRequiresAuth] = useState(false);
   const [supportsStreaming, setSupportsStreaming] = useState(true);
   const [toolshim, setToolshim] = useState(false);
-  const [headers, setHeaders] = useState<{ key: string; value: string }[]>([]);
+  const [headers, setHeaders] = useState<HeaderRow[]>([]);
   const [newHeaderKey, setNewHeaderKey] = useState('');
   const [newHeaderValue, setNewHeaderValue] = useState('');
+  const [newHeaderSensitive, setNewHeaderSensitive] = useState(false);
   const [headerValidationError, setHeaderValidationError] = useState<string | null>(null);
   const [invalidHeaderFields, setInvalidHeaderFields] = useState<{ key: boolean; value: boolean }>({
     key: false,
@@ -300,6 +345,7 @@ export default function CustomProviderForm({
     setHeaders([]);
     setNewHeaderKey('');
     setNewHeaderValue('');
+    setNewHeaderSensitive(false);
     setHeaderValidationError(null);
     setInvalidHeaderFields({ key: false, value: false });
     setValidationErrors({});
@@ -318,11 +364,8 @@ export default function CustomProviderForm({
       setRequiresAuth(initialData.requires_auth ?? true);
 
       if (initialData.headers) {
-        const headerList = Object.entries(initialData.headers).map(([key, value]) => ({
-          key,
-          value,
-        }));
-        setHeaders(headerList);
+        // Saved sensitive values come back as secret references and are never shown.
+        setHeaders(headerRowsFrom(initialData));
       }
 
       setStep('form');
@@ -405,9 +448,18 @@ export default function CustomProviderForm({
 
     setHeaderValidationError(null);
     setInvalidHeaderFields({ key: false, value: false });
-    setHeaders([...headers, { key: newHeaderKey, value: newHeaderValue }]);
+    setHeaders([
+      ...headers,
+      {
+        key: newHeaderKey,
+        value: newHeaderValue,
+        sensitive: newHeaderSensitive || isAuthHeaderName(newHeaderKey),
+        storedReference: null,
+      },
+    ]);
     setNewHeaderKey('');
     setNewHeaderValue('');
+    setNewHeaderSensitive(false);
   };
 
   const handleRemoveHeader = (index: number) => {
@@ -422,14 +474,49 @@ export default function CustomProviderForm({
         (h, i) => i !== index && h.key.trim().toLowerCase() === normalizedValue
       );
       if (isDuplicate && normalizedValue !== '') return;
-      const updatedHeaders = [...headers];
-      updatedHeaders[index].key = value;
-      setHeaders(updatedHeaders);
-      return;
     }
-    const updatedHeaders = [...headers];
-    updatedHeaders[index][field] = value;
-    setHeaders(updatedHeaders);
+    setHeaders(
+      headers.map((header, i) => {
+        if (i !== index) return header;
+        if (field === 'value') return { ...header, value };
+        // A saved value belongs to its header name (compared case-insensitively), so renaming
+        // the header needs a new value.
+        const sameName = header.key.trim().toLowerCase() === value.trim().toLowerCase();
+        return { ...header, key: value, storedReference: sameName ? header.storedReference : null };
+      })
+    );
+  };
+
+  const handleHeaderSensitiveChange = (index: number, sensitive: boolean) => {
+    setHeaders(
+      headers.map((header, i) => {
+        if (i !== index) return header;
+        // A saved sensitive value is never read back, so unmarking it needs a new value.
+        return { ...header, sensitive, storedReference: sensitive ? header.storedReference : null };
+      })
+    );
+  };
+
+  const describeSaveError = (error: unknown): string => {
+    const providerError = parseAcpProviderError(error);
+    if (!providerError) {
+      return intl.formatMessage(i18n.submitError);
+    }
+    const { provider, reason } = providerError;
+    switch (providerError.code) {
+      case 'CREDENTIAL_WRITE_FAILED':
+        return intl.formatMessage(i18n.credentialWriteFailed, { provider, reason });
+      case 'CONFIG_WRITE_FAILED':
+        return intl.formatMessage(i18n.configWriteFailed, { provider, reason });
+      case 'INVALID_HEADER':
+        return intl.formatMessage(i18n.invalidHeader, {
+          header: providerError.header ?? '',
+          provider,
+          reason,
+        });
+      default:
+        return providerError.message || intl.formatMessage(i18n.submitError);
+    }
   };
 
   const clearHeaderValidation = () => {
@@ -468,7 +555,7 @@ export default function CustomProviderForm({
       .map((name) => name.trim())
       .filter(Boolean);
 
-    let allHeaders = [...headers];
+    const allHeaders = [...headers];
 
     if (newHeaderKey.trim() && newHeaderValue.trim()) {
       const keyHasSpaces = newHeaderKey.includes(' ');
@@ -476,19 +563,16 @@ export default function CustomProviderForm({
       const isDuplicate = headers.some((h) => h.key.trim().toLowerCase() === normalizedPendingKey);
 
       if (!keyHasSpaces && !isDuplicate) {
-        allHeaders.push({ key: newHeaderKey, value: newHeaderValue });
+        allHeaders.push({
+          key: newHeaderKey,
+          value: newHeaderValue,
+          sensitive: newHeaderSensitive,
+          storedReference: null,
+        });
       }
     }
 
-    const headersObject = allHeaders.reduce(
-      (acc, header) => {
-        if (header.key.trim() && header.value.trim()) {
-          acc[header.key.trim()] = header.value.trim();
-        }
-        return acc;
-      },
-      {} as Record<string, string>
-    );
+    const { headers: headersObject, sensitiveHeaders } = headersForSubmit(allHeaders);
 
     try {
       await onSubmit({
@@ -501,6 +585,7 @@ export default function CustomProviderForm({
         toolshim,
         requires_auth: requiresAuth,
         headers: headersObject,
+        sensitive_headers: sensitiveHeaders,
         catalog_provider_id:
           selectedTemplate?.providerId ?? initialData?.catalog_provider_id ?? undefined,
         base_path: basePath || undefined,
@@ -508,7 +593,8 @@ export default function CustomProviderForm({
     } catch (error) {
       if (contextVersionRef.current !== contextVersion) return;
       console.error('Failed to save custom provider:', error);
-      setSubmitError(intl.formatMessage(i18n.submitError));
+      // The form keeps what the user entered, so saving can be retried as is (requirement 1.3).
+      setSubmitError(describeSaveError(error));
     }
   };
 
@@ -880,31 +966,57 @@ export default function CustomProviderForm({
           <p className="text-xs text-textSubtle mb-4">
             {intl.formatMessage(i18n.customHeadersHint)}
           </p>
-          <div className="grid grid-cols-[1fr_1fr_auto] gap-2 items-center">
-            {headers.map((header, index) => (
-              <React.Fragment key={index}>
-                <Input
-                  value={header.key}
-                  onChange={(e) => handleHeaderChange(index, 'key', e.target.value)}
-                  placeholder={intl.formatMessage(i18n.headerNamePlaceholder)}
-                  className="w-full text-textStandard border-borderSubtle hover:border-borderStandard"
-                />
-                <Input
-                  value={header.value}
-                  onChange={(e) => handleHeaderChange(index, 'value', e.target.value)}
-                  placeholder={intl.formatMessage(i18n.valuePlaceholder)}
-                  className="w-full text-textStandard border-borderSubtle hover:border-borderStandard"
-                />
-                <Button
-                  onClick={() => handleRemoveHeader(index)}
-                  variant="ghost"
-                  type="button"
-                  className="group p-2 h-auto text-iconSubtle hover:bg-transparent"
-                >
-                  <X className="h-3 w-3 text-gray-400 group-hover:text-white group-hover:drop-shadow-sm transition-all" />
-                </Button>
-              </React.Fragment>
-            ))}
+          <div className="grid grid-cols-[1fr_1fr_auto_auto] gap-2 items-center">
+            {headers.map((header, index) => {
+              const headerName =
+                header.key.trim() || intl.formatMessage(i18n.headerNamePlaceholder);
+              const savedValueLabel = header.storedReference
+                ? intl.formatMessage(i18n.savedValueLabel, { name: headerName })
+                : undefined;
+              return (
+                <React.Fragment key={index}>
+                  <Input
+                    value={header.key}
+                    onChange={(e) => handleHeaderChange(index, 'key', e.target.value)}
+                    placeholder={intl.formatMessage(i18n.headerNamePlaceholder)}
+                    className="w-full text-textStandard border-borderSubtle hover:border-borderStandard"
+                  />
+                  <Input
+                    type={isSensitiveRow(header) ? 'password' : 'text'}
+                    value={header.value}
+                    onChange={(e) => handleHeaderChange(index, 'value', e.target.value)}
+                    placeholder={
+                      header.storedReference
+                        ? SAVED_VALUE_MASK
+                        : intl.formatMessage(i18n.valuePlaceholder)
+                    }
+                    aria-label={savedValueLabel}
+                    title={savedValueLabel}
+                    autoComplete="off"
+                    className="w-full text-textStandard border-borderSubtle hover:border-borderStandard"
+                  />
+                  <label className="flex items-center gap-1 text-xs text-textSubtle whitespace-nowrap">
+                    <input
+                      type="checkbox"
+                      checked={isSensitiveRow(header)}
+                      disabled={isAuthHeaderName(header.key)}
+                      onChange={(e) => handleHeaderSensitiveChange(index, e.target.checked)}
+                      aria-label={intl.formatMessage(i18n.markSensitive, { name: headerName })}
+                      className="rounded border-border-primary"
+                    />
+                    {intl.formatMessage(i18n.sensitive)}
+                  </label>
+                  <Button
+                    onClick={() => handleRemoveHeader(index)}
+                    variant="ghost"
+                    type="button"
+                    className="group p-2 h-auto text-iconSubtle hover:bg-transparent"
+                  >
+                    <X className="h-3 w-3 text-gray-400 group-hover:text-white group-hover:drop-shadow-sm transition-all" />
+                  </Button>
+                </React.Fragment>
+              );
+            })}
 
             <Input
               value={newHeaderKey}
@@ -920,6 +1032,7 @@ export default function CustomProviderForm({
               )}
             />
             <Input
+              type={newHeaderSensitive || isAuthHeaderName(newHeaderKey) ? 'password' : 'text'}
               value={newHeaderValue}
               onChange={(e) => {
                 setNewHeaderValue(e.target.value);
@@ -927,11 +1040,23 @@ export default function CustomProviderForm({
               }}
               onKeyDown={handleHeaderKeyDown}
               placeholder={intl.formatMessage(i18n.valuePlaceholder)}
+              autoComplete="off"
               className={cn(
                 'w-full text-textStandard border-borderSubtle hover:border-borderStandard',
                 invalidHeaderFields.value && 'border-red-500 focus:border-red-500'
               )}
             />
+            <label className="flex items-center gap-1 text-xs text-textSubtle whitespace-nowrap">
+              <input
+                type="checkbox"
+                checked={newHeaderSensitive || isAuthHeaderName(newHeaderKey)}
+                disabled={isAuthHeaderName(newHeaderKey)}
+                onChange={(e) => setNewHeaderSensitive(e.target.checked)}
+                aria-label={intl.formatMessage(i18n.markNewSensitive)}
+                className="rounded border-border-primary"
+              />
+              {intl.formatMessage(i18n.sensitive)}
+            </label>
             <Button
               onClick={handleAddHeader}
               variant="ghost"
@@ -944,12 +1069,17 @@ export default function CustomProviderForm({
           {headerValidationError && (
             <div className="mt-2 text-red-500 text-sm">{headerValidationError}</div>
           )}
+          <p className="text-xs text-textSubtle mt-2">{intl.formatMessage(i18n.sensitiveHint)}</p>
         </div>
       )}
 
       <SecureStorageNotice />
 
-      {submitError && <p className="text-red-500 text-sm">{submitError}</p>}
+      {submitError && (
+        <p role="alert" className="text-red-500 text-sm">
+          {submitError}
+        </p>
+      )}
 
       {showDeleteConfirmation ? (
         <div className="pt-4 space-y-3">

@@ -1025,6 +1025,9 @@
   "customProviderForm.clear": {
     "defaultMessage": "Limpiar"
   },
+  "customProviderForm.configWriteFailed": {
+    "defaultMessage": "No se pudo escribir la configuración de {provider}: {reason}. Tus datos se conservan, así que puedes intentarlo de nuevo."
+  },
   "customProviderForm.configureManually": {
     "defaultMessage": "Configurar manualmente"
   },
@@ -1036,6 +1039,9 @@
   },
   "customProviderForm.createProvider": {
     "defaultMessage": "Crear proveedor"
+  },
+  "customProviderForm.credentialWriteFailed": {
+    "defaultMessage": "No se pudieron guardar las credenciales de {provider}: {reason}. Tus datos se conservan, así que puedes intentarlo de nuevo."
   },
   "customProviderForm.customHeaders": {
     "defaultMessage": "Headers personalizados"
@@ -1073,6 +1079,15 @@
   "customProviderForm.headerNoSpaces": {
     "defaultMessage": "El nombre del header no puede contener espacios"
   },
+  "customProviderForm.invalidHeader": {
+    "defaultMessage": "No se puede guardar el encabezado {header} de {provider}: {reason}."
+  },
+  "customProviderForm.markNewSensitive": {
+    "defaultMessage": "Marcar el nuevo encabezado como sensible"
+  },
+  "customProviderForm.markSensitive": {
+    "defaultMessage": "Marcar {name} como sensible"
+  },
   "customProviderForm.modelsPlaceholder": {
     "defaultMessage": "model-a, model-b, model-c"
   },
@@ -1093,6 +1108,15 @@
   },
   "customProviderForm.requiresApiKey": {
     "defaultMessage": "Este proveedor requiere una API key"
+  },
+  "customProviderForm.savedValueLabel": {
+    "defaultMessage": "El valor guardado de {name} está oculto. Escribe un valor nuevo para reemplazarlo."
+  },
+  "customProviderForm.sensitive": {
+    "defaultMessage": "Sensible"
+  },
+  "customProviderForm.sensitiveHint": {
+    "defaultMessage": "Los valores sensibles se guardan en el almacén de credenciales del sistema y no se vuelven a mostrar. Authorization, Proxy-Authorization, X-API-Key y api-key siempre son sensibles."
   },
   "customProviderForm.startFromTemplate": {
     "defaultMessage": "Empezar desde una plantilla de proveedor"
@@ -3580,6 +3604,9 @@
   },
   "providerCard.deprecatedReplacement": {
     "defaultMessage": "Obsoleto: usa {replacement} en su lugar."
+  },
+  "providerCard.lastRefreshError": {
+    "defaultMessage": "Falló la última comprobación: {error}"
   },
   "providerCard.noMetadata": {
     "defaultMessage": "Error de ProviderCard: no se proporcionaron metadatos"

@@ -1025,6 +1025,9 @@
   "customProviderForm.clear": {
     "defaultMessage": "Bersihkan"
   },
+  "customProviderForm.configWriteFailed": {
+    "defaultMessage": "Tidak dapat menulis konfigurasi {provider}: {reason}. Isian Anda tetap tersimpan, jadi Anda dapat mencoba lagi."
+  },
   "customProviderForm.configureManually": {
     "defaultMessage": "Konfigurasikan secara manual"
   },
@@ -1036,6 +1039,9 @@
   },
   "customProviderForm.createProvider": {
     "defaultMessage": "Buat Penyedia"
+  },
+  "customProviderForm.credentialWriteFailed": {
+    "defaultMessage": "Tidak dapat menyimpan kredensial {provider}: {reason}. Isian Anda tetap tersimpan, jadi Anda dapat mencoba lagi."
   },
   "customProviderForm.customHeaders": {
     "defaultMessage": "Header Khusus"
@@ -1073,6 +1079,15 @@
   "customProviderForm.headerNoSpaces": {
     "defaultMessage": "Nama header tidak boleh mengandung spasi"
   },
+  "customProviderForm.invalidHeader": {
+    "defaultMessage": "Header {header} dari {provider} tidak dapat disimpan: {reason}."
+  },
+  "customProviderForm.markNewSensitive": {
+    "defaultMessage": "Tandai header baru sebagai sensitif"
+  },
+  "customProviderForm.markSensitive": {
+    "defaultMessage": "Tandai {name} sebagai sensitif"
+  },
   "customProviderForm.modelsPlaceholder": {
     "defaultMessage": "model-a, model-b, model-c"
   },
@@ -1093,6 +1108,15 @@
   },
   "customProviderForm.requiresApiKey": {
     "defaultMessage": "Penyedia ini memerlukan kunci API"
+  },
+  "customProviderForm.savedValueLabel": {
+    "defaultMessage": "Nilai tersimpan dari {name} disembunyikan. Ketik nilai baru untuk menggantinya."
+  },
+  "customProviderForm.sensitive": {
+    "defaultMessage": "Sensitif"
+  },
+  "customProviderForm.sensitiveHint": {
+    "defaultMessage": "Nilai sensitif disimpan di penyimpanan kredensial sistem dan tidak ditampilkan lagi. Authorization, Proxy-Authorization, X-API-Key, dan api-key selalu sensitif."
   },
   "customProviderForm.startFromTemplate": {
     "defaultMessage": "Mulai dari templat penyedia"
@@ -3580,6 +3604,9 @@
   },
   "providerCard.deprecatedReplacement": {
     "defaultMessage": "Tidak digunakan lagi — gunakan {replacement} sebagai gantinya."
+  },
+  "providerCard.lastRefreshError": {
+    "defaultMessage": "Pemeriksaan terakhir gagal: {error}"
   },
   "providerCard.noMetadata": {
     "defaultMessage": "Kesalahan ProviderCard: Tidak ada metadata yang disediakan"

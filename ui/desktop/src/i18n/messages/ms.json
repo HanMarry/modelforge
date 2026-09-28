@@ -1025,6 +1025,9 @@
   "customProviderForm.clear": {
     "defaultMessage": "Kosongkan"
   },
+  "customProviderForm.configWriteFailed": {
+    "defaultMessage": "Tidak dapat menulis konfigurasi {provider}: {reason}. Maklumat yang anda masukkan dikekalkan, jadi anda boleh cuba lagi."
+  },
   "customProviderForm.configureManually": {
     "defaultMessage": "Konfigurasi secara manual"
   },
@@ -1036,6 +1039,9 @@
   },
   "customProviderForm.createProvider": {
     "defaultMessage": "Cipta Pembekal"
+  },
+  "customProviderForm.credentialWriteFailed": {
+    "defaultMessage": "Tidak dapat menyimpan kelayakan {provider}: {reason}. Maklumat yang anda masukkan dikekalkan, jadi anda boleh cuba lagi."
   },
   "customProviderForm.customHeaders": {
     "defaultMessage": "Pengepala Tersuai"
@@ -1073,6 +1079,15 @@
   "customProviderForm.headerNoSpaces": {
     "defaultMessage": "Nama pengepala tidak boleh mengandungi ruang"
   },
+  "customProviderForm.invalidHeader": {
+    "defaultMessage": "Pengepala {header} bagi {provider} tidak dapat disimpan: {reason}."
+  },
+  "customProviderForm.markNewSensitive": {
+    "defaultMessage": "Tandakan pengepala baharu sebagai sensitif"
+  },
+  "customProviderForm.markSensitive": {
+    "defaultMessage": "Tandakan {name} sebagai sensitif"
+  },
   "customProviderForm.modelsPlaceholder": {
     "defaultMessage": "model-a, model-b, model-c"
   },
@@ -1093,6 +1108,15 @@
   },
   "customProviderForm.requiresApiKey": {
     "defaultMessage": "Pembekal ini memerlukan kunci API"
+  },
+  "customProviderForm.savedValueLabel": {
+    "defaultMessage": "Nilai tersimpan bagi {name} disembunyikan. Taip nilai baharu untuk menggantikannya."
+  },
+  "customProviderForm.sensitive": {
+    "defaultMessage": "Sensitif"
+  },
+  "customProviderForm.sensitiveHint": {
+    "defaultMessage": "Nilai sensitif disimpan dalam stor kelayakan sistem dan tidak dipaparkan lagi. Authorization, Proxy-Authorization, X-API-Key dan api-key sentiasa sensitif."
   },
   "customProviderForm.startFromTemplate": {
     "defaultMessage": "Mula daripada templat pembekal"
@@ -3580,6 +3604,9 @@
   },
   "providerCard.deprecatedReplacement": {
     "defaultMessage": "Tidak digunakan lagi — gunakan {replacement} sebagai gantinya."
+  },
+  "providerCard.lastRefreshError": {
+    "defaultMessage": "Semakan terakhir gagal: {error}"
   },
   "providerCard.noMetadata": {
     "defaultMessage": "Ralat ProviderCard: Tiada metadata disediakan"

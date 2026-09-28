@@ -1025,6 +1025,9 @@
   "customProviderForm.clear": {
     "defaultMessage": "지우기"
   },
+  "customProviderForm.configWriteFailed": {
+    "defaultMessage": "{provider}의 구성을 기록하지 못했습니다: {reason}. 입력한 내용은 유지되므로 다시 시도할 수 있습니다."
+  },
   "customProviderForm.configureManually": {
     "defaultMessage": "수동으로 구성"
   },
@@ -1036,6 +1039,9 @@
   },
   "customProviderForm.createProvider": {
     "defaultMessage": "제공업체 생성"
+  },
+  "customProviderForm.credentialWriteFailed": {
+    "defaultMessage": "{provider}의 자격 증명을 저장하지 못했습니다: {reason}. 입력한 내용은 유지되므로 다시 시도할 수 있습니다."
   },
   "customProviderForm.customHeaders": {
     "defaultMessage": "사용자 지정 헤더"
@@ -1073,6 +1079,15 @@
   "customProviderForm.headerNoSpaces": {
     "defaultMessage": "헤더 이름에는 공백이 포함될 수 없습니다."
   },
+  "customProviderForm.invalidHeader": {
+    "defaultMessage": "{provider}의 헤더 {header}을(를) 저장할 수 없습니다: {reason}."
+  },
+  "customProviderForm.markNewSensitive": {
+    "defaultMessage": "새 헤더를 민감한 값으로 표시"
+  },
+  "customProviderForm.markSensitive": {
+    "defaultMessage": "{name}을(를) 민감한 값으로 표시"
+  },
   "customProviderForm.modelsPlaceholder": {
     "defaultMessage": "model-a, model-b, model-c"
   },
@@ -1093,6 +1108,15 @@
   },
   "customProviderForm.requiresApiKey": {
     "defaultMessage": "이 제공업체에는 API 키가 필요합니다"
+  },
+  "customProviderForm.savedValueLabel": {
+    "defaultMessage": "{name}의 저장된 값은 숨겨져 있습니다. 새 값을 입력하면 대체됩니다."
+  },
+  "customProviderForm.sensitive": {
+    "defaultMessage": "민감"
+  },
+  "customProviderForm.sensitiveHint": {
+    "defaultMessage": "민감한 값은 시스템 자격 증명 저장소에 보관되며 다시 표시되지 않습니다. Authorization, Proxy-Authorization, X-API-Key, api-key는 항상 민감한 값으로 처리됩니다."
   },
   "customProviderForm.startFromTemplate": {
     "defaultMessage": "제공업체 템플릿에서 시작"
@@ -3580,6 +3604,9 @@
   },
   "providerCard.deprecatedReplacement": {
     "defaultMessage": "더 이상 사용되지 않습니다. 대신 {replacement}을(를) 사용하세요."
+  },
+  "providerCard.lastRefreshError": {
+    "defaultMessage": "마지막 확인 실패: {error}"
   },
   "providerCard.noMetadata": {
     "defaultMessage": "ProviderCard 오류: 메타데이터가 제공되지 않았습니다."

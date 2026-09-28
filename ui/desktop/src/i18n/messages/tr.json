@@ -1025,6 +1025,9 @@
   "customProviderForm.clear": {
     "defaultMessage": "Temizle"
   },
+  "customProviderForm.configWriteFailed": {
+    "defaultMessage": "{provider} yapılandırması yazılamadı: {reason}. Girdikleriniz korundu, tekrar deneyebilirsiniz."
+  },
   "customProviderForm.configureManually": {
     "defaultMessage": "Manuel olarak yapılandır"
   },
@@ -1036,6 +1039,9 @@
   },
   "customProviderForm.createProvider": {
     "defaultMessage": "Sağlayıcı Oluştur"
+  },
+  "customProviderForm.credentialWriteFailed": {
+    "defaultMessage": "{provider} kimlik bilgileri kaydedilemedi: {reason}. Girdikleriniz korundu, tekrar deneyebilirsiniz."
   },
   "customProviderForm.customHeaders": {
     "defaultMessage": "Özel Başlıklar"
@@ -1073,6 +1079,15 @@
   "customProviderForm.headerNoSpaces": {
     "defaultMessage": "Başlık adı boşluk içeremez"
   },
+  "customProviderForm.invalidHeader": {
+    "defaultMessage": "{provider} sağlayıcısının {header} başlığı kaydedilemiyor: {reason}."
+  },
+  "customProviderForm.markNewSensitive": {
+    "defaultMessage": "Yeni başlığı hassas olarak işaretle"
+  },
+  "customProviderForm.markSensitive": {
+    "defaultMessage": "{name} başlığını hassas olarak işaretle"
+  },
   "customProviderForm.modelsPlaceholder": {
     "defaultMessage": "model-a, model-b, model-c"
   },
@@ -1093,6 +1108,15 @@
   },
   "customProviderForm.requiresApiKey": {
     "defaultMessage": "Bu sağlayıcı bir API anahtarı gerektiriyor"
+  },
+  "customProviderForm.savedValueLabel": {
+    "defaultMessage": "{name} için kaydedilen değer gizli. Değiştirmek için yeni bir değer yazın."
+  },
+  "customProviderForm.sensitive": {
+    "defaultMessage": "Hassas"
+  },
+  "customProviderForm.sensitiveHint": {
+    "defaultMessage": "Hassas değerler sistemin kimlik bilgisi deposunda tutulur ve bir daha gösterilmez. Authorization, Proxy-Authorization, X-API-Key ve api-key her zaman hassastır."
   },
   "customProviderForm.startFromTemplate": {
     "defaultMessage": "Sağlayıcı şablonundan başlayın"
@@ -3580,6 +3604,9 @@
   },
   "providerCard.deprecatedReplacement": {
     "defaultMessage": "Kullanımdan kaldırıldı — bunun yerine {replacement} kullanın."
+  },
+  "providerCard.lastRefreshError": {
+    "defaultMessage": "Son kontrol başarısız oldu: {error}"
   },
   "providerCard.noMetadata": {
     "defaultMessage": "ProviderCard hatası: Meta veri sağlanmadı"

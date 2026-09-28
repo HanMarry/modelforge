@@ -1025,6 +1025,9 @@
   "customProviderForm.clear": {
     "defaultMessage": "Очистить"
   },
+  "customProviderForm.configWriteFailed": {
+    "defaultMessage": "Не удалось записать конфигурацию {provider}: {reason}. Введённые данные сохранены, можно повторить попытку."
+  },
   "customProviderForm.configureManually": {
     "defaultMessage": "Настроить вручную"
   },
@@ -1036,6 +1039,9 @@
   },
   "customProviderForm.createProvider": {
     "defaultMessage": "Создать провайдера"
+  },
+  "customProviderForm.credentialWriteFailed": {
+    "defaultMessage": "Не удалось сохранить учётные данные {provider}: {reason}. Введённые данные сохранены, можно повторить попытку."
   },
   "customProviderForm.customHeaders": {
     "defaultMessage": "Пользовательские заголовки"
@@ -1073,6 +1079,15 @@
   "customProviderForm.headerNoSpaces": {
     "defaultMessage": "Имя заголовка не может содержать пробелы"
   },
+  "customProviderForm.invalidHeader": {
+    "defaultMessage": "Не удалось сохранить заголовок {header} провайдера {provider}: {reason}."
+  },
+  "customProviderForm.markNewSensitive": {
+    "defaultMessage": "Отметить новый заголовок как секретный"
+  },
+  "customProviderForm.markSensitive": {
+    "defaultMessage": "Отметить {name} как секретный"
+  },
   "customProviderForm.modelsPlaceholder": {
     "defaultMessage": "model-a, model-b, model-c"
   },
@@ -1093,6 +1108,15 @@
   },
   "customProviderForm.requiresApiKey": {
     "defaultMessage": "Этот провайдер требует API-ключ"
+  },
+  "customProviderForm.savedValueLabel": {
+    "defaultMessage": "Сохранённое значение {name} скрыто. Введите новое значение, чтобы заменить его."
+  },
+  "customProviderForm.sensitive": {
+    "defaultMessage": "Секретный"
+  },
+  "customProviderForm.sensitiveHint": {
+    "defaultMessage": "Секретные значения хранятся в системном хранилище учётных данных и больше не отображаются. Authorization, Proxy-Authorization, X-API-Key и api-key всегда считаются секретными."
   },
   "customProviderForm.startFromTemplate": {
     "defaultMessage": "Начать с шаблона провайдера"
@@ -3580,6 +3604,9 @@
   },
   "providerCard.deprecatedReplacement": {
     "defaultMessage": "Устарел — используйте вместо него {replacement}."
+  },
+  "providerCard.lastRefreshError": {
+    "defaultMessage": "Последняя проверка не удалась: {error}"
   },
   "providerCard.noMetadata": {
     "defaultMessage": "Ошибка ProviderCard: метаданные не предоставлены"

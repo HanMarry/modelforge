@@ -1025,6 +1025,9 @@
   "customProviderForm.clear": {
     "defaultMessage": "Effacer"
   },
+  "customProviderForm.configWriteFailed": {
+    "defaultMessage": "Impossible d’écrire la configuration de {provider} : {reason}. Vos saisies sont conservées, vous pouvez réessayer."
+  },
   "customProviderForm.configureManually": {
     "defaultMessage": "Configurer manuellement"
   },
@@ -1036,6 +1039,9 @@
   },
   "customProviderForm.createProvider": {
     "defaultMessage": "Créer un fournisseur"
+  },
+  "customProviderForm.credentialWriteFailed": {
+    "defaultMessage": "Impossible d’enregistrer les identifiants de {provider} : {reason}. Vos saisies sont conservées, vous pouvez réessayer."
   },
   "customProviderForm.customHeaders": {
     "defaultMessage": "En-têtes personnalisés"
@@ -1073,6 +1079,15 @@
   "customProviderForm.headerNoSpaces": {
     "defaultMessage": "Le nom de l'en-tête ne peut pas contenir d'espaces"
   },
+  "customProviderForm.invalidHeader": {
+    "defaultMessage": "Impossible d’enregistrer l’en-tête {header} de {provider} : {reason}."
+  },
+  "customProviderForm.markNewSensitive": {
+    "defaultMessage": "Marquer le nouvel en-tête comme sensible"
+  },
+  "customProviderForm.markSensitive": {
+    "defaultMessage": "Marquer {name} comme sensible"
+  },
   "customProviderForm.modelsPlaceholder": {
     "defaultMessage": "model-a, model-b, model-c"
   },
@@ -1093,6 +1108,15 @@
   },
   "customProviderForm.requiresApiKey": {
     "defaultMessage": "Ce fournisseur nécessite une clé API"
+  },
+  "customProviderForm.savedValueLabel": {
+    "defaultMessage": "La valeur enregistrée de {name} est masquée. Saisissez une nouvelle valeur pour la remplacer."
+  },
+  "customProviderForm.sensitive": {
+    "defaultMessage": "Sensible"
+  },
+  "customProviderForm.sensitiveHint": {
+    "defaultMessage": "Les valeurs sensibles sont conservées dans le magasin d’identifiants du système et ne sont plus affichées. Authorization, Proxy-Authorization, X-API-Key et api-key sont toujours sensibles."
   },
   "customProviderForm.startFromTemplate": {
     "defaultMessage": "Partir d'un modèle de fournisseur"
@@ -3580,6 +3604,9 @@
   },
   "providerCard.deprecatedReplacement": {
     "defaultMessage": "Obsolète — utilisez plutôt {replacement}."
+  },
+  "providerCard.lastRefreshError": {
+    "defaultMessage": "Échec de la dernière vérification : {error}"
   },
   "providerCard.noMetadata": {
     "defaultMessage": "Erreur ProviderCard : aucune métadonnée fournie"

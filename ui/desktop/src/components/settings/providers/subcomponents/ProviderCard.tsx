@@ -19,6 +19,10 @@ const i18n = defineMessages({
     id: 'providerCard.deprecatedReplacement',
     defaultMessage: 'Deprecated — use {replacement} instead.',
   },
+  lastRefreshError: {
+    id: 'providerCard.lastRefreshError',
+    defaultMessage: 'Last check failed: {error}',
+  },
 });
 
 type ProviderCardProps = {
@@ -55,6 +59,12 @@ export const ProviderCard = function ProviderCard({
         replacement: provider.replacement ?? intl.formatMessage(i18n.unknownProvider),
       })}`
     : metadata.description;
+  // Custom providers report problems such as a header credential that cannot be resolved
+  // (provider and header name included) through their last inventory refresh.
+  const refreshError =
+    provider.provider_type === 'Custom' && provider.last_refresh_error
+      ? intl.formatMessage(i18n.lastRefreshError, { error: provider.last_refresh_error })
+      : null;
 
   return (
     <CardContainer
@@ -69,14 +79,25 @@ export const ProviderCard = function ProviderCard({
         />
       }
       body={
-        <CardBody>
-          <DefaultCardButtons
-            provider={provider}
-            onConfigure={onConfigure}
-            onLaunch={onLaunch}
-            isOnboardingPage={isOnboarding}
-          />
-        </CardBody>
+        <>
+          {refreshError && (
+            <p
+              className="mb-2 text-xs text-yellow-600 break-words line-clamp-2"
+              title={refreshError}
+              data-testid={`provider-card-error-${provider.name.toLowerCase()}`}
+            >
+              {refreshError}
+            </p>
+          )}
+          <CardBody>
+            <DefaultCardButtons
+              provider={provider}
+              onConfigure={onConfigure}
+              onLaunch={onLaunch}
+              isOnboardingPage={isOnboarding}
+            />
+          </CardBody>
+        </>
       }
     />
   );

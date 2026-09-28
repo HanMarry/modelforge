@@ -46,9 +46,68 @@ export function parseAcpCreditsExhaustedError(error: unknown): AcpCreditsExhaust
   };
 }
 
+/**
+ * `error.data.code` values the Kernel attaches to custom provider credential failures
+ * (crates/goose/src/acp/server/providers.rs).
+ */
+export type AcpProviderErrorCode =
+  | 'SECRET_UNRESOLVED'
+  | 'CREDENTIAL_WRITE_FAILED'
+  | 'CONFIG_WRITE_FAILED'
+  | 'INVALID_HEADER';
+
+const PROVIDER_ERROR_CODES: readonly AcpProviderErrorCode[] = [
+  'SECRET_UNRESOLVED',
+  'CREDENTIAL_WRITE_FAILED',
+  'CONFIG_WRITE_FAILED',
+  'INVALID_HEADER',
+];
+
+export interface AcpProviderError {
+  code: AcpProviderErrorCode;
+  /** Display name of the provider. */
+  provider: string;
+  /** Header involved, for SECRET_UNRESOLVED and INVALID_HEADER. */
+  header?: string;
+  reason: string;
+  message: string;
+}
+
+function isProviderErrorCode(value: unknown): value is AcpProviderErrorCode {
+  return PROVIDER_ERROR_CODES.some((code) => code === value);
+}
+
+export function parseAcpProviderError(error: unknown): AcpProviderError | null {
+  const jsonRpcError = asAcpJsonRpcError(error);
+  if (!jsonRpcError) {
+    return null;
+  }
+
+  const { code, provider, header, reason, message } = jsonRpcError.data;
+  if (!isProviderErrorCode(code) || typeof provider !== 'string') {
+    return null;
+  }
+
+  return {
+    code,
+    provider,
+    ...(typeof header === 'string' ? { header } : {}),
+    reason: typeof reason === 'string' ? reason : '',
+    message: typeof message === 'string' ? message : jsonRpcError.message,
+  };
+}
+
 export function formatAcpError(error: unknown): string {
   if (error instanceof RequestError && error.code === AUTH_REQUIRED_CODE) {
     return 'Sign in to your provider, then try again.';
+  }
+  const providerError = parseAcpProviderError(error);
+  if (providerError?.code === 'SECRET_UNRESOLVED' && providerError.header) {
+    const { provider, header, reason } = providerError;
+    return (
+      `Provider "${provider}" can't read the credential for header "${header}" (${reason}). ` +
+      'Re-enter the header value in the provider settings, then try again.'
+    );
   }
   return errorMessage(error);
 }
