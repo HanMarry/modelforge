@@ -445,12 +445,12 @@ pub(crate) fn remove_extension_in(
     let all = entries.extension_entries();
     let Some(previous) = all.get(key).cloned() else {
         // Not a readable entry, so it refers to no credential we know of; remove it as before.
-        return entries
-            .remove_extension_entry(key)
-            .map_err(|error| ExtensionSaveError::ConfigWrite {
+        return entries.remove_extension_entry(key).map_err(|error| {
+            ExtensionSaveError::ConfigWrite {
                 extension: key.to_string(),
                 cause: error.to_string(),
-            });
+            }
+        });
     };
     let others = keys_used_by_others(&all, key);
     let deletes = extension_secret_keys(&previous.config)
@@ -547,7 +547,8 @@ pub(crate) fn migrate_extensions(
                 .upsert_extension(migrated)
                 .map_err(|error| error.to_string())
         };
-        if let Err(error) = migrate_items(MigrationOwner::Extension, &name, &items, store, replace) {
+        if let Err(error) = migrate_items(MigrationOwner::Extension, &name, &items, store, replace)
+        {
             failures.push(error);
             continue;
         }
@@ -806,7 +807,10 @@ mod tests {
         let store = MemorySecretStore::with_entries([(legacy_key, "Bearer shared")]);
         let value = format!("${{{legacy_key}}}");
         let legacy = http(&[("Authorization", value.as_str())], &[legacy_key]);
-        entries.config.upsert_extension(entry(legacy.clone())).unwrap();
+        entries
+            .config
+            .upsert_extension(entry(legacy.clone()))
+            .unwrap();
         let mut copy = legacy;
         if let ExtensionConfig::StreamableHttp { name, .. } = &mut copy {
             name.push_str(" copy");
@@ -857,7 +861,10 @@ mod tests {
     fn plaintext_headers_in_config_are_migrated_once() {
         let entries = TestEntries::new();
         let headers = [("Authorization", "Bearer plain"), ("Accept", "a")];
-        entries.config.upsert_extension(entry(http(&headers, &[]))).unwrap();
+        entries
+            .config
+            .upsert_extension(entry(http(&headers, &[])))
+            .unwrap();
         let before = entries.config_bytes();
 
         let locked = MemorySecretStore::new();
@@ -879,7 +886,10 @@ mod tests {
         entries.fail_writes.set(false);
         assert!(migrate_extensions(&entries, &store).is_empty());
         let migrated = entries.get(&name_key()).unwrap();
-        assert_eq!(headers_of(&migrated)["Authorization"], own_ref("Authorization"));
+        assert_eq!(
+            headers_of(&migrated)["Authorization"],
+            own_ref("Authorization")
+        );
         assert_eq!(headers_of(&migrated)["Accept"], "a");
         assert_eq!(store.entries()[&own_key("Authorization")], "Bearer plain");
         let text = String::from_utf8(entries.config_bytes()).unwrap();

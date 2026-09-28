@@ -248,7 +248,10 @@ fn write_and_verify(
             Err(error) => error.to_string(),
         };
         let header = &item.header;
-        return Err((MigrationStage::Verify, format!("header {header}: {problem}")));
+        return Err((
+            MigrationStage::Verify,
+            format!("header {header}: {problem}"),
+        ));
     }
     Ok(())
 }
@@ -471,7 +474,10 @@ mod tests {
         assert_eq!(planned, vec!["Authorization", "X-Tenant"]);
         assert_eq!(plan.provider, DISPLAY_NAME);
         let replaced: Value = serde_json::from_slice(&plan.replacement).unwrap();
-        assert_eq!(replaced["headers"]["Authorization"], own_ref("Authorization"));
+        assert_eq!(
+            replaced["headers"]["Authorization"],
+            own_ref("Authorization")
+        );
         assert_eq!(replaced["headers"]["X-Team"], "alpha");
         assert_eq!(replaced["headers"]["X-API-Key"], "${secret:Broken");
         assert_eq!(replaced["unknown_field"], "kept");
@@ -509,7 +515,10 @@ mod tests {
         assert!(!text.contains("sk-1"));
         assert_eq!(store.entries()[&own_key("Authorization")], "Bearer sk-1");
         assert_eq!(std::fs::read(&broken).unwrap(), b"{");
-        assert_eq!(std::fs::read(&notes).unwrap(), b"Authorization: Bearer sk-1");
+        assert_eq!(
+            std::fs::read(&notes).unwrap(),
+            b"Authorization: Bearer sk-1"
+        );
         assert!(migrate_provider_dir(dir.path(), &store, &StdAtomicFs).is_empty());
     }
 

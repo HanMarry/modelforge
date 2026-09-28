@@ -945,7 +945,10 @@ mod tests {
         let reference = secret_ref_for(SecretOwner::Extension("github"), "X-Tenant");
         assert_eq!(
             conversion.secret_updates,
-            vec![(reference.key().to_string(), "Bearer test-only-token".to_string())]
+            vec![(
+                reference.key().to_string(),
+                "Bearer test-only-token".to_string()
+            )]
         );
         let ExtensionConfig::StreamableHttp {
             ref headers,
@@ -955,7 +958,10 @@ mod tests {
         else {
             panic!()
         };
-        assert!(env_keys.is_empty(), "the mark is dropped once the header is stored");
+        assert!(
+            env_keys.is_empty(),
+            "the mark is dropped once the header is stored"
+        );
         assert_eq!(headers["X-Tenant"], reference.to_string());
         let store = MemorySecretStore::with_entries(conversion.secret_updates.clone());
         let variables = HashMap::new();
@@ -982,9 +988,7 @@ mod tests {
         .unwrap();
         assert!(conversion.secret_updates.is_empty());
         let ExtensionConfig::StreamableHttp {
-            headers,
-            env_keys,
-            ..
+            headers, env_keys, ..
         } = conversion.config
         else {
             panic!()
