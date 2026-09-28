@@ -4,6 +4,7 @@ const https = require('https');
 const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
+const { prepareCodexRuntime } = require('./prepare-codex-runtime');
 
 // Paths
 const srcBinDir = path.join(__dirname, '..', 'src', 'bin');
@@ -20,7 +21,8 @@ const windowsFiles = [
     '*.exe',
     '*.dll',
     '*.cmd',
-    'goose-npm/**/*'
+    'goose-npm/**/*',
+    'codex-runtime/**/*'
 ];
 
 // Helper function to check if file matches patterns
@@ -239,6 +241,7 @@ async function copyPlatformFiles(targetPlatform) {
         });
 
         await ensureWindowsUvBinaries();
+        await prepareCodexRuntime({ binDir: srcBinDir });
     }
 }
 

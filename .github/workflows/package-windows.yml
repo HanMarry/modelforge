@@ -141,6 +141,36 @@ jobs:
           node scripts/prepare-platform-binaries.js
           pnpm run make --platform=win32 --arch=x64
 
+      # Requirement 7.11-7.14: the installer ships the pinned Codex runtime, and nothing proprietary.
+      - name: Verify bundled Codex runtime
+        shell: pwsh
+        working-directory: ui/desktop
+        run: |
+          $appDir = Get-ChildItem out -Directory -Filter '*-win32-x64' | Select-Object -First 1
+          if (-not $appDir) { throw 'Packaged app directory not found under ui/desktop/out' }
+          $bin = Join-Path $appDir.FullName 'resources\bin'
+          $entry = Join-Path $bin 'codex-acp.cmd'
+          if (-not (Test-Path $entry)) { throw "Missing $entry" }
+
+          $pinned = (Get-Content bundled-runtimes/codex/package.json -Raw | ConvertFrom-Json).dependencies.'@agentclientprotocol/codex-acp'
+          $adapter = (& $entry --version 2>&1 | Out-String).Trim()
+          Write-Host "codex-acp --version: $adapter"
+          if ($LASTEXITCODE -ne 0 -or $adapter -notmatch [regex]::Escape("@agentclientprotocol/codex-acp $pinned")) {
+            throw "codex-acp --version did not report $pinned"
+          }
+          $codex = (& $entry cli --version 2>&1 | Out-String).Trim()
+          Write-Host "codex --version: $codex"
+          if ($LASTEXITCODE -ne 0 -or $codex -notmatch 'codex') { throw 'The bundled Codex CLI failed to start' }
+
+          if (-not (Test-Path (Join-Path $bin 'codex-runtime\THIRD_PARTY_NOTICES.txt'))) {
+            throw 'codex-runtime\THIRD_PARTY_NOTICES.txt is missing'
+          }
+          $claude = Get-ChildItem out -Recurse -File -Filter 'claude.exe' -ErrorAction SilentlyContinue
+          if ($claude) { throw "claude.exe must not ship: $($claude.FullName -join ', ')" }
+
+          node scripts/smoke/codex-runtime-smoke.mjs --entry $entry
+          if ($LASTEXITCODE -ne 0) { throw 'Bundled Codex runtime smoke test failed' }
+
       - name: Upload Windows installer
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:

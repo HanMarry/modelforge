@@ -3,6 +3,7 @@ import { Recipe } from './recipe';
 import type { GooseApp } from './types/apps';
 import type { Settings, SettingKey } from './utils/settings';
 import type { AgentKernelStatus } from './utils/agentKernel';
+import type { BundledCodexRuntimeStatus } from './utils/bundledCodexRuntime';
 import { defaultSettings } from './utils/settings';
 import type { DisabledSkillRecord } from './utils/skillEnablement';
 import type { OpenExternalUrlResult } from './utils/urlSecurity';
@@ -216,6 +217,8 @@ type ElectronAPI = {
   getAcpUrl: () => Promise<string | null>;
   /** Which agent kernel is active and whether it has everything it needs to run. */
   getAgentKernelStatus: () => Promise<AgentKernelStatus>;
+  /** Codex runtime shipped with packaged Windows builds, and why it is unavailable if so. */
+  getBundledCodexRuntime: () => Promise<BundledCodexRuntimeStatus>;
   /** Stores the key the external kernels use for the active provider. */
   setAgentKernelKey: (providerId: string, apiKey: string) => Promise<boolean>;
   clearAgentKernelKey: (providerId: string) => Promise<boolean>;
@@ -418,6 +421,7 @@ const electronAPI: ElectronAPI = {
   getSecretKey: () => ipcRenderer.invoke('get-secret-key'),
   getAcpUrl: () => ipcRenderer.invoke('get-acp-url'),
   getAgentKernelStatus: () => ipcRenderer.invoke('agent-kernel-status'),
+  getBundledCodexRuntime: () => ipcRenderer.invoke('agent-kernel-bundled-codex'),
   setAgentKernelKey: (providerId: string, apiKey: string) =>
     ipcRenderer.invoke('agent-kernel-set-key', providerId, apiKey),
   clearAgentKernelKey: (providerId: string) =>

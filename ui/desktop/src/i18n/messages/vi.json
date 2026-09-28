@@ -71,6 +71,18 @@
   "agentKernelSection.clearKey": {
     "defaultMessage": "Forget saved key"
   },
+  "agentKernelSection.codexBundled": {
+    "defaultMessage": "Bundled with ModelForge · codex-acp {adapterVersion} · Codex {codexVersion}"
+  },
+  "agentKernelSection.codexBundledInvalidManifest": {
+    "defaultMessage": "its version manifest cannot be read"
+  },
+  "agentKernelSection.codexBundledMissingFiles": {
+    "defaultMessage": "files are missing ({files})"
+  },
+  "agentKernelSection.codexBundledUnavailable": {
+    "defaultMessage": "Bundled Codex runtime unavailable: {reason}. Reinstall ModelForge, or switch back to the built-in kernel."
+  },
   "agentKernelSection.codexDescription": {
     "defaultMessage": "Runs the OpenAI Codex agent loop on the API you configured."
   },

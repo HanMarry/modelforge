@@ -1,0 +1,9 @@
+{
+  "name": "modelforge-bundled-codex-runtime",
+  "private": true,
+  "description": "Pinned Codex ACP adapter shipped inside the Windows installer. Installed at package time by scripts/prepare-codex-runtime.js.",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@agentclientprotocol/codex-acp": "1.13.1"
+  }
+}

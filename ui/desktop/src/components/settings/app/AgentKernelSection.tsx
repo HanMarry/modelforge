@@ -8,6 +8,7 @@ import {
   type AgentKernelSettings,
 } from '../../../utils/settings';
 import type { AgentKernelStatus } from '../../../utils/agentKernel';
+import type { BundledCodexRuntimeStatus } from '../../../utils/bundledCodexRuntime';
 import { AppEvents } from '../../../constants/events';
 
 const i18n = defineMessages({
@@ -43,6 +44,23 @@ const i18n = defineMessages({
   codexDescription: {
     id: 'agentKernelSection.codexDescription',
     defaultMessage: 'Runs the OpenAI Codex agent loop on the API you configured.',
+  },
+  codexBundled: {
+    id: 'agentKernelSection.codexBundled',
+    defaultMessage: 'Bundled with ModelForge · codex-acp {adapterVersion} · Codex {codexVersion}',
+  },
+  codexBundledUnavailable: {
+    id: 'agentKernelSection.codexBundledUnavailable',
+    defaultMessage:
+      'Bundled Codex runtime unavailable: {reason}. Reinstall ModelForge, or switch back to the built-in kernel.',
+  },
+  codexBundledMissingFiles: {
+    id: 'agentKernelSection.codexBundledMissingFiles',
+    defaultMessage: 'files are missing ({files})',
+  },
+  codexBundledInvalidManifest: {
+    id: 'agentKernelSection.codexBundledInvalidManifest',
+    defaultMessage: 'its version manifest cannot be read',
   },
   statusTitle: {
     id: 'agentKernelSection.statusTitle',
@@ -201,6 +219,36 @@ export default function AgentKernelSection() {
   const [apiKey, setApiKey] = useState('');
   const [notice, setNotice] = useState<string | null>(null);
   const [isBusy, setIsBusy] = useState(false);
+  const [bundledCodex, setBundledCodex] = useState<BundledCodexRuntimeStatus | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    window.electron
+      .getBundledCodexRuntime?.()
+      ?.then((value) => {
+        if (!cancelled) {
+          setBundledCodex(value);
+        }
+      })
+      .catch((error) => console.error('Failed to read the bundled Codex runtime status', error));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const bundledCodexLabel = (runtime: BundledCodexRuntimeStatus): string => {
+    if (runtime.available && runtime.versions) {
+      return intl.formatMessage(i18n.codexBundled, {
+        adapterVersion: runtime.versions.codexAcp,
+        codexVersion: runtime.versions.codex,
+      });
+    }
+    const reason =
+      runtime.reason === 'missing-files'
+        ? intl.formatMessage(i18n.codexBundledMissingFiles, { files: runtime.missing.join(', ') })
+        : intl.formatMessage(i18n.codexBundledInvalidManifest);
+    return intl.formatMessage(i18n.codexBundledUnavailable, { reason });
+  };
 
   const refreshStatus = useCallback(async () => {
     try {
@@ -369,6 +417,15 @@ export default function AgentKernelSection() {
                 <p className="text-xs text-text-secondary mt-[2px]">
                   {intl.formatMessage(i18n[option.description])}
                 </p>
+                {option.id === 'codex' && bundledCodex?.expected && (
+                  <p
+                    className={`text-xs mt-[2px] ${
+                      bundledCodex.available ? 'text-text-secondary' : 'text-text-danger'
+                    }`}
+                  >
+                    {bundledCodexLabel(bundledCodex)}
+                  </p>
+                )}
               </button>
             );
           })}

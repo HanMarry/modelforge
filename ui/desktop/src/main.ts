@@ -33,6 +33,11 @@ import * as skillEnablement from './utils/skillEnablement';
 import { configureProxy } from './proxy';
 import { startGooseServe } from './gooseServe';
 import { createAgentKernelManager, resolveGooseConfigDir } from './utils/agentKernel';
+import {
+  bundledCodexSearchPathEnv,
+  resolveBundledCodexRuntime,
+  searchPathsFromConfig,
+} from './utils/bundledCodexRuntime';
 import { getLoginShellPath } from './loginShellPath';
 import { GooseServeLeaseRegistry, type GooseServeLease } from './gooseServeLeaseRegistry';
 import { acpWebSocketUrlFromHttpBase, normalizeAcpHttpBaseUrl } from './acp/url';
@@ -224,6 +229,32 @@ const agentKernel = createAgentKernelManager({
     },
   },
 });
+
+/** Codex runtime shipped with packaged Windows builds; resolved once, it cannot change at runtime. */
+const bundledCodexRuntime = resolveBundledCodexRuntime({
+  platform: process.platform,
+  isPackaged: app.isPackaged,
+  resourcesPath: process.resourcesPath,
+});
+if (bundledCodexRuntime.available) {
+  log.info(
+    `[agent-kernel] bundled Codex runtime: codex-acp ${bundledCodexRuntime.versions?.codexAcp}, codex ${bundledCodexRuntime.versions?.codex}`
+  );
+} else if (bundledCodexRuntime.expected) {
+  log.error(
+    `[agent-kernel] bundled Codex runtime unavailable (${bundledCodexRuntime.reason}): ${bundledCodexRuntime.missing.join(', ')}`
+  );
+}
+
+/** Search paths the user set in goose's config.yaml, kept when the app sets the variable. */
+const configuredGooseSearchPaths = (): string[] => {
+  try {
+    const configFile = path.join(resolveGooseConfigDir(), 'config.yaml');
+    return searchPathsFromConfig(yaml.parse(fsSync.readFileSync(configFile, 'utf8')));
+  } catch {
+    return [];
+  }
+};
 
 let agentKernelApplied = false;
 
@@ -1257,6 +1288,11 @@ const createChat = async (
         tls: true,
         env: {
           GOOSE_PATH_ROOT: appConfig.GOOSE_PATH_ROOT as string | undefined,
+          ...bundledCodexSearchPathEnv(
+            bundledCodexRuntime,
+            process.env,
+            configuredGooseSearchPaths()
+          ),
         },
         loginShellPath,
         isPackaged: app.isPackaged,
@@ -2192,6 +2228,8 @@ ipcMain.handle('get-secret-key', (event) => {
 });
 
 ipcMain.handle('agent-kernel-status', () => agentKernel.getStatus());
+
+ipcMain.handle('agent-kernel-bundled-codex', () => bundledCodexRuntime);
 
 /**
  * Remembers the provider key the user typed in the app's provider settings so the external

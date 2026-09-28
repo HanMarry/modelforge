@@ -71,6 +71,18 @@
   "agentKernelSection.clearKey": {
     "defaultMessage": "删除已保存密钥"
   },
+  "agentKernelSection.codexBundled": {
+    "defaultMessage": "ModelForge 内置 · codex-acp {adapterVersion} · Codex {codexVersion}"
+  },
+  "agentKernelSection.codexBundledInvalidManifest": {
+    "defaultMessage": "版本清单无法读取"
+  },
+  "agentKernelSection.codexBundledMissingFiles": {
+    "defaultMessage": "缺少文件（{files}）"
+  },
+  "agentKernelSection.codexBundledUnavailable": {
+    "defaultMessage": "内置 Codex 运行时不可用：{reason}。请重新安装 ModelForge，或切回内置内核。"
+  },
   "agentKernelSection.codexDescription": {
     "defaultMessage": "用你配置的 API 运行 OpenAI Codex 的智能体循环。"
   },

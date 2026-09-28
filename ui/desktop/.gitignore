@@ -5,6 +5,10 @@ src/bin/goosed
 src/bin/goose-npm/
 /src/bin/*.exe
 /src/bin/*.cmd
+# Bundled Codex runtime, staged by scripts/prepare-codex-runtime.js
+/src/bin/codex-runtime/
+/src/bin/.codex-runtime-staging-*/
+/bundled-runtimes/*/node_modules/
 /src/platform/windows/bin/*.dll
 /src/platform/windows/bin/*.exe
 /playwright-report/
