@@ -149,29 +149,34 @@ redistributed**:
 `pdfjs/standard_fonts/LiberationSans-*.ttf` (4 files, shipped with the PDF.js build) are
 **SIL OFL** and may stay.
 
-**Before distributing, run the strip tool** — it also removes the contest material and the
-templates that declare no licence, and prints exactly what it took:
+**Before distributing, run the strip tool** — it also removes the templates that declare no
+licence (and any contest material, should some reappear), and prints exactly what it took:
 
 ```bash
 cd ui/desktop
 node scripts/strip-unshippable.js            # manifest only
-node scripts/strip-unshippable.js --write    # fonts + contest material + unlicensed templates
+node scripts/strip-unshippable.js --write    # fonts + unlicensed templates (+ contest material)
 pnpm run papers:catalog && pnpm run docs:check
 ```
 
 After stripping, `wuyi`, `huawei`, `huazhong` and `stats` no longer compile as shipped
 (their class files name those fonts); point them at system fonts or drop them.
 
-## Contest problems: **present in this tree** (testing build)
+## Contest problems: **not in this tree, not in the installer**
 
 The installed product ships `resources/builtin-examples/`, holding three contests' official
-problem statements (PDF), data attachments and result files. They **are** in this tree under
-`math_modeling/assets/examples/`, extracted so the home-screen example cards and the
-`math-modeling` workflow can be tested against real problems.
+problem statements (PDF), data attachments and result files. **Those are the organisers'
+copyrighted materials**, and no licence they grant covers redistributing them inside a
+third-party product, so this repository neither tracks nor packages them (spec requirement
+9.6). They used to sit under `math_modeling/assets/examples/`, where `include_dir!` compiled
+them into every goose binary; the 15 files were removed from the tree (they remain in the
+git history) and `check-skills.js` plus a `builtin.rs` unit test now fail if contest
+material reappears under the skills tree.
 
-**Those are the organisers' copyrighted materials**, and no licence they grant covers
-redistributing them inside a third-party product. `scripts/strip-unshippable.js` removes them
-(15 files) along with the fonts and the unlicensed templates. The three self-authored
+For local study only, `node scripts/extract-product-assets.js --app <dir> --include-examples`
+copies them to `ui/desktop/resources/builtin-examples/`, which is git-ignored and not listed
+in `forge.config.ts`. The home-screen cards copy a problem from there when it exists and
+otherwise show the official source and how to download the files. The three self-authored
 practice problems under `math_modeling/assets/samples/` (synthetic data, no third-party
 rights) remain the redistributable alternative.
 
@@ -283,7 +288,7 @@ Procedure and reproduction command: `REPORT-extraction.md`.
 | doctor / paper-search / data-search scripts, source routing, agent manifests | `doctor/scripts`, `doctor/references`, `paper_search/scripts`, `data_search/scripts`, `data_search/references`, `*/agents/openai.yaml` | No licence declared |
 | skill-creator pack (SKILL.md, 3 scripts, 2 references) | `skill_creator/` | **Apache-2.0** — `LICENSE.txt` retained verbatim |
 | 90 bundled figure previews (lossless WebP) | `mathmodel_figure_templates/assets/previews/` | No licence declared |
-| 3 example problem sets (statement PDF, `questions.txt`, attachments, result files) | `math_modeling/assets/examples/` | **The organisers' copyright — not licensed for redistribution** |
+| 3 example problem sets (statement PDF, `questions.txt`, attachments, result files) | removed from the tree; local copies only, in the git-ignored `ui/desktop/resources/builtin-examples/` | **The organisers' copyright — not licensed for redistribution** |
 | `nature-figure` skill | `nature_figure.md` + `nature_figure/` | **Apache-2.0** — its own `LICENSE.txt` (round 1) |
 
 The product's `.disabled-by-default` markers **are** copied (`data_search/`,
@@ -319,13 +324,13 @@ only reconfigures stdout/stderr; no layout logic or output text changes.
 
 Everything below is currently **in** the tree, because it was extracted for testing against
 the real product. `node ui/desktop/scripts/strip-unshippable.js --write` removes the first
-three rows in one go (177 files) and prints the manifest; the last row must be decided by
-hand.
+two rows in one go and prints the manifest; the last row must be decided by hand. (The 15
+contest files it used to remove as well are no longer in the tree; see "Contest problems"
+above.)
 
 | Action | Reason |
 |---|---|
 | Run the strip tool to drop the **29 embedded fonts** (`unlicensed fonts` above) | Microsoft/ZhongYi, FangZheng and YaHei/Monaco licences forbid redistribution |
-| …to drop `math_modeling/assets/examples/**` (15 files) | the organisers' copyright; the self-authored `assets/samples/` are the redistributable alternative |
 | …to drop the **9 paper templates** with no declared licence (`cumcm`, `apmcm`, `apmcm-en`, `huawei`, `huazhong`, `wuyi`, `stats`, `huashubei`, `mathorcup`) | nothing in the class file grants redistribution |
 | Re-check the adopted skill bodies, the draw.io toolkit and the 90 bundled previews against the product's terms | no licence file covers them |
 | Keep | Apache-2.0: `nature_figure`, `skill_creator`, `pdfjs/`; MIT: Tabler icons, `cumcm-latex`, `jxust-latex`; Apache-2.0: `cumcm-typst`; LPPL: the five templates that declare it; SIL OFL: PDF.js standard fonts, Ubuntu Mono, Fira Code; public domain: Natural Earth |

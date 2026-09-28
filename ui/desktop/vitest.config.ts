@@ -15,7 +15,9 @@ const cfg = {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     css: true,
-    include: ['src/**/*.{test,spec}.{js,jsx,ts,tsx}'],
+    // Script tests load the CommonJS scripts through `createRequire` and declare
+    // `// @vitest-environment node`; src/test/setup.ts skips its DOM mocks for them.
+    include: ['src/**/*.{test,spec}.{js,jsx,ts,tsx}', 'scripts/**/*.test.{js,mjs}'],
   },
 } satisfies Record<string, any>;
 

@@ -2044,35 +2044,22 @@ ipcMain.handle('directory-chooser', async () => {
 
 // --- Built-in contest examples -----------------------------------------------
 //
-// The bundled examples live under `resources/builtin-examples/<folderName>/` in
-// packaged builds (wired up by forge.config.ts) and under the repo checkout when
-// running via `electron-forge start`. Copying them into the user's project
-// directory makes the statement and data readable by the agent.
+// The contest statements are the organisers' copyright, so they are neither committed
+// nor packaged (spec requirement 9.6). A local copy, if someone made one for study,
+// lives under `resources/builtin-examples/<folderName>/`: in ui/desktop/ (git-ignored,
+// filled by `extract-product-assets.js --include-examples`) when running via
+// `electron-forge start`, and next to the app resources in a packaged build. Copying
+// it into the user's project directory makes the statement and data readable by the
+// agent; without one the home cards point at the official source instead.
 
 function resolveBuiltinExamplesDir(): string | null {
   const candidates: string[] = [];
   if (app.isPackaged) {
     candidates.push(path.join(process.resourcesPath, 'builtin-examples'));
   } else {
-    // The Vite main bundle is emitted to ui/desktop/.vite/build, so the repo
-    // root is four levels up from __dirname.
-    candidates.push(
-      path.join(
-        __dirname,
-        '..',
-        '..',
-        '..',
-        '..',
-        'crates',
-        'goose',
-        'src',
-        'skills',
-        'builtins',
-        'math_modeling',
-        'assets',
-        'examples'
-      )
-    );
+    // The Vite main bundle is emitted to ui/desktop/.vite/build, so ui/desktop is two
+    // levels up from __dirname.
+    candidates.push(path.join(__dirname, '..', '..', 'resources', 'builtin-examples'));
   }
   return candidates.find((dir) => fsSync.existsSync(dir)) ?? null;
 }

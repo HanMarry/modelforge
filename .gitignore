@@ -3,6 +3,9 @@
 /ui/desktop/dist/
 /ui/desktop/.playwright-cli/
 /target/
+# 真实赛题（题面 PDF、附件、结果文件）是赛事方的版权材料，只供本机学习，不提交、不打包
+# （规格需求 9.6）。由 `node scripts/extract-product-assets.js --include-examples` 放到这里。
+/ui/desktop/resources/builtin-examples/
 # 说明：内核编译目录在仓库外 E:\goose-build（git 不能忽略仓库外路径，不再列假条目）
 
 # Development
