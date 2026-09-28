@@ -402,6 +402,13 @@ fn agent_capabilities_meta() -> Option<Meta> {
     if cfg!(feature = "local-inference") {
         goose.insert("localInference".to_string(), serde_json::json!({}));
     }
+    // Plaintext credential migrations that failed at startup (requirement 1.9); they are tried
+    // again at the next start.
+    let failures = crate::config::credential_migration::startup_failures();
+    if !failures.is_empty() {
+        let migration = crate::config::credential_migration::failures_meta(&failures);
+        goose.insert("credentialMigration".to_string(), migration);
+    }
 
     let mut meta = serde_json::Map::new();
     meta.insert("goose".to_string(), serde_json::Value::Object(goose));

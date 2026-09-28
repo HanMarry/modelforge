@@ -1,7 +1,9 @@
 pub mod atomic_fs;
 pub mod base;
+pub mod credential_migration;
 pub mod declarative_providers;
 mod experiments;
+pub mod extension_credentials;
 pub mod extensions;
 mod migrations;
 pub mod paths;
