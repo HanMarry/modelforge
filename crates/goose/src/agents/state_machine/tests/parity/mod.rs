@@ -3,4 +3,6 @@
 
 mod harness;
 mod model;
+mod normalize;
 mod provider;
+mod report;
