@@ -1317,7 +1317,10 @@ mod credential_tests {
                 continue;
             }
             let escaped = serde_json::to_string(value).unwrap();
-            let inner = &escaped[1..escaped.len() - 1];
+            let inner = escaped
+                .strip_prefix('"')
+                .and_then(|rest| rest.strip_suffix('"'))
+                .unwrap();
             prop_assert!(!text.contains(value.as_str()), "{name} is in the file");
             prop_assert!(!text.contains(inner), "{name} is in the file");
             let reference = secret_ref_for(SecretOwner::Provider(id), name);
