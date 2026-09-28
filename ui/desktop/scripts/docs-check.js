@@ -489,7 +489,7 @@ function main() {
   }
 
   // Informational: this tree is normally the testing build, which carries content that
-  // cannot be redistributed (fonts, contest material, unlicensed templates). Saying so on
+  // cannot be redistributed (fonts, unlicensed templates). Saying so on
   // every run is cheaper than discovering it at release time.
   const unshippable = [];
   const countTree = (dir, predicate) => {
@@ -507,10 +507,8 @@ function main() {
     ['.ttf', '.ttc', '.otf', '.woff', '.woff2'].includes(path.extname(file).toLowerCase())
   );
   if (fonts > 0) unshippable.push(`${fonts} embedded font(s)`);
-  const examples = path.join(BUILTINS, 'math_modeling', 'assets', 'examples');
-  if (fs.existsSync(examples)) {
-    unshippable.push(`${countTree(examples, () => true)} contest-material file(s)`);
-  }
+  // Contest statements are no longer part of the tree at all (requirement 9.6);
+  // `check-skills.js` fails if any reappear under builtins/.
   if (unshippable.length) {
     console.log(
       `\nRelease note: this tree contains ${unshippable.join(' and ')}.\n` +
