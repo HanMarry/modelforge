@@ -134,6 +134,7 @@
 | 编号 | 项 | owner | 状态 | 源码 commit | 验证时间 | 验证命令 | 执行环境 | 证据路径 | 剩余风险 |
 |------|----|-------|------|-------------|----------|----------|----------|----------|----------|
 | MP-1 | 规格任务 1：敏感值掩码与原子写的共享基础（Property 7、10） | leozer534-coder | 已完成 | `113bb32` | 2026-09-28T08:28:42Z | `cargo test --locked -- --skip scenario_tests::scenarios::tests`（`crates/`）；`pnpm run lint:check && pnpm run test:run`（`ui/desktop/`）；[CI run 36395525305](https://github.com/HanMarry/modelforge/actions/runs/36395525305) | GitHub Actions：Rust 为 Linux x64，桌面端为 macOS arm64 | `crates/goose/src/logging/secret_mask.rs`、`crates/goose/src/config/atomic_fs.rs`、`ui/desktop/src/utils/secretMask.test.ts`、`ui/desktop/src/utils/atomicWrite.test.ts`、`fixtures/secret-mask-vectors.json` | CI 中 Windows Rust 编译 job 被跳过，`atomic_fs` 在 Windows 上的 rename 重试路径尚未实跑；尚未合入 `modelforge` |
+| MP-2 | 规格任务 2（需求 1 认证请求头安全存储）：2.1–2.4 已完成，即 `config::secret_headers` 模块（认证头判定、Secret 引用、`resolve_headers`，Property 1、4）；2.5–2.16 未开始 | leozer534-coder | 进行中 | `c104da1`、`e6a7c06` | 2026-09-28T10:55:40Z | `cargo test --locked -- --skip scenario_tests::scenarios::tests`（`crates/`）；`cargo test -p goose --no-default-features --features rustls-tls,code-mode`；[CI run 36411008845](https://github.com/HanMarry/modelforge/actions/runs/36411008845) | GitHub Actions：Linux x64 | `crates/goose/src/config/secret_headers.rs` | 模块尚未接入 Provider 保存与请求构造（任务 2.5、2.9），现有自定义 Provider 的认证头仍按原样写入 `custom_providers/*.json`；Windows Rust 编译 job 被跳过 |
 
 ## 7. 变更记录
 
@@ -147,3 +148,4 @@
 | 2026-09-16 | **P0-5 独立复验**（静态证据链 + 现场无残留 + 190 回归通过；交互重放受 TTY 限制，步骤文档化） | `1600180` 已修，见 [验证记录](../reports/P0-5-plan-mode-verification.md) |
 | 2026-09-16 | **P0 五项全部完成** ✅（P0-1/3/4 修复验证，P0-2 基线，P0-5 复验） | 下一步：按 §5 回到 Week 2 四轨道 / P1 清单 |
 | 2026-09-28 | 新增 §6.1，登记规格 mathmodel-parity-and-beyond 的任务进度；MP-1（任务 1）CI 通过，状态"已完成" | `113bb32`，CI run 36395525305 |
+| 2026-09-28 | MP-2 登记：任务 2.1–2.4 CI 通过（首轮 `c104da1` 的 fmt 差一行，`e6a7c06` 修正；首轮 rustls-tls job 中 `command_auth` 测试偶发 "Text file busy"，与本改动无关，次轮通过） | CI run 36411008845 |
