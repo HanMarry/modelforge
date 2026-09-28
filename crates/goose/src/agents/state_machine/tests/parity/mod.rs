@@ -4,5 +4,6 @@
 mod harness;
 mod model;
 mod normalize;
+mod property;
 mod provider;
 mod report;
