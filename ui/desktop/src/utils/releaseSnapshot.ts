@@ -129,7 +129,7 @@ export function resolveCommit(repo: string, sha: string): string {
     );
   }
   const wanted = sha.toLowerCase();
-  let resolved = '';
+  let resolved: string;
   try {
     resolved = git(['rev-parse', '--verify', '--quiet', `${wanted}^{commit}`], repo).trim();
   } catch (error) {
@@ -231,7 +231,7 @@ export function assertCleanSnapshot(
   snapshotDir: string,
   when: string
 ): void {
-  let changes: string[] = [];
+  let changes: string[];
   try {
     changes = listSnapshotChanges(repo, commit, snapshotDir);
   } catch (error) {

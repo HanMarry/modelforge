@@ -59,7 +59,7 @@ export function collectManifest(request: ManifestRequest): BuildManifest {
     throw new PipelineError('manifest', `${request.binary} does not exist`);
   }
 
-  let output = '';
+  let output: string;
   try {
     output = runKernelVersionJson(request.binary);
   } catch (error) {
