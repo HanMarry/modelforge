@@ -16,6 +16,7 @@ use std::fmt;
 use sha2::{Digest, Sha256};
 
 use crate::config::{Config, ConfigError};
+use crate::logging::redact::register_secret;
 
 /// Header names that always carry credentials, compared case-insensitively (requirement 1.1).
 pub const AUTH_HEADER_NAMES: &[&str] = &[
@@ -197,14 +198,21 @@ fn store_error(error: ConfigError) -> SecretStoreError {
     SecretStoreError(error.to_string())
 }
 
+/// Every value written or read here is registered for masking in logs and client-facing errors
+/// (requirement 1.10); a value is registered before it is written, so a failed write cannot
+/// leak it either.
 impl SecretStore for ConfigSecretStore<'_> {
     fn set(&self, key: &str, value: &str) -> Result<(), SecretStoreError> {
+        register_secret(value);
         self.config.set_secret(key, &value).map_err(store_error)
     }
 
     fn get(&self, key: &str) -> Result<Option<String>, SecretStoreError> {
         match self.config.get_secret::<String>(key) {
-            Ok(value) => Ok(Some(value)),
+            Ok(value) => {
+                register_secret(&value);
+                Ok(Some(value))
+            }
             Err(ConfigError::NotFound(_)) => Ok(None),
             Err(error) => Err(store_error(error)),
         }
@@ -517,6 +525,9 @@ mod tests {
         assert_eq!(store.get(key), Ok(None));
         store.set(key, "Bearer 密钥 🔑").unwrap();
         assert_eq!(store.get(key), Ok(Some("Bearer 密钥 🔑".to_string())));
+        // Stored values are masked in logs and errors from now on.
+        let logged = crate::logging::redact::redact_registered("sent Bearer 密钥 🔑");
+        assert_eq!(logged, "sent ********密钥 🔑");
         store.delete(key).unwrap();
         assert_eq!(store.get(key), Ok(None));
         store.delete(key).unwrap();
