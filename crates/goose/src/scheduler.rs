@@ -1478,14 +1478,23 @@ mod tests {
         };
 
         scheduler.add_scheduled_job(job, true).await.unwrap();
-        sleep(Duration::from_millis(1500)).await;
+
+        // The job fires within a second, but a busy CI machine can take longer to create its
+        // session, so poll instead of sleeping a fixed time.
+        let deadline = tokio::time::Instant::now() + Duration::from_secs(10);
+        let sessions = loop {
+            let sessions = session_manager
+                .list_sessions_by_types(&[SessionType::Scheduled])
+                .await
+                .unwrap();
+            if !sessions.is_empty() || tokio::time::Instant::now() >= deadline {
+                break sessions;
+            }
+            sleep(Duration::from_millis(100)).await;
+        };
 
         let jobs = scheduler.list_scheduled_jobs().await;
         assert!(jobs[0].last_run.is_some(), "Job should have run");
-        let sessions = session_manager
-            .list_sessions_by_types(&[SessionType::Scheduled])
-            .await
-            .unwrap();
         assert_eq!(sessions.len(), 1);
         assert_eq!(sessions[0].goose_mode, GooseMode::Auto);
     }
@@ -1711,10 +1720,18 @@ mod tests {
 
         // Schedule the job and let it run — should not panic
         scheduler.add_scheduled_job(job, true).await.unwrap();
-        sleep(Duration::from_millis(1500)).await;
+
+        // Poll rather than sleep a fixed time: a busy CI machine can start the job late.
+        let deadline = tokio::time::Instant::now() + Duration::from_secs(10);
+        let jobs = loop {
+            let jobs = scheduler.list_scheduled_jobs().await;
+            if jobs[0].last_run.is_some() || tokio::time::Instant::now() >= deadline {
+                break jobs;
+            }
+            sleep(Duration::from_millis(100)).await;
+        };
 
         // The job should have attempted to run (last_run set) but not crashed the scheduler
-        let jobs = scheduler.list_scheduled_jobs().await;
         assert!(
             jobs[0].last_run.is_some(),
             "Job should have attempted to run without panicking"
