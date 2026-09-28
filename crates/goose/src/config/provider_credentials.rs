@@ -214,7 +214,9 @@ fn remove_file(path: &Path) -> io::Result<()> {
     }
 }
 
-fn restore_secret(
+/// Puts `key` back to the value it had before a transaction: `before` is the snapshot entry,
+/// `Some(None)` or `None` meaning that there was no entry.
+pub(crate) fn restore_secret(
     store: &dyn SecretStore,
     key: &str,
     before: Option<&Option<String>>,
