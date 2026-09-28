@@ -9,6 +9,8 @@ use tracing_subscriber::{
     Registry,
 };
 
+pub mod secret_mask;
+
 /// Configuration for the shared logging setup.
 pub struct LoggingConfig<'a> {
     /// Component name used for the log directory (e.g. "cli").

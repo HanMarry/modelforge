@@ -1,3 +1,4 @@
+pub mod atomic_fs;
 pub mod base;
 pub mod declarative_providers;
 mod experiments;
