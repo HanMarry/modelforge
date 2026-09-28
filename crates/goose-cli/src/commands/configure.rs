@@ -8,12 +8,16 @@ use goose::agents::{extension::Envs, ExtensionConfig};
 use goose::config::declarative_providers::{
     create_custom_provider, remove_custom_provider, AuthConfig, CreateCustomProviderParams,
 };
+use goose::config::extension_credentials::{
+    is_sensitive_extension_header, remove_extension_and_secrets, save_extension,
+};
 use goose::config::extensions::{
     get_all_extension_names, get_all_extensions, get_enabled_extensions, get_extension_by_name,
-    name_to_key, remove_extension, set_extension, set_extension_enabled,
+    name_to_key, set_extension, set_extension_enabled,
 };
 use goose::config::paths::Paths;
 use goose::config::permission::PermissionLevel;
+use goose::config::secret_headers::is_auth_header;
 use goose::config::signup_tetrate::TetrateAuth;
 use goose::config::{
     configure_tetrate, Config, ConfigError, ExperimentManager, ExtensionEntry, GooseMode,
@@ -1144,13 +1148,38 @@ fn collect_env_vars() -> anyhow::Result<(HashMap<String, String>, Vec<String>)> 
     Ok((envs, env_keys))
 }
 
+/// Asks for the value of header `name`, and whether it is sensitive unless `always_sensitive`
+/// already says so. Names that look like credentials are suggested as sensitive. Sensitive
+/// values are typed hidden and end up in the secure store, not in the config file
+/// (requirements 1.1, 1.2).
+fn prompt_header_value(name: &str, always_sensitive: bool) -> anyhow::Result<(String, bool)> {
+    let sensitive = always_sensitive || ask_header_sensitive(name)?;
+    let prompt = format!("Value for '{name}':");
+    let value: String = if sensitive {
+        cliclack::password(prompt).mask('▪').interact()?
+    } else {
+        cliclack::input(prompt).interact()?
+    };
+    Ok((value, sensitive))
+}
+
+fn ask_header_sensitive(name: &str) -> anyhow::Result<bool> {
+    let question = format!("Is '{name}' a sensitive value, to keep in the secure store?");
+    let suggested = goose::utils::is_sensitive_header_name(name);
+    let answer = cliclack::confirm(question)
+        .initial_value(suggested)
+        .interact()?;
+    Ok(answer)
+}
+
+/// Headers for a streamable HTTP extension, and the names of the sensitive ones. The values stay
+/// in memory until the extension is saved, which moves the sensitive ones to the secure store.
 fn collect_headers() -> anyhow::Result<(HashMap<String, String>, Vec<String>)> {
-    let config = Config::global();
     let mut headers = HashMap::new();
-    let mut env_keys = Vec::new();
+    let mut sensitive_headers = Vec::new();
 
     if !cliclack::confirm("Would you like to add custom headers?").interact()? {
-        return Ok((headers, env_keys));
+        return Ok((headers, sensitive_headers));
     }
 
     loop {
@@ -1158,46 +1187,20 @@ fn collect_headers() -> anyhow::Result<(HashMap<String, String>, Vec<String>)> {
             .placeholder("Authorization")
             .interact()?;
 
-        let entry = if goose::utils::is_sensitive_header_name(&name) {
-            // Credential-bearing values are stored in the secret store; the config keeps
-            // only a ${KEY} reference, resolved at runtime from env_keys. Plaintext never
-            // reaches the config file.
-            let secret: String = cliclack::password(format!("Value for '{name}':"))
-                .mask('▪')
-                .interact()?;
-            let key_name = format!(
-                "MODELFORGE_MCP_HEADER_{}",
-                name.to_ascii_uppercase()
-                    .chars()
-                    .map(|c| if c.is_ascii_alphanumeric() { c } else { '_' })
-                    .collect::<String>()
-            );
-            if try_store_secret(config, &key_name, secret)? {
-                if !env_keys.contains(&key_name) {
-                    env_keys.push(key_name.clone());
-                }
-                Some((name, format!("${{{key_name}}}")))
-            } else {
-                cliclack::log::warning(format!(
-                    "Header '{name}' was not added because its value could not be stored securely."
-                ))?;
-                None
-            }
-        } else {
-            let value: String = cliclack::input(format!("Value for '{name}':")).interact()?;
-            Some((name, value))
-        };
-
-        if let Some((name, value)) = entry {
-            headers.insert(name, value);
+        // These names are stored as secrets whatever the answer, so do not ask.
+        let always_sensitive = is_sensitive_extension_header(&name, &[]);
+        let (value, sensitive) = prompt_header_value(&name, always_sensitive)?;
+        if sensitive {
+            sensitive_headers.push(name.clone());
         }
+        headers.insert(name, value);
 
         if !cliclack::confirm("Add another header?").interact()? {
             break;
         }
     }
 
-    Ok((headers, env_keys))
+    Ok((headers, sensitive_headers))
 }
 
 fn configure_builtin_extension() -> anyhow::Result<()> {
@@ -1334,18 +1337,15 @@ fn configure_streamable_http_extension() -> anyhow::Result<()> {
 
     let timeout = prompt_extension_timeout()?;
     let description = prompt_extension_description()?;
-    let (headers, env_keys) = collect_headers()?;
+    let (headers, sensitive_headers) = collect_headers()?;
 
-    // envs stay empty; env_keys carry the secrets referenced by credential headers.
-    let envs = HashMap::new();
-
-    set_extension(ExtensionEntry {
+    let entry = ExtensionEntry {
         enabled: true,
         config: ExtensionConfig::StreamableHttp {
             name: name.clone(),
             uri,
-            envs: Envs::new(envs),
-            env_keys,
+            envs: Envs::default(),
+            env_keys: Vec::new(),
             headers,
             description,
             timeout: Some(timeout),
@@ -1356,7 +1356,10 @@ fn configure_streamable_http_extension() -> anyhow::Result<()> {
             bundled: None,
             available_tools: Vec::new(),
         },
-    });
+    };
+    // The sensitive values go to the secure store in the same save as the entry; on failure
+    // neither is changed (requirement 1.11).
+    save_extension(entry, &sensitive_headers)?;
 
     cliclack::outro(format!("Added {} extension", style(name).green()))?;
     Ok(())
@@ -1443,7 +1446,8 @@ pub fn remove_extension_dialog() -> anyhow::Result<()> {
         .interact()?;
 
     for name in selected {
-        remove_extension(&name_to_key(name));
+        // Deletes the credentials only this extension refers to as well (requirement 1.11).
+        remove_extension_and_secrets(&name_to_key(name))?;
         PermissionManager::instance().remove_extension(&name_to_key(name));
         cliclack::outro(format!("Removed {} extension", style(name).green()))?;
     }
@@ -2137,17 +2141,20 @@ pub async fn handle_tetrate_auth() -> anyhow::Result<()> {
     Ok(())
 }
 
-/// Prompts the user to collect custom HTTP headers for a provider.
-fn collect_custom_headers() -> anyhow::Result<Option<std::collections::HashMap<String, String>>> {
+/// Prompts the user to collect custom HTTP headers for a provider, and returns them with the
+/// names of the sensitive ones. Auth header names are sensitive without asking; saving the
+/// provider moves the sensitive values to the secure store (requirements 1.1, 1.2).
+fn collect_custom_headers() -> anyhow::Result<(Option<HashMap<String, String>>, Vec<String>)> {
     let use_custom_headers = cliclack::confirm("Does this provider require custom headers?")
         .initial_value(false)
         .interact()?;
 
     if !use_custom_headers {
-        return Ok(None);
+        return Ok((None, Vec::new()));
     }
 
-    let mut custom_headers = std::collections::HashMap::new();
+    let mut custom_headers = HashMap::new();
+    let mut sensitive_headers = Vec::new();
 
     loop {
         let header_name: String = cliclack::input("Header name:")
@@ -2159,10 +2166,11 @@ fn collect_custom_headers() -> anyhow::Result<Option<std::collections::HashMap<S
             break;
         }
 
-        let header_value: String = cliclack::password(format!("Value for '{}':", header_name))
-            .mask('▪')
-            .interact()?;
-
+        let always_sensitive = is_auth_header(&header_name, false);
+        let (header_value, sensitive) = prompt_header_value(&header_name, always_sensitive)?;
+        if sensitive {
+            sensitive_headers.push(header_name.clone());
+        }
         custom_headers.insert(header_name, header_value);
 
         let add_more = cliclack::confirm("Add another header?")
@@ -2175,9 +2183,9 @@ fn collect_custom_headers() -> anyhow::Result<Option<std::collections::HashMap<S
     }
 
     if custom_headers.is_empty() {
-        Ok(None)
+        Ok((None, Vec::new()))
     } else {
-        Ok(Some(custom_headers))
+        Ok((Some(custom_headers), sensitive_headers))
     }
 }
 
@@ -2323,8 +2331,10 @@ fn add_provider() -> anyhow::Result<()> {
         Some(base_path_input)
     };
 
-    let headers = collect_custom_headers()?;
+    let (headers, sensitive_headers) = collect_custom_headers()?;
 
+    // Saved in one transaction with the credentials: sensitive header values and the API key go
+    // to the secure store and the provider file only refers to them.
     let provider_config = create_custom_provider(CreateCustomProviderParams {
         engine: provider_type.to_string(),
         display_name: display_name.clone(),
@@ -2333,7 +2343,7 @@ fn add_provider() -> anyhow::Result<()> {
         models,
         supports_streaming: Some(supports_streaming),
         headers,
-        sensitive_headers: Vec::new(),
+        sensitive_headers,
         requires_auth,
         catalog_provider_id: None,
         base_path,
