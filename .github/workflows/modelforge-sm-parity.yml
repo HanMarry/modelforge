@@ -1,0 +1,165 @@
+# ModelForge 状态机对照测试（规格 mathmodel-parity-and-beyond，需求 4，任务 7.5）
+#
+# 同一组对照用例分别在 legacy 循环与状态机上运行，比较事件序列与会话存储写入序列，
+# 输出 JSON 差异报告；差异项总数大于 0、有维度没有用例或测试没能跑完时 job 失败（需求 4.7）。
+# 对照差异是状态机待修复的问题，所以放在独立 workflow 里，不影响 ci.yml；
+# 默认执行路径仍是 legacy 循环（需求 4.1，由普通 cargo test 里的守卫测试保证）。
+#
+# 每次运行上传 parity-report（本次报告）与 parity-history（累积历史）两个构建产物。
+# 历史从同一分支（没有时退回 PR 的目标分支）最近一次上传过 parity-history 的运行取回，
+# 追加本次结果；"同一 commit 连续 3 次 0 差异"只作为将来切换默认路径的证据。
+name: ModelForge SM Parity
+on:
+  push:
+    branches:
+      - modelforge
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - modelforge
+      - feat/mathmodel-parity
+  workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+  # 取回之前运行上传的 parity-history
+  actions: read
+defaults:
+  run:
+    # 显式指定 bash，GitHub 才会加 -o pipefail
+    shell: bash
+jobs:
+  parity:
+    name: State machine parity (legacy loop vs state machine)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659 # v1.17.0
+
+      - name: Repair stale v8 prebuilt marker
+        run: .github/scripts/repair-v8-prebuilt.sh
+
+      - name: Install Dependencies
+        run: |
+          sudo apt update -y
+          sudo apt install -y libdbus-1-dev gnome-keyring libxcb1-dev jq
+
+      # 用例标了 #[ignore]，普通 cargo test 不运行；这里用 --ignored 单独运行。
+      # 本步骤失败不立即结束 job，先汇总历史、上传产物，最后一步再判定失败。
+      - name: Run parity cases
+        id: parity
+        continue-on-error: true
+        run: |
+          mkdir -p "$RUNNER_TEMP/parity"
+          gnome-keyring-daemon --components=secrets --daemonize --unlock <<< 'foobar'
+          export CARGO_INCREMENTAL=0
+          cargo test --locked -p goose --lib state_machine_parity_report -- --ignored --nocapture
+        env:
+          RUST_MIN_STACK: 8388608
+          GOOSE_PARITY_REPORT: ${{ runner.temp }}/parity/parity-report.json
+          GOOSE_PARITY_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Accumulate parity-history.json
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ github.head_ref || github.ref_name }}
+          BASE_BRANCH: ${{ github.base_ref }}
+          COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          out="$RUNNER_TEMP/parity"
+          previous="$RUNNER_TEMP/previous-history"
+          mkdir -p "$out" "$previous"
+          report="$out/parity-report.json"
+
+          history='[]'
+          found=''
+          for branch in "$BRANCH" "$BASE_BRANCH"; do
+            [ -n "$branch" ] || continue
+            [ -z "$found" ] || break
+            runs="$(gh run list -R "$GITHUB_REPOSITORY" --workflow modelforge-sm-parity.yml \
+              --branch "$branch" --limit 20 --json databaseId --jq '.[].databaseId' || true)"
+            for run_id in $runs; do
+              [ "$run_id" != "$GITHUB_RUN_ID" ] || continue
+              rm -rf "${previous:?}"/*
+              if gh run download "$run_id" -R "$GITHUB_REPOSITORY" -n parity-history \
+                  -D "$previous" > /dev/null 2>&1 \
+                && jq -e 'type == "array"' "$previous/parity-history.json" > /dev/null 2>&1; then
+                history="$(cat "$previous/parity-history.json")"
+                found="$run_id"
+                echo "continuing parity-history from run $run_id ($branch)"
+                break
+              fi
+            done
+          done
+          [ -n "$found" ] || echo "no earlier parity-history found; starting a new one"
+
+          finished_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          if [ -f "$report" ]; then
+            entry="$(jq -c --arg run "$GITHUB_RUN_ID" --arg branch "$BRANCH" --arg at "$finished_at" \
+              '{commit, runId: $run, branch: $branch, finishedAt: $at, totalDiffs,
+                uncoveredDimensions,
+                passed: (.totalDiffs == 0 and (.uncoveredDimensions | length) == 0)}' "$report")"
+          else
+            entry="$(jq -nc --arg commit "$COMMIT" --arg run "$GITHUB_RUN_ID" --arg branch "$BRANCH" \
+              --arg at "$finished_at" \
+              '{commit: $commit, runId: $run, branch: $branch, finishedAt: $at, totalDiffs: null,
+                uncoveredDimensions: null, passed: false,
+                error: "no report: the parity test did not finish"}')"
+          fi
+          printf '%s' "$history" | jq --argjson entry "$entry" '. + [$entry]' > "$out/parity-history.json"
+
+          # 同一 commit 上最近连续 0 差异的完整运行次数，其他 commit 或失败的运行会让计数归零
+          streak="$(jq --arg commit "$COMMIT" \
+            'reduce .[] as $e (0; if $e.commit == $commit and $e.passed then . + 1 else 0 end)' \
+            "$out/parity-history.json")"
+
+          cell='tojson | if length > 160 then .[0:160] + "…" else . end | gsub("\\|"; "\\|")'
+          {
+            echo "## 状态机对照测试"
+            echo
+            if [ -f "$report" ]; then
+              jq -r '"差异项总数：\(.totalDiffs)；无用例的维度：\(if (.uncoveredDimensions | length) == 0 then "无" else (.uncoveredDimensions | join(", ")) end)"' "$report"
+              echo
+              echo "| 用例 | 维度 | 差异数 |"
+              echo "| --- | --- | --- |"
+              jq -r '.cases[] | "| \(.name) | \(.dimension) | \(.diffs) |"' "$report"
+              echo
+              echo "| 用例 | 维度 | 范围 | 位置 | 失败路径 | legacy | state machine |"
+              echo "| --- | --- | --- | --- | --- | --- | --- |"
+              jq -r ".diffs[] | \"| \\(.case) | \\(.dimension) | \\(.section) | \\(.index) | \\(.path // \"\") | \\(.legacy | $cell) | \\(.stateMachine | $cell) |\"" "$report"
+            else
+              echo "没有生成报告：构建或测试没能跑完，见 Run parity cases 步骤的日志。"
+            fi
+            echo
+            echo "同一 commit（${COMMIT:0:12}）连续 0 差异的运行次数：$streak。连续 3 次才具备切换默认路径的证据（需求 4.1）。"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload parity report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: parity-report
+          path: ${{ runner.temp }}/parity/parity-report.json
+          if-no-files-found: warn
+          retention-days: 90
+
+      - name: Upload parity history
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: parity-history
+          path: ${{ runner.temp }}/parity/parity-history.json
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Fail when the parity report is not clean
+        if: steps.parity.outcome != 'success'
+        run: |
+          echo "::error::状态机对照测试未通过：差异项总数大于 0、存在无用例的维度，或测试没能跑完。详见本次运行的摘要与 parity-report 产物。"
+          exit 1
