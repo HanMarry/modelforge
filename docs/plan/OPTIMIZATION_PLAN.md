@@ -1,19 +1,30 @@
-# ModelForge 优化计划（v1）
+# ModelForge 优化计划（v2）
 
-> **唯一计划源（SOT）**。执行流水见 [EXECUTION_LOG.md](EXECUTION_LOG.md)；Week 2 四轨道框架见 [WEEK2_SUMMARY.md](WEEK2_SUMMARY.md)。
-> 建立于 2026-09-16，依据六份审查报告 + PROJECT-AUDIT 45 项 + 本日实测对账。
+> **本文件是 ModelForge 的唯一执行计划**（规格需求 24.1）。仓库里其他计划类文档（复刻计划、周计划、专项方案）只作背景或历史参考，状态一律以本文件为准。执行流水见 [EXECUTION_LOG.md](EXECUTION_LOG.md)；Week 2 四轨道框架见 [WEEK2_SUMMARY.md](WEEK2_SUMMARY.md)。
+> 建立于 2026-09-16，依据六份审查报告 + PROJECT-AUDIT 45 项 + 本日实测对账；2026-09-29 按需求 24 统一为下述字段格式（v2）。
 
 ## 0. 摘要与状态板
 
 **一句话**：技术外壳与领域内容已对齐甚至反超对标产品 MathModel；当前阻碍不在"能不能做建模"，而在 **API Key 保存链路阻断内核启动**、工程基线未固定、若干已修未复验项。本计划按 P0（阻断，立即修）→ P1（高优先，随后排期）→ P2/P3（清理与战略项）推进。
 
-| # | P0 项 | 状态（2026-09-16） | 验收标准 |
-|---|-------|-------------------|----------|
-| P0-1 | API Key 保存静默失效 | ✅ **已修复并验证**（`52d60fc`，[验证记录](../reports/P0-1-verification.md)） | 保存 key 后不重启即 Ready；重启后仍 Ready；编辑 provider 不回退 |
-| P0-2 | 仓库基线未固定（改动未提交） | ✅ 已完成（4 批提交 + tag `p0-baseline`） | 两仓库 `git status` 归零 + tag `p0-baseline` |
-| P0-3 | compile_latex 假成功（残留/超时/校验） | ✅ **已修复并验证**（`d0e56ec`，[验证记录](../reports/P0-3-verification.md)） | 定向测试通过：清旧产物、杀进程树、PDF 四重校验 |
-| P0-4 | HTTP 凭据明文（自定义头 + CLI configure） | ✅ **已修复并验证**（`072f711`，[验证记录](../reports/P0-4-verification.md)） | config.yaml 无明文（自定义头 + CLI 路径） |
-| P0-5 | /plan 失败永久落盘 GOOSE_MODE=auto | ✅ **已修复并独立复验**（`1600180`，[验证记录](../reports/P0-5-plan-mode-verification.md)） | 独立重放：/mode 恢复、config sha256 不变、错误上抛 |
+### 0.1 条目字段约定（需求 24）
+
+- 表头含「编号」列的表格都是计划条目表，每行一项，编号全文唯一。其他表格（如 §5 对照表、§7 变更记录）不是条目表。
+- 每项必填：owner、状态、源码 commit、验证时间、验证命令、证据路径、剩余风险。单独的 `-`、`—`、`TBD`、`待定` 视为未填。还没有提交或验证的条目要写明原因，例如"无（未开始）""未验证"。
+- 状态只能取：未开始、进行中、已完成、已验证、已阻塞。
+- 标"已验证"的条目还要满足：源码 commit 给出完整 SHA 或至少 7 位前缀，且在 `modelforge` 分支历史中可达；验证命令用反引号写出，可以原样复制执行；执行环境写明操作系统与架构（如 Windows x64）；验证时间用 ISO 8601（如 `2026-09-16` 或 `2026-09-28T08:28:42Z`）。未合入 `modelforge` 的条目最多标"已完成"。
+- 证据路径：用反引号写相对仓库根目录的路径（可带 `:行号`），或写相对本文件的 Markdown 链接；路径必须存在于仓库中。
+- 校验：`node ui/desktop/scripts/plan-check.js`（只读）。CI 工作流 `.github/workflows/modelforge-gates.yml` 在 push 到 `modelforge` 以及指向 `modelforge` 的 PR 上执行；任何其他文件声称自己是"当前执行计划"而不指向本文件，同样判为失败。
+
+### 0.2 P0 条目
+
+| 编号 | 项 | owner | 状态 | 源码 commit | 验证时间 | 验证命令 | 执行环境 | 证据路径 | 剩余风险 |
+|------|----|-------|------|-------------|----------|----------|----------|----------|----------|
+| P0-1 | API Key 保存静默失效。验收：保存 key 后不重启即 Ready；重启后仍 Ready；编辑 provider 不回退 | leozer534-coder | 已验证 | `52d60fc`（配套 e2e 基建 `17ddb51`） | 2026-09-16 | `npx vitest run src/utils/agentKernel.test.ts`（`ui/desktop/`，26/26）；`npx playwright test tests/e2e/agent-kernel-key-recovery.spec.ts`（`ui/desktop/`，真实应用重放 1 passed） | Windows x64（本机） | [P0-1 验证记录](../reports/P0-1-verification.md)、`ui/desktop/tests/e2e/agent-kernel-key-recovery.spec.ts` | 开发模式需 `GOOSE_BINARY` 指向本机 goose.exe；打包后的内核查找归交付链路（3.4） |
+| P0-2 | 仓库基线未固定（改动未提交）。验收：两仓库 `git status` 归零 + tag `p0-baseline` | leozer534-coder | 已完成 | `4a7bdc4`（tag `p0-baseline`，4 批提交的最后一批） | 2026-09-16 | `git status --porcelain`（当时输出为空）；`git rev-parse "p0-baseline^{commit}"`（附注标签，指向 `4a7bdc4`；标签只在本机仓库，未推送到 origin） | Windows x64（本机） | `.gitignore`（基线最后一批提交修正的文件）；过程见 §7 变更记录 | 没有单独的验证记录，所以不标"已验证"；外层工作区仓库的基线不在本仓库，这里无法核对 |
+| P0-3 | compile_latex 假成功（残留/超时/校验）。验收：定向测试通过：清旧产物、杀进程树、PDF 四重校验 | leozer534-coder | 已验证 | `d0e56ec` | 2026-09-16 | `cargo test -p goose-mcp modeling::`（8 passed / 3 ignored）；`cargo test -p goose-mcp modeling::tests -- --ignored`（3 passed） | Windows x64（本机 `E:\goose-build`，GNU 工具链） | [P0-3 验证记录](../reports/P0-3-verification.md)、`crates/goose-mcp/src/modeling/mod.rs` | Unix 的进程组杀树分支只做了编译检查，尚未在 Unix 上实跑 `timeout_terminates_the_whole_process_tree` |
+| P0-4 | HTTP 凭据明文（自定义头 + CLI configure）。验收：config.yaml 无明文（自定义头 + CLI 路径） | leozer534-coder | 已验证 | `072f711` | 2026-09-16 | `cargo test -p goose --lib utils::`（37 passed）；`cargo test -p goose --lib acp::`（334 passed）；`cargo check -p goose-cli` | Windows x64（本机 `E:\goose-build`，GNU 工具链） | [P0-4 验证记录](../reports/P0-4-verification.md)、`crates/goose/src/utils.rs`、`crates/goose-cli/src/commands/configure.rs` | `goose configure` 的交互路径需要 TTY，未自动化；自定义 Provider 的 `collect_custom_headers` 同类问题见 4.7 |
+| P0-5 | /plan 失败永久落盘 GOOSE_MODE=auto。验收：独立重放：/mode 恢复、config sha256 不变、错误上抛 | leozer534-coder | 已验证 | `1600180` | 2026-09-16 | `cargo test -p goose-cli --lib session::`（190 passed；另 3 条既有的环境敏感失败与本项无关） | Windows x64（本机 `E:\goose-build`，GNU 工具链） | [P0-5 验证记录](../reports/P0-5-plan-mode-verification.md)、`crates/goose-cli/src/session/mod.rs` | 交互式端到端重放受 TTY 限制未自动化，靠静态证据链与回归测试覆盖 |
 
 ## 1. 范围与方法
 
@@ -80,29 +91,31 @@
 
 > **2026-09-16 晚追加批次**（用户指令「把产品的毛病修好」）：本清单已修复并独立复验——3.2 latexmk 引擎适配 ✅、3.3 更新器占位仓库（优雅降级 + 单点配置）✅、fault-surface #1 hints 泄 .env（高危安全）✅、vector_db PoC 坏提交治理 ✅、桌面 6 条负载型超时 ✅、fmt 债清零 ✅。逐项证据见 [docs/reports/PRODUCT-FIXES-20260916-verification.md](../reports/PRODUCT-FIXES-20260916-verification.md)。下表未逐行改写，未提及项照旧。
 
-| # | 项 | 位置 | 备注 |
-|---|----|------|------|
-| 3.1 | Rust 故障面 7 条：子目录 hints 空 gitignore 泄 .env、持锁递归扫 skills 树、hints 重复膨胀、hook 超时孤儿进程、gateway 消息任务不可取消、Config 无缓存、pairing fsync 持锁 | `hints/load_hints.rs:130`、`agents/extension_manager.rs:1698`、`hooks/mod.rs:1050`、`gateway/telegram.rs:1061` 等 | 详见 fault-surface 报告，修复前逐条复验 |
-| 3.2 | 引擎不匹配：latexmk 硬编码 `-pdf` 而模板需 xelatex；typst/tectonic 路径从未真跑 | `modeling/mod.rs:281` | 与 P0-3 同批处理 |
-| 3.3 | 更新器两套配置指向不存在仓库/上游 | `utils/githubUpdater.ts:457-459`、`forge.config.ts` | 发布前必须解决 |
-| 3.4 | 交付链路未跑通：make 未执行、release 未编、adapter 未进依赖、CLI 单平台、adapter settingSources 未隔离、合规需改首启下载 | `ui/desktop/package.json`、`prepare-platform-binaries.js` | 见 RUNTIME-PACKAGING-PLAN |
-| 3.5 | 首启无国内推荐 provider | `components/onboarding/*` | 桌面端体验 |
-| 3.6 | 状态机迁移硬前置：每 step 全量重载会话、thinking 双路径分歧 | `state_machine/session.rs:198`、`state_machine/inference.rs:105-121` | = Week 2 Track 1 |
-| 3.7 | 桌面 9 条失败测试（全为上游 PRISTINE 文件，非本 fork 回归）；另有 goose-cli 3 条环境敏感失败（thinking_effort/home-dir，测试读真实用户配置未隔离） | 5 个测试文件（desktopFileAccess 等）+ goose-cli session 测试 | 待 CI 定性 |
-| 3.8 | 无 fork 自有 CI（docs:check/check-skills/brand:check 无自动触发） | `.github/workflows/` | 建自有远端后 |
-| 3.9 | 双源码树漂移（robocopy 复制编译）；中文路径 + 缺 MSVC（mklink+BuildTools 方案未落地） | `build-kernel.ps1` | 方案就绪待收敛 |
+| 编号 | 项（位置；备注） | owner | 状态 | 源码 commit | 验证时间 | 验证命令 | 执行环境 | 证据路径 | 剩余风险 |
+|------|------------------|-------|------|-------------|----------|----------|----------|----------|----------|
+| 3.1 | Rust 故障面 7 条：子目录 hints 空 gitignore 泄 .env、持锁递归扫 skills 树、hints 重复膨胀、hook 超时孤儿进程、gateway 消息任务不可取消、Config 无缓存、pairing fsync 持锁（`hints/load_hints.rs:130`、`agents/extension_manager.rs:1698`、`hooks/mod.rs:1050`、`gateway/telegram.rs:1061` 等；详见 fault-surface 报告，修复前逐条复验） | leozer534-coder | 进行中 | `6d32b6c`（只修了 #1 hints 泄 .env） | 2026-09-16（只含 #1） | `cargo test -p goose hints --lib`（`TMP`/`TEMP` 指向没有 `.git` 祖先的目录，44/44） | Windows x64（本机） | [产品修复批次验收记录](../reports/PRODUCT-FIXES-20260916-verification.md)、`crates/goose/src/hints/load_hints.rs`、`crates/goose/src/agents/extension_manager.rs`、`crates/goose/src/hooks/mod.rs`、`crates/goose/src/gateway/telegram.rs` | #2–#7 未修；fault-surface 报告在外层工作区 `docs/reports/`，不在本仓库 |
+| 3.2 | 引擎不匹配：latexmk 硬编码 `-pdf` 而模板需 xelatex；typst/tectonic 路径从未真跑（`modeling/mod.rs:281`；与 P0-3 同批处理） | leozer534-coder | 已验证 | `61068ba` | 2026-09-16 | `cargo test -p goose-mcp modeling --lib`（11 passed）；`cargo test -p goose-mcp modeling --lib -- --ignored`（ctexart 中文正文真实编译 1 passed） | Windows x64（本机 `E:\goose-build`，GNU 工具链） | [产品修复批次验收记录](../reports/PRODUCT-FIXES-20260916-verification.md)、`crates/goose-mcp/src/modeling/mod.rs` | typst 与 tectonic 路径仍未真跑 |
+| 3.3 | 更新器两套配置指向不存在仓库/上游（`utils/githubUpdater.ts:457-459`、`forge.config.ts`；发布前必须解决） | leozer534-coder | 进行中 | `7d25f53`（未配置时优雅降级 + 单点配置） | 2026-09-16 | `npx vitest run src/utils/githubUpdater.check.test.ts src/utils/githubUpdater.target.test.ts`（`ui/desktop/`，10/10） | Windows x64（本机） | [产品修复批次验收记录](../reports/PRODUCT-FIXES-20260916-verification.md)、`ui/desktop/src/utils/githubUpdater.ts` | 真实发布仓库与更新源尚未建立（需求 7.9），更新通道没有真机验证 |
+| 3.4 | 交付链路未跑通：make 未执行、release 未编、adapter 未进依赖、CLI 单平台、adapter settingSources 未隔离、合规需改首启下载（`ui/desktop/package.json`、`prepare-platform-binaries.js`；见外层工作区 RUNTIME-PACKAGING-PLAN） | leozer534-coder | 进行中 | `0e1f4ad`（打包链路初版）；Codex 运行时随包 `73da093` 尚未合入 `modelforge` | 未验证 | 未定：Windows 打包由 `package-windows.yml`（`workflow_dispatch`）执行，验收命令随规格需求 7 确定 | Windows x64（CI 打包，尚未完整跑通） | `ui/desktop/package.json`、`ui/desktop/scripts/prepare-platform-binaries.js`、`.github/workflows/package-windows.yml` | 安装包从未在干净机器上完成四项流程冒烟（需求 7.2–7.4） |
+| 3.5 | 首启无国内推荐 provider（`components/onboarding/*`；桌面端体验） | leozer534-coder | 已验证 | `7dbada6` | 2026-09-16 | `npx vitest run src/components/onboarding/providerOrdering.test.ts`（`ui/desktop/`，3 passed） | Windows x64（本机） | [产品修复批次验收记录](../reports/PRODUCT-FIXES-20260916-verification.md)、`ui/desktop/src/components/onboarding/providerOrdering.ts` | 首启「推荐」分组标签（需要新文案）未做，记为可选后续 |
+| 3.6 | 状态机迁移硬前置：每 step 全量重载会话、thinking 双路径分歧（`state_machine/session.rs:198`、`state_machine/inference.rs:105-121`；= Week 2 Track 1） | leozer534-coder | 未开始 | 无（未开始） | 未验证 | 未定；对照测试由规格任务 7（需求 4）提供 | 未验证 | `crates/goose/src/agents/state_machine/session.rs`、`crates/goose/src/agents/state_machine/mod.rs` | 当前代码里已没有 `state_machine/inference.rs`，行号需在动手前重新定位；默认路径仍是 `agent.rs` |
+| 3.7 | 桌面 9 条失败测试（全为上游 PRISTINE 文件，非本 fork 回归）；另有 goose-cli 3 条环境敏感失败（thinking_effort/home-dir，测试读真实用户配置未隔离）（5 个测试文件（desktopFileAccess 等）+ goose-cli session 测试；待 CI 定性） | leozer534-coder | 进行中 | `d992bdd`（6 条负载型超时补 15000ms） | 2026-09-16 | `pnpm exec vitest run`（`ui/desktop/`，948 passed / 0 failed / 17 skipped） | Windows x64（本机） | [产品修复批次验收记录](../reports/PRODUCT-FIXES-20260916-verification.md)、`ui/desktop/src/components/settings/providers/modal/subcomponents/forms/CustomProviderForm.test.tsx` | 桌面端已清零；goose-cli 3 条读真实用户配置的测试仍未隔离 |
+| 3.8 | 无 fork 自有 CI（docs:check/check-skills/brand:check 无自动触发）（`.github/workflows/`；建自有远端后） | leozer534-coder | 进行中 | 无（由规格任务 5 承接，见 §6.1 MP-5） | 未验证 | `node ui/desktop/scripts/plan-check.js`；其余见 MP-5 | 未验证 | `.github/workflows/ci.yml` | `ci.yml` 已在 `modelforge` 的 push 与 PR 上运行，但三项只读检查要等 `modelforge-gates.yml` 合入后才会自动触发 |
+| 3.9 | 双源码树漂移（robocopy 复制编译）；中文路径 + 缺 MSVC（mklink+BuildTools 方案未落地）（`build-kernel.ps1`；方案就绪待收敛） | leozer534-coder | 未开始 | 无（未开始） | 未验证 | 未定；由规格任务 4.5（`/MIR` 与 dirty 判定）承接 | 未验证 | `build-kernel.ps1` | 开发构建仍可能混入已删除的文件，产物来源不可追溯（需求 3.3、3.4） |
 
 ## 4. P2/P3 清单（索引式）
 
-| # | 项 | 来源 |
-|---|----|------|
-| 4.1 | 前端小项：check_env 双套实现、skillEnablement 路径校验/EXDEV、streaks DST、导入体积上限、extract_errors 偏宽、.TEX 大写替换 | 代码层审查 §2.5/3/4/5 |
-| 4.2 | AUDIT 批次 2-4（getSnapshot 深拷贝、memo、虚拟化、bundle、取消语义、SQL、瞬时失败固化、CI 等） | PROJECT-AUDIT §9 |
-| 4.3 | 待决文案/界面：deeplink 改名、主页样例题文案、102/104、cartopy 模板、catalog i18n、goose 残留路径、.disabled-by-default 死文件 | 优化审查 4.2/4.3 |
-| 4.4 | 结构债：`include_dir!` 204MB 内容内核耦合、文档重叠失真（本次已部分解决） | 优化审查 §2/3.5 |
-| 4.5 | 修复轮遗留：09:29-10:01 无记录开发（已归档溯源）、REPLICATION_PLAN 三待办、clippy -D warnings 不可达、debug shim 误开风险、密钥 raw base64 与易变 id | 重审 §3/P2 |
-| 4.6 | 商业化差距（账号/积分/广场/协作/机器人/回溯/市场） | 差距审查 2.3/3，战略未决 |
-| 4.7 | provider `collect_custom_headers`（`configure.rs`）明文写入 `custom_providers.json`——P0-4 修复时发现的同类项，需对齐 provider 配置的引用机制后处理 | P0-4 验证记录 §4 |
+> 来源报告除 PROJECT-AUDIT 与 P0-4 验证记录外都在外层工作区 `docs/reports/`，不在本仓库，所以证据路径指向仓库内的相关代码或文档。
+
+| 编号 | 项（来源） | owner | 状态 | 源码 commit | 验证时间 | 验证命令 | 执行环境 | 证据路径 | 剩余风险 |
+|------|------------|-------|------|-------------|----------|----------|----------|----------|----------|
+| 4.1 | 前端小项：check_env 双套实现、skillEnablement 路径校验/EXDEV、streaks DST、导入体积上限、extract_errors 偏宽、.TEX 大写替换（代码层审查 §2.5/3/4/5） | leozer534-coder | 未开始 | 无（未开始） | 未验证 | 未定（随修复方案确定） | 未验证 | `ui/desktop/src/utils/skillEnablement.ts`、`crates/goose-mcp/src/modeling/mod.rs` | 均为低频边界问题，暂无用户可见故障报告 |
+| 4.2 | AUDIT 批次 2-4（getSnapshot 深拷贝、memo、虚拟化、bundle、取消语义、SQL、瞬时失败固化、CI 等）（PROJECT-AUDIT §9） | leozer534-coder | 未开始 | 无（未开始） | 未验证 | 未定（随修复方案确定） | 未验证 | `PROJECT-AUDIT-20260915.md` | 性能结论来自静态审查，没有实测数据 |
+| 4.3 | 待决文案/界面：deeplink 改名、主页样例题文案、102/104、cartopy 模板、catalog i18n、goose 残留路径、.disabled-by-default 死文件（优化审查 4.2/4.3） | leozer534-coder | 未开始 | 无（未开始） | 未验证 | 未定（随修复方案确定） | 未验证 | `ui/desktop/src/components/settings/extensions/deeplink.ts`、`ui/desktop/src/catalog/homePresets.ts` | 主页真题卡片的文案随规格任务 6 调整，其余项待定 |
+| 4.4 | 结构债：`include_dir!` 204MB 内容内核耦合、文档重叠失真（本次已部分解决）（优化审查 §2/3.5） | leozer534-coder | 未开始 | 无（未开始） | 未验证 | 未定（随修复方案确定） | 未验证 | `crates/goose/src/skills/builtin.rs` | 赛题移出内核二进制由规格任务 6（MP-6）处理，内容与内核的整体解耦尚未开始 |
+| 4.5 | 修复轮遗留：09:29-10:01 无记录开发（已归档溯源）、REPLICATION_PLAN 三待办、clippy -D warnings 不可达、debug shim 误开风险、密钥 raw base64 与易变 id（重审 §3/P2） | leozer534-coder | 未开始 | 无（未开始） | 未验证 | 未定（随修复方案确定） | 未验证 | `REPLICATION_PLAN.md`、`ui/desktop/src/utils/agentKernel.ts` | 密钥 raw base64 由规格需求 2（任务 3）处理，其余项待定 |
+| 4.6 | 商业化差距（账号/积分/广场/协作/机器人/回溯/市场）（差距审查 2.3/3，战略未决） | leozer534-coder | 未开始 | 无（战略未决） | 未验证 | 不适用（战略决策项，没有代码验收） | 未验证 | `REPLICATION_PLAN.md` | 战略方向未定，部分能力由规格第 2 阶段覆盖 |
+| 4.7 | provider `collect_custom_headers`（`configure.rs`）明文写入 `custom_providers.json`——P0-4 修复时发现的同类项，需对齐 provider 配置的引用机制后处理（P0-4 验证记录 §4） | leozer534-coder | 未开始 | 无（未开始） | 未验证 | 未定；由规格任务 2.14 承接 | 未验证 | [P0-4 验证记录](../reports/P0-4-verification.md)、`crates/goose-cli/src/commands/configure.rs` | CLI 新增的自定义 Provider 认证头仍可能明文写入配置 |
 
 ## 5. 与 7 周计划（EXECUTION_LOG）的关系
 
@@ -129,7 +142,7 @@
 
 ## 6.1 规格任务：mathmodel-parity-and-beyond
 
-> 规格与任务清单在工作区 `.kiro/specs/mathmodel-parity-and-beyond/`（不在本仓库）。工作分支 `feat/mathmodel-parity`，经草稿 PR [#1](https://github.com/HanMarry/modelforge/pull/1) 在 CI 验证。条目合入 `modelforge` 前状态最多为"已完成"；合入后 commit 在 `modelforge` 历史中可达，才改为"已验证"（需求 24.2）。本节字段按需求 24.1 记录，任务 5.4 会把全文统一成同一格式。
+> 规格与任务清单在工作区 `.kiro/specs/mathmodel-parity-and-beyond/`（不在本仓库）。工作分支 `feat/mathmodel-parity`，经草稿 PR [#1](https://github.com/HanMarry/modelforge/pull/1) 在 CI 验证。条目合入 `modelforge` 前状态最多为"已完成"；合入后 commit 在 `modelforge` 历史中可达，才改为"已验证"（需求 24.2）。字段含义见 §0.1。
 
 | 编号 | 项 | owner | 状态 | 源码 commit | 验证时间 | 验证命令 | 执行环境 | 证据路径 | 剩余风险 |
 |------|----|-------|------|-------------|----------|----------|----------|----------|----------|
