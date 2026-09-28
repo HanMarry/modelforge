@@ -33,6 +33,15 @@ use crate::session::{SessionManager, SessionType};
 use goose_providers::model::ModelConfig;
 
 pub(super) const STATE_MACHINE_ENV: &str = "GOOSE_STATE_MACHINE";
+/// 两条路径共同固定的配置（环境变量优先于配置文件）：跳过可重试错误的退避等待；
+/// 关闭工具对摘要，它会在后台并发调用 provider，打乱脚本的消费顺序；
+/// 固定上下文上限与自动压缩阈值，不受运行环境与用户配置影响。
+const PINNED_ENV: [(&str, &str); 4] = [
+    ("GOOSE_PROVIDER_SKIP_BACKOFF", "true"),
+    ("GOOSE_TOOL_PAIR_SUMMARIZATION", "false"),
+    ("GOOSE_CONTEXT_LIMIT", "128000"),
+    ("GOOSE_AUTO_COMPACT_THRESHOLD", "0.8"),
+];
 /// 单条路径的运行时限（需求 4.6）。
 pub(super) const PATH_TIMEOUT: Duration = Duration::from_secs(60);
 /// 轨迹中临时目录路径的替换值：两条路径的临时目录不同，但不属于行为差异。
@@ -63,7 +72,11 @@ pub(super) async fn run_both(case: &ParityCase) -> (PathResult, PathResult) {
 
 /// 固定 `GOOSE_STATE_MACHINE` 后运行一条路径，把错误、panic 与超时转成 `PathFailure`。
 pub(super) async fn run_path(case: &ParityCase, path: ExecPath) -> PathResult {
-    let _env = env_lock::lock_env([(STATE_MACHINE_ENV, path.state_machine_flag())]);
+    let mut env = vec![(STATE_MACHINE_ENV, path.state_machine_flag())];
+    for (name, value) in PINNED_ENV {
+        env.push((name, Some(value)));
+    }
+    let _env = env_lock::lock_env(env);
     let run = AssertUnwindSafe(execute(case)).catch_unwind();
     let Ok(finished) = tokio::time::timeout(PATH_TIMEOUT, run).await else {
         let reason = format!("{path:?} path exceeded {PATH_TIMEOUT:?}");
