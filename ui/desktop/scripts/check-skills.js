@@ -5,10 +5,21 @@
  * description within the 1024-character limit. Also reports the supporting files
  * that `include_dir!` will bundle with each skill.
  *
- * Usage: node scripts/check-skills.js
+ * `--check` is the CI mode: the same checks, with every file write refused (see
+ * `check-mode.js`). The script never writes either way; the flag turns that into a
+ * guarantee.
+ *
+ * Usage: node scripts/check-skills.js [--check]
  */
 const fs = require('fs');
 const path = require('path');
+const { enforceReadOnly, parseCheckArgs } = require('./check-mode');
+
+const { check } = parseCheckArgs(process.argv, 'node scripts/check-skills.js [--check]');
+if (check) {
+  enforceReadOnly();
+  console.log('read-only check mode: file writes are refused\n');
+}
 
 const dir = path.join(__dirname, '..', '..', '..', 'crates', 'goose', 'src', 'skills', 'builtins');
 

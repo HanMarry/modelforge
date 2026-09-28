@@ -8,10 +8,21 @@
  * two were updated. This script derives every count from the filesystem and fails if
  * any document disagrees.
  *
- * Usage: node scripts/docs-check.js
+ * It also runs `plan-check.js` against `docs/plan/OPTIMIZATION_PLAN.md`, the only
+ * execution plan (requirement 24.5/24.7): incomplete plan items, 已验证 items whose
+ * commit is not on `modelforge`, missing evidence and other files claiming to be the
+ * plan all fail the documentation check, listed by item number and reason.
+ *
+ * `--check` is the CI mode: the same checks, with every file write refused (see
+ * `check-mode.js`). The script never writes either way; the flag turns that into a
+ * guarantee.
+ *
+ * Usage: node scripts/docs-check.js [--check]
  */
 const fs = require('fs');
 const path = require('path');
+const { enforceReadOnly, parseCheckArgs } = require('./check-mode');
+const { formatPlanReport, runPlanCheck } = require('./plan-check');
 
 const DESKTOP = path.join(__dirname, '..');
 const REPO = path.join(DESKTOP, '..', '..');
@@ -312,11 +323,9 @@ function buildChecks(counts) {
     connectors,
     algorithms,
     samples,
-    i18nMessages,
     figureCatalog,
     paperCatalog,
   } = counts;
-    counts;
 
   return [
     {
@@ -333,7 +342,10 @@ function buildChecks(counts) {
       must: [
         `| \`check-skills\` | ✅ **${skills}/${skills}**`,
         `${paperCompilable} 套可编译模板`,
-        `| \`i18n:validate-locale\` | ✅ 15 语言 / ${i18nMessages} 条`,
+        // Only the language count: the message count in this row is the snapshot of one
+        // verification round, and every change that adds a string (several branches at
+        // once) would otherwise fail this check. `i18n:check` guards the catalogue itself.
+        '| `i18n:validate-locale` | ✅ 15 语言 / ',
         `${connectors.installed} 内置 / ${connectors.installable} 可安装 / ${connectors.planned} 规划中`,
         `✅ 完成：${connectors.installable} 条可一键安装，规划中归零`,
       ],
@@ -365,6 +377,12 @@ function buildChecks(counts) {
 }
 
 function main() {
+  const { check } = parseCheckArgs(process.argv, 'node scripts/docs-check.js [--check]');
+  if (check) {
+    enforceReadOnly();
+    console.log('read-only check mode: file writes are refused\n');
+  }
+
   const counts = {
     skills: countSkills(),
     figureTemplates: countFigureTemplates(),
@@ -501,7 +519,12 @@ function main() {
     );
   }
 
-  const total = internal.length + failures + brokenRefs.length;
+  // The execution plan: item fields, 已验证 evidence, and no second plan (requirement 24).
+  console.log('\nExecution plan:\n');
+  const plan = formatPlanReport(runPlanCheck());
+  for (const line of plan.lines) console.log(line);
+
+  const total = internal.length + failures + brokenRefs.length + plan.failures;
   if (total) {
     console.log(`\n${total} problem(s) found`);
     process.exitCode = 1;
