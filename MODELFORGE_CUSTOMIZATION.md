@@ -171,11 +171,12 @@ goose 已内置声明式 provider：`crates/goose-providers/src/declarative/*.js
 
 - `math_paper/assets/templates/*/template.json`：名称、语言、入口文件、`defaultFor`、封面字段
 - `mathmodel_figure_templates/references/figure-catalog.md`：90 个模板的 id、分类与版式说明
-- `math_modeling/assets/examples/`：三套真题（题面 PDF + 题面文本 + 附件 + 结果文件）
+- 三套真题（题面 PDF + 题面文本 + 附件 + 结果文件）已移出本树（需求 9.6）：只在本机的
+  `ui/desktop/resources/builtin-examples/`（git 忽略、不打包）保留学习用副本，主页卡片找不到时显示官方来源
 
 ### 测试版与可分发版
 
-**本树是"测试版"：为了编译结果与产品一致，29 个商业中文字体（118 MB）与三套真题都在树里。**
+**本树是"测试版"：为了编译结果与产品一致，29 个商业中文字体（118 MB）在树里；三套真题已不在树里。**
 切成可分发版只需一条命令：
 
 ```bash

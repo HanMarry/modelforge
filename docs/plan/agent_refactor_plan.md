@@ -1,5 +1,7 @@
 # agent.rs 重构方案
 
+> 专项方案，只作背景参考。进度与验收以唯一执行计划 [OPTIMIZATION_PLAN.md](OPTIMIZATION_PLAN.md) 为准。
+
 ## 当前状态分析
 
 - **文件规模**: 6229 行

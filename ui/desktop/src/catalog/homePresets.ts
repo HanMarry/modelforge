@@ -9,8 +9,8 @@
  *
  * Example problems are listed so the layout matches the product's "try one of
  * these" row. They are catalogued here without problem PDFs or datasets, so no
- * contest material is redistributed; `dataAvailable: false` records that the
- * attachment is not bundled.
+ * contest material is redistributed; without a local copy a card shows the
+ * official source (`officialUrl`) and how to get the files.
  */
 export type WorkflowId = 'paper' | 'modeling-report' | 'figure-set' | 'review' | 'data-search';
 
@@ -35,21 +35,20 @@ export interface ContestPreset {
 /**
  * Example problems shown on the home screen.
  *
- * These are the **three real contest problem sets** extracted from the installed product
- * (`resources/builtin-examples/`), matching the cards the reference product shows:
- * 2023 国赛 A 题、2023 华数杯 C 题、2024 高教社杯 C 题. Each directory under
- * `math_modeling/assets/examples/` holds the official statement PDF, `questions.txt`
- * (the same statement as text, so the agent can read it without a PDF tool), the data
- * attachments and — where the organisers published them — result files.
+ * These are the **three real contest problems** the reference product shows as cards:
+ * 2023 国赛 A 题、2023 华数杯 C 题、2024 高教社杯 C 题. A copy of one is a folder holding
+ * the official statement PDF, `questions.txt` (the same statement as text, so the agent
+ * can read it without a PDF tool), the data attachments and — where the organisers
+ * published them — result files.
  *
  * **Copyright**: the statements and attachments belong to the competition organisers, and
- * no licence of theirs covers redistributing them inside a third-party product. They were
- * extracted at the operator's request for local use; `NOTICE.md` says so, and
- * `REPORT-extraction.md` records how to drop them before publishing. The three
- * self-authored practice problems under `math_modeling/assets/samples/` remain the
- * redistributable alternative and are still referenced by the `math-modeling` skill.
- *
- * `dataReady` says whether the attachments are already in the repository.
+ * no licence of theirs covers redistributing them inside a third-party product, so they
+ * are neither committed nor packaged (spec requirement 9.6). A local study copy may sit
+ * in the git-ignored `ui/desktop/resources/builtin-examples/<folderName>/` (see
+ * `extract-product-assets.js --include-examples`); the card copies it into the project
+ * when it is there and otherwise shows the official source and how to get the files. The
+ * three self-authored practice problems under `math_modeling/assets/samples/` remain the
+ * redistributable alternative and are referenced by the `math-modeling` skill.
  */
 export interface ExampleProblem {
   id: string;
@@ -58,13 +57,22 @@ export interface ExampleProblem {
   title: string;
   /** Method tags shown on the card. */
   methods: string[];
-  /** Directory under math_modeling/assets/examples/. */
-  sourceDir: string;
-  /** Bundled folder under builtin-examples/ that gets copied into the project. */
+  /** Folder under builtin-examples/ that gets copied into the project, if present. */
   folderName: string;
-  /** Attachments are committed, so the problem runs without any setup step. */
-  dataReady: boolean;
+  /** Who publishes the statement, shown with the official link. */
+  officialSource: string;
+  /** Where the statement and attachments are published; null until confirmed. */
+  officialUrl: string | null;
   prompt: string;
+}
+
+/**
+ * Whether a `copy-builtin-example` failure only means there is no local copy of the
+ * problem. The main process words both cases — no examples directory, no folder for
+ * this problem — as "未找到内置真题…" (see the handler in main.ts).
+ */
+export function isMissingBuiltinExample(error: string): boolean {
+  return error.startsWith('未找到内置真题');
 }
 
 export const EXAMPLE_PROBLEMS: ExampleProblem[] = [
@@ -73,9 +81,9 @@ export const EXAMPLE_PROBLEMS: ExampleProblem[] = [
     label: '2023 国赛 A 题',
     title: '定日镜场的优化设计',
     methods: ['优化', '物理建模', '几何计算'],
-    sourceDir: '2023国赛A题',
     folderName: '2023国赛A题',
-    dataReady: true,
+    officialSource: '全国大学生数学建模竞赛',
+    officialUrl: 'https://www.mcm.edu.cn/',
     prompt:
       '请按数学建模流程完成 2023 国赛 A 题「定日镜场的优化设计」。题目与数据已在当前工作目录下：' +
       'questions.txt 为题面全文，A题.pdf 为官方题面，附件.xlsx 为数据，' +
@@ -88,9 +96,10 @@ export const EXAMPLE_PROBLEMS: ExampleProblem[] = [
     label: '2023 华数杯 C 题',
     title: '母亲身心健康对婴儿成长的影响',
     methods: ['统计', '回归分析', '分类预测'],
-    sourceDir: '2023华数杯C题',
     folderName: '2023华数杯C题',
-    dataReady: true,
+    officialSource: '华数杯全国大学生数学建模竞赛',
+    // The organiser's site is not confirmed yet, so no link is offered.
+    officialUrl: null,
     prompt:
       '请按数学建模流程完成 2023 华数杯 C 题「母亲身心健康对婴儿成长的影响」。题目与数据已在当前工作目录下：' +
       'questions.txt 为题面，华数杯2023年C题.pdf 为官方题面，附件.xlsx 为 ' +
@@ -102,9 +111,9 @@ export const EXAMPLE_PROBLEMS: ExampleProblem[] = [
     label: '2024 高教社杯 C 题',
     title: '农作物的种植策略',
     methods: ['优化', '规划', '种植策略'],
-    sourceDir: '2024高教杯C题',
     folderName: '2024高教杯C题',
-    dataReady: true,
+    officialSource: '全国大学生数学建模竞赛',
+    officialUrl: 'https://www.mcm.edu.cn/',
     prompt:
       '请按数学建模流程完成 2024 高教社杯 C 题「农作物的种植策略」。题目与数据已在当前工作目录下：' +
       'questions.txt 为题面，C题.pdf 为官方题面，附件1.xlsx / 附件2.xlsx 为 ' +

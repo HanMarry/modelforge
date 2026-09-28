@@ -92,12 +92,8 @@ jobs:
             fi
           fi
 
-      - name: Prepare built-in exam examples
-        shell: bash
-        run: |
-          rm -rf ./ui/desktop/resources/builtin-examples
-          mkdir -p ./ui/desktop/resources/builtin-examples
-          cp -r ./crates/goose/src/skills/builtins/math_modeling/assets/examples/. ./ui/desktop/resources/builtin-examples/
+      # Real contest statements are not packaged (spec requirement 9.6): they are no longer
+      # in the repository, and forge.config.ts does not list resources/builtin-examples.
 
       - name: Sign kernel binary (Azure login)
         if: env.AZURE_CLIENT_ID != '' && env.AZURE_SIGNING_ENDPOINT != ''
