@@ -1,14 +1,27 @@
-const { test } = require('node:test');
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const os = require('node:os');
-const path = require('node:path');
-const { execFileSync } = require('node:child_process');
-const { assertSafeRemoval } = require('./strip-safety');
+// @vitest-environment node
+import { execFileSync } from 'node:child_process';
+import fs from 'node:fs';
+import { createRequire } from 'node:module';
+import os from 'node:os';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { afterEach, describe, expect, it } from 'vitest';
 
-function fixture(t) {
-  const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'modelforge-strip-'));
-  t.after(() => fs.rmSync(repo, { recursive: true, force: true }));
+// The script under test is CommonJS; load it with Node's own loader.
+const requireCjs = createRequire(import.meta.url);
+const { assertSafeRemoval } = requireCjs('./strip-safety.js');
+
+const fixtures = [];
+
+afterEach(() => {
+  for (const repo of fixtures.splice(0)) fs.rmSync(repo, { recursive: true, force: true });
+});
+
+function fixture() {
+  // realpath: on macOS the temp directory is reached through the /var -> /private/var
+  // symlink, and assertSafeRemoval compares canonical paths.
+  const repo = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'modelforge-strip-')));
+  fixtures.push(repo);
   const git = (...args) =>
     execFileSync(
       'git',
@@ -35,33 +48,36 @@ function fixture(t) {
   return repo;
 }
 
-test('allows committed files and returns their recovery revision', (t) => {
-  const repo = fixture(t);
-  assert.match(assertSafeRemoval(repo, [path.join(repo, 'asset.txt')]), /^[a-f0-9]{40,64}$/);
-});
+describe('assertSafeRemoval', () => {
+  it('allows committed files and returns their recovery revision', () => {
+    const repo = fixture();
+    expect(assertSafeRemoval(repo, [path.join(repo, 'asset.txt')])).toMatch(/^[a-f0-9]{40,64}$/);
+  });
 
-test('rejects modified files before any removal', (t) => {
-  const repo = fixture(t);
-  const file = path.join(repo, 'asset.txt');
-  fs.writeFileSync(file, 'unsaved work');
-  assert.throws(() => assertSafeRemoval(repo, [file]), /dirty tree/);
-  assert.equal(fs.readFileSync(file, 'utf8'), 'unsaved work');
-});
+  it('rejects modified files before any removal', () => {
+    const repo = fixture();
+    const file = path.join(repo, 'asset.txt');
+    fs.writeFileSync(file, 'unsaved work');
+    expect(() => assertSafeRemoval(repo, [file])).toThrow(/dirty tree/);
+    expect(fs.readFileSync(file, 'utf8')).toBe('unsaved work');
+  });
 
-test('rejects untracked work elsewhere in the tree', (t) => {
-  const repo = fixture(t);
-  fs.writeFileSync(path.join(repo, 'new.txt'), 'new work');
-  assert.throws(() => assertSafeRemoval(repo, [path.join(repo, 'asset.txt')]), /dirty tree/);
-});
+  it('rejects untracked work elsewhere in the tree', () => {
+    const repo = fixture();
+    fs.writeFileSync(path.join(repo, 'new.txt'), 'new work');
+    expect(() => assertSafeRemoval(repo, [path.join(repo, 'asset.txt')])).toThrow(/dirty tree/);
+  });
 
-test('rejects ignored target files even in an otherwise clean tree', (t) => {
-  const repo = fixture(t);
-  const file = path.join(repo, 'asset.ignored');
-  fs.writeFileSync(file, 'not recoverable');
-  assert.throws(() => assertSafeRemoval(repo, [file]), /uncommitted or ignored/);
-});
+  it('rejects ignored target files even in an otherwise clean tree', () => {
+    const repo = fixture();
+    const file = path.join(repo, 'asset.ignored');
+    fs.writeFileSync(file, 'not recoverable');
+    expect(() => assertSafeRemoval(repo, [file])).toThrow(/uncommitted or ignored/);
+  });
 
-test('rejects files outside the repository', (t) => {
-  const repo = fixture(t);
-  assert.throws(() => assertSafeRemoval(repo, [__filename]), /outside the repository/);
+  it('rejects files outside the repository', () => {
+    const repo = fixture();
+    const outside = fileURLToPath(import.meta.url);
+    expect(() => assertSafeRemoval(repo, [outside])).toThrow(/outside the repository/);
+  });
 });
