@@ -1511,7 +1511,8 @@ mod credential_tests {
 
             let gone = if whole || refs.is_empty() {
                 remove_custom_provider_in(&storage, &victim_id).unwrap();
-                prop_assert!(!dir.path().join(format!("{victim_id}.json")).exists());
+                let victim_file = dir.path().join(format!("{victim_id}.json"));
+                prop_assert!(!victim_file.exists(), "the removed provider's file is left");
                 let mut gone: Vec<String> = refs.into_iter().map(|(_, key)| key).collect();
                 gone.push(generate_api_key_name(&victim_id));
                 gone
