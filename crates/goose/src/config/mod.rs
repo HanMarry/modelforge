@@ -6,6 +6,7 @@ pub mod extensions;
 mod migrations;
 pub mod paths;
 pub mod permission;
+pub mod provider_credentials;
 pub mod providers;
 pub mod search_path;
 pub mod secret_headers;

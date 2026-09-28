@@ -73,6 +73,12 @@ fn is_valid_key(key: &str) -> bool {
     !key.is_empty() && key.bytes().all(allowed)
 }
 
+/// Whether a header value starts like a reference. A value that does but fails
+/// [`parse_secret_ref`] is malformed and must be neither stored nor sent.
+pub fn looks_like_secret_ref(value: &str) -> bool {
+    value.starts_with(REF_PREFIX)
+}
+
 /// Parses a header value that consists of exactly one reference, with nothing around it.
 pub fn parse_secret_ref(value: &str) -> Option<SecretRef> {
     value
@@ -279,7 +285,7 @@ fn resolve_value(value: &str, store: &dyn SecretStore) -> Result<String, Unresol
             Ok(_) => Err(UnresolvedReason::Missing),
             Err(error) => Err(UnresolvedReason::StoreUnavailable(error.to_string())),
         },
-        None if value.starts_with(REF_PREFIX) => Err(UnresolvedReason::Malformed),
+        None if looks_like_secret_ref(value) => Err(UnresolvedReason::Malformed),
         None => Ok(value.to_string()),
     }
 }

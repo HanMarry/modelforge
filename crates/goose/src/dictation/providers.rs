@@ -559,6 +559,9 @@ fn resolve_model_native_config(
                 .get_secret::<String>(&cfg.api_key_env)
                 .unwrap_or_default()
         };
+        // Auth header values are stored as secret references in the provider file.
+        let store = crate::config::secret_headers::ConfigSecretStore::new(config);
+        crate::config::declarative_providers::resolve_header_secrets(&mut cfg, &store)?;
         let headers = cfg.headers.clone();
         return Ok(ModelNativeResolved {
             api_key,

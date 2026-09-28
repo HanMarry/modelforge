@@ -138,6 +138,7 @@ mod tests {
             base_url: "http://localhost:1".to_string(),
             models,
             headers: None,
+            sensitive_headers: Vec::new(),
             session_id_header_override: None,
             timeout_seconds: None,
             supports_streaming: Some(true),

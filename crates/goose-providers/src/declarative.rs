@@ -155,6 +155,11 @@ pub struct DeclarativeProviderConfig {
     pub base_url: String,
     pub models: Vec<ModelInfo>,
     pub headers: Option<HashMap<String, String>>,
+    /// Header names the user marked as carrying credentials, besides the well-known auth header
+    /// names. The values of such headers are kept in the credential store and `headers` only
+    /// holds `${secret:...}` references to them.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub sensitive_headers: Vec<String>,
     /// Overrides the default `agent-session-id` header name for session ID propagation.
     #[serde(default)]
     pub session_id_header_override: Option<String>,

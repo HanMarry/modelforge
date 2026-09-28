@@ -2333,6 +2333,7 @@ fn add_provider() -> anyhow::Result<()> {
         models,
         supports_streaming: Some(supports_streaming),
         headers,
+        sensitive_headers: Vec::new(),
         requires_auth,
         catalog_provider_id: None,
         base_path,

@@ -576,6 +576,7 @@ mod tests {
             base_url: HUGGINGFACE_API_HOST.to_string(),
             models: Vec::new(),
             headers: None,
+            sensitive_headers: Vec::new(),
             session_id_header_override: None,
             timeout_seconds: None,
             supports_streaming: Some(true),

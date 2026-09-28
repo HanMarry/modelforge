@@ -1,4 +1,9 @@
+use crate::config::atomic_fs::{AtomicFs, StdAtomicFs};
 use crate::config::paths::Paths;
+use crate::config::provider_credentials::{
+    header_secret_keys, plan_header_secrets, ConfigChange, ProviderSecretTxn,
+};
+use crate::config::secret_headers::{resolve_headers, ConfigSecretStore, SecretStore};
 use crate::config::Config;
 use crate::providers::anthropic_def::AnthropicProviderDef;
 use crate::providers::base::{ModelInfo, ProviderType};
@@ -13,7 +18,7 @@ use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
 pub use goose_providers::declarative::*;
@@ -65,6 +70,10 @@ pub struct LoadedProvider {
 static ID_GENERATION_LOCK: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 
 pub fn generate_id(display_name: &str) -> String {
+    generate_id_in(&custom_providers_dir(), display_name)
+}
+
+fn generate_id_in(custom_dir: &Path, display_name: &str) -> String {
     let _guard = ID_GENERATION_LOCK.lock().unwrap();
 
     let normalized = display_name
@@ -82,7 +91,6 @@ pub fn generate_id(display_name: &str) -> String {
         .to_string();
     let base_id = format!("custom_{}", normalized);
 
-    let custom_dir = custom_providers_dir();
     let mut candidate_id = base_id.clone();
     let mut counter = 1;
 
@@ -114,6 +122,10 @@ pub fn validate_provider_id(id: &str) -> Result<()> {
 }
 
 pub(crate) fn custom_provider_file_path(id: &str) -> Result<PathBuf> {
+    provider_file_path(&custom_providers_dir(), id)
+}
+
+fn provider_file_path(custom_dir: &Path, id: &str) -> Result<PathBuf> {
     if id.is_empty()
         || id
             .chars()
@@ -125,7 +137,7 @@ pub(crate) fn custom_provider_file_path(id: &str) -> Result<PathBuf> {
         ));
     }
 
-    Ok(custom_providers_dir().join(format!("{}.json", id)))
+    Ok(custom_dir.join(format!("{}.json", id)))
 }
 
 pub fn generate_api_key_name(id: &str) -> String {
@@ -141,6 +153,8 @@ pub struct CreateCustomProviderParams {
     pub models: Vec<ModelInfo>,
     pub supports_streaming: Option<bool>,
     pub headers: Option<HashMap<String, String>>,
+    /// Header names the user marked as sensitive; their values are stored like auth headers.
+    pub sensitive_headers: Vec<String>,
     pub requires_auth: bool,
     pub catalog_provider_id: Option<String>,
     pub base_path: Option<String>,
@@ -159,7 +173,10 @@ pub struct UpdateCustomProviderParams {
     pub api_key: Option<String>,
     pub models: Vec<ModelInfo>,
     pub supports_streaming: Option<bool>,
+    /// `None` keeps the current headers; an empty map removes them all.
     pub headers: Option<HashMap<String, String>>,
+    /// `None` keeps the current sensitive marks.
+    pub sensitive_headers: Option<Vec<String>>,
     pub requires_auth: bool,
     pub catalog_provider_id: Option<String>,
     pub base_path: Option<String>,
@@ -169,21 +186,72 @@ pub struct UpdateCustomProviderParams {
     pub auth: Option<AuthConfig>,
 }
 
+/// Where custom provider files, and the credentials their headers and API key refer to, are
+/// kept. Tests point it at a temporary directory and an in-memory store.
+struct ProviderStorage<'a> {
+    dir: PathBuf,
+    store: &'a dyn SecretStore,
+    fs: &'a dyn AtomicFs,
+}
+
+impl<'a> ProviderStorage<'a> {
+    fn new(dir: PathBuf, store: &'a dyn SecretStore, fs: &'a dyn AtomicFs) -> Self {
+        Self { dir, store, fs }
+    }
+
+    fn load(&self, id: &str) -> Result<LoadedProvider> {
+        load_provider_in(&self.dir, id)
+    }
+
+    fn file_path(&self, id: &str) -> Result<PathBuf> {
+        provider_file_path(&self.dir, id)
+    }
+}
+
+/// Whether an API key was given; blank input counts as none.
+fn has_api_key(api_key: Option<&str>) -> bool {
+    api_key.is_some_and(|key| !key.trim().is_empty())
+}
+
+/// Creates a custom provider. Auth header values and the API key go to the credential store
+/// and the config file only refers to them; if the store cannot be written, no file is created
+/// and no credential is left behind (requirements 1.2, 1.3).
 pub fn create_custom_provider(
     params: CreateCustomProviderParams,
 ) -> Result<DeclarativeProviderConfig> {
-    let id = generate_id(&params.display_name);
+    let store = ConfigSecretStore::global();
+    let storage = ProviderStorage::new(custom_providers_dir(), &store, &StdAtomicFs);
+    create_custom_provider_in(&storage, params)
+}
+
+/// Updates a custom provider in one transaction with its credentials: changed auth header
+/// values are stored again and credentials no longer referred to are deleted; on failure the
+/// config file and the store stay as they were (requirements 1.3, 1.6, 1.7).
+pub fn update_custom_provider(params: UpdateCustomProviderParams) -> Result<()> {
+    let store = ConfigSecretStore::global();
+    let storage = ProviderStorage::new(custom_providers_dir(), &store, &StdAtomicFs);
+    update_custom_provider_in(&storage, params)
+}
+
+/// Removes a custom provider together with every credential it refers to (requirement 1.7).
+pub fn remove_custom_provider(id: &str) -> Result<()> {
+    let store = ConfigSecretStore::global();
+    let storage = ProviderStorage::new(custom_providers_dir(), &store, &StdAtomicFs);
+    remove_custom_provider_in(&storage, id)
+}
+
+fn create_custom_provider_in(
+    storage: &ProviderStorage<'_>,
+    params: CreateCustomProviderParams,
+) -> Result<DeclarativeProviderConfig> {
+    let id = generate_id_in(&storage.dir, &params.display_name);
     validate_provider_id(&id)?;
 
-    if params.auth.is_some()
-        && params
-            .api_key
-            .as_deref()
-            .is_some_and(|key| !key.trim().is_empty())
-    {
+    if params.auth.is_some() && has_api_key(params.api_key.as_deref()) {
         anyhow::bail!("cannot set both apiKey and auth.command");
     }
 
+    let mut writes = Vec::new();
     let api_key_env = if params.auth.is_some() {
         String::new()
     } else if params.requires_auth {
@@ -193,8 +261,7 @@ pub fn create_custom_provider(
             .filter(|api_key| !api_key.trim().is_empty())
             .ok_or_else(|| anyhow::anyhow!("apiKey cannot be empty"))?;
         let api_key_name = generate_api_key_name(&id);
-        let config = Config::global();
-        config.set_secret(&api_key_name, &api_key)?;
+        writes.push((api_key_name.clone(), api_key.to_string()));
         api_key_name
     } else {
         String::new()
@@ -207,7 +274,7 @@ pub fn create_custom_provider(
         .preserves_thinking
         .unwrap_or_else(|| should_preserve_thinking_by_default(&engine));
 
-    let provider_config = DeclarativeProviderConfig {
+    let mut provider_config = DeclarativeProviderConfig {
         name: id.clone(),
         engine,
         display_name: params.display_name.clone(),
@@ -216,6 +283,7 @@ pub fn create_custom_provider(
         base_url: params.api_url,
         models: model_infos,
         headers: params.headers,
+        sensitive_headers: params.sensitive_headers,
         session_id_header_override: None,
         timeout_seconds: None,
         supports_streaming: params.supports_streaming,
@@ -234,58 +302,67 @@ pub fn create_custom_provider(
         setup: None,
     };
 
-    let custom_providers_dir = custom_providers_dir();
-    std::fs::create_dir_all(&custom_providers_dir)?;
+    let headers = plan_header_secrets(&mut provider_config, None)?;
+    writes.extend(headers.writes);
 
-    let json_content = serde_json::to_string_pretty(&provider_config)?;
-    let file_path = custom_providers_dir.join(format!("{}.json", id));
-    std::fs::write(file_path, json_content)?;
+    std::fs::create_dir_all(&storage.dir)?;
+    let contents = serde_json::to_vec_pretty(&provider_config)?;
+    let txn = ProviderSecretTxn {
+        provider: provider_config.display_name.clone(),
+        path: storage.file_path(&id)?,
+        writes,
+        deletes: Vec::new(),
+        change: ConfigChange::Write(contents),
+    };
+    txn.commit(storage.store, storage.fs)?;
 
     Ok(provider_config)
 }
 
-pub fn update_custom_provider(params: UpdateCustomProviderParams) -> Result<()> {
-    let loaded_provider = load_provider(&params.id)?;
+fn update_custom_provider_in(
+    storage: &ProviderStorage<'_>,
+    params: UpdateCustomProviderParams,
+) -> Result<()> {
+    let loaded_provider = storage.load(&params.id)?;
     let existing_config = loaded_provider.config;
     let editable = loaded_provider.is_editable;
+    let provider_name = params.display_name.clone();
 
-    if params.auth.is_some()
-        && params
-            .api_key
-            .as_deref()
-            .is_some_and(|key| !key.trim().is_empty())
-    {
+    if params.auth.is_some() && has_api_key(params.api_key.as_deref()) {
         anyhow::bail!("cannot set both apiKey and auth.command");
     }
 
-    let config = Config::global();
+    let generated_key_name = generate_api_key_name(&params.id);
+    let mut writes = Vec::new();
+    let mut deletes = Vec::new();
     let api_key_env = if params.auth.is_some() {
-        if existing_config.api_key_env == generate_api_key_name(&params.id) {
-            config.delete_secret(&existing_config.api_key_env)?;
+        if existing_config.api_key_env == generated_key_name {
+            deletes.push(generated_key_name);
         }
         String::new()
     } else if params.requires_auth {
         let api_key_name = if existing_config.api_key_env.is_empty() {
-            generate_api_key_name(&params.id)
+            generated_key_name
         } else {
             existing_config.api_key_env.clone()
         };
         if let Some(api_key) = params.api_key.as_deref() {
-            config.set_secret(&api_key_name, &api_key)?;
-        } else if config.get_secret::<String>(&api_key_name).is_err() {
+            writes.push((api_key_name.clone(), api_key.to_string()));
+        } else if !matches!(storage.store.get(&api_key_name), Ok(Some(_))) {
             return Err(anyhow::anyhow!(
                 "apiKey is required when auth is enabled and no secret is stored"
             ));
         }
         api_key_name
     } else {
-        if existing_config.api_key_env == generate_api_key_name(&params.id) {
-            config.delete_secret(&existing_config.api_key_env)?;
+        if existing_config.api_key_env == generated_key_name {
+            deletes.push(generated_key_name);
         }
         String::new()
     };
 
-    if editable {
+    let change = if editable {
+        let previous = existing_config.clone();
         let model_infos = params
             .models
             .into_iter()
@@ -322,8 +399,12 @@ pub fn update_custom_provider(params: UpdateCustomProviderParams) -> Result<()> 
             }
             None => existing_config.preserves_thinking,
         };
+        let sensitive_headers = match params.sensitive_headers {
+            Some(marks) => marks,
+            None => existing_config.sensitive_headers,
+        };
 
-        let updated_config = DeclarativeProviderConfig {
+        let mut updated_config = DeclarativeProviderConfig {
             name: params.id.clone(),
             engine,
             display_name: params.display_name,
@@ -336,6 +417,7 @@ pub fn update_custom_provider(params: UpdateCustomProviderParams) -> Result<()> 
                 Some(h) => Some(h),
                 None => existing_config.headers,
             },
+            sensitive_headers,
             session_id_header_override: existing_config.session_id_header_override,
             timeout_seconds: existing_config.timeout_seconds,
             supports_streaming: params.supports_streaming,
@@ -354,32 +436,55 @@ pub fn update_custom_provider(params: UpdateCustomProviderParams) -> Result<()> 
             setup: existing_config.setup,
         };
 
-        let file_path = custom_provider_file_path(&updated_config.name)?;
-        let json_content = serde_json::to_string_pretty(&updated_config)?;
-        std::fs::write(file_path, json_content)?;
-    }
+        let headers = plan_header_secrets(&mut updated_config, Some(&previous))?;
+        writes.extend(headers.writes);
+        deletes.extend(headers.deletes);
+        ConfigChange::Write(serde_json::to_vec_pretty(&updated_config)?)
+    } else {
+        ConfigChange::Keep
+    };
+
+    let txn = ProviderSecretTxn {
+        provider: provider_name,
+        path: storage.file_path(&params.id)?,
+        writes,
+        deletes,
+        change,
+    };
+    txn.commit(storage.store, storage.fs)?;
     Ok(())
 }
 
-pub fn remove_custom_provider(id: &str) -> Result<()> {
-    let config = Config::global();
-    let loaded_provider = load_provider(id)?;
-    let api_key_env = loaded_provider.config.api_key_env;
-    if api_key_env == generate_api_key_name(id) {
-        let _ = config.delete_secret(&api_key_env);
+fn remove_custom_provider_in(storage: &ProviderStorage<'_>, id: &str) -> Result<()> {
+    let config = storage.load(id)?.config;
+    let mut deletes: Vec<String> = header_secret_keys(&config).into_iter().collect();
+    if config.api_key_env == generate_api_key_name(id) {
+        deletes.push(config.api_key_env.clone());
     }
 
-    let file_path = custom_provider_file_path(id)?;
-
-    if file_path.exists() {
-        std::fs::remove_file(file_path)?;
-    }
-
+    let path = storage.file_path(id)?;
+    let change = if path.exists() {
+        ConfigChange::Remove
+    } else {
+        ConfigChange::Keep
+    };
+    let txn = ProviderSecretTxn {
+        provider: config.display_name,
+        path,
+        writes: Vec::new(),
+        deletes,
+        change,
+    };
+    txn.commit(storage.store, storage.fs)?;
     Ok(())
 }
 
 pub fn load_provider(id: &str) -> Result<LoadedProvider> {
-    let custom_file_path = custom_provider_file_path(id)?;
+    load_provider_in(&custom_providers_dir(), id)
+}
+
+fn load_provider_in(custom_dir: &Path, id: &str) -> Result<LoadedProvider> {
+    let custom_file_path = provider_file_path(custom_dir, id)?;
 
     if custom_file_path.exists() {
         let content = std::fs::read_to_string(&custom_file_path)?;
@@ -448,6 +553,32 @@ fn resolve_config(config: &mut DeclarativeProviderConfig) -> Result<()> {
     Ok(())
 }
 
+/// Replaces the secret references in `config.headers` with the stored values, right before a
+/// provider or a request is built from the config (requirement 1.4). Fails when a reference
+/// cannot be resolved, so nothing is sent with a missing credential or the reference text in
+/// its place (requirement 1.5).
+pub fn resolve_header_secrets(
+    config: &mut DeclarativeProviderConfig,
+    store: &dyn SecretStore,
+) -> Result<()> {
+    if let Some(headers) = &config.headers {
+        let resolved = match resolve_headers(headers, store) {
+            Ok(resolved) => resolved,
+            Err(error) => anyhow::bail!("provider {}: {error}", config.name),
+        };
+        config.headers = Some(resolved);
+    }
+    Ok(())
+}
+
+/// Everything a provider needs resolved before it is built: placeholders and runtime
+/// overrides first, then header credentials. Inventory identity keeps the references instead,
+/// so credential values never become inventory inputs.
+fn prepare_for_instantiation(config: &mut DeclarativeProviderConfig) -> Result<()> {
+    resolve_config(config)?;
+    resolve_header_secrets(config, &ConfigSecretStore::global())
+}
+
 pub fn register_declarative_provider(
     registry: &mut crate::providers::provider_registry::ProviderRegistry,
     config: DeclarativeProviderConfig,
@@ -470,7 +601,7 @@ pub fn register_declarative_provider(
                         config.dynamic_models.unwrap_or(false),
                         move |tls_config| {
                             let mut cfg = captured.clone();
-                            resolve_config(&mut cfg)?;
+                            prepare_for_instantiation(&mut cfg)?;
                             HuggingFaceProvider::from_custom_config(cfg, tls_config)
                         },
                         move || {
@@ -493,7 +624,7 @@ pub fn register_declarative_provider(
                     config.dynamic_models.unwrap_or(false),
                     move |tls_config| {
                         let mut cfg = captured.clone();
-                        resolve_config(&mut cfg)?;
+                        prepare_for_instantiation(&mut cfg)?;
                         crate::providers::ollama_cloud::OllamaCloudProvider::from_custom_config(cfg, tls_config)
                     },
                     move || {
@@ -509,7 +640,7 @@ pub fn register_declarative_provider(
                     config.dynamic_models.unwrap_or(false),
                     move |tls_config| {
                         let mut cfg = captured.clone();
-                        resolve_config(&mut cfg)?;
+                        prepare_for_instantiation(&mut cfg)?;
                         crate::providers::openai_def::from_custom_config(cfg, tls_config)
                     },
                     move || {
@@ -529,7 +660,7 @@ pub fn register_declarative_provider(
                 config.dynamic_models.unwrap_or(false),
                 move |tls_config| {
                     let mut cfg = captured.clone();
-                    resolve_config(&mut cfg)?;
+                    prepare_for_instantiation(&mut cfg)?;
                     crate::providers::ollama_def::from_custom_config(cfg, tls_config)
                 },
                 move || {
@@ -548,7 +679,7 @@ pub fn register_declarative_provider(
                 config.dynamic_models.unwrap_or(false),
                 move |tls_config| {
                     let mut cfg = captured.clone();
-                    resolve_config(&mut cfg)?;
+                    prepare_for_instantiation(&mut cfg)?;
                     crate::providers::anthropic_def::from_custom_config(cfg, tls_config)
                 },
                 move || {
@@ -614,6 +745,7 @@ mod tests {
                 request_params: None,
             }],
             headers: None,
+            sensitive_headers: Vec::new(),
             session_id_header_override: None,
             timeout_seconds: None,
             supports_streaming: Some(true),
@@ -811,6 +943,7 @@ mod tests {
             models: vec![model],
             supports_streaming: Some(true),
             headers: None,
+            sensitive_headers: Vec::new(),
             requires_auth: false,
             catalog_provider_id: None,
             base_path: None,
@@ -829,6 +962,7 @@ mod tests {
             models: vec![ModelInfo::new("large-model").with_context_limit(2_097_152)],
             supports_streaming: Some(true),
             headers: None,
+            sensitive_headers: None,
             requires_auth: false,
             catalog_provider_id: None,
             base_path: None,
@@ -947,6 +1081,7 @@ mod tests {
             models: vec![ModelInfo::new("z-model")],
             supports_streaming: Some(true),
             headers: None,
+            sensitive_headers: None,
             requires_auth: false,
             catalog_provider_id: None,
             base_path: None,
@@ -1063,5 +1198,346 @@ mod tests {
 
         let result = expand_env_vars("${TEST_EXPAND_OVERRIDE}/path", &env_vars).unwrap();
         assert_eq!(result, "https://from-env.com/path");
+    }
+}
+
+#[cfg(test)]
+mod credential_tests {
+    use super::*;
+    use crate::config::secret_headers::testing::MemorySecretStore;
+    use crate::config::secret_headers::{
+        is_auth_header, is_marked_sensitive, secret_ref_for, SecretOwner,
+    };
+    use proptest::prelude::*;
+    use proptest::test_runner::TestCaseError;
+    use std::collections::{BTreeMap, BTreeSet};
+
+    const DISPLAY_NAME: &str = "Gateway 网关";
+    const API_URL: &str = "https://gateway.example.invalid/v1";
+    const HEADER_POOL: [&str; 6] = [
+        "Authorization",
+        "X-API-Key",
+        "api-key",
+        "X-Tenant-Token",
+        "X-Team",
+        "Accept",
+    ];
+    const MARKABLE: [&str; 2] = ["X-Tenant-Token", "X-Team"];
+
+    fn create_params(
+        display_name: &str,
+        headers: HashMap<String, String>,
+        marks: Vec<String>,
+        api_key: Option<String>,
+    ) -> CreateCustomProviderParams {
+        CreateCustomProviderParams {
+            engine: "openai".to_string(),
+            display_name: display_name.to_string(),
+            api_url: API_URL.to_string(),
+            requires_auth: api_key.is_some(),
+            api_key,
+            models: vec![ModelInfo::new("model-a")],
+            supports_streaming: Some(true),
+            headers: Some(headers),
+            sensitive_headers: marks,
+            catalog_provider_id: None,
+            base_path: None,
+            toolshim: false,
+            preserves_thinking: None,
+            auth: None,
+        }
+    }
+
+    fn update_params(
+        id: &str,
+        headers: Option<HashMap<String, String>>,
+        marks: Option<Vec<String>>,
+        requires_auth: bool,
+        api_key: Option<String>,
+    ) -> UpdateCustomProviderParams {
+        UpdateCustomProviderParams {
+            id: id.to_string(),
+            engine: "openai".to_string(),
+            display_name: DISPLAY_NAME.to_string(),
+            api_url: API_URL.to_string(),
+            api_key,
+            models: vec![ModelInfo::new("model-a")],
+            supports_streaming: Some(true),
+            headers,
+            sensitive_headers: marks,
+            requires_auth,
+            catalog_provider_id: None,
+            base_path: None,
+            toolshim: false,
+            preserves_thinking: None,
+            auth: None,
+        }
+    }
+
+    /// Credential-like values with Unicode, whitespace and JSON special characters.
+    fn secret_value() -> impl Strategy<Value = String> {
+        let tail_pattern = "[ \\t!-~中文🔑]{0,12}";
+        ("[A-Za-z0-9]{16}", tail_pattern).prop_map(|(token, tail)| format!("sk-{token}{tail}"))
+    }
+
+    fn header_set() -> impl Strategy<Value = HashMap<String, String>> {
+        let name = prop::sample::select(HEADER_POOL.to_vec());
+        prop::collection::btree_map(name, secret_value(), 0..5).prop_map(owned_headers)
+    }
+
+    fn owned_headers(headers: BTreeMap<&'static str, String>) -> HashMap<String, String> {
+        headers
+            .into_iter()
+            .map(|(name, value)| (name.to_string(), value))
+            .collect()
+    }
+
+    fn mark_set() -> impl Strategy<Value = Vec<String>> {
+        prop::sample::subsequence(MARKABLE.to_vec(), 0..=2).prop_map(owned_marks)
+    }
+
+    fn owned_marks(marks: Vec<&'static str>) -> Vec<String> {
+        marks.into_iter().map(str::to_string).collect()
+    }
+
+    /// Checks the saved file and the store against the latest save (Property 2).
+    fn check_saved(
+        dir: &Path,
+        store: &MemorySecretStore,
+        id: &str,
+        expected: &HashMap<String, String>,
+        marks: &[String],
+    ) -> Result<(), TestCaseError> {
+        let text = std::fs::read_to_string(dir.join(format!("{id}.json"))).unwrap();
+        let saved: DeclarativeProviderConfig = serde_json::from_str(&text).unwrap();
+        let headers = saved.headers.unwrap_or_default();
+        let mut in_use = BTreeSet::new();
+        for (name, value) in expected {
+            if !is_auth_header(name, is_marked_sensitive(name, marks)) {
+                continue;
+            }
+            let escaped = serde_json::to_string(value).unwrap();
+            let inner = &escaped[1..escaped.len() - 1];
+            prop_assert!(!text.contains(value.as_str()), "{name} is in the file");
+            prop_assert!(!text.contains(inner), "{name} is in the file");
+            let reference = secret_ref_for(SecretOwner::Provider(id), name);
+            prop_assert_eq!(&headers[name], &reference.to_string());
+            in_use.insert(reference.key().to_string());
+        }
+        prop_assert_eq!(&resolve_headers(&headers, store).unwrap(), expected);
+        let stored: BTreeSet<String> = store.entries().into_keys().collect();
+        prop_assert_eq!(stored, in_use);
+        Ok(())
+    }
+
+    fn directory_contents(dir: &Path) -> BTreeMap<String, Vec<u8>> {
+        let mut files = BTreeMap::new();
+        for entry in std::fs::read_dir(dir).unwrap() {
+            let path = entry.unwrap().path();
+            let name = path.file_name().unwrap().to_string_lossy().into_owned();
+            files.insert(name, std::fs::read(&path).unwrap());
+        }
+        files
+    }
+
+    /// `(header name, credential key)` for each header of `config` that refers to a credential.
+    fn header_refs(config: &DeclarativeProviderConfig) -> Vec<(String, String)> {
+        let owner = SecretOwner::Provider(&config.name);
+        let mut refs = Vec::new();
+        for (name, value) in config.headers.iter().flatten() {
+            let reference = secret_ref_for(owner, name);
+            if *value == reference.to_string() {
+                refs.push((name.clone(), reference.key().to_string()));
+            }
+        }
+        refs.sort();
+        refs
+    }
+
+    /// The store entries a provider refers to, and its headers resolved.
+    fn owned_state(
+        storage: &ProviderStorage<'_>,
+        store: &MemorySecretStore,
+        id: &str,
+    ) -> (BTreeMap<String, String>, HashMap<String, String>) {
+        let config = storage.load(id).unwrap().config;
+        let entries = store.entries();
+        let mut keys = header_secret_keys(&config);
+        keys.insert(generate_api_key_name(id));
+        let mut owned = BTreeMap::new();
+        for key in keys {
+            if let Some(value) = entries.get(&key) {
+                owned.insert(key, value.clone());
+            }
+        }
+        let headers = config.headers.unwrap_or_default();
+        (owned, resolve_headers(&headers, store).unwrap())
+    }
+
+    #[test]
+    fn header_references_resolve_before_the_provider_is_built() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = MemorySecretStore::new();
+        let storage = ProviderStorage::new(dir.path().to_path_buf(), &store, &StdAtomicFs);
+        let headers = HashMap::from([("Authorization".to_string(), "sk-1".to_string())]);
+        let params = create_params(DISPLAY_NAME, headers.clone(), Vec::new(), None);
+        let mut config = create_custom_provider_in(&storage, params).unwrap();
+        assert_ne!(config.headers, Some(headers.clone()));
+        let mut unresolvable = config.clone();
+
+        resolve_header_secrets(&mut config, &store).unwrap();
+        assert_eq!(config.headers, Some(headers));
+
+        let empty = MemorySecretStore::new();
+        let error = resolve_header_secrets(&mut unresolvable, &empty).unwrap_err();
+        assert!(error.to_string().contains("Authorization"), "{error}");
+    }
+
+    // Feature: mathmodel-parity-and-beyond, Property 2: 凭据保存往返且配置无明文
+    proptest! {
+        #![proptest_config(ProptestConfig::with_cases(100))]
+
+        #[test]
+        fn saved_credentials_round_trip_without_plaintext(
+            saves in prop::collection::vec((header_set(), mark_set()), 1..4),
+        ) {
+            let dir = tempfile::tempdir().unwrap();
+            let store = MemorySecretStore::new();
+            let storage = ProviderStorage::new(dir.path().to_path_buf(), &store, &StdAtomicFs);
+            let mut saved_id: Option<String> = None;
+            for (headers, marks) in saves {
+                let id = match saved_id.take() {
+                    None => {
+                        let params =
+                            create_params(DISPLAY_NAME, headers.clone(), marks.clone(), None);
+                        create_custom_provider_in(&storage, params).unwrap().name
+                    }
+                    Some(id) => {
+                        let marks = Some(marks.clone());
+                        let params = update_params(&id, Some(headers.clone()), marks, false, None);
+                        update_custom_provider_in(&storage, params).unwrap();
+                        id
+                    }
+                };
+                check_saved(dir.path(), &store, &id, &headers, &marks)?;
+
+                // A client sends back what it read, references included: nothing changes.
+                let read = storage.load(&id).unwrap().config;
+                let params = update_params(&id, read.headers, None, false, None);
+                update_custom_provider_in(&storage, params).unwrap();
+                check_saved(dir.path(), &store, &id, &headers, &marks)?;
+                saved_id = Some(id);
+            }
+        }
+    }
+
+    // Feature: mathmodel-parity-and-beyond, Property 3: 凭据写入失败时配置不变
+    proptest! {
+        #![proptest_config(ProptestConfig::with_cases(100))]
+
+        #[test]
+        fn failed_saves_leave_the_config_and_the_store_unchanged(
+            initial in header_set(),
+            next in header_set(),
+            marks in mark_set(),
+            api_key in secret_value(),
+            is_update in any::<bool>(),
+            fail_at in 1usize..12,
+        ) {
+            let dir = tempfile::tempdir().unwrap();
+            let store = MemorySecretStore::new();
+            let storage = ProviderStorage::new(dir.path().to_path_buf(), &store, &StdAtomicFs);
+            let existing = if is_update {
+                let key = Some(api_key.clone());
+                let params = create_params(DISPLAY_NAME, initial, marks.clone(), key);
+                Some(create_custom_provider_in(&storage, params).unwrap().name)
+            } else {
+                None
+            };
+            let files_before = directory_contents(dir.path());
+            let entries_before = store.entries();
+            // Every store call of the save is a possible failure point, reads included.
+            let target = store.calls() + fail_at;
+            store.fail_on_call(target);
+
+            let new_key = Some(format!("{api_key}-new"));
+            let result = match &existing {
+                Some(id) => {
+                    let params = update_params(id, Some(next), Some(marks), true, new_key);
+                    update_custom_provider_in(&storage, params)
+                }
+                None => {
+                    let params = create_params(DISPLAY_NAME, next, marks, new_key);
+                    create_custom_provider_in(&storage, params).map(|_| ())
+                }
+            };
+            match result {
+                Err(error) => {
+                    let message = error.to_string();
+                    prop_assert!(message.contains(DISPLAY_NAME), "{message}");
+                    prop_assert_eq!(directory_contents(dir.path()), files_before);
+                    prop_assert_eq!(store.entries(), entries_before);
+                }
+                Ok(()) => prop_assert!(store.calls() < target),
+            }
+        }
+    }
+
+    // Feature: mathmodel-parity-and-beyond, Property 5: 删除后无残留条目
+    proptest! {
+        #![proptest_config(ProptestConfig::with_cases(100))]
+
+        #[test]
+        fn deletion_leaves_no_entry_of_the_deleted_object(
+            saved in prop::collection::vec((header_set(), mark_set(), secret_value()), 2..4),
+            victim in any::<prop::sample::Index>(),
+            header in any::<prop::sample::Index>(),
+            whole in any::<bool>(),
+        ) {
+            let dir = tempfile::tempdir().unwrap();
+            let store = MemorySecretStore::new();
+            let storage = ProviderStorage::new(dir.path().to_path_buf(), &store, &StdAtomicFs);
+            let mut ids = Vec::new();
+            for (index, (headers, marks, api_key)) in saved.into_iter().enumerate() {
+                let name = format!("Provider {index}");
+                let params = create_params(&name, headers, marks, Some(api_key));
+                ids.push(create_custom_provider_in(&storage, params).unwrap().name);
+            }
+            let before: Vec<_> = ids.iter().map(|id| owned_state(&storage, &store, id)).collect();
+            let victim = victim.index(ids.len());
+            let victim_id = ids[victim].clone();
+            let victim_config = storage.load(&victim_id).unwrap().config;
+            let refs = header_refs(&victim_config);
+
+            let gone = if whole || refs.is_empty() {
+                remove_custom_provider_in(&storage, &victim_id).unwrap();
+                prop_assert!(!dir.path().join(format!("{victim_id}.json")).exists());
+                let mut gone: Vec<String> = refs.into_iter().map(|(_, key)| key).collect();
+                gone.push(generate_api_key_name(&victim_id));
+                gone
+            } else {
+                // Drop one credential header and send the others back as read.
+                let (dropped, key) = refs[header.index(refs.len())].clone();
+                let mut headers = victim_config.headers.clone().unwrap_or_default();
+                headers.remove(&dropped);
+                let params = update_params(&victim_id, Some(headers), None, true, None);
+                update_custom_provider_in(&storage, params).unwrap();
+                let (mut entries, mut resolved) = before[victim].clone();
+                entries.remove(&key);
+                resolved.remove(&dropped);
+                prop_assert_eq!(owned_state(&storage, &store, &victim_id), (entries, resolved));
+                vec![key]
+            };
+
+            let entries = store.entries();
+            for key in &gone {
+                prop_assert!(!entries.contains_key(key), "{key} is left in the store");
+            }
+            for (index, id) in ids.iter().enumerate() {
+                if index != victim {
+                    prop_assert_eq!(owned_state(&storage, &store, id), before[index].clone());
+                }
+            }
+        }
     }
 }
