@@ -9,6 +9,8 @@ on:
     branches:
       - main
       - modelforge
+      # 规格 mathmodel-parity-and-beyond 的并行分支（mp/*）经 PR 合入这条集成分支
+      - feat/mathmodel-parity
   merge_group:
     branches:
       - main
