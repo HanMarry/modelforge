@@ -8,7 +8,10 @@ static BUILTIN_SKILLS_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/src/skills/bu
 
 /// Stamped into the extracted tree so a stale copy is replaced on the next run
 /// when the bundled assets change.
-const BUILTIN_ASSETS_VERSION: &str = "1";
+///
+/// "2": the contest problems under `math_modeling/assets/examples/` were removed, so
+/// trees extracted by earlier builds are rewritten without them.
+const BUILTIN_ASSETS_VERSION: &str = "2";
 
 /// Outcome of the single extraction attempt this process makes.
 static EXTRACTED: OnceLock<Result<(), String>> = OnceLock::new();
@@ -94,5 +97,42 @@ fn collect_files(dir: &Path, files: &mut Vec<String>) {
         } else if path.is_file() {
             files.push(path.to_string_lossy().into_owned());
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::PathBuf;
+
+    fn collect_bundled(dir: &Dir<'_>, files: &mut Vec<PathBuf>) {
+        for file in dir.files() {
+            files.push(file.path().to_path_buf());
+        }
+        for sub in dir.dirs() {
+            collect_bundled(sub, files);
+        }
+    }
+
+    /// Contest statements, attachments and result files are the organisers' copyright
+    /// (spec requirements 9.6, 7.1). Everything under `builtins/` is compiled into goose,
+    /// so none of it may sit under `math_modeling/assets/examples/`; local study copies
+    /// live in the desktop app's git-ignored `resources/builtin-examples/`.
+    #[test]
+    fn contest_examples_are_not_compiled_in() {
+        let examples = Path::new("math_modeling/assets/examples");
+        let mut files = Vec::new();
+        collect_bundled(&BUILTIN_SKILLS_DIR, &mut files);
+        assert!(!files.is_empty(), "no builtin skills bundled");
+
+        let bundled: Vec<&PathBuf> = files
+            .iter()
+            .filter(|path| path.starts_with(examples))
+            .collect();
+        assert!(
+            bundled.is_empty(),
+            "contest material compiled into goose: {bundled:?}"
+        );
+        assert!(BUILTIN_SKILLS_DIR.get_dir(examples).is_none());
     }
 }

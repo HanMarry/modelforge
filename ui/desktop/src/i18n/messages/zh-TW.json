@@ -1826,20 +1826,29 @@
   "hub.contestLabel": {
     "defaultMessage": "赛事"
   },
+  "hub.exampleDownloadGuide": {
+    "defaultMessage": "請到官網下載題面與附件，放進專案資料夾後再開始。"
+  },
   "hub.exampleLoadFailed": {
     "defaultMessage": "案例載入失敗，請重試"
   },
-  "hub.exampleNeedsInput": {
-    "defaultMessage": "题目未内置，请自行补充"
+  "hub.exampleMissingLocal": {
+    "defaultMessage": "本機沒有這道題的題面與附件"
+  },
+  "hub.exampleNotBundled": {
+    "defaultMessage": "題面與附件不隨應用程式散布，本機有副本時直接使用"
+  },
+  "hub.exampleOfficialSource": {
+    "defaultMessage": "官方來源：{source}"
+  },
+  "hub.exampleOfficialSourcePending": {
+    "defaultMessage": "{source}官網連結：待確認"
   },
   "hub.examplePreparing": {
     "defaultMessage": "正在載入案例"
   },
   "hub.exampleProjectCreated": {
     "defaultMessage": "已為這道真題建立專案「{name}」"
-  },
-  "hub.exampleReady": {
-    "defaultMessage": "已附带题目与附件"
   },
   "hub.examplesTitle": {
     "defaultMessage": "试试这些数模真题案例"
