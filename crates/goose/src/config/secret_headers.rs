@@ -608,8 +608,7 @@ mod tests {
         let known = || prop::sample::select(EXPECTED_AUTH_NAMES.to_vec());
         let near_miss = "[ _a-z0-9-]{0,2}";
         prop_oneof![
-            (known(), any::<u64>())
-                .prop_map(|(name, mask)| with_random_case(name, mask)),
+            (known(), any::<u64>()).prop_map(|(name, mask)| with_random_case(name, mask)),
             (known(), near_miss, near_miss)
                 .prop_map(|(name, before, after)| format!("{before}{name}{after}")),
             "[A-Za-z0-9_-]{0,24}",
