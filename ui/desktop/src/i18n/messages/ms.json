@@ -119,9 +119,6 @@
   "agentKernelSection.keyNotSavedNoProvider": {
     "defaultMessage": "Provider not resolved — save the provider settings first."
   },
-  "agentKernelSection.keySaved": {
-    "defaultMessage": "Key saved."
-  },
   "agentKernelSection.keySource": {
     "defaultMessage": "API key source: {source}"
   },
@@ -835,6 +832,51 @@
   },
   "createSubRecipeInline.validationMsg": {
     "defaultMessage": "Nama, tajuk, penerangan resipi, dan arahan adalah diperlukan."
+  },
+  "credentialStorageStatus.checkAgain": {
+    "defaultMessage": "Check again"
+  },
+  "credentialStorageStatus.corrupted": {
+    "defaultMessage": "The secrets file is damaged: {path}. ModelForge does not write to it until you repair or delete it."
+  },
+  "credentialStorageStatus.migrationFailed": {
+    "defaultMessage": "Keys saved by an older version that could not be encrypted: {count}. They stay as they are and are retried on the next start."
+  },
+  "credentialStorageStatus.reasonCorrupted": {
+    "defaultMessage": "the secrets file is damaged"
+  },
+  "credentialStorageStatus.reasonEncryptionFailed": {
+    "defaultMessage": "the system secure storage could not encrypt it"
+  },
+  "credentialStorageStatus.reasonInvalid": {
+    "defaultMessage": "the key is empty or invalid"
+  },
+  "credentialStorageStatus.reasonWriteFailed": {
+    "defaultMessage": "the secrets file could not be written, the previous keys are unchanged"
+  },
+  "credentialStorageStatus.removeFailed": {
+    "defaultMessage": "The saved key was not removed: {reason}"
+  },
+  "credentialStorageStatus.retryMigration": {
+    "defaultMessage": "Retry now"
+  },
+  "credentialStorageStatus.saveFailed": {
+    "defaultMessage": "The key was not saved: {reason}"
+  },
+  "credentialStorageStatus.savedEncrypted": {
+    "defaultMessage": "Encrypted and saved"
+  },
+  "credentialStorageStatus.savedMemoryOnly": {
+    "defaultMessage": "Not persisted: this key lasts until ModelForge quits"
+  },
+  "credentialStorageStatus.statusUnavailable": {
+    "defaultMessage": "Cannot read the key storage status: {reason}"
+  },
+  "credentialStorageStatus.unavailable": {
+    "defaultMessage": "Encryption is unavailable. Keys are valid for this session only."
+  },
+  "credentialStorageStatus.unavailableDetail": {
+    "defaultMessage": "The system secure storage cannot encrypt keys, so ModelForge keeps them in memory and forgets them when it quits. Enter them again after a restart."
   },
   "creditsExhaustedNotification.addCredits": {
     "defaultMessage": "Tambah kredit"
