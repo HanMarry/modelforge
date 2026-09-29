@@ -80,7 +80,6 @@ function withTimeout<T>(task: () => Promise<T>, ms: number): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(() => reject(timeoutError()), ms);
     task().then(
-    task.then(
       (value) => {
         clearTimeout(timer);
         resolve(value);
