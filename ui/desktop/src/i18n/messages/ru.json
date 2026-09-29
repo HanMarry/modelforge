@@ -2354,26 +2354,14 @@
   "hub.exampleDownloadGuide": {
     "defaultMessage": "Download the statement and attachments from the official site, put them in your project folder, then start."
   },
-  "hub.exampleLoadFailed": {
-    "defaultMessage": "Couldn't load the example. Please try again."
-  },
-  "hub.exampleMissingLocal": {
-    "defaultMessage": "No local copy of this problem"
-  },
-  "hub.exampleNotBundled": {
-    "defaultMessage": "Statement not bundled; a local copy is used if present"
-  },
   "hub.exampleOfficialSource": {
     "defaultMessage": "Official source: {source}"
   },
   "hub.exampleOfficialSourcePending": {
     "defaultMessage": "Official link for {source}: to be confirmed"
   },
-  "hub.examplePreparing": {
-    "defaultMessage": "Loading example…"
-  },
-  "hub.exampleProjectCreated": {
-    "defaultMessage": "Created project \"{name}\" for this problem"
+  "hub.exampleOpenLibrary": {
+    "defaultMessage": "Open in the example library"
   },
   "hub.examplesTitle": {
     "defaultMessage": "Try one of these modeling problems"

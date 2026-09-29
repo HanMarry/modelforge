@@ -43,12 +43,11 @@ export interface ContestPreset {
  *
  * **Copyright**: the statements and attachments belong to the competition organisers, and
  * no licence of theirs covers redistributing them inside a third-party product, so they
- * are neither committed nor packaged (spec requirement 9.6). A local study copy may sit
- * in the git-ignored `ui/desktop/resources/builtin-examples/<folderName>/` (see
- * `extract-product-assets.js --include-examples`); the card copies it into the project
- * when it is there and otherwise shows the official source and how to get the files. The
- * three self-authored practice problems under `math_modeling/assets/samples/` remain the
- * redistributable alternative and are referenced by the `math-modeling` skill.
+ * are neither committed nor packaged (spec requirement 9.6). The cards therefore link to
+ * the example library (`/examples`), which holds each problem's licence, official source
+ * and download guidance and creates the Project through `ProjectService` (task 11.10).
+ * The three self-authored practice problems under `resources/examples/practice-*` are the
+ * redistributable alternative and open directly from there.
  */
 export interface ExampleProblem {
   id: string;
@@ -57,22 +56,12 @@ export interface ExampleProblem {
   title: string;
   /** Method tags shown on the card. */
   methods: string[];
-  /** Folder under builtin-examples/ that gets copied into the project, if present. */
-  folderName: string;
+
   /** Who publishes the statement, shown with the official link. */
   officialSource: string;
   /** Where the statement and attachments are published; null until confirmed. */
   officialUrl: string | null;
   prompt: string;
-}
-
-/**
- * Whether a `copy-builtin-example` failure only means there is no local copy of the
- * problem. The main process words both cases — no examples directory, no folder for
- * this problem — as "未找到内置真题…" (see the handler in main.ts).
- */
-export function isMissingBuiltinExample(error: string): boolean {
-  return error.startsWith('未找到内置真题');
 }
 
 export const EXAMPLE_PROBLEMS: ExampleProblem[] = [
@@ -81,7 +70,6 @@ export const EXAMPLE_PROBLEMS: ExampleProblem[] = [
     label: '2023 国赛 A 题',
     title: '定日镜场的优化设计',
     methods: ['优化', '物理建模', '几何计算'],
-    folderName: '2023国赛A题',
     officialSource: '全国大学生数学建模竞赛',
     officialUrl: 'https://www.mcm.edu.cn/',
     prompt:
@@ -96,7 +84,6 @@ export const EXAMPLE_PROBLEMS: ExampleProblem[] = [
     label: '2023 华数杯 C 题',
     title: '母亲身心健康对婴儿成长的影响',
     methods: ['统计', '回归分析', '分类预测'],
-    folderName: '2023华数杯C题',
     officialSource: '华数杯全国大学生数学建模竞赛',
     // The organiser's site is not confirmed yet, so no link is offered.
     officialUrl: null,
@@ -111,7 +98,6 @@ export const EXAMPLE_PROBLEMS: ExampleProblem[] = [
     label: '2024 高教社杯 C 题',
     title: '农作物的种植策略',
     methods: ['优化', '规划', '种植策略'],
-    folderName: '2024高教杯C题',
     officialSource: '全国大学生数学建模竞赛',
     officialUrl: 'https://www.mcm.edu.cn/',
     prompt:

@@ -18,6 +18,7 @@ import { View, ViewOptions } from '../utils/navigationUtils';
 import { useConfig } from './ConfigContext';
 import { getEffectiveWorkingDir, getInitialWorkingDir } from '../utils/workingDir';
 import { consumePendingProject, onOpenProjectRequest } from '../utils/pendingProject';
+import { isAllowedUrl } from '../utils/urlPolicy';
 import { createSession } from '../sessions';
 import LoadingGoose from './LoadingGoose';
 import { UserInput } from '../types/message';
@@ -27,7 +28,7 @@ import {
   type NextChatExtensionDraft,
 } from '../utils/nextChatExtensions';
 import { formatAcpError } from '../acp/errors';
-import { toastError, toastSuccess } from '../toasts';
+import { toastError } from '../toasts';
 import { formatClockDisplay } from '../utils/timeUtils';
 import { takeComposerSeed } from '../utils/composerSeed';
 import { ModelForgeMark } from './icons/ModelForge';
@@ -41,7 +42,6 @@ import {
   Database,
   ExternalLink,
   FileText,
-  Loader2,
   MessageSquare,
   PenLine,
 } from 'lucide-react';
@@ -60,7 +60,6 @@ import {
   CONTEST_PRESETS,
   EXAMPLE_PROBLEMS,
   WORKFLOW_PRESETS,
-  isMissingBuiltinExample,
   type ContestPreset,
   type ExampleProblem,
   type WorkflowPreset,
@@ -87,22 +86,9 @@ const i18n = defineMessages({
     defaultMessage: 'No preset workflow; start from your own input',
   },
   examplesTitle: { id: 'hub.examplesTitle', defaultMessage: 'Try one of these contest problems' },
-  examplePreparing: { id: 'hub.examplePreparing', defaultMessage: 'Loading example…' },
-  exampleLoadFailed: {
-    id: 'hub.exampleLoadFailed',
-    defaultMessage: "Couldn't load the example. Please try again.",
-  },
-  exampleProjectCreated: {
-    id: 'hub.exampleProjectCreated',
-    defaultMessage: 'Created project "{name}" for this problem',
-  },
-  exampleNotBundled: {
-    id: 'hub.exampleNotBundled',
-    defaultMessage: 'Statement not bundled; a local copy is used if present',
-  },
-  exampleMissingLocal: {
-    id: 'hub.exampleMissingLocal',
-    defaultMessage: 'No local copy of this problem',
+  exampleOpenLibrary: {
+    id: 'hub.exampleOpenLibrary',
+    defaultMessage: 'Open in the example library',
   },
   exampleDownloadGuide: {
     id: 'hub.exampleDownloadGuide',
@@ -215,9 +201,8 @@ export default function Hub({
     text: string;
     mode?: 'append';
   } | null>(null);
-  const [loadingExampleId, setLoadingExampleId] = useState<string | null>(null);
-  // Problems found to have no local copy; their cards show the official source instead.
-  const [missingExampleIds, setMissingExampleIds] = useState<ReadonlySet<string>>(() => new Set());
+
+
   useEffect(() => clearActiveFile(), [workingDir, clearActiveFile]);
 
   // The figure and paper catalogue pages queue a prompt before navigating here, because
@@ -283,65 +268,17 @@ export default function Hub({
     [workflow, contest, applyPreset]
   );
 
+  /**
+   * Opens the example library, where the problem's statement, attachments, licence and
+   * reference approach live and a Project is created through `ProjectService`
+   * (spec requirement 9.3, task 11.10). The card also pre-fills the matching prompt.
+   */
   const handleExampleSelect = useCallback(
-    async (problem: ExampleProblem) => {
-      if (loadingExampleId) return;
-      setLoadingExampleId(problem.id);
-      try {
-        let targetDir = workingDir;
-        if (!targetDir) {
-          const picked = await window.electron.directoryChooser();
-          if (picked.canceled || !picked.filePaths?.[0]) return;
-          targetDir = picked.filePaths[0];
-        }
-        const result = await window.electron.copyBuiltinExample({
-          folderName: problem.folderName,
-          targetDir,
-        });
-        if (!result.ok) {
-          if (isMissingBuiltinExample(result.error)) {
-            setMissingExampleIds((ids) => new Set(ids).add(problem.id));
-            return;
-          }
-          toastError({
-            title: intl.formatMessage(i18n.exampleLoadFailed),
-            msg: result.error,
-          });
-          return;
-        }
-        setMissingExampleIds((ids) => {
-          if (!ids.has(problem.id)) return ids;
-          const next = new Set(ids);
-          next.delete(problem.id);
-          return next;
-        });
-        handleWorkingDirChange(result.projectDir);
-        window.electron.addRecentDir(result.projectDir);
-        selectWorkspaceTab('project');
-        applyPreset(workflow, contest, problem.prompt);
-        toastSuccess({
-          title: intl.formatMessage(i18n.exampleProjectCreated, { name: problem.folderName }),
-        });
-      } catch (error) {
-        console.error('Failed to prepare example project:', error);
-        toastError({
-          title: intl.formatMessage(i18n.exampleLoadFailed),
-          msg: formatAcpError(error),
-        });
-      } finally {
-        setLoadingExampleId(null);
-      }
+    (problem: ExampleProblem) => {
+      applyPreset(workflow, contest, problem.prompt);
+      setView('examples', { exampleId: problem.id });
     },
-    [
-      loadingExampleId,
-      workingDir,
-      intl,
-      workflow,
-      contest,
-      applyPreset,
-      handleWorkingDirChange,
-      selectWorkspaceTab,
-    ]
+    [workflow, contest, applyPreset, setView]
   );
 
   const handleSubmit = async (input: UserInput) => {
@@ -496,21 +433,15 @@ export default function Hub({
               </h2>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 {EXAMPLE_PROBLEMS.map((problem) => {
-                  const preparing = loadingExampleId === problem.id;
-                  const missing = missingExampleIds.has(problem.id);
                   const officialUrl = problem.officialUrl;
                   return (
                     <div
                       key={problem.id}
-                      className={cn(
-                        'flex flex-col rounded-xl border border-border-secondary transition-colors hover:border-border-primary',
-                        preparing && 'opacity-60'
-                      )}
+                      className="flex flex-col rounded-xl border border-border-secondary transition-colors hover:border-border-primary"
                     >
                       <button
                         type="button"
                         onClick={() => handleExampleSelect(problem)}
-                        disabled={loadingExampleId !== null}
                         className="flex flex-col rounded-xl p-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring-info"
                       >
                         <span className="text-[11px] text-text-tertiary">{problem.label}</span>
@@ -527,52 +458,34 @@ export default function Hub({
                             </span>
                           ))}
                         </span>
-                        {preparing ? (
-                          <span className="mt-2 flex items-center gap-1 text-[10px] text-text-tertiary">
-                            <Loader2
-                              aria-hidden="true"
-                              className="h-3 w-3 animate-spin motion-reduce:animate-none"
-                            />
-                            {intl.formatMessage(i18n.examplePreparing)}
-                          </span>
-                        ) : missing ? null : (
-                          <span className="mt-2 text-[10px] text-text-tertiary">
-                            {intl.formatMessage(i18n.exampleNotBundled)}
+                        <span className="mt-2 text-[10px] text-text-tertiary">
+                          {intl.formatMessage(i18n.exampleOpenLibrary)}
+                        </span>
+                      </button>
+                      <div className="flex flex-col gap-1 border-t border-border-secondary px-3 pb-3 pt-2 text-[11px]">
+                        <span className="text-text-tertiary">
+                          {intl.formatMessage(i18n.exampleDownloadGuide)}
+                        </span>
+                        {officialUrl && isAllowedUrl(officialUrl) ? (
+                          <button
+                            type="button"
+                            onClick={() => void window.electron.openExternal(officialUrl)}
+                            title={officialUrl}
+                            className="flex items-center gap-1 self-start rounded text-text-info hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring-info"
+                          >
+                            <ExternalLink aria-hidden="true" className="h-3 w-3 shrink-0" />
+                            {intl.formatMessage(i18n.exampleOfficialSource, {
+                              source: problem.officialSource,
+                            })}
+                          </button>
+                        ) : (
+                          <span className="text-text-tertiary">
+                            {intl.formatMessage(i18n.exampleOfficialSourcePending, {
+                              source: problem.officialSource,
+                            })}
                           </span>
                         )}
-                      </button>
-                      {missing && !preparing ? (
-                        <div
-                          role="status"
-                          className="flex flex-col gap-1 border-t border-border-secondary px-3 pb-3 pt-2 text-[11px]"
-                        >
-                          <span className="text-text-primary">
-                            {intl.formatMessage(i18n.exampleMissingLocal)}
-                          </span>
-                          <span className="text-text-tertiary">
-                            {intl.formatMessage(i18n.exampleDownloadGuide)}
-                          </span>
-                          {officialUrl ? (
-                            <button
-                              type="button"
-                              onClick={() => window.open(officialUrl, '_blank')}
-                              title={officialUrl}
-                              className="flex items-center gap-1 self-start rounded text-text-info hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring-info"
-                            >
-                              <ExternalLink aria-hidden="true" className="h-3 w-3 shrink-0" />
-                              {intl.formatMessage(i18n.exampleOfficialSource, {
-                                source: problem.officialSource,
-                              })}
-                            </button>
-                          ) : (
-                            <span className="text-text-tertiary">
-                              {intl.formatMessage(i18n.exampleOfficialSourcePending, {
-                                source: problem.officialSource,
-                              })}
-                            </span>
-                          )}
-                        </div>
-                      ) : null}
+                      </div>
                     </div>
                   );
                 })}

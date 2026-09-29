@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 import { BookOpen, ExternalLink, FolderOpen, X } from 'lucide-react';
 import { MainPanelLayout } from '../Layout/MainPanelLayout';
 import { cn } from '../../utils';
@@ -28,8 +28,10 @@ const i18n = defineMessages({
 export default function ExamplesView() {
   const intl = useIntl();
   const navigate = useNavigate();
+  // A home card names the problem it stands for, so arriving from one selects it.
+  const requestedId = (useLocation().state as { exampleId?: string } | null)?.exampleId ?? null;
   const [entries, setEntries] = useState<ExampleEntry[] | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(requestedId);
   const [parentDir, setParentDir] = useState('');
   const [choosing, setChoosing] = useState(false);
   const [error, setError] = useState<string | null>(null);

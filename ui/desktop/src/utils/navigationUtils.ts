@@ -17,6 +17,7 @@ export type View =
   | 'loading'
   | 'recipes'
   | 'skills'
+  | 'examples'
   | 'permission';
 
 export type ViewOptions = {
@@ -30,6 +31,8 @@ export type ViewOptions = {
   initialMessage?: UserInput;
   resumeSessionId?: string;
   pendingScheduleDeepLink?: string;
+  /** Example the library should select on arrival (home cards, requirement 9.2). */
+  exampleId?: string;
 };
 
 export const createNavigationHandler = (navigate: NavigateFunction) => {
@@ -65,6 +68,9 @@ export const createNavigationHandler = (navigate: NavigateFunction) => {
         break;
       case 'skills':
         navigate('/skills', { state: options });
+        break;
+      case 'examples':
+        navigate('/examples', { state: options });
         break;
       case 'permission':
         navigate('/permission', { state: options });

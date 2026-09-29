@@ -150,11 +150,6 @@ type ElectronAPI = {
   getConfig: () => Record<string, unknown>;
   hideWindow: () => void;
   directoryChooser: () => Promise<Electron.OpenDialogReturnValue>;
-  /** Copies a bundled contest example into the project directory. */
-  copyBuiltinExample: (request: {
-    folderName: string;
-    targetDir: string;
-  }) => Promise<{ ok: true; projectDir: string } | { ok: false; error: string }>;
   createChatWindow: (options?: CreateChatWindowOptions) => void;
   logInfo: (txt: string) => void;
   showNotification: (data: NotificationData) => void;
@@ -456,8 +451,6 @@ const electronAPI: ElectronAPI = {
   },
   hideWindow: () => ipcRenderer.send('hide-window'),
   directoryChooser: () => ipcRenderer.invoke('directory-chooser'),
-  copyBuiltinExample: (request: { folderName: string; targetDir: string }) =>
-    ipcRenderer.invoke('copy-builtin-example', request),
   createChatWindow: (options?: CreateChatWindowOptions) =>
     ipcRenderer.send('create-chat-window', options || {}),
   logInfo: (txt: string) => ipcRenderer.send('logInfo', txt),
