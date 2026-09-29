@@ -29,7 +29,7 @@ pub(super) struct CheckpointGuard {
 }
 
 impl CheckpointGuard {
-    pub(super) fn new(
+    pub(super) fn into_guard(
         session_id: String,
         turn: u64,
         cx: ConnectionTo<Client>,

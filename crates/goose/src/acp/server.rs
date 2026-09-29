@@ -1966,7 +1966,8 @@ impl GooseAcpAgent {
                 .apply()
                 .await?;
 
-            let guard = checkpoint::CheckpointGuard::new(session_id.to_string(), turn, cx.clone());
+            let guard =
+                checkpoint::CheckpointGuard::into_guard(session_id.to_string(), turn, cx.clone());
             agent.set_checkpoint_guard(Some(guard));
             Ok::<(), anyhow::Error>(())
         }
