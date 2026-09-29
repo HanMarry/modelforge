@@ -13,6 +13,8 @@ use std::{path::PathBuf, time::Duration};
 
 use crate::subprocess::SubprocessExt;
 
+pub mod run_record;
+
 /// Parameters for the compile_latex tool
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct CompileLatexParams {
