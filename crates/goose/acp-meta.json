@@ -556,6 +556,11 @@
       "method": "_goose/unstable/session/recipe/request-params",
       "requestType": "RequestRecipeParams_unstable",
       "responseType": "RecipeParamsResponse_unstable"
+    },
+    {
+      "method": "_goose/unstable/session/checkpoint/ensure",
+      "requestType": "EnsureCheckpointRequest_unstable",
+      "responseType": "EnsureCheckpointResponse_unstable"
     }
   ]
 }

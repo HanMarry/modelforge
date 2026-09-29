@@ -19,7 +19,9 @@ pub use diagnostics::{
 pub use export_markdown::{
     export_session_to_markdown, message_to_markdown, user_projected_message_to_markdown,
 };
-pub use extension_data::{EnabledExtensionsState, ExtensionData, ExtensionState, TodoState};
+pub use extension_data::{
+    CheckpointTurnState, EnabledExtensionsState, ExtensionData, ExtensionState, TodoState,
+};
 pub use session_manager::{
     Session, SessionInsights, SessionManager, SessionNameUpdate, SessionType, SessionUpdateBuilder,
 };

@@ -213,7 +213,7 @@ export default function WorkspacePanel({
               )}
               {visitedTabs.has('versions') && (
                 <div className={cn('h-full min-h-0', tab !== 'versions' && 'hidden')}>
-                  <VersionsPanel workingDir={workingDir} />
+                  <VersionsPanel workingDir={workingDir} isAgentActive={isAgentActive} />
                 </div>
               )}
               {visitedTabs.has('environment') && (

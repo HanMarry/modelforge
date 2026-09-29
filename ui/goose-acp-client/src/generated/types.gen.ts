@@ -2758,6 +2758,16 @@ export type RecipeParamsResponse_unstable = {
 
 export type RecipeParamsAction = 'submit' | 'cancel';
 
+export type EnsureCheckpointRequest_unstable = {
+    sessionId: string;
+    turn: number;
+    workingDir: string;
+};
+
+export type EnsureCheckpointResponse_unstable = {
+    checkpointId?: string | null;
+};
+
 export type ExtRequest = {
     id: string;
     method: string;
@@ -2788,14 +2798,14 @@ export type ExtNotification = {
 export type ExtAgentRequest = {
     id: string;
     method: string;
-    params?: RequestRecipeParams_unstable | {
+    params?: RequestRecipeParams_unstable | EnsureCheckpointRequest_unstable | {
         [key: string]: unknown;
     } | null;
 };
 
 export type ExtAgentResponse = {
     id: string;
-    result?: RecipeParamsResponse_unstable | unknown;
+    result?: RecipeParamsResponse_unstable | EnsureCheckpointResponse_unstable | unknown;
 } | {
     error: {
         code: number;

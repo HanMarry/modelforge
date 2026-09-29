@@ -7005,6 +7005,41 @@
         "cancel"
       ]
     },
+    "EnsureCheckpointRequest_unstable": {
+      "type": "object",
+      "properties": {
+        "sessionId": {
+          "type": "string"
+        },
+        "turn": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "workingDir": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "sessionId",
+        "turn",
+        "workingDir"
+      ],
+      "x-side": "client",
+      "x-method": "_goose/unstable/session/checkpoint/ensure"
+    },
+    "EnsureCheckpointResponse_unstable": {
+      "type": "object",
+      "properties": {
+        "checkpointId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "x-side": "client",
+      "x-method": "_goose/unstable/session/checkpoint/ensure"
+    },
     "ExtRequest": {
       "properties": {
         "id": {
@@ -8730,6 +8765,15 @@
                   ],
                   "description": "Params for _goose/unstable/session/recipe/request-params",
                   "title": "RequestRecipeParams_unstable"
+                },
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/EnsureCheckpointRequest_unstable"
+                    }
+                  ],
+                  "description": "Params for _goose/unstable/session/checkpoint/ensure",
+                  "title": "EnsureCheckpointRequest_unstable"
                 }
               ]
             },
@@ -8768,6 +8812,14 @@
                         }
                       ],
                       "title": "RecipeParamsResponse_unstable"
+                    },
+                    {
+                      "allOf": [
+                        {
+                          "$ref": "#/$defs/EnsureCheckpointResponse_unstable"
+                        }
+                      ],
+                      "title": "EnsureCheckpointResponse_unstable"
                     }
                   ]
                 },

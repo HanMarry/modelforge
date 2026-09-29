@@ -70,10 +70,12 @@ import './utils/gitBranchIpc';
 import './utils/recipeHash';
 import { registerWorkspaceIpc } from './utils/workspaceIpc';
 import { registerGitVersionIpc } from './utils/gitVersionIpc';
+import { registerCheckpointIpc } from './utils/checkpoints/checkpointIpc';
 import { disposeTerminalSessions, registerTerminalIpc } from './utils/terminalIpc';
 
 registerWorkspaceIpc();
 registerGitVersionIpc();
+registerCheckpointIpc();
 registerTerminalIpc();
 import type { GooseApp } from './types/apps';
 import installExtension, { REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer';

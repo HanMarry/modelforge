@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { History, RotateCcw, Save, GitBranch, FileDiff } from 'lucide-react';
 import type { GitCheckpoint, GitCheckpointFile, GitVersionStatus } from '../../types/workspaceApi';
+import AutoCheckpointsTab from './AutoCheckpointsTab';
 import DiffView from './preview/DiffView';
 import { cn } from '../../utils';
 import { defineMessages, useIntl } from '../../i18n';
@@ -10,6 +11,14 @@ const i18n = defineMessages({
   title: {
     id: 'versionsPanel.title',
     defaultMessage: 'Project versions',
+  },
+  gitHistoryTab: {
+    id: 'versionsPanel.gitHistoryTab',
+    defaultMessage: 'Git history',
+  },
+  autoSnapshotsTab: {
+    id: 'versionsPanel.autoSnapshotsTab',
+    defaultMessage: 'Auto snapshots',
   },
   notARepo: {
     id: 'versionsPanel.notARepo',
@@ -113,9 +122,14 @@ function formatTimestamp(timestamp: number): string {
 
 interface VersionsPanelProps {
   workingDir: string;
+  isAgentActive?: boolean;
 }
 
-export default function VersionsPanel({ workingDir }: VersionsPanelProps) {
+interface GitHistoryTabProps {
+  workingDir: string;
+}
+
+function GitHistoryTab({ workingDir }: GitHistoryTabProps) {
   const intl = useIntl();
   const [status, setStatus] = useState<GitVersionStatus | null>(null);
   const [checkpoints, setCheckpoints] = useState<GitCheckpoint[]>([]);
@@ -441,6 +455,40 @@ export default function VersionsPanel({ workingDir }: VersionsPanelProps) {
             )}
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+export default function VersionsPanel({ workingDir, isAgentActive = false }: VersionsPanelProps) {
+  const intl = useIntl();
+  const [tab, setTab] = useState<'git' | 'auto'>('git');
+
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="flex items-center gap-1 border-b border-border-primary px-2 py-1">
+        {(['git', 'auto'] as const).map((entry) => (
+          <button
+            key={entry}
+            type="button"
+            onClick={() => setTab(entry)}
+            className={cn(
+              'rounded px-2 py-0.5 text-[11px] transition-colors',
+              tab === entry
+                ? 'bg-background-tertiary text-text-primary'
+                : 'text-text-secondary hover:bg-background-tertiary/60 hover:text-text-primary'
+            )}
+          >
+            {intl.formatMessage(entry === 'git' ? i18n.gitHistoryTab : i18n.autoSnapshotsTab)}
+          </button>
+        ))}
+      </div>
+      <div className="min-h-0 flex-1">
+        {tab === 'git' ? (
+          <GitHistoryTab workingDir={workingDir} />
+        ) : (
+          <AutoCheckpointsTab workingDir={workingDir} isAgentActive={isAgentActive} />
+        )}
       </div>
     </div>
   );

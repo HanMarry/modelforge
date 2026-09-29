@@ -39,7 +39,8 @@ use crate::providers::inventory::{
 use crate::scheduler_trait::SchedulerTrait;
 use crate::session::session_manager::SessionUsageTotals;
 use crate::session::{
-    EnabledExtensionsState, ExtensionData, ExtensionState, Session, SessionManager, SessionType,
+    CheckpointTurnState, EnabledExtensionsState, ExtensionData, ExtensionState, Session,
+    SessionManager, SessionType,
 };
 use crate::source_roots::SourceRoot;
 use crate::utils::sanitize_unicode_tags;
@@ -99,6 +100,7 @@ mod agent_requests;
 pub use agent_requests::agent_request_schemas;
 mod agent_mentions;
 mod apps;
+mod checkpoint;
 mod config;
 mod custom_dispatch;
 mod diagnostics;
@@ -363,6 +365,7 @@ pub struct GooseAcpAgent {
     client_supports_acp_elicitation: OnceCell<bool>,
     client_supports_goose_custom_notifications: OnceCell<bool>,
     client_supports_recipe_param_requests: OnceCell<bool>,
+    client_supports_checkpoint_requests: OnceCell<bool>,
     client_requests_tool_call_label_enrichment: OnceCell<bool>,
     use_login_shell_path: OnceCell<bool>,
     client_cx: OnceCell<ConnectionTo<Client>>,
@@ -471,6 +474,8 @@ struct GooseClientCapabilities {
     custom_notifications: Option<bool>,
     #[serde(rename = "recipeParameterRequests", default)]
     recipe_parameter_requests: Option<bool>,
+    #[serde(rename = "checkpointRequests", default)]
+    checkpoint_requests: Option<bool>,
     #[serde(rename = "toolCallLabelEnrichment", default)]
     tool_call_label_enrichment: Option<bool>,
 }
@@ -962,6 +967,13 @@ impl GooseAcpAgent {
             .unwrap_or(false)
     }
 
+    pub(super) fn supports_checkpoint_requests(&self) -> bool {
+        self.client_supports_checkpoint_requests
+            .get()
+            .copied()
+            .unwrap_or(false)
+    }
+
     fn requests_tool_call_label_enrichment(&self) -> bool {
         self.client_requests_tool_call_label_enrichment
             .get()
@@ -1012,6 +1024,7 @@ impl GooseAcpAgent {
             client_supports_acp_elicitation: OnceCell::new(),
             client_supports_goose_custom_notifications: OnceCell::new(),
             client_supports_recipe_param_requests: OnceCell::new(),
+            client_supports_checkpoint_requests: OnceCell::new(),
             client_requests_tool_call_label_enrichment: OnceCell::new(),
             use_login_shell_path: OnceCell::new(),
             client_cx: OnceCell::new(),
@@ -1676,6 +1689,14 @@ fn extract_client_supports_recipe_param_requests(
         .unwrap_or(false)
 }
 
+fn extract_client_supports_checkpoint_requests(
+    goose_client_capabilities: Option<&GooseClientCapabilities>,
+) -> bool {
+    goose_client_capabilities
+        .and_then(|goose| goose.checkpoint_requests)
+        .unwrap_or(false)
+}
+
 fn outcome_to_confirmation(outcome: &RequestPermissionOutcome) -> PermissionConfirmation {
     PermissionConfirmation {
         principal_type: PrincipalType::Tool,
@@ -1839,6 +1860,9 @@ impl GooseAcpAgent {
         let _ = self.client_supports_recipe_param_requests.set(
             extract_client_supports_recipe_param_requests(goose_client_capabilities.as_ref()),
         );
+        let _ = self.client_supports_checkpoint_requests.set(
+            extract_client_supports_checkpoint_requests(goose_client_capabilities.as_ref()),
+        );
         let client_requests_tool_call_label_enrichment = goose_client_capabilities
             .as_ref()
             .and_then(|goose| goose.tool_call_label_enrichment)
@@ -1919,6 +1943,43 @@ impl GooseAcpAgent {
             })?;
         let (agent, _) = self.activate_acp_session(cx, &session).await?;
         Ok(agent)
+    }
+
+    /// Advance the session's checkpoint turn counter and inject a write-before
+    /// guard into the agent. Best-effort: on any failure the prompt continues
+    /// without checkpoint protection rather than being blocked by bookkeeping.
+    async fn prepare_checkpoint_guard(
+        &self,
+        session_id: &str,
+        agent: &Arc<Agent>,
+        cx: &ConnectionTo<Client>,
+    ) {
+        let result = async {
+            let session = self.session_manager.get_session(session_id, false).await?;
+            let turn = CheckpointTurnState::current_turn(&session.extension_data) + 1;
+
+            let mut extension_data = session.extension_data.clone();
+            CheckpointTurnState { turn }.to_extension_data(&mut extension_data)?;
+            self.session_manager
+                .update(session_id)
+                .extension_data(extension_data)
+                .apply()
+                .await?;
+
+            let guard = checkpoint::CheckpointGuard::new(session_id.to_string(), turn, cx.clone());
+            agent.set_checkpoint_guard(Some(guard));
+            Ok::<(), anyhow::Error>(())
+        }
+        .await;
+
+        if let Err(error) = result {
+            warn!(
+                session_id = %session_id,
+                error = %error,
+                "failed to prepare checkpoint guard"
+            );
+            agent.set_checkpoint_guard(None);
+        }
     }
 
     async fn start_active_run(
@@ -2335,6 +2396,10 @@ impl GooseAcpAgent {
             max_turns: None,
             retry_config: None,
         };
+
+        if self.supports_checkpoint_requests() {
+            self.prepare_checkpoint_guard(&session_id, &agent, cx).await;
+        }
 
         let stream = match agent
             .reply(user_message, session_config, Some(cancel_token.clone()))

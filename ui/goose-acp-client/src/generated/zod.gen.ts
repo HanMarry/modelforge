@@ -2289,6 +2289,16 @@ export const zRecipeParamsResponse_unstable = z.object({
     values: z.record(z.string(), z.string()).optional().default({})
 });
 
+export const zEnsureCheckpointRequest_unstable = z.object({
+    sessionId: z.string(),
+    turn: z.int().gte(0),
+    workingDir: z.string()
+});
+
+export const zEnsureCheckpointResponse_unstable = z.object({
+    checkpointId: z.string().nullish()
+});
+
 export const zExtRequest = z.object({
     id: z.string(),
     method: z.string(),
@@ -2516,7 +2526,10 @@ export const zExtAgentRequest = z.object({
     id: z.string(),
     method: z.string(),
     params: z.union([
-        zRequestRecipeParams_unstable,
+        z.union([
+            zRequestRecipeParams_unstable,
+            zEnsureCheckpointRequest_unstable
+        ]),
         z.record(z.string(), z.unknown())
     ]).nullish()
 });
@@ -2525,7 +2538,10 @@ export const zExtAgentResponse = z.union([
     z.object({
         id: z.string(),
         result: z.union([
-            zRecipeParamsResponse_unstable,
+            z.union([
+                zRecipeParamsResponse_unstable,
+                zEnsureCheckpointResponse_unstable
+            ]),
             z.unknown()
         ]).optional()
     }),
