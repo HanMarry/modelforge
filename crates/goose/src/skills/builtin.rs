@@ -11,7 +11,10 @@ static BUILTIN_SKILLS_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/src/skills/bu
 ///
 /// "2": the contest problems under `math_modeling/assets/examples/` were removed, so
 /// trees extracted by earlier builds are rewritten without them.
-const BUILTIN_ASSETS_VERSION: &str = "2";
+/// "3": `mathmodel_mock_review/` (manifest and output schema of the mock review skill) was
+/// added; a tree stamped "2" would otherwise never receive it, because extraction is
+/// skipped while the stamp matches.
+const BUILTIN_ASSETS_VERSION: &str = "3";
 
 /// Outcome of the single extraction attempt this process makes.
 static EXTRACTED: OnceLock<Result<(), String>> = OnceLock::new();

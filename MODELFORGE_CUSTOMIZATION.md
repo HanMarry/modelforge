@@ -142,7 +142,7 @@ goose 已内置声明式 provider：`crates/goose-providers/src/declarative/*.js
 每个文件是「YAML frontmatter（`name` + `description`）+ Markdown 正文」，agent 通过
 `load_skill(name: "...")` 加载。风格统一：`## Requirements` → 分步骤/示例 → `## Rules`。
 
-已内置 **47 个技能**：**11 个采用参考产品正文**的工具/流程技能 + 32 个本项目编写的方法、
+已内置 **48 个技能**：**11 个采用参考产品正文**的工具/流程技能 + 33 个本项目编写的方法、
 领域、工程与写作技能 + 2 个上游通用技能 + `mathmodel-figure-templates` 与 `skill-creator` 两个
 独立技能包。本项目编写的技能描述一律为中文触发式（含"用户说…时使用"的触发条件），
 因为 goose 用 description 做技能路由，中文触发词才匹配中文提问。上游自带的
@@ -157,6 +157,7 @@ goose 已内置声明式 provider：`crates/goose-providers/src/declarative/*.js
 | `math-paper` | `math_paper.md` | **产品正文**：模板来源判定 → 集中确认模型 → 逐问求解 → 配图路由 → 真实引用 → 编译；17 套真实模板 |
 | `math-figure` | `math_figure.md` | **产品正文**：只做路由（数据图表 / 内置模板 / `nature-figure` / `paper-diagram` / TikZ）+ 产物约定 |
 | `math-review` | `math_review.md` | **产品正文**：六维 0–10 + 致命项 + 产出 `review.md`，只评不改 |
+| `mathmodel-mock-review` | `mathmodel_mock_review.md` + `mathmodel_mock_review/` | 本项目编写（需求 19）：按赛事的结构化模拟评审，6 维 0–10 整数分、每条意见带位置，只输出符合 `review-output.schema.json` 的 JSON，供桌面端校验、保存与逐维对比 |
 | `mathmodel-figure-templates` | `mathmodel_figure_templates.md` + 目录 | **产品正文与全套资产**：90 个模板脚本、`render_template.py`、4 篇参考、90 张自带预览、Natural Earth 几何 |
 | `paper-search` | `paper_search.md` + `scripts/paper_search.py` | **产品正文与脚本**：OpenAlex+Crossref 双引擎，`search`/`verify`/`bib`，DOI 反查生成 BibTeX |
 | `data-search` | `data_search.md` + `scripts/record_source.py` + `references/source-routing.md` | **产品正文与脚本**：按权威度检索公开数据，登记 SHA-256 到 `data/sources.json`（`browser_*` 一节按本 fork 改写） |
@@ -410,7 +411,7 @@ UI 的扩展列表由这个 JSON 通过 `syncBundledExtensions()` 写入 `config
 | 文档数字与文件系统一致 | `pnpm run docs:check` | ✅ 通过（技能/模板/连接器/算法/i18n 计数跨四个文档核对） |
 | **技能引用的资产真实存在** | `pnpm run docs:check` | ✅ 通过（**本轮新增**：技能正文、目录文件、主页预设指向的模板/脚本/入口文件逐个核对） |
 | 连接器 MCP 握手 | `pnpm run connectors:check` | ✅ **8/8 通过**（真实 initialize + tools/list，非仅命令解析） |
-| 内置技能 frontmatter | `node scripts/check-skills.js` | ✅ 47/47 |
+| 内置技能 frontmatter | `node scripts/check-skills.js` | ✅ 48/48 |
 | 自研脚本实测 | `paper_search.py` / `record_source.py` | ✅ 检索、DOI 交叉验证、BibTeX 生成、伪 DOI 拒绝、来源登记与去重全部实测通过 |
 | renderer 生产构建 | `vite build --config vite.renderer.config.mts` | ✅ 2.5s，14 张绘图 + 17 张论文预览全部产出 |
 | 绘图模板端到端 | `pnpm run figures:build` | ✅ 14/14 出图（图库 104 条目录，102 条可用） |

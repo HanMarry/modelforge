@@ -127,7 +127,7 @@ cargo build
 
 | # | 操作 | 期望 |
 |---|---|---|
-| 2.9.1 | 打开 | 左列表 + 右详情；列表分「已启用」「已停用」两组，各带计数；顶部显示「共 47 个技能」（含用户技能时更多） |
+| 2.9.1 | 打开 | 左列表 + 右详情；列表分「已启用」「已停用」两组，各带计数；顶部显示「共 48 个技能」（含用户技能时更多） |
 | 2.9.2 | 选中一个内置技能（如 `math-paper`） | 详情渲染 **SKILL.md 正文**（不含 frontmatter），显示状态「已启用」、来源「内置」、位置 `builtin://skills/math-paper` |
 | 2.9.3 | 内置技能的停用按钮 | **不显示**，改为一句说明「内置技能随应用更新，不能停用」 |
 | 2.9.4 | 选中一个用户技能点「停用」 | 目录被移入 `%APPDATA%/ModelForge/skills-disabled/`，该技能出现在「已停用」组，重启后内核不再列出它 |
@@ -176,7 +176,7 @@ cargo build
 
 | 能力项 | 数量 | 本机自动验证 | 待工具链验收 |
 |---|---|---|---|
-| A1 技能正文 | 47 | ✅ frontmatter/规范/覆盖/选型表连通；**描述全部为中文触发式** | 3.1、3.4 |
+| A1 技能正文 | 48 | ✅ frontmatter/规范/覆盖/选型表连通；**描述全部为中文触发式** | 3.1、3.4 |
 | A2 赛事论文模板 | **17 可编译 / 17 目录** | ✅ **真编译**（16 套 xelatex + 1 套 typst，全部出 PDF + 首页预览） | 3.7 |
 | A3 科研绘图模板 | **104 条**（90 个产品模板 + 14 个自建） | ✅ **真渲染**（102 张有预览；2 个 cartopy 模板需 MSVC 构建工具） | — |
 | A4 算法库 | 23 条 | ✅ 目录数据 + 构建产出 | 页面目视（2.3） |
@@ -199,7 +199,7 @@ cargo build
 
 | # | 操作 | 期望 |
 |---|---|---|
-| 3.1 | 新建会话问「加载所有技能」 | 技能列表里能看到 **47 个**，含方法论/写作/分支/运营技能，以及 `doctor`、`metaheuristic-optimization`、`paper-diagram`、`nature-figure` 四个工具技能 |
+| 3.1 | 新建会话问「加载所有技能」 | 技能列表里能看到 **48 个**，含方法论/写作/分支/运营技能，以及 `doctor`、`metaheuristic-optimization`、`paper-diagram`、`nature-figure` 四个工具技能 |
 | 3.2 | 让 agent 加载 `math-figure` | 回复里列出 14 个模板与 skill 目录的绝对路径 |
 | 3.3 | 让 agent 加载 `math-modeling` | 列出 3 个样例题与 15 个支撑文件 |
 | 3.4 | 按样例题 1 走一遍 | agent 能加载 `optimization-modeling` + `sensitivity-analysis`，并真的跑数据 |
@@ -255,7 +255,7 @@ cd ui/desktop
 pnpm run lint:check                          # typecheck + eslint + i18n:check
 pnpm run brand:check                         # 矢量与 brand-mark.json 一致
 pnpm run docs:check                          # 文档里的数字与文件系统一致（跨文档核对）
-node scripts/check-skills.js                 # 47/47 技能 frontmatter 与规范
+node scripts/check-skills.js                 # 48/48 技能 frontmatter 与规范
 pnpm run figures:build                       # 14 个绘图模板出图（需 uv）
 pnpm run papers:build                        # 17 套论文模板编译（16 套 xelatex + 1 套 typst）
 node scripts/check-connectors.js             # 8 条连接器真实 MCP 握手（需联网取包）

@@ -64,7 +64,7 @@ node scripts/unregister-deeplink-protocols.js
 
 | 脚本 | 作用 |
 |---|---|
-| `check-skills.js` | 内置技能 frontmatter 与 agentskills 规范（名称模式、描述 ≤1024 字符） |
+| `check-skills.js` | 内置技能 frontmatter 与 agentskills 规范（名称模式、描述 ≤1024 字符）；builtins 下不得有赛题；`src/catalog/learning-path.json` 的 5 个分组与关联技能都存在；`mathmodel-mock-review` 的输出 schema 维度与赛事侧重表对得上 `competitions.json` |
 | `docs-check.js` | ① 从文件系统推导计数并与四份文档核对；② **校验技能正文、目录文件、主页预设引用的资产是否真实存在**——包括"技能让 agent 去跑的脚本"与"正文链接的参考文档" |
 | `check-connectors.js` | 对每条连接器发真实 MCP `initialize` + `tools/list`（`node scripts/check-connectors.js arxiv` 可单测一条） |
 | `i18n-check.js` / `i18n-validate-locale.js` / `i18n-translations.js` | 文案与源码一致、各语言完整、新文案补翻译 |

@@ -1,0 +1,30 @@
+name: mathmodel-mock-review
+version: 1.0.0
+description: >
+  Declarative manifest for the structured mock review (spec
+  mathmodel-parity-and-beyond, requirement 19). The skill body
+  (mathmodel_mock_review.md) is self-contained: it carries the six-dimension
+  rubric, the score bands, the per-competition focus table and the output
+  contract, so the review works even when this directory has not been
+  extracted to disk. This manifest names the machine-readable parts that the
+  desktop app and the repository checks rely on.
+
+# JSON Schema of the object the skill returns. The desktop validator
+# (ui/desktop/src/utils/review/reviewModel.ts) enforces the same rules plus the
+# ones JSON Schema cannot express: every dimension name exactly once, non-blank
+# reasons, and a line range whose start does not exceed its end.
+output_schema: review-output.schema.json
+
+axes:
+  competition:
+    detect: |
+      BLOCKING GATE. Take the competition id from the request; the desktop review
+      panel always sends one. Without a competition, do not start the review and
+      say that no competition was selected. An id missing from the focus table
+      falls back to the general CUMCM focus.
+    # Read-only reference: competition ids are owned by the desktop catalogue.
+    # `node scripts/check-skills.js` fails if the focus table in the skill body
+    # and this catalogue list different ids.
+    source: ui/desktop/src/catalog/competitions.json
+    focus_table: ../mathmodel_mock_review.md (section 4)
+    multi: false
