@@ -175,6 +175,12 @@ export function createFeishuConnector(options: FeishuConnectorOptions): FeishuCo
   };
 
   const handleMessage = async (event: FeishuInboundEvent): Promise<void> => {
+    // Only whitelisted private-chat text is considered at all, approval replies included:
+    // an account outside the whitelist can neither start a task nor approve a tool call.
+    if (routeInbound(event.message, whitelist) !== 'forward') {
+      return;
+    }
+
     // Approval replies are never forwarded as new tasks.
     for (const [code, pending] of pendingApprovals) {
       if (pending.request.chatId !== event.chatId) {
@@ -194,15 +200,19 @@ export function createFeishuConnector(options: FeishuConnectorOptions): FeishuCo
       }
     }
 
-    if (routeInbound(event.message, whitelist) !== 'forward') {
-      return;
-    }
     const { sessionId, name } = await sessionForChat(event.chatId);
-    const acceptedAt = now();
-    await options.acp.prompt(sessionId, event.message.text);
-    if (now() - acceptedAt <= FEISHU_ACCEPT_WINDOW_MS) {
-      await reply(event.chatId, `已受理，会话「${name}」开始处理。`);
-    }
+    // `session/prompt` resolves only when the whole turn ends, so the task is handed to the
+    // Kernel without waiting and the acknowledgement goes out right away (requirement 15.1).
+    // The rejection handler is attached immediately so a failed prompt is never unhandled.
+    const running = options.acp.prompt(sessionId, event.message.text).catch(async (error) => {
+      log(`feishu prompt failed for ${sessionId}: ${redact(String(error))}`);
+      const sent = await reply(event.chatId, '任务失败：内核异常。已产生的记录保留在 ModelForge 对应会话中。');
+      if (!sent) {
+        await options.acp.markUndelivered(sessionId);
+      }
+    });
+    await reply(event.chatId, `已受理，会话「${name}」开始处理。`);
+    void running;
   };
 
   const onPermission = (request: FeishuApprovalRequest): void => {

@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowRight, FileText, FolderOpen, RefreshCw, Search, Settings2 } from 'lucide-react';
+import {
+  ArrowRight,
+  BookOpen,
+  FileText,
+  FolderOpen,
+  RefreshCw,
+  Search,
+  Settings2,
+  X,
+} from 'lucide-react';
 import { defineMessages, useIntl } from '../../i18n';
 import type { ProjectSnapshot, ProjectStage, WorkspaceEntry } from '../../types/workspaceApi';
 import { buildProjectAction, PROJECT_STAGES, type ProjectAction } from '../../utils/projectActions';
@@ -45,6 +54,12 @@ const messages = defineMessages({
   },
   environment: { id: 'projectPanel.environment', defaultMessage: 'Check running environment' },
   collab: { id: 'projectPanel.collab', defaultMessage: 'Collaborate' },
+  solution: { id: 'projectPanel.solution', defaultMessage: 'Reference approach' },
+  solutionClose: { id: 'projectPanel.solutionClose', defaultMessage: 'Close' },
+  solutionFailed: {
+    id: 'projectPanel.solutionFailed',
+    defaultMessage: 'Could not open the reference approach',
+  },
   next: { id: 'projectPanel.next', defaultMessage: 'Suggested next step' },
   inputs: { id: 'projectPanel.inputs', defaultMessage: 'Problem & data' },
   plan: { id: 'projectPanel.plan', defaultMessage: 'Model plan' },
@@ -102,6 +117,23 @@ export default function ProjectPanel({
   const [notice, setNotice] = useState(false);
   const [expanded, setExpanded] = useState<ProjectStage[]>([]);
   const [showCollab, setShowCollab] = useState(false);
+  const [solution, setSolution] = useState<{ question: string; content: string }[] | null>(null);
+  const [solutionError, setSolutionError] = useState(false);
+
+  // The reference approach is read-only content from the bundled example (requirement 9.8).
+  const openSolution = async (exampleId: string) => {
+    setSolutionError(false);
+    try {
+      const result = await window.electron.exampleOpenSolution(exampleId);
+      if (result.ok) {
+        setSolution(result.data.sections);
+      } else {
+        setSolutionError(true);
+      }
+    } catch {
+      setSolutionError(true);
+    }
+  };
   const sequence = useRef(0);
   const pending = useRef<{ id: number; directory: string } | null>(null);
   const snapshot = loaded?.directory === workingDir ? loaded.snapshot : null;
@@ -353,6 +385,16 @@ export default function ProjectPanel({
             <FolderOpen aria-hidden="true" className="h-3.5 w-3.5" />
             {intl.formatMessage(messages.openFolder)}
           </button>
+          {snapshot?.exampleId && (
+            <button
+              type="button"
+              className={`${control} inline-flex items-center gap-1.5 px-2 py-2 text-xs hover:bg-background-tertiary`}
+              onClick={() => void openSolution(snapshot.exampleId as string)}
+            >
+              <BookOpen aria-hidden="true" className="h-3.5 w-3.5" />
+              {intl.formatMessage(messages.solution)}
+            </button>
+          )}
           <button
             type="button"
             className={`${control} inline-flex items-center gap-1.5 px-2 py-2 text-xs hover:bg-background-tertiary`}
@@ -373,7 +415,52 @@ export default function ProjectPanel({
           )}
         </div>
       )}
-      {showCollab && <CollabHostPanel onClose={() => setShowCollab(false)} />}
+      {showCollab && (
+        <CollabHostPanel workingDir={workingDir} onClose={() => setShowCollab(false)} />
+      )}
+      {(solution || solutionError) && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={intl.formatMessage(messages.solution)}
+          className="absolute inset-0 z-40 flex items-center justify-center bg-black/30 p-6"
+        >
+          <div className="flex max-h-full w-full max-w-md flex-col rounded-xl border border-border-secondary bg-background-primary">
+            <div className="flex items-center justify-between border-b border-border-secondary px-4 py-3">
+              <h2 className="text-sm font-semibold text-text-primary">
+                {intl.formatMessage(messages.solution)}
+              </h2>
+              <button
+                type="button"
+                aria-label={intl.formatMessage(messages.solutionClose)}
+                className={`${control} p-1 text-text-tertiary hover:text-text-primary`}
+                onClick={() => {
+                  setSolution(null);
+                  setSolutionError(false);
+                }}
+              >
+                <X aria-hidden="true" className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
+              {solutionError ? (
+                <p className="text-xs text-text-danger">
+                  {intl.formatMessage(messages.solutionFailed)}
+                </p>
+              ) : (
+                solution?.map((section, index) => (
+                  <section key={index} className="mb-4">
+                    <h3 className="text-sm font-medium text-text-primary">{section.question}</h3>
+                    <pre className="mt-1 whitespace-pre-wrap font-sans text-xs text-text-secondary">
+                      {section.content}
+                    </pre>
+                  </section>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

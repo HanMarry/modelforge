@@ -5,6 +5,7 @@ import { MainPanelLayout } from '../Layout/MainPanelLayout';
 import { cn } from '../../utils';
 import { defineMessages, useIntl } from '../../i18n';
 import type { ExampleEntry } from '../../types/catalog';
+import { requestOpenProject } from '../../utils/pendingProject';
 
 const i18n = defineMessages({
   title: { id: 'examples.title', defaultMessage: 'Example library' },
@@ -66,6 +67,7 @@ export default function ExamplesView() {
     setChoosing(false);
     if (result.ok) {
       await window.electron.addRecentDir(result.data.projectDir);
+      requestOpenProject(result.data.projectDir);
       navigate('/');
     } else {
       setError(result.error.message);

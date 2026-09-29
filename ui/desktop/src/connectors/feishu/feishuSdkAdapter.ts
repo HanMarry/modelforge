@@ -141,6 +141,7 @@ export function createFeishuController(options: FeishuControllerOptions) {
       await source.start();
     },
     stop,
+    isStarted: () => connector?.status().started ?? false,
   };
 
   async function stop(): Promise<void> {

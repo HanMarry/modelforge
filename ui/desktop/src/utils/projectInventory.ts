@@ -58,6 +58,40 @@ export function classifyProjectFile(relativePath: string): ProjectStage | null {
   return null;
 }
 
+interface ProjectOriginInfo {
+  exampleId: string | null;
+  /** Project-relative, `/`-separated paths recorded as the Project's input files. */
+  inputFiles: Set<string>;
+}
+
+/**
+ * Reads the origin recorded in `.modelforge/project.json` (requirement 9.7, 9.8): files copied
+ * from an example are the Project's inputs whatever their names. A missing or unreadable file
+ * simply means the Project has no recorded origin.
+ */
+async function readProjectOrigin(root: string): Promise<ProjectOriginInfo> {
+  const none: ProjectOriginInfo = { exampleId: null, inputFiles: new Set() };
+  try {
+    const raw = await fs.readFile(path.join(root, '.modelforge', 'project.json'), 'utf8');
+    const origin = (JSON.parse(raw) as { origin?: unknown }).origin as
+      | { kind?: unknown; exampleId?: unknown; inputFiles?: unknown }
+      | undefined;
+    if (!origin || typeof origin !== 'object') return none;
+    const inputFiles = Array.isArray(origin.inputFiles)
+      ? origin.inputFiles
+          .filter((file): file is string => typeof file === 'string' && file.length > 0)
+          .map((file) => file.replace(/\\/g, '/'))
+      : [];
+    return {
+      exampleId:
+        origin.kind === 'example' && typeof origin.exampleId === 'string' ? origin.exampleId : null,
+      inputFiles: new Set(inputFiles),
+    };
+  } catch {
+    return none;
+  }
+}
+
 export async function scanProject(
   rootDir: string,
   limits: { maxEntries?: number; maxDepth?: number } = {}
@@ -67,6 +101,7 @@ export async function scanProject(
   const root = await fs.realpath(rootDir);
   if (!(await fs.stat(root)).isDirectory())
     throw new Error('The selected path is not a directory.');
+  const origin = await readProjectOrigin(root);
   const maxEntries = limits.maxEntries ?? 2000;
   const maxDepth = limits.maxDepth ?? 4;
   const artifacts: ProjectArtifact[] = [];
@@ -107,7 +142,10 @@ export async function scanProject(
       }
       if (!entry.isFile()) continue;
       const relativePath = path.relative(root, fullPath).split(path.sep).join('/');
-      const stage = classifyProjectFile(relativePath);
+      // `.modelforge/` never reaches here (dot directories are skipped above).
+      const stage: ProjectStage | null = origin.inputFiles.has(relativePath)
+        ? 'inputs'
+        : classifyProjectFile(relativePath);
       if (!stage) continue;
       try {
         const stat = await fs.lstat(fullPath);
@@ -134,5 +172,6 @@ export async function scanProject(
     ),
     limited: limited || queue.length > 0,
     unreadableDirectories,
+    exampleId: origin.exampleId,
   };
 }

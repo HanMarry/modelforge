@@ -11,6 +11,7 @@ import {
 } from '../../utils/diagnostics/diagnosticsService';
 import { OPTIONAL_RUNTIMES } from '../../utils/diagnostics/optionalRuntimes';
 import type { OnboardingState, OnboardingStepId } from '../../utils/settings';
+import type { CheckpointGitSource } from '../../utils/checkpoints/checkpointIpc';
 
 const CATEGORY_LABELS: Record<DiagnosticCategory, string> = {
   provider: '模型供应商',
@@ -67,6 +68,7 @@ export default function DiagnosticsView() {
   const [running, setRunning] = useState(false);
   const [provenance, setProvenance] = useState<KernelProvenance>(NO_PROVENANCE);
   const [onboarding, setOnboarding] = useState<OnboardingState | null>(null);
+  const [gitSource, setGitSource] = useState<CheckpointGitSource | null>(null);
 
   useEffect(() => {
     const off = window.electron.onDiagnosticsProgress((category, result) => {
@@ -77,6 +79,10 @@ export default function DiagnosticsView() {
 
   useEffect(() => {
     window.electron.kernelProvenance().then(setProvenance).catch(() => setProvenance(NO_PROVENANCE));
+    Promise.resolve()
+      .then(() => window.electron.checkpointGitSource())
+      .then(setGitSource)
+      .catch(() => setGitSource(null));
     window.electron
       .getSetting('onboarding')
       .then((value) => setOnboarding(value ?? null))
@@ -200,6 +206,24 @@ export default function DiagnosticsView() {
           ) : (
             <div className="mt-1 text-sm text-text-muted">不可追溯{provenance.reason ? `（${provenance.reason}）` : ''}</div>
           )}
+        </section>
+
+        <section className="rounded-lg border border-border-default p-4">
+          <h2 className="font-medium">自动快照使用的 git</h2>
+          <div className="mt-1 text-sm text-text-secondary">
+            {gitSource === null ? (
+              '检测中…'
+            ) : gitSource.source ? (
+              <>
+                {gitSource.source === 'bundled' ? '随包 MinGit' : '系统 PATH 中的 git'}
+                {gitSource.path ? `（${gitSource.path}）` : ''}
+              </>
+            ) : (
+              <span className="text-red-600">
+                {gitSource.errorCode}：未找到可用的 git，自动快照无法创建，写入文件的工具会被拒绝执行。
+              </span>
+            )}
+          </div>
         </section>
 
         {skipped.length > 0 && (

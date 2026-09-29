@@ -20,6 +20,8 @@ import {
   type ProviderErrorClass,
 } from '../../utils/providerConnectivity';
 import type { LocalRuntimeDetection } from '../../utils/runtimeDetection';
+import type { ExampleEntry } from '../../types/catalog';
+import { requestOpenProject } from '../../utils/pendingProject';
 
 type ProviderChoice =
   | { kind: 'provider'; id: string; label: string }
@@ -60,6 +62,10 @@ export default function OnboardingWizard({ initialStep, onComplete }: Onboarding
   const [acpConfirmed, setAcpConfirmed] = useState(false);
   const [environment, setEnvironment] = useState<EnvironmentResult | null>(null);
   const [stepError, setStepError] = useState<string | null>(null);
+  const [examples, setExamples] = useState<ExampleEntry[] | null>(null);
+  const [exampleId, setExampleId] = useState<string | null>(null);
+  const [exampleParent, setExampleParent] = useState('');
+  const [creatingExample, setCreatingExample] = useState(false);
 
   useEffect(() => {
     window.electron
@@ -219,6 +225,64 @@ export default function OnboardingWizard({ initialStep, onComplete }: Onboarding
     return () => clearTimeout(timer);
   }, [currentStep, environment]);
 
+  // Step 4 lists only examples whose statement and attachments are available locally.
+  useEffect(() => {
+    if (currentStep !== 'example' || examples !== null) {
+      return;
+    }
+    let cancelled = false;
+    window.electron
+      .examplesList()
+      .then((list) => {
+        if (cancelled) return;
+        const local = list.filter((entry) => !entry.needsDownload);
+        setExamples(local);
+        setExampleId((current) => current ?? local[0]?.manifest.id ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setExamples([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentStep, examples]);
+
+  const chooseExampleParent = async () => {
+    const result = await window.electron.directoryChooser();
+    if (!result.canceled && result.filePaths[0]) {
+      setExampleParent(result.filePaths[0]);
+    }
+  };
+
+  // Creates the Project, hands it to the home view and finishes the wizard, so the chat page
+  // opens on the new Project (requirement 5.1 step 4).
+  const createExampleProject = async () => {
+    const entry = examples?.find((candidate) => candidate.manifest.id === exampleId);
+    if (!entry || !exampleParent) {
+      return;
+    }
+    setCreatingExample(true);
+    setStepError(null);
+    try {
+      const result = await window.electron.projectCreateFromExample({
+        exampleId: entry.manifest.id,
+        name: entry.manifest.title,
+        parentDir: exampleParent,
+      });
+      if (!result.ok) {
+        setStepError(result.error.message);
+        return;
+      }
+      await window.electron.addRecentDir(result.data.projectDir);
+      requestOpenProject(result.data.projectDir);
+      persist(next(state));
+    } catch (error) {
+      setStepError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setCreatingExample(false);
+    }
+  };
+
   const index = stepIndex(state.current);
   const canNext =
     state.current === 'provider'
@@ -353,7 +417,47 @@ export default function OnboardingWizard({ initialStep, onComplete }: Onboarding
 
         {state.current === 'example' && (
           <div className="space-y-3 text-sm text-text-secondary">
-            <p>示例题库将在后续版本提供。你可以现在就完成配置，稍后再从示例题库开始备赛。</p>
+            <p>
+              选择一道示例题，ModelForge 会在所选位置创建项目并直接打开。也可以点“完成”，稍后再从示例题库开始。
+            </p>
+            {examples === null ? (
+              <p className="text-text-muted">正在读取示例题…</p>
+            ) : examples.length === 0 ? (
+              <p className="text-text-muted">暂无可直接打开的示例题，可稍后在示例题库中查看下载指引。</p>
+            ) : (
+              <div className="grid gap-2" role="radiogroup" aria-label="示例题">
+                {examples.map((entry) => (
+                  <label
+                    key={entry.manifest.id}
+                    className="flex cursor-pointer items-center gap-2 rounded border border-border-default px-3 py-2"
+                  >
+                    <input
+                      type="radio"
+                      name="onboarding-example"
+                      checked={exampleId === entry.manifest.id}
+                      onChange={() => setExampleId(entry.manifest.id)}
+                    />
+                    <span className="text-text-primary">{entry.manifest.title}</span>
+                    <span className="text-xs text-text-muted">{entry.manifest.category}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+            <div className="flex items-center gap-2">
+              <span className="min-w-0 flex-1 truncate rounded border border-border-default px-2 py-1.5 text-xs">
+                {exampleParent || '尚未选择保存位置'}
+              </span>
+              <Button variant="outline" onClick={() => void chooseExampleParent()}>
+                选择保存位置
+              </Button>
+            </div>
+            {stepError && <p className="text-sm text-red-600">{stepError}</p>}
+            <Button
+              onClick={() => void createExampleProject()}
+              disabled={!exampleId || !exampleParent || creatingExample}
+            >
+              {creatingExample ? '正在创建…' : '创建并打开'}
+            </Button>
           </div>
         )}
 

@@ -1,7 +1,7 @@
 import { app, ipcMain } from 'electron';
 import path from 'node:path';
 import { isAbsoluteGoosePath } from '../pathUtils';
-import { CheckpointService } from './checkpointService';
+import { CheckpointService, resolveGit } from './checkpointService';
 import type {
   AutoCheckpoint,
   CheckpointDiff,
@@ -41,7 +41,29 @@ function validateWorkingDir(workingDir: unknown): workingDir is string {
   );
 }
 
+export interface CheckpointGitSource {
+  /** `bundled` (MinGit shipped with the app) or `system` (git on PATH); null when unavailable. */
+  source: 'bundled' | 'system' | null;
+  path: string | null;
+  /** `GIT_UNAVAILABLE` when neither git could be run. */
+  errorCode: string | null;
+  message: string | null;
+}
+
 export function registerCheckpointIpc(): void {
+  // Diagnostics centre shows which git automatic snapshots use (requirement 11.2, task 15.1).
+  ipcMain.handle('checkpoint-git-source', async (): Promise<CheckpointGitSource> => {
+    const resolved = await resolveGit({});
+    return resolved.ok
+      ? { source: resolved.value.source, path: resolved.value.git, errorCode: null, message: null }
+      : {
+          source: null,
+          path: null,
+          errorCode: resolved.error.code,
+          message: resolved.error.message,
+        };
+  });
+
   ipcMain.handle(
     'checkpoint-ensure',
     async (

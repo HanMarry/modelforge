@@ -17,6 +17,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { View, ViewOptions } from '../utils/navigationUtils';
 import { useConfig } from './ConfigContext';
 import { getEffectiveWorkingDir, getInitialWorkingDir } from '../utils/workingDir';
+import { consumePendingProject, onOpenProjectRequest } from '../utils/pendingProject';
 import { createSession } from '../sessions';
 import LoadingGoose from './LoadingGoose';
 import { UserInput } from '../types/message';
@@ -193,6 +194,18 @@ export default function Hub({
     userSelectedWorkingDirRef.current = true;
     setWorkingDir(dir);
   }, []);
+
+  // A Project just created from the competition page, example library or first-run wizard
+  // opens here, in the Project panel.
+  useEffect(() => {
+    const open = (dir: string) => {
+      handleWorkingDirChange(dir);
+      selectWorkspaceTab('project');
+    };
+    const pending = consumePendingProject();
+    if (pending) open(pending);
+    return onOpenProjectRequest(open);
+  }, [handleWorkingDirChange, selectWorkspaceTab]);
 
   // Presets only shape the prompt, so they are held here and composed on demand.
   const [workflowId, setWorkflowId] = useState<WorkflowPreset['id'] | null>(null);

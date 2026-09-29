@@ -36,6 +36,9 @@ const electron = {
     reason: null,
   }),
   getSetting: vi.fn().mockResolvedValue(null),
+  checkpointGitSource: vi
+    .fn()
+    .mockResolvedValue({ source: 'system', path: 'git', errorCode: null, message: null }),
   diagnosticsRun: vi.fn().mockResolvedValue(runResult),
   showSaveDialog: vi.fn().mockResolvedValue({ canceled: true }),
   diagnosticsExport: vi.fn().mockResolvedValue({ ok: true }),

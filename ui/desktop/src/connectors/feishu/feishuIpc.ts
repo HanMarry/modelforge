@@ -31,6 +31,8 @@ export interface FeishuSaveConfig {
 export interface FeishuController {
   start: (config: { appId: string; appSecret: string; whitelist: string[] }) => Promise<void>;
   stop: () => Promise<void>;
+  /** Whether the connector is actually running (not just enabled in settings). */
+  isStarted: () => boolean;
 }
 
 interface FeishuState {
@@ -124,8 +126,7 @@ export function registerFeishuIpc(
 
   ipc.handle('feishu-status', async () =>
     (async (): Promise<IpcResult<{ started: boolean }>> => {
-      const state = readState();
-      return { ok: true, data: { started: state.enabled } };
+      return { ok: true, data: { started: controller.isStarted() } };
     })().catch((error) => ({
       ok: false as const,
       error: toIpcError('UNEXPECTED', describeError(error), store.sensitiveValues()),

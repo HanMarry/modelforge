@@ -67,6 +67,16 @@ export default function DatasetsView() {
 
   useEffect(() => {
     refresh();
+    if (!root) return undefined;
+    // Reload the list when files under the project change (requirement 10.1).
+    const off = window.electron.onDatasetsChanged((changedRoot) => {
+      if (changedRoot === root) void refresh();
+    });
+    void window.electron.datasetsWatch(root);
+    return () => {
+      off();
+      void window.electron.datasetsUnwatch();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [root]);
 
@@ -78,7 +88,7 @@ export default function DatasetsView() {
   const loadPreview = async (filePath: string, sheet?: string): Promise<void> => {
     setPreview(null);
     setPreviewError(null);
-    const result = await window.electron.datasetsPreview({ filePath, sheet });
+    const result = await window.electron.datasetsPreview({ root, filePath, sheet });
     if (result.ok) {
       setPreview(result.data);
       setActiveSheet(result.data.activeSheet);

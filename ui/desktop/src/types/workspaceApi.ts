@@ -19,6 +19,8 @@ export interface ProjectSnapshot {
   artifacts: ProjectArtifact[];
   limited: boolean;
   unreadableDirectories: number;
+  /** Example the Project was created from (`.modelforge/project.json`), for its reference approach. */
+  exampleId?: string | null;
 }
 
 export interface WorkspaceFileReadResult {

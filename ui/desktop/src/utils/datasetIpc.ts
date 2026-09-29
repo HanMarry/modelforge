@@ -5,6 +5,7 @@
  * parses a single file in a `utilityProcess` so a slow or corrupt file cannot block the main
  * process, enforcing the 200 MB cap and a 5 s timeout (requirements 10.4, 10.5).
  */
+import { watch as fsWatch, type FSWatcher } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { ipcMain, utilityProcess } from 'electron';
@@ -13,7 +14,11 @@ import type {
   DataPreview,
   DatasetParseError,
 } from '../types/datasets';
-import { selectDataFiles, type DataFileFs } from './datasets/selectDataFiles';
+import {
+  DATA_FILE_EXTENSIONS,
+  selectDataFiles,
+  type DataFileFs,
+} from './datasets/selectDataFiles';
 import { toIpcError, type IpcResult } from './ipcResult';
 
 export type { DataFileListResult, DataPreview };
@@ -78,7 +83,85 @@ function previewViaUtilityProcess(
   });
 }
 
+/**
+ * Resolves a preview request to a real file inside the real project root with a whitelisted
+ * data extension; anything else (outside the root, via a symlink or `..`, other file types)
+ * is refused so the renderer cannot use the parser to read arbitrary files.
+ */
+async function resolvePreviewTarget(root: string, filePath: string): Promise<string | null> {
+  if (!path.isAbsolute(root) || !path.isAbsolute(filePath)) return null;
+  if (!DATA_FILE_EXTENSIONS.has(path.extname(filePath).toLowerCase())) return null;
+  try {
+    const realRoot = await fs.realpath(root);
+    const realFile = await fs.realpath(filePath);
+    return realFile.startsWith(realRoot + path.sep) ? realFile : null;
+  } catch {
+    return null;
+  }
+}
+
+const WATCH_DEBOUNCE_MS = 300;
+
+interface DatasetWatch {
+  root: string;
+  watcher: FSWatcher;
+  timer: ReturnType<typeof setTimeout> | null;
+}
+
+/** One recursive watcher per renderer; a new `datasets-watch` replaces the previous one. */
+const watches = new Map<number, DatasetWatch>();
+const cleanupRegistered = new Set<number>();
+
+function stopWatch(senderId: number): void {
+  const watch = watches.get(senderId);
+  if (!watch) return;
+  if (watch.timer) clearTimeout(watch.timer);
+  watch.watcher.close();
+  watches.delete(senderId);
+}
+
 export function registerDatasetIpc(): void {
+  // Requirement 10.1: the list refreshes within 2 s of a change; events are debounced by
+  // 300 ms and the renderer reloads the list when notified.
+  ipcMain.handle('datasets-watch', async (event, root: string): Promise<IpcResult<null>> => {
+    const sender = event.sender;
+    stopWatch(sender.id);
+    try {
+      if (!root || !path.isAbsolute(root) || !(await fs.stat(root)).isDirectory()) {
+        return { ok: false, error: { code: 'EACCES', message: '不是有效目录' } };
+      }
+      const watch: DatasetWatch = {
+        root,
+        timer: null,
+        watcher: fsWatch(root, { recursive: true }, () => {
+          if (watch.timer) clearTimeout(watch.timer);
+          watch.timer = setTimeout(() => {
+            watch.timer = null;
+            if (!sender.isDestroyed()) sender.send('datasets-changed', root);
+          }, WATCH_DEBOUNCE_MS);
+        }),
+      };
+      watch.watcher.on('error', () => stopWatch(sender.id));
+      watches.set(sender.id, watch);
+      if (!cleanupRegistered.has(sender.id)) {
+        cleanupRegistered.add(sender.id);
+        const senderId = sender.id;
+        sender.once('destroyed', () => {
+          cleanupRegistered.delete(senderId);
+          stopWatch(senderId);
+        });
+      }
+      return { ok: true, data: null };
+    } catch (error) {
+      return { ok: false, error: toIpcError('EACCES', error, NO_SECRETS) };
+    }
+  });
+
+  ipcMain.handle('datasets-unwatch', (event): IpcResult<null> => {
+    stopWatch(event.sender.id);
+    return { ok: true, data: null };
+  });
+
   ipcMain.handle(
     'datasets-list',
     async (_event, root: string): Promise<IpcResult<DataFileListResult>> => {
@@ -102,20 +185,27 @@ export function registerDatasetIpc(): void {
     'datasets-preview',
     async (
       _event,
-      request: { filePath: string; sheet?: string }
+      request: { root: string; filePath: string; sheet?: string }
     ): Promise<IpcResult<DataPreview>> => {
-      if (!request?.filePath?.trim()) {
+      if (!request?.filePath?.trim() || !request.root?.trim()) {
         return { ok: false, error: { code: 'PARSE_FAILED', message: '无效文件路径' } };
       }
       try {
-        const stat = await fs.stat(request.filePath);
+        const target = await resolvePreviewTarget(request.root, request.filePath);
+        if (!target) {
+          return {
+            ok: false,
+            error: { code: 'EACCES', message: '只能预览当前项目内的 csv、xlsx、json、parquet 文件' },
+          };
+        }
+        const stat = await fs.stat(target);
         if (stat.size > MAX_PREVIEW_BYTES) {
           return {
             ok: false,
             error: { code: 'TOO_LARGE', message: `文件大小 ${stat.size} 字节，超过 200 MB 预览上限` },
           };
         }
-        return await previewViaUtilityProcess(request.filePath, request.sheet);
+        return await previewViaUtilityProcess(target, request.sheet);
       } catch (error) {
         return { ok: false, error: toIpcError('PARSE_FAILED', error, NO_SECRETS) };
       }

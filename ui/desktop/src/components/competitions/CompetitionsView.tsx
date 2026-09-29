@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router';
 import { CalendarClock, ExternalLink, Plus, Search, X } from 'lucide-react';
 import { MainPanelLayout } from '../Layout/MainPanelLayout';
 import { cn } from '../../utils';
+import { isAllowedUrl } from '../../utils/urlPolicy';
+import { requestOpenProject } from '../../utils/pendingProject';
 import { defineMessages, useIntl } from '../../i18n';
 import {
   ALL_STATUSES,
@@ -113,6 +115,7 @@ export default function CompetitionsView() {
     if (result.ok) {
       await window.electron.addRecentDir(result.data.projectDir);
       setDialogOpen(false);
+      requestOpenProject(result.data.projectDir);
       navigate('/');
     } else {
       setError(result.error.message);
@@ -237,8 +240,10 @@ export default function CompetitionsView() {
                 <div className="flex gap-1.5">
                   <dt>{intl.formatMessage(i18n.website)}:</dt>
                   <dd className="text-text-primary">
-                    {selected.website ? (
+                    {/* 只放行 http/https 官网（需求 8.9），其余一律按“待公布”显示、不可点击 */}
+                    {selected.website && isAllowedUrl(selected.website) ? (
                       <button
+                        type="button"
                         onClick={() => window.electron.openExternal(selected.website as string)}
                         className="inline-flex items-center gap-1 text-text-primary underline underline-offset-2 hover:text-text-secondary"
                       >

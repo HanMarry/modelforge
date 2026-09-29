@@ -635,6 +635,12 @@
   "collabHost.end": {
     "defaultMessage": "结束会话"
   },
+  "collabHost.excludedNote": {
+    "defaultMessage": "憑證、環境變數、日誌與工作階段紀錄等檔案一律不會共享。"
+  },
+  "collabHost.files": {
+    "defaultMessage": "選擇要共享的檔案"
+  },
   "collabHost.fingerprint": {
     "defaultMessage": "证书指纹"
   },
@@ -644,8 +650,17 @@
   "collabHost.joinRequest": {
     "defaultMessage": "请求加入"
   },
+  "collabHost.lanOnly": {
+    "defaultMessage": "此功能僅適用於區域網路，並未針對網際網路曝露設計。"
+  },
+  "collabHost.loadingFiles": {
+    "defaultMessage": "正在讀取專案檔案…"
+  },
   "collabHost.members": {
     "defaultMessage": "成员"
+  },
+  "collabHost.noFiles": {
+    "defaultMessage": "此專案中沒有可共享的文字檔案"
   },
   "collabHost.readOnly": {
     "defaultMessage": "只读"
@@ -653,8 +668,17 @@
   "collabHost.reject": {
     "defaultMessage": "拒绝"
   },
+  "collabHost.sharedFiles": {
+    "defaultMessage": "已共享 {count} 個檔案"
+  },
+  "collabHost.skippedFiles": {
+    "defaultMessage": "未共享：{paths}"
+  },
   "collabHost.start": {
     "defaultMessage": "开始会话"
+  },
+  "collabHost.startFailed": {
+    "defaultMessage": "無法開始工作階段：{message}"
   },
   "collabHost.subtitle": {
     "defaultMessage": "仅在局域网内共享。访客需核对证书指纹后加入。"
@@ -4045,6 +4069,15 @@
   },
   "projectPanel.retry": {
     "defaultMessage": "重試"
+  },
+  "projectPanel.solution": {
+    "defaultMessage": "參考思路"
+  },
+  "projectPanel.solutionClose": {
+    "defaultMessage": "關閉"
+  },
+  "projectPanel.solutionFailed": {
+    "defaultMessage": "無法開啟參考思路"
   },
   "projectPanel.subtitle": {
     "defaultMessage": "找到已有成果，明確下一步。"

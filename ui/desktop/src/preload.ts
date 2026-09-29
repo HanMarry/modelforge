@@ -45,8 +45,9 @@ import type {
   ProjectSnapshot,
   WorkspaceFileReadResult,
 } from './types/workspaceApi';
-import type { CollabHostState } from './utils/collab/collabIpc';
-import type { CollabMember, SharedFile } from './utils/collab/collabService';
+import type { CollabHostStartRequest, CollabHostState } from './utils/collab/collabIpc';
+import type { CheckpointGitSource } from './utils/checkpoints/checkpointIpc';
+import type { CollabMember } from './utils/collab/collabService';
 import type { CollabGuestRole } from './utils/collab/collabPolicy';
 import type { FeishuConfig, FeishuSaveConfig } from './connectors/feishu/feishuIpc';
 
@@ -225,6 +226,8 @@ type ElectronAPI = {
     dir: string,
     checkpointId: string
   ) => Promise<AutoCheckpointResult<AutoCheckpointRestoreResult>>;
+  /** Git used by automatic snapshots: bundled MinGit, system git, or unavailable. */
+  checkpointGitSource: () => Promise<CheckpointGitSource>;
   terminalCreate: (request: {
     cwd?: string;
     cols?: number;
@@ -372,9 +375,15 @@ type ElectronAPI = {
   /** Dataset library (requirement 10). */
   datasetsList: (root: string) => Promise<IpcResult<DataFileListResult>>;
   datasetsPreview: (request: {
+    /** Project root the file must live in. */
+    root: string;
     filePath: string;
     sheet?: string;
   }) => Promise<IpcResult<DataPreview>>;
+  /** Watches the project recursively; `onDatasetsChanged` fires (debounced) on changes. */
+  datasetsWatch: (root: string) => Promise<IpcResult<null>>;
+  datasetsUnwatch: () => Promise<IpcResult<null>>;
+  onDatasetsChanged: (callback: (root: string) => void) => () => void;
   // Built-in browser panel (requirement 12)
   browserNavigate: (url: string) => Promise<BrowserNavigateResult>;
   browserBack: () => Promise<BrowserNavState>;
@@ -394,7 +403,8 @@ type ElectronAPI = {
   galleryImport: () => Promise<GalleryResult<ImportShareData>>;
   galleryRemote: (url: string) => Promise<GalleryResult<GalleryWork[]>>;
   // LAN collab
-  collabHostStart: (files: SharedFile[]) => Promise<IpcResult<CollabHostState>>;
+  collabHostCandidates: (projectRoot: string) => Promise<IpcResult<string[]>>;
+  collabHostStart: (request: CollabHostStartRequest) => Promise<IpcResult<CollabHostState>>;
   collabHostApprove: (guestId: string, role: CollabGuestRole) => Promise<IpcResult<null>>;
   collabHostReject: (guestId: string) => Promise<IpcResult<null>>;
   collabHostMembers: () => Promise<IpcResult<CollabMember[]>>;
@@ -511,6 +521,7 @@ const electronAPI: ElectronAPI = {
     ipcRenderer.invoke('checkpoint-diff', dir, a, b),
   checkpointRestore: (dir: string, checkpointId: string) =>
     ipcRenderer.invoke('checkpoint-restore', dir, checkpointId),
+  checkpointGitSource: () => ipcRenderer.invoke('checkpoint-git-source'),
   terminalCreate: (request: { cwd?: string; cols?: number; rows?: number }) =>
     ipcRenderer.invoke('terminal-create', request),
   terminalWrite: (id: string, data: string) => ipcRenderer.invoke('terminal-write', id, data),
@@ -700,8 +711,15 @@ const electronAPI: ElectronAPI = {
     ipcRenderer.invoke('project-create-from-example', request),
   exampleOpenSolution: (exampleId: string) => ipcRenderer.invoke('example-open-solution', exampleId),
   datasetsList: (root: string) => ipcRenderer.invoke('datasets-list', root),
-  datasetsPreview: (request: { filePath: string; sheet?: string }) =>
+  datasetsPreview: (request: { root: string; filePath: string; sheet?: string }) =>
     ipcRenderer.invoke('datasets-preview', request),
+  datasetsWatch: (root: string) => ipcRenderer.invoke('datasets-watch', root),
+  datasetsUnwatch: () => ipcRenderer.invoke('datasets-unwatch'),
+  onDatasetsChanged: (callback: (root: string) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, root: string) => callback(root);
+    ipcRenderer.on('datasets-changed', listener);
+    return () => ipcRenderer.removeListener('datasets-changed', listener);
+  },
   browserNavigate: (url: string) => ipcRenderer.invoke('browser-navigate', url),
   browserBack: () => ipcRenderer.invoke('browser-back'),
   browserForward: () => ipcRenderer.invoke('browser-forward'),
@@ -716,7 +734,10 @@ const electronAPI: ElectronAPI = {
   galleryExport: (input: ExportShareInput) => ipcRenderer.invoke('gallery-export', input),
   galleryImport: () => ipcRenderer.invoke('gallery-import'),
   galleryRemote: (url: string) => ipcRenderer.invoke('gallery-remote', url),
-  collabHostStart: (files: SharedFile[]) => ipcRenderer.invoke('collab-host-start', files),
+  collabHostCandidates: (projectRoot: string) =>
+    ipcRenderer.invoke('collab-host-candidates', projectRoot),
+  collabHostStart: (request: CollabHostStartRequest) =>
+    ipcRenderer.invoke('collab-host-start', request),
   collabHostApprove: (guestId: string, role: CollabGuestRole) =>
     ipcRenderer.invoke('collab-host-approve', guestId, role),
   collabHostReject: (guestId: string) => ipcRenderer.invoke('collab-host-reject', guestId),

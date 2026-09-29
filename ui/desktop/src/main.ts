@@ -239,10 +239,8 @@ registerGalleryIpc({ sensitiveValues: () => credentialStore.sensitiveValues() })
 
 // LAN collab (requirement 14): host and guest sessions run in the main process.
 registerCollabIpc(ipcMain, {
-  writeBack: async (relativePath, content) => {
-    const root = resolveWorkingDir(undefined, undefined, app.getPath('home'));
-    await writeFileAtomic(path.join(root, relativePath), content);
-  },
+  // collabIpc resolves the path inside the hosted Project root before calling this.
+  writeFile: (absolutePath, content) => writeFileAtomic(absolutePath, content),
   log: (message) => log.info(`[collab] ${message}`),
   secretValues: () => credentialStore.sensitiveValues(),
 });

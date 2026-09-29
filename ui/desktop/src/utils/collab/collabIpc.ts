@@ -3,6 +3,8 @@
  * in the main process; the renderer drives them through `collab-*` handlers and receives state
  * changes over `collab-*` events. All error messages are masked via the credential store.
  */
+import fsSync from 'node:fs';
+import path from 'node:path';
 import { BrowserWindow, type IpcMain } from 'electron';
 import {
   connectCollabGuest,
@@ -16,12 +18,25 @@ import {
 import type { CollabGuestRole } from './collabPolicy';
 import { describeError, toIpcError, type IpcResult } from '../ipcResult';
 import { encodeTextState, fileIds, getFileText, setFileText } from './collabDoc';
+import {
+  listShareCandidates,
+  loadShareFiles,
+  resolveInsideProject,
+  type CollabSkippedFile,
+} from './collabShareFiles';
 
 export interface CollabIpcDeps {
-  /** Resolves a project-relative path to the absolute path the host writes back to. */
-  writeBack: (path: string, content: string) => Promise<void>;
+  /** Writes a synced file back to its absolute path inside the hosted Project (atomically). */
+  writeFile: (absolutePath: string, content: string) => Promise<void>;
   log?: (message: string) => void;
   secretValues?: () => string[];
+}
+
+export interface CollabHostStartRequest {
+  /** Absolute path of the Project the host shares from. */
+  projectRoot: string;
+  /** Project-relative paths the host chose to share. */
+  paths: string[];
 }
 
 export interface CollabHostState {
@@ -30,6 +45,10 @@ export interface CollabHostState {
   inviteCode: string;
   fingerprint: string;
   fingerprintDisplay: string;
+  /** Files actually shared, after the forced exclusion rules. */
+  sharedPaths: string[];
+  /** Chosen files that were not shared, with the reason. */
+  skipped: CollabSkippedFile[];
 }
 
 interface GuestHandle {
@@ -39,7 +58,11 @@ interface GuestHandle {
 
 const guests = new Map<string, GuestHandle>();
 let host: CollabHost | null = null;
-let deps: CollabIpcDeps = { writeBack: async () => {} };
+let deps: CollabIpcDeps = { writeFile: async () => {} };
+
+function isUsableProjectRoot(projectRoot: unknown): projectRoot is string {
+  return typeof projectRoot === 'string' && path.isAbsolute(projectRoot) && fsSync.existsSync(projectRoot);
+}
 
 function broadcast(channel: string, payload: unknown): void {
   for (const window of BrowserWindow.getAllWindows()) {
@@ -57,16 +80,51 @@ function guarded<T>(task: () => Promise<IpcResult<T>>): Promise<IpcResult<T>> {
 export function registerCollabIpc(ipc: Pick<IpcMain, 'handle'>, options: CollabIpcDeps): void {
   deps = options;
 
-  ipc.handle('collab-host-start', (_event, files: SharedFile[]) =>
+  ipc.handle('collab-host-candidates', (_event, projectRoot: string) =>
+    guarded(async (): Promise<IpcResult<string[]>> => {
+      if (!isUsableProjectRoot(projectRoot)) {
+        return { ok: false, error: { code: 'INVALID_PATH', message: '项目目录不存在' } };
+      }
+      return { ok: true, data: await listShareCandidates(projectRoot) };
+    })
+  );
+
+  ipc.handle('collab-host-start', (_event, request: CollabHostStartRequest) =>
     guarded(async (): Promise<IpcResult<CollabHostState>> => {
+      const projectRoot = request?.projectRoot;
+      if (!isUsableProjectRoot(projectRoot)) {
+        return { ok: false, error: { code: 'INVALID_PATH', message: '项目目录不存在' } };
+      }
+      const paths = Array.isArray(request.paths)
+        ? request.paths.filter((p): p is string => typeof p === 'string')
+        : [];
+      const { files, skipped } = await loadShareFiles(
+        projectRoot,
+        paths,
+        deps.secretValues?.() ?? []
+      );
+      if (files.length === 0) {
+        return { ok: false, error: { code: 'NO_FILES', message: '没有可共享的文件' } };
+      }
+
       if (host) {
         await host.endSession();
         await host.close();
         host = null;
       }
+      const sharedFiles: SharedFile[] = files;
       const next = await createCollabHost({
-        files: Array.isArray(files) ? files : [],
-        writeBack: (path, content) => deps.writeBack(path, content),
+        files: sharedFiles,
+        // Only files of this session's share set reach here; the path is still re-checked
+        // against the Project root so nothing is ever written outside it.
+        writeBack: async (relativePath, content) => {
+          const target = resolveInsideProject(projectRoot, relativePath);
+          if (!target) {
+            deps.log?.(`refusing to write back outside the project: ${relativePath}`);
+            return;
+          }
+          await deps.writeFile(target, content);
+        },
         log: deps.log,
       });
       next.on('join-request', (request) => broadcast('collab-join-request', request));
@@ -81,6 +139,8 @@ export function registerCollabIpc(ipc: Pick<IpcMain, 'handle'>, options: CollabI
           inviteCode: next.inviteCode,
           fingerprint: next.fingerprint,
           fingerprintDisplay: formatFingerprint(next.fingerprint),
+          sharedPaths: files.map((file) => file.path),
+          skipped,
         },
       };
     })
