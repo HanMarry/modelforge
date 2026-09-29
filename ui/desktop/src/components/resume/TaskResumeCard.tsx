@@ -1,5 +1,4 @@
 import { useId } from 'react';
-import { useId } from 'react';
 import { Check, Circle, X } from 'lucide-react';
 import { useIntl } from '../../i18n';
 import type { ResumePlan } from '../../types/taskPlan';
