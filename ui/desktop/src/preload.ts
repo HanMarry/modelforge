@@ -21,6 +21,10 @@ import type {
   ProjectSnapshot,
   WorkspaceFileReadResult,
 } from './types/workspaceApi';
+import type { CollabHostState } from './utils/collab/collabIpc';
+import type { CollabMember, SharedFile } from './utils/collab/collabService';
+import type { CollabGuestRole } from './utils/collab/collabPolicy';
+import type { FeishuConfig, FeishuSaveConfig } from './connectors/feishu/feishuIpc';
 
 // Mapping from settings keys to their old localStorage keys for lazy migration
 const localStorageKeyMap: Partial<Record<SettingKey, string>> = {
@@ -293,6 +297,38 @@ type ElectronAPI = {
   getGitBranchInfo: (dir: string) => Promise<{ branch: string } | null>;
   listGitBranches: (dir: string) => Promise<string[]>;
   switchGitBranch: (dir: string, branch: string) => Promise<{ success: boolean; error?: string }>;
+  // LAN collab
+  collabHostStart: (files: SharedFile[]) => Promise<IpcResult<CollabHostState>>;
+  collabHostApprove: (guestId: string, role: CollabGuestRole) => Promise<IpcResult<null>>;
+  collabHostReject: (guestId: string) => Promise<IpcResult<null>>;
+  collabHostMembers: () => Promise<IpcResult<CollabMember[]>>;
+  collabHostStop: () => Promise<IpcResult<null>>;
+  onCollabJoinRequest: (
+    callback: (request: { guestId: string; displayName: string }) => void
+  ) => () => void;
+  onCollabMemberChange: (callback: (members: CollabMember[]) => void) => () => void;
+  onCollabSessionEnded: (callback: () => void) => () => void;
+  collabGuestJoin: (options: {
+    address: string;
+    port: number;
+    fingerprint: string;
+    inviteCode: string;
+    displayName: string;
+  }) => Promise<IpcResult<{ guestId: string }>>;
+  collabGuestFiles: (guestId: string) => Promise<IpcResult<Record<string, string>>>;
+  collabGuestSetText: (
+    guestId: string,
+    fileId: string,
+    content: string
+  ) => Promise<IpcResult<null>>;
+  collabGuestLeave: (guestId: string) => Promise<IpcResult<null>>;
+  onCollabGuestEvent: (
+    callback: (payload: { guestId: string; type: string; payload: unknown }) => void
+  ) => () => void;
+  // Feishu connector
+  feishuGetConfig: () => Promise<FeishuConfig>;
+  feishuSaveConfig: (patch: FeishuSaveConfig) => Promise<IpcResult<FeishuConfig>>;
+  feishuStatus: () => Promise<IpcResult<{ started: boolean }>>;
 };
 
 type AppConfigAPI = {
@@ -534,6 +570,52 @@ const electronAPI: ElectronAPI = {
   listGitBranches: (dir: string) => ipcRenderer.invoke('list-git-branches', dir),
   switchGitBranch: (dir: string, branch: string) =>
     ipcRenderer.invoke('switch-git-branch', dir, branch),
+  collabHostStart: (files: SharedFile[]) => ipcRenderer.invoke('collab-host-start', files),
+  collabHostApprove: (guestId: string, role: CollabGuestRole) =>
+    ipcRenderer.invoke('collab-host-approve', guestId, role),
+  collabHostReject: (guestId: string) => ipcRenderer.invoke('collab-host-reject', guestId),
+  collabHostMembers: () => ipcRenderer.invoke('collab-host-members'),
+  collabHostStop: () => ipcRenderer.invoke('collab-host-stop'),
+  onCollabJoinRequest: (callback: (request: { guestId: string; displayName: string }) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, request: { guestId: string; displayName: string }) =>
+      callback(request);
+    ipcRenderer.on('collab-join-request', listener);
+    return () => ipcRenderer.removeListener('collab-join-request', listener);
+  },
+  onCollabMemberChange: (callback: (members: CollabMember[]) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, members: CollabMember[]) => callback(members);
+    ipcRenderer.on('collab-member-change', listener);
+    return () => ipcRenderer.removeListener('collab-member-change', listener);
+  },
+  onCollabSessionEnded: (callback: () => void) => {
+    const listener = () => callback();
+    ipcRenderer.on('collab-session-ended', listener);
+    return () => ipcRenderer.removeListener('collab-session-ended', listener);
+  },
+  collabGuestJoin: (options: {
+    address: string;
+    port: number;
+    fingerprint: string;
+    inviteCode: string;
+    displayName: string;
+  }) => ipcRenderer.invoke('collab-guest-join', options),
+  collabGuestFiles: (guestId: string) => ipcRenderer.invoke('collab-guest-files', guestId),
+  collabGuestSetText: (guestId: string, fileId: string, content: string) =>
+    ipcRenderer.invoke('collab-guest-set-text', guestId, fileId, content),
+  collabGuestLeave: (guestId: string) => ipcRenderer.invoke('collab-guest-leave', guestId),
+  onCollabGuestEvent: (
+    callback: (payload: { guestId: string; type: string; payload: unknown }) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      payload: { guestId: string; type: string; payload: unknown }
+    ) => callback(payload);
+    ipcRenderer.on('collab-guest-event', listener);
+    return () => ipcRenderer.removeListener('collab-guest-event', listener);
+  },
+  feishuGetConfig: () => ipcRenderer.invoke('feishu-get-config'),
+  feishuSaveConfig: (patch: FeishuSaveConfig) => ipcRenderer.invoke('feishu-save-config', patch),
+  feishuStatus: () => ipcRenderer.invoke('feishu-status'),
 };
 
 function getAppLocale(): unknown {

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, Check, Download, ExternalLink, Loader2, Plug, Plus } from 'lucide-react';
 import {
   INSTALLABLE_CONNECTORS,
@@ -72,6 +72,20 @@ const i18n = defineMessages({
     id: 'connectorsView.alreadyInstalled',
     defaultMessage: 'This connector is already in your extensions.',
   },
+  feishuTitle: { id: 'connectorsView.feishuTitle', defaultMessage: '飞书' },
+  feishuEnabled: { id: 'connectorsView.feishuEnabled', defaultMessage: '启用飞书机器人' },
+  feishuAppId: { id: 'connectorsView.feishuAppId', defaultMessage: 'App ID' },
+  feishuAppSecret: { id: 'connectorsView.feishuAppSecret', defaultMessage: 'App Secret' },
+  feishuWhitelist: {
+    id: 'connectorsView.feishuWhitelist',
+    defaultMessage: '白名单（open_id，每行一个）',
+  },
+  feishuWhitelistEmpty: {
+    id: 'connectorsView.feishuWhitelistEmpty',
+    defaultMessage: '白名单为空，不会响应任何账号',
+  },
+  feishuSave: { id: 'connectorsView.feishuSave', defaultMessage: '保存' },
+  feishuSaved: { id: 'connectorsView.feishuSaved', defaultMessage: '已保存' },
 });
 
 type Filter = 'all' | 'installed' | 'installable';
@@ -281,6 +295,7 @@ export default function ConnectorsView() {
         </div>
 
         <div className="min-w-0 flex-1 overflow-y-auto">
+          <FeishuConnectorSection />
           {selected && (
             <article className="max-w-3xl px-8 py-6">
               <header className="flex items-start gap-3">
@@ -534,3 +549,104 @@ function SecretDialog({
 }
 
 /** Kept for the planned-connector icon in the list. */
+
+function FeishuConnectorSection() {
+  const intl = useIntl();
+  const [enabled, setEnabled] = useState(false);
+  const [appIdMasked, setAppIdMasked] = useState<string | null>(null);
+  const [appSecretMasked, setAppSecretMasked] = useState<string | null>(null);
+  const [whitelist, setWhitelist] = useState('');
+  const [appId, setAppId] = useState('');
+  const [appSecret, setAppSecret] = useState('');
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    void window.electron.feishuGetConfig().then((config) => {
+      setEnabled(config.enabled);
+      setAppIdMasked(config.appIdMasked);
+      setAppSecretMasked(config.appSecretMasked);
+      setWhitelist(config.whitelist.join('\n'));
+    });
+  }, []);
+
+  const save = async () => {
+    const result = await window.electron.feishuSaveConfig({
+      enabled,
+      appId: appId || undefined,
+      appSecret: appSecret || undefined,
+      whitelist: whitelist.split('\n'),
+    });
+    if (result.ok) {
+      setAppIdMasked(result.data.appIdMasked);
+      setAppSecretMasked(result.data.appSecretMasked);
+      setWhitelist(result.data.whitelist.join('\n'));
+      setAppId('');
+      setAppSecret('');
+      setSaved(true);
+    }
+  };
+
+  const control =
+    'rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring-info transition-colors';
+
+  return (
+    <section className="max-w-3xl border-b border-border-secondary px-8 py-6">
+      <h2 className="text-xl font-medium text-text-primary">
+        {intl.formatMessage(i18n.feishuTitle)}
+      </h2>
+      <label className="mt-3 flex items-center gap-2 text-sm text-text-primary">
+        <input
+          type="checkbox"
+          checked={enabled}
+          onChange={(event) => setEnabled(event.target.checked)}
+        />
+        {intl.formatMessage(i18n.feishuEnabled)}
+      </label>
+
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <label className="block text-xs text-text-primary">
+          {intl.formatMessage(i18n.feishuAppId)}
+          <input
+            value={appId}
+            onChange={(event) => setAppId(event.target.value)}
+            placeholder={appIdMasked ?? ''}
+            className="mt-1 w-full rounded-lg border border-border-secondary bg-background-primary px-3 py-1.5 font-mono text-xs outline-none focus:border-border-primary"
+          />
+        </label>
+        <label className="block text-xs text-text-primary">
+          {intl.formatMessage(i18n.feishuAppSecret)}
+          <input
+            type="password"
+            value={appSecret}
+            onChange={(event) => setAppSecret(event.target.value)}
+            placeholder={appSecretMasked ?? ''}
+            className="mt-1 w-full rounded-lg border border-border-secondary bg-background-primary px-3 py-1.5 font-mono text-xs outline-none focus:border-border-primary"
+          />
+        </label>
+      </div>
+
+      <label className="mt-3 block text-xs text-text-primary">
+        {intl.formatMessage(i18n.feishuWhitelist)}
+        <textarea
+          value={whitelist}
+          onChange={(event) => setWhitelist(event.target.value)}
+          rows={3}
+          className="mt-1 w-full rounded-lg border border-border-secondary bg-background-primary px-3 py-1.5 font-mono text-xs outline-none focus:border-border-primary"
+        />
+      </label>
+      {!whitelist.trim() && (
+        <p className="mt-1 flex items-start gap-1.5 text-xs text-text-secondary">
+          <AlertCircle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
+          {intl.formatMessage(i18n.feishuWhitelistEmpty)}
+        </p>
+      )}
+
+      <div className="mt-3 flex items-center gap-2">
+        <Button variant="secondary" size="sm" onClick={() => void save()}>
+          {intl.formatMessage(i18n.feishuSave)}
+        </Button>
+        {saved && <span className="text-xs text-text-secondary">{intl.formatMessage(i18n.feishuSaved)}</span>}
+      </div>
+    </section>
+  );
+}

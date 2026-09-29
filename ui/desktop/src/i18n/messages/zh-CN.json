@@ -482,6 +482,90 @@
   "chatSettings.responseStylesTitle": {
     "defaultMessage": "回复风格"
   },
+  "collabGuest.code": {
+    "defaultMessage": "邀请码"
+  },
+  "collabGuest.displayName": {
+    "defaultMessage": "显示名"
+  },
+  "collabGuest.editRejected": {
+    "defaultMessage": "当前为只读，编辑已被拒绝"
+  },
+  "collabGuest.editable": {
+    "defaultMessage": "可编辑"
+  },
+  "collabGuest.ended": {
+    "defaultMessage": "会话已结束"
+  },
+  "collabGuest.files": {
+    "defaultMessage": "共享文件"
+  },
+  "collabGuest.fingerprint": {
+    "defaultMessage": "证书指纹"
+  },
+  "collabGuest.join": {
+    "defaultMessage": "加入"
+  },
+  "collabGuest.joining": {
+    "defaultMessage": "加入中…"
+  },
+  "collabGuest.leave": {
+    "defaultMessage": "离开"
+  },
+  "collabGuest.readOnly": {
+    "defaultMessage": "只读"
+  },
+  "collabGuest.rejected": {
+    "defaultMessage": "加入被拒绝"
+  },
+  "collabGuest.role": {
+    "defaultMessage": "权限"
+  },
+  "collabGuest.subtitle": {
+    "defaultMessage": "输入房主提供的邀请码，核对证书指纹后加入局域网协作。"
+  },
+  "collabGuest.title": {
+    "defaultMessage": "加入协作"
+  },
+  "collabHost.approve": {
+    "defaultMessage": "批准"
+  },
+  "collabHost.editable": {
+    "defaultMessage": "可编辑"
+  },
+  "collabHost.empty": {
+    "defaultMessage": "暂无成员"
+  },
+  "collabHost.end": {
+    "defaultMessage": "结束会话"
+  },
+  "collabHost.fingerprint": {
+    "defaultMessage": "证书指纹"
+  },
+  "collabHost.inviteCode": {
+    "defaultMessage": "邀请码"
+  },
+  "collabHost.joinRequest": {
+    "defaultMessage": "请求加入"
+  },
+  "collabHost.members": {
+    "defaultMessage": "成员"
+  },
+  "collabHost.readOnly": {
+    "defaultMessage": "只读"
+  },
+  "collabHost.reject": {
+    "defaultMessage": "拒绝"
+  },
+  "collabHost.start": {
+    "defaultMessage": "开始会话"
+  },
+  "collabHost.subtitle": {
+    "defaultMessage": "仅在局域网内共享。访客需核对证书指纹后加入。"
+  },
+  "collabHost.title": {
+    "defaultMessage": "发起协作"
+  },
   "configSettings.configReset": {
     "defaultMessage": "配置已重置"
   },
@@ -601,6 +685,30 @@
   },
   "connectorsView.docs": {
     "defaultMessage": "官方文档"
+  },
+  "connectorsView.feishuAppId": {
+    "defaultMessage": "App ID"
+  },
+  "connectorsView.feishuAppSecret": {
+    "defaultMessage": "App Secret"
+  },
+  "connectorsView.feishuEnabled": {
+    "defaultMessage": "启用飞书机器人"
+  },
+  "connectorsView.feishuSave": {
+    "defaultMessage": "保存"
+  },
+  "connectorsView.feishuSaved": {
+    "defaultMessage": "已保存"
+  },
+  "connectorsView.feishuTitle": {
+    "defaultMessage": "飞书"
+  },
+  "connectorsView.feishuWhitelist": {
+    "defaultMessage": "白名单（open_id，每行一个）"
+  },
+  "connectorsView.feishuWhitelistEmpty": {
+    "defaultMessage": "白名单为空，不会响应任何账号"
   },
   "connectorsView.install": {
     "defaultMessage": "安装"
@@ -2915,6 +3023,9 @@
   "navigation.itemCatalog": {
     "defaultMessage": "扩展"
   },
+  "navigation.itemCollab": {
+    "defaultMessage": "Join Collaboration"
+  },
   "navigation.itemFigures": {
     "defaultMessage": "科研绘图"
   },
@@ -3505,6 +3616,9 @@
   },
   "projectPanel.code": {
     "defaultMessage": "代码与依赖"
+  },
+  "projectPanel.collab": {
+    "defaultMessage": "Collaborate"
   },
   "projectPanel.collapse": {
     "defaultMessage": "收起"

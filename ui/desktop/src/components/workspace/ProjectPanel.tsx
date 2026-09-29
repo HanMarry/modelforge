@@ -4,6 +4,7 @@ import { defineMessages, useIntl } from '../../i18n';
 import type { ProjectSnapshot, ProjectStage, WorkspaceEntry } from '../../types/workspaceApi';
 import { buildProjectAction, PROJECT_STAGES, type ProjectAction } from '../../utils/projectActions';
 import { usePanelAutoRefresh } from '../../hooks/usePanelAutoRefresh';
+import CollabHostPanel from '../collab/CollabHostPanel';
 
 const messages = defineMessages({
   title: { id: 'projectPanel.title', defaultMessage: 'Project materials' },
@@ -43,6 +44,7 @@ const messages = defineMessages({
     defaultMessage: 'Added to your draft. Review it in the chat input, then send when ready.',
   },
   environment: { id: 'projectPanel.environment', defaultMessage: 'Check running environment' },
+  collab: { id: 'projectPanel.collab', defaultMessage: 'Collaborate' },
   next: { id: 'projectPanel.next', defaultMessage: 'Suggested next step' },
   inputs: { id: 'projectPanel.inputs', defaultMessage: 'Problem & data' },
   plan: { id: 'projectPanel.plan', defaultMessage: 'Model plan' },
@@ -99,6 +101,7 @@ export default function ProjectPanel({
   const [error, setError] = useState(false);
   const [notice, setNotice] = useState(false);
   const [expanded, setExpanded] = useState<ProjectStage[]>([]);
+  const [showCollab, setShowCollab] = useState(false);
   const sequence = useRef(0);
   const pending = useRef<{ id: number; directory: string } | null>(null);
   const snapshot = loaded?.directory === workingDir ? loaded.snapshot : null;
@@ -350,6 +353,14 @@ export default function ProjectPanel({
             <FolderOpen aria-hidden="true" className="h-3.5 w-3.5" />
             {intl.formatMessage(messages.openFolder)}
           </button>
+          <button
+            type="button"
+            className={`${control} inline-flex items-center gap-1.5 px-2 py-2 text-xs hover:bg-background-tertiary`}
+            onClick={() => setShowCollab(true)}
+          >
+            <Settings2 aria-hidden="true" className="h-3.5 w-3.5" />
+            {intl.formatMessage(messages.collab)}
+          </button>
           {onOpenEnvironment && (
             <button
               type="button"
@@ -362,6 +373,7 @@ export default function ProjectPanel({
           )}
         </div>
       )}
+      {showCollab && <CollabHostPanel onClose={() => setShowCollab(false)} />}
     </section>
   );
 }

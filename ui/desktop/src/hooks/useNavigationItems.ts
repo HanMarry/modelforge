@@ -11,6 +11,7 @@ import {
   Settings,
   Shapes,
   UserRound,
+  Users,
   Zap,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -60,6 +61,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'paper', path: '/paper', label: '论文模板', icon: FileText },
   { id: 'apps', path: '/apps', label: '应用', icon: AppWindow },
   { id: 'scheduler', path: '/schedules', label: '自动化', icon: Clock },
+  { id: 'collab', path: '/collab', label: '加入协作', icon: Users },
   { id: 'sessions', path: '/sessions', label: '会话历史', icon: History },
 ];
 
@@ -88,6 +90,7 @@ const navItemMessages = defineMessages({
   paper: { id: 'navigation.itemPaper', defaultMessage: 'Paper Templates' },
   apps: { id: 'navigation.itemApps', defaultMessage: 'Apps' },
   scheduler: { id: 'navigation.itemScheduler', defaultMessage: 'Automation' },
+  collab: { id: 'navigation.itemCollab', defaultMessage: 'Join Collaboration' },
   sessions: { id: 'navigation.itemSessions', defaultMessage: 'Session History' },
   settings: { id: 'navigation.itemSettings', defaultMessage: 'Settings' },
   profile: { id: 'navigation.itemProfile', defaultMessage: 'Profile' },
@@ -106,6 +109,7 @@ const MESSAGE_ID_BY_ITEM: Record<string, keyof typeof navItemMessages> = {
   paper: 'paper',
   apps: 'apps',
   scheduler: 'scheduler',
+  collab: 'collab',
   sessions: 'sessions',
   settings: 'settings',
   profile: 'profile',
