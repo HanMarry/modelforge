@@ -8,6 +8,9 @@ src/bin/goose-npm/
 # Bundled Codex runtime, staged by scripts/prepare-codex-runtime.js
 /src/bin/codex-runtime/
 /src/bin/.codex-runtime-staging-*/
+# Bundled MinGit, staged by scripts/fetch-mingit.js
+/src/bin/mingit/
+/src/bin/.mingit-staging-*/
 /bundled-runtimes/*/node_modules/
 /src/platform/windows/bin/*.dll
 /src/platform/windows/bin/*.exe

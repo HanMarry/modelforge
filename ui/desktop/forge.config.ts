@@ -91,12 +91,32 @@ module.exports = {
       },
     },
     {
-      name: '@electron-forge/maker-squirrel',
+      // NSIS instead of Squirrel (spec requirement 7.4, 7.6, 7.10): the assisted
+      // installer supports a custom install directory, and user data lives in
+      // %APPDATA%\ModelForge / ~/.config/goose which the installer never touches, so
+      // a failed or cancelled install leaves the previous version and its data intact.
+      name: '@felixrieseberg/electron-forge-maker-nsis',
       platforms: ['win32'],
       config: {
-        name: 'ModelForge',
-        authors: 'ModelForge Team',
-        setupIcon: 'src/images/icon.ico',
+        updater: {
+          // ModelForge's own update feed, generated next to the installer; keep in sync
+          // with src/app-update.yml and the @electron-forge/publisher-github below.
+          url: 'https://github.com/HanMarry/modelforge/releases/latest/download',
+          updaterCacheDirName: 'modelforge-updater',
+          channel: 'latest',
+          publisherName: 'ModelForge Team',
+        },
+        getAdditionalConfig: () => ({
+          oneClick: false,
+          allowToChangeInstallationDirectory: true,
+          perMachine: false,
+          // Never delete %APPDATA% on uninstall: config, sessions and projects survive.
+          deleteAppDataOnUninstall: false,
+          installerIcon: 'src/images/icon.ico',
+          uninstallerIcon: 'src/images/icon.ico',
+          shortcutName: 'ModelForge',
+          artifactName: '${productName} Setup ${version}.${ext}',
+        }),
       },
     },
     {
