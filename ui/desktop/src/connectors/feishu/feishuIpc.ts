@@ -6,9 +6,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type { IpcMain } from 'electron';
-import type { CredentialStore } from '../credentialStore';
-import { maskSecret } from '../secretMask';
-import { describeError, toIpcError, type IpcResult } from '../ipcResult';
+import type { CredentialStore } from '../../utils/credentialStore';
+import { maskSecret } from '../../utils/secretMask';
+import { describeError, toIpcError, type IpcResult } from '../../utils/ipcResult';
 import { normalizeWhitelist } from './routing';
 
 const FEISHU_APP_ID = 'feishu:app_id';

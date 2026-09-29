@@ -59,7 +59,7 @@ describe('Property 15: 诊断类别互不影响', () => {
   it('error/timeout categories become 异常 with a reason, others keep their own result', () => {
     const behaviorArb = fc.constantFrom<Behavior>('ok-normal', 'ok-abnormal', 'throw', 'timeout');
     fc.assert(
-      fc.property(
+      fc.asyncProperty(
         fc.record({
           provider: behaviorArb,
           runtime: behaviorArb,

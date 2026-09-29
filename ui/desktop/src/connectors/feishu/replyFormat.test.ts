@@ -34,12 +34,12 @@ describe('formatSummary', () => {
 describe('truncateText example tests', () => {
   it('returns input unchanged at exactly the limit', () => {
     const input = 'a'.repeat(FEISHU_SUMMARY_LIMIT);
-    expect(truncateText(input, FEISHU_SUMMARY_LIMIT)).toBe(input);
+    expect(truncateText(input, FEISHU_SUMMARY_LIMIT).text).toBe(input);
   });
 
   it('truncates when one code point over the limit, with ellipsis counting toward it', () => {
     const input = 'a'.repeat(FEISHU_SUMMARY_LIMIT + 1);
-    const out = truncateText(input, FEISHU_SUMMARY_LIMIT);
+    const out = truncateText(input, FEISHU_SUMMARY_LIMIT).text;
     expect([...out].length).toBe(FEISHU_SUMMARY_LIMIT);
     expect(out.endsWith('…')).toBe(true);
   });
@@ -47,7 +47,7 @@ describe('truncateText example tests', () => {
   it('never splits a surrogate pair at the truncation point', () => {
     // 1999 ASCII + one astral character (2 UTF-16 units, 1 code point) = 2000 code points.
     const input = `${'a'.repeat(FEISHU_SUMMARY_LIMIT - 1)}𝄞${'b'.repeat(10)}`;
-    const out = truncateText(input, FEISHU_SUMMARY_LIMIT);
+    const out = truncateText(input, FEISHU_SUMMARY_LIMIT).text;
     expect([...out].length).toBe(FEISHU_SUMMARY_LIMIT);
     // The astral character survives intact rather than being cut to a lone surrogate.
     expect(out.includes('𝄞')).toBe(true);

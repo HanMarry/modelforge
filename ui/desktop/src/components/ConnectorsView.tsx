@@ -586,9 +586,6 @@ function FeishuConnectorSection() {
     }
   };
 
-  const control =
-    'rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring-info transition-colors';
-
   return (
     <section className="max-w-3xl border-b border-border-secondary px-8 py-6">
       <h2 className="text-xl font-medium text-text-primary">

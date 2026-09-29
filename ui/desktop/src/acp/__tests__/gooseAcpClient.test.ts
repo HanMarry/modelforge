@@ -38,6 +38,7 @@ function callbacks(): GooseAcpCallbacks {
       action: 'submit',
       values: { name: 'Ada' },
     }),
+    unstable_sessionCheckpointEnsure: vi.fn().mockResolvedValue({ checkpointId: null }),
     unstable_sessionUpdate: vi.fn(),
     unstable_providerDeviceCode: vi.fn(),
   };

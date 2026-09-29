@@ -47,7 +47,7 @@ const CHECKING_RESULT: CategoryResult = {
 export function registerDiagnosticsIpc(ipc: Pick<IpcMain, 'handle'>, deps: DiagnosticsIpcDeps): void {
   ipc.handle(
     'provider-test-connection',
-    (_event, target: ProviderConnectionTarget, key: unknown): ProviderConnectionResult => {
+    (_event, target: ProviderConnectionTarget, key: unknown): Promise<ProviderConnectionResult> => {
       if (
         !target ||
         typeof target.baseUrl !== 'string' ||

@@ -1,7 +1,7 @@
 import { app, ipcMain } from 'electron';
 import path from 'node:path';
-import { isAbsoluteGoosePath } from './pathUtils';
-import { CheckpointService } from './checkpoints/checkpointService';
+import { isAbsoluteGoosePath } from '../pathUtils';
+import { CheckpointService } from './checkpointService';
 import type {
   AutoCheckpoint,
   CheckpointDiff,
@@ -9,7 +9,7 @@ import type {
   CheckpointEnsureResult,
   CheckpointRestoreResult,
   CheckpointResult,
-} from './checkpoints/checkpointService';
+} from './checkpointService';
 
 export type {
   AutoCheckpoint,

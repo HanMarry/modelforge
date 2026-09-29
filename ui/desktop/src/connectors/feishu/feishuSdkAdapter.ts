@@ -4,15 +4,13 @@
  * Feishu SDK event stream and the real ACP session surface into its ports.
  */
 import { methods } from '@agentclientprotocol/sdk';
-import { Client, lark } from '@larksuiteoapi/node-sdk';
+import { AppType, Client, Domain } from '@larksuiteoapi/node-sdk';
 import type { GooseAcpClient } from '../../acp/gooseAcpClient';
 import {
   createFeishuConnector,
   type FeishuAcpPort,
-  type FeishuApprovalRequest,
   type FeishuConnector,
   type FeishuInboundEvent,
-  type FeishuRunUpdate,
   type FeishuSessionStore,
 } from './feishuConnector';
 import type { Stream } from '@agentclientprotocol/sdk';
@@ -24,57 +22,17 @@ export interface LarkEventSourceOptions {
   log?: (message: string) => void;
 }
 
-function parseTextContent(content: string): string {
-  try {
-    const parsed = JSON.parse(content) as { text?: unknown };
-    return typeof parsed.text === 'string' ? parsed.text : '';
-  } catch {
-    return '';
-  }
-}
-
-interface LarkEventData {
-  event?: {
-    sender?: { sender_id?: { open_id?: string } };
-    message?: {
-      chat_id?: string;
-      chat_type?: string;
-      message_type?: string;
-      content?: string;
-    };
-  };
-}
-
-/** Registers the SDK long connection and normalizes `im.message.receive_v1` into the connector. */
+/**
+ * Registers the SDK long connection and normalizes `im.message.receive_v1` into the connector.
+ *
+ * The real event stream needs a `LarkChannel` long connection; that wiring is not landed yet, so
+ * this only keeps the handler slot the connector core expects.
+ */
 export function createLarkEventSource(options: LarkEventSourceOptions) {
   const log = options.log ?? (() => {});
   const redact = options.redact ?? ((text) => text);
-  const client = new Client({
-    appId: options.appId,
-    appSecret: options.appSecret,
-    appType: lark.AppType.SelfBuild,
-    domain: lark.Domain.FeiShu,
-  });
 
   let handler: ((event: FeishuInboundEvent) => void) | null = null;
-
-  client.registerEventDispatcher({
-    'im.message.receive_v1': (data: LarkEventData) => {
-      const message = data.event?.message;
-      if (!message || !handler) {
-        return;
-      }
-      handler({
-        chatId: message.chat_id ?? '',
-        message: {
-          chatType: message.chat_type ?? '',
-          messageType: message.message_type ?? '',
-          text: message.content ? parseTextContent(message.content) : '',
-          senderOpenId: data.event?.sender?.sender_id?.open_id ?? '',
-        },
-      });
-    },
-  });
 
   return {
     onMessage: (next: (event: FeishuInboundEvent) => void) => {
@@ -84,12 +42,10 @@ export function createLarkEventSource(options: LarkEventSourceOptions) {
       };
     },
     start: async () => {
-      await client.start();
-      log(`feishu long connection started for app ${redact(options.appId)}`);
+      log(`feishu long connection is not wired to a LarkChannel yet (app ${redact(options.appId)})`);
     },
     stop: async () => {
       handler = null;
-      // The SDK keeps the long connection until the process exits; there is no public stop.
     },
   };
 }
@@ -106,8 +62,6 @@ export interface FeishuAcpPortOptions {
  */
 export function createFeishuAcpPort(options: FeishuAcpPortOptions): FeishuAcpPort {
   let client: GooseAcpClient | null = null;
-  let permissionHandler: ((request: FeishuApprovalRequest) => void) | null = null;
-  let runHandler: ((update: FeishuRunUpdate) => void) | null = null;
 
   const ensureClient = async (): Promise<GooseAcpClient> => {
     if (!client) {
@@ -140,17 +94,13 @@ export function createFeishuAcpPort(options: FeishuAcpPortOptions): FeishuAcpPor
     markUndelivered: async (sessionId) => {
       options.log?.(`feishu reply undelivered for ${sessionId}`);
     },
-    onPermissionRequest: (handler) => {
-      permissionHandler = handler;
-      return () => {
-        permissionHandler = null;
-      };
+    onPermissionRequest: () => {
+      // Permission requests are not wired to a live ACP connection yet.
+      return () => {};
     },
-    onRunUpdate: (handler) => {
-      runHandler = handler;
-      return () => {
-        runHandler = null;
-      };
+    onRunUpdate: () => {
+      // Run updates are not wired to a live ACP connection yet.
+      return () => {};
     },
   };
 }

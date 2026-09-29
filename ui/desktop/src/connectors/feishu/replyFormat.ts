@@ -29,6 +29,6 @@ export function formatSummary(result: SummaryResult): string {
     return body;
   }
   const noteLength = [...FEISHU_SUMMARY_NOTE].length;
-  const head = truncateText(body, FEISHU_SUMMARY_LIMIT - noteLength, { ellipsis: '' });
+  const head = truncateText(body, FEISHU_SUMMARY_LIMIT - noteLength, { ellipsis: '' }).text;
   return head + FEISHU_SUMMARY_NOTE;
 }

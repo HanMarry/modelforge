@@ -3,13 +3,13 @@ import os from 'node:os';
 import path from 'node:path';
 import fc from 'fast-check';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { pbtParams } from '../test/pbt';
+import { pbtParams } from '../../test/pbt';
 import {
   CheckpointService,
   resolveGit,
   type CheckpointFs,
   type CheckpointResult,
-} from './checkpoints/checkpointService';
+} from './checkpointService';
 
 const tempDirs: string[] = [];
 let gitPath: string | null = null;
@@ -159,7 +159,7 @@ describe('Property 25: Checkpoint 恢复逐字节一致', () => {
       fc.asyncProperty(
         fc.array(
           fc.record({
-            name: fc.stringOf(fc.constantFrom('a', 'b', '中', '文', ' ', '0'), { minLength: 1, maxLength: 6 }),
+            name: fc.string({ unit: fc.constantFrom('a', 'b', '中', '文', ' ', '0'), minLength: 1, maxLength: 6 }),
             content: fc.uint8Array({ minLength: 0, maxLength: 16 }),
           }),
           { minLength: 1, maxLength: 4 }

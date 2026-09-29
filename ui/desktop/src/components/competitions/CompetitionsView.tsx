@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { CalendarClock, ExternalLink, Plus, Search, X } from 'lucide-react';
 import { MainPanelLayout } from '../Layout/MainPanelLayout';

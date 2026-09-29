@@ -23,7 +23,6 @@ function seededRandom(seed: number): (max: number) => number {
 }
 
 const FILES = ['paper.tex', 'data.txt', 'model.py'];
-const LINES = ['introduction\n', 'the model is\n', 'results are shown in\n', 'conclusion\n'];
 const ALPHABET = 'abcdefghijklmnopqrstuvwxyz0123456789 ';
 
 function randomText(rng: (max: number) => number): string {

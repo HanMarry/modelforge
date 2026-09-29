@@ -50,7 +50,7 @@ export default function CollabGuestView() {
       if (payload.type === 'approved') {
         void window.electron.collabGuestFiles(guestId ?? '').then((result) => {
           if (result.ok) {
-            setPhase({ kind: 'joined', role: payload.payload.role, files: result.data });
+            setPhase({ kind: 'joined', role: (payload.payload as { role: string }).role, files: result.data });
           }
         });
       } else if (payload.type === 'rejected') {

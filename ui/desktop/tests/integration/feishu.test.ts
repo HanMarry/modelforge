@@ -62,7 +62,7 @@ function setup(overrides: { send?: (id: string, text: string) => Promise<void> }
   const acp = new FakeAcp();
   const connector: FeishuConnector = createFeishuConnector({
     whitelist: ['ou_1'],
-    send: { sendText: overrides.send ?? (async (_id, text) => sent.push(text)) },
+    send: { sendText: overrides.send ?? (async (_id, text) => { sent.push(text); }) },
     acp,
     store: { load: async () => ({}), save: async () => {} },
     onMessage: (handler) => {

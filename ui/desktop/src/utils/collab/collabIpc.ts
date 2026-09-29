@@ -14,7 +14,7 @@ import {
   type SharedFile,
 } from './collabService';
 import type { CollabGuestRole } from './collabPolicy';
-import { describeError, toIpcError, type IpcResult } from './ipcResult';
+import { describeError, toIpcError, type IpcResult } from '../ipcResult';
 import { encodeTextState, fileIds, getFileText, setFileText } from './collabDoc';
 
 export interface CollabIpcDeps {
@@ -134,8 +134,8 @@ export function registerCollabIpc(ipc: Pick<IpcMain, 'handle'>, options: CollabI
         const forward = (type: string) => (payload: unknown) => broadcast('collab-guest-event', { guestId, type, payload });
         guest.on('approved', forward('approved'));
         guest.on('rejected', forward('rejected'));
-        guest.on('session-ended', forward('session-ended'));
-        guest.on('edit-rejected', forward('edit-rejected'));
+        guest.on('session-ended', () => broadcast('collab-guest-event', { guestId, type: 'session-ended', payload: null }));
+        guest.on('edit-rejected', () => broadcast('collab-guest-event', { guestId, type: 'edit-rejected', payload: null }));
         guest.on('text-update', forward('text-update'));
         guest.on('annotation-update', forward('annotation-update'));
         return { ok: true, data: { guestId } };

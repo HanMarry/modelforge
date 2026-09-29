@@ -87,7 +87,9 @@ const nodeFileSystem: ProjectFileSystem = {
       return false;
     }
   },
-  mkdir: (p, options) => fs.mkdir(p, options),
+  mkdir: async (p, options) => {
+    await fs.mkdir(p, options);
+  },
   readdir: (p) => fs.readdir(p),
   stat: async (p) => {
     const s = await fs.stat(p);
@@ -176,7 +178,7 @@ export class ProjectService {
 
   async createFromExample(request: CreateFromExampleRequest): Promise<string> {
     const existing = await this.listDirectoryNames(request.parentDir);
-    const finalName = resolveUniqueDirName(request.name, existing);
+    const finalName = resolveUniqueDirName(request.name, new Set(existing));
 
     const inputFiles: string[] = [];
     const origin: ProjectOrigin = { kind: 'example', exampleId: request.manifest.id, inputFiles };

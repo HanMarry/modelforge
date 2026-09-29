@@ -53,10 +53,9 @@ export interface GeneratedCertificate {
   fingerprint: string;
 }
 
-export function generateSelfSignedCertificate(): GeneratedCertificate {
-  const pems = selfsigned.generate([{ name: 'commonName', value: 'modelforge-collab' }], {
+export async function generateSelfSignedCertificate(): Promise<GeneratedCertificate> {
+  const pems = await selfsigned.generate([{ name: 'commonName', value: 'modelforge-collab' }], {
     keySize: 2048,
-    days: 365,
     algorithm: 'sha256',
   });
   const cert = new X509Certificate(pems.cert);
@@ -184,7 +183,7 @@ export function createCollabHost(options: CollabHostOptions): Promise<CollabHost
   const log = options.log ?? (() => {});
   const heartbeatTimeoutMs = options.heartbeatTimeoutMs ?? HEARTBEAT_TIMEOUT_MS;
   const approvalTimeoutMs = options.approvalTimeoutMs ?? APPROVAL_TIMEOUT_MS;
-  const certificate = options.certificate ?? generateSelfSignedCertificate();
+  const certificate = options.certificate ?? (await generateSelfSignedCertificate());
 
   const events = new EventEmitter();
   const registry = createInviteRegistry({ randomInt: options.randomInt });
@@ -237,14 +236,6 @@ export function createCollabHost(options: CollabHostOptions): Promise<CollabHost
       frame[0] = channel;
       frame.set(update, 1);
       socket.send(frame, { binary: true });
-    }
-  };
-
-  const broadcastJson = (payload: unknown, except?: string): void => {
-    for (const [guestId, socket] of sockets) {
-      if (guestId !== except) {
-        sendJson(socket, payload);
-      }
     }
   };
 
