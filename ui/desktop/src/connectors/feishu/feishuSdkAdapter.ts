@@ -123,7 +123,7 @@ export function createFeishuController(options: FeishuControllerOptions) {
               appId: config.appId,
               appSecret: config.appSecret,
               appType: AppType.SelfBuild,
-              domain: Domain.FeiShu,
+              domain: Domain.Feishu,
             });
             await client.im.message.create({
               params: { receive_id_type: 'chat_id' },
