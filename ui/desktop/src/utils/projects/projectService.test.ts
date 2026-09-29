@@ -173,18 +173,27 @@ function makeCompetition(name: string): Competition {
   };
 }
 
+// 文件名与项目名只取合法的单段目录名字符：含 `/`、`\` 或 `.`/`..` 的名字会被 validateProjectName
+// 拒绝，并会让内存文件系统出现空路径段（readdir 返回 ''，递归复制停不下来）。
+const safeNameArb = (maxLength: number) =>
+  fc.string({
+    unit: fc.constantFrom('a', 'b', 'Z', '0', '_', '-', '中', '文'),
+    minLength: 1,
+    maxLength,
+  });
+
 // Feature: mathmodel-parity-and-beyond, Property 18: Project 创建事务无残留
 describe('Property 18: Project 创建事务无残留', () => {
   it('leaves the parent and sources untouched on a failed example copy (memfs)', async () => {
     await fc.assert(
       fc.asyncProperty(
         fc.record({
-          files: fc.dictionary(fc.string({ minLength: 1, maxLength: 8 }), fc.string({ maxLength: 20 }), {
+          files: fc.dictionary(safeNameArb(8), fc.string({ maxLength: 20 }), {
             minKeys: 1,
             maxKeys: 4,
           }),
           fault: fc.constantFrom('none', 'eacces', 'enospc', 'source-missing'),
-          name: fc.string({ minLength: 1, maxLength: 10 }),
+          name: safeNameArb(10),
         }),
         async ({ files, fault, name }) => {
           const fs = new MemProjectFs();
@@ -200,7 +209,8 @@ describe('Property 18: Project 创建事务无残留', () => {
             manifest.attachments = [...manifest.attachments, 'missing.csv'];
           }
           if (fault === 'eacces') fs.setRenameFault('EACCES');
-          if (fault === 'enospc') fs.failCopyAt(2, 'ENOSPC');
+          // 至少有 1 个文件，第 1 次复制失败才保证故障一定被触发
+          if (fault === 'enospc') fs.failCopyAt(1, 'ENOSPC');
 
           const service = new ProjectService({ fs, random: () => 'rand', now: () => 't' });
           const before = fs.topLevelNames('/parent');
@@ -233,12 +243,12 @@ describe('Property 18: Project 创建事务无残留', () => {
     await fc.assert(
       fc.asyncProperty(
         fc.record({
-          templateFiles: fc.dictionary(fc.string({ minLength: 1, maxLength: 8 }), fc.string({ maxLength: 20 }), {
+          templateFiles: fc.dictionary(safeNameArb(8), fc.string({ maxLength: 20 }), {
             minKeys: 1,
             maxKeys: 4,
           }),
           fault: fc.constantFrom('none', 'exists', 'eacces', 'enospc'),
-          name: fc.string({ minLength: 1, maxLength: 10 }),
+          name: safeNameArb(10),
         }),
         async ({ templateFiles, fault, name }) => {
           const fs = new MemProjectFs();
@@ -251,7 +261,7 @@ describe('Property 18: Project 创建事务无残留', () => {
 
           if (fault === 'exists') await fs.mkdir(`/parent/${name}`, { recursive: true });
           if (fault === 'eacces') fs.setRenameFault('EACCES');
-          if (fault === 'enospc') fs.failCopyAt(2, 'ENOSPC');
+          if (fault === 'enospc') fs.failCopyAt(1, 'ENOSPC');
 
           const service = new ProjectService({ fs, random: () => 'rand', now: () => 't' });
           const before = fs.topLevelNames('/parent');

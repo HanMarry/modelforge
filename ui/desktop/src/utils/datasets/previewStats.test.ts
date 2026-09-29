@@ -8,8 +8,13 @@ import { computePreviewStats, inferColumnType } from './previewStats';
 const COLUMN_TYPES = ['int', 'float', 'bool', 'datetime', 'string'] as const;
 type GenType = (typeof COLUMN_TYPES)[number];
 
+// fast-check v4 的 fc.date 默认会生成 Invalid Date，这里显式排除
 const dateArb = fc
-  .date({ min: new Date(Date.UTC(2000, 0, 1)), max: new Date(Date.UTC(2099, 11, 31)) })
+  .date({
+    min: new Date(Date.UTC(2000, 0, 1)),
+    max: new Date(Date.UTC(2099, 11, 31)),
+    noInvalidDate: true,
+  })
   .map((d) => d.toISOString().slice(0, 10));
 
 function valueArb(kind: GenType): fc.Arbitrary<unknown> {

@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { truncateText } from '../../utils/textTruncate';
 import {
   FEISHU_SUMMARY_LIMIT,
   FEISHU_SUMMARY_NOTE,
@@ -31,26 +30,39 @@ describe('formatSummary', () => {
   });
 });
 
-describe('truncateText example tests', () => {
-  it('returns input unchanged at exactly the limit', () => {
-    const input = 'a'.repeat(FEISHU_SUMMARY_LIMIT);
-    expect(truncateText(input, FEISHU_SUMMARY_LIMIT).text).toBe(input);
+// 任务 19.3 的示例测试：恰好 2000、超出 1 个码点、截断处是代理对。
+// 没有生成文件时摘要为 `状态：<status>`，前缀「状态：」占 3 个码点。
+const STATUS_PREFIX_LENGTH = 3;
+const NOTE_LENGTH = [...FEISHU_SUMMARY_NOTE].length;
+const LONE_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/;
+
+function summaryWithStatus(status: string): string {
+  return formatSummary({ status, artifactFileNames: [] });
+}
+
+describe('formatSummary example tests', () => {
+  it('returns the summary unchanged at exactly the limit', () => {
+    const status = 'a'.repeat(FEISHU_SUMMARY_LIMIT - STATUS_PREFIX_LENGTH);
+    const summary = summaryWithStatus(status);
+    expect([...summary].length).toBe(FEISHU_SUMMARY_LIMIT);
+    expect(summary).toBe(`状态：${status}`);
+    expect(summary).not.toContain(FEISHU_SUMMARY_NOTE);
   });
 
-  it('truncates when one code point over the limit, with ellipsis counting toward it', () => {
-    const input = 'a'.repeat(FEISHU_SUMMARY_LIMIT + 1);
-    const out = truncateText(input, FEISHU_SUMMARY_LIMIT).text;
-    expect([...out].length).toBe(FEISHU_SUMMARY_LIMIT);
-    expect(out.endsWith('…')).toBe(true);
+  it('truncates one code point over the limit and counts the note toward it', () => {
+    const status = 'a'.repeat(FEISHU_SUMMARY_LIMIT - STATUS_PREFIX_LENGTH + 1);
+    const summary = summaryWithStatus(status);
+    expect([...summary].length).toBe(FEISHU_SUMMARY_LIMIT);
+    expect(summary.endsWith(FEISHU_SUMMARY_NOTE)).toBe(true);
   });
 
   it('never splits a surrogate pair at the truncation point', () => {
-    // 1999 ASCII + one astral character (2 UTF-16 units, 1 code point) = 2000 code points.
-    const input = `${'a'.repeat(FEISHU_SUMMARY_LIMIT - 1)}𝄞${'b'.repeat(10)}`;
-    const out = truncateText(input, FEISHU_SUMMARY_LIMIT).text;
-    expect([...out].length).toBe(FEISHU_SUMMARY_LIMIT);
-    // The astral character survives intact rather than being cut to a lone surrogate.
-    expect(out.includes('𝄞')).toBe(true);
-    expect(out).not.toContain('\uD834');
+    // 截断后保留 limit - 注释长度 个码点，让最后一个保留的码点正好是一个增补平面字符
+    const keep = FEISHU_SUMMARY_LIMIT - NOTE_LENGTH;
+    const status = `${'a'.repeat(keep - STATUS_PREFIX_LENGTH - 1)}𝄞${'b'.repeat(100)}`;
+    const summary = summaryWithStatus(status);
+    expect([...summary].length).toBe(FEISHU_SUMMARY_LIMIT);
+    expect(summary).toContain(`𝄞${FEISHU_SUMMARY_NOTE}`);
+    expect(LONE_SURROGATE.test(summary)).toBe(false);
   });
 });

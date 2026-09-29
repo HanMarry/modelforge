@@ -11,8 +11,13 @@ import {
   statusOf,
 } from './competitionRules';
 
+// fast-check v4 的 fc.date 默认会生成 Invalid Date，这里显式排除
 const localDateArb: fc.Arbitrary<LocalDate> = fc
-  .date({ min: new Date(Date.UTC(2000, 0, 1)), max: new Date(Date.UTC(2099, 11, 31)) })
+  .date({
+    min: new Date(Date.UTC(2000, 0, 1)),
+    max: new Date(Date.UTC(2099, 11, 31)),
+    noInvalidDate: true,
+  })
   .map((date) => date.toISOString().slice(0, 10) as LocalDate);
 
 const dateRangeArb: fc.Arbitrary<CompetitionDateRange> = fc

@@ -110,6 +110,7 @@ export interface ProjectMetadata {
 
 export type ProjectCreateErrorCode =
   | 'PROJECT_EXISTS'
+  | 'INVALID_NAME'
   | 'EACCES'
   | 'ENOSPC'
   | 'SOURCE_MISSING';

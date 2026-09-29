@@ -21,9 +21,13 @@ beforeAll(async () => {
 
 afterEach(() => {
   while (tempDirs.length) {
-    fs.rmSync(tempDirs.pop() as string, { recursive: true, force: true });
+    fs.rmSync(tempDirs.pop() as string, { recursive: true, force: true, maxRetries: 3 });
   }
 });
+
+// 每次运行都调用真实 git（每个 Checkpoint 数个子进程），100 次运行远超 vitest 默认的 5 秒上限
+const PROPERTY_TIMEOUT_MS = 600_000;
+const EXAMPLE_TIMEOUT_MS = 180_000;
 
 function makeProject(): { root: string; userData: string; userGit: string } {
   const base = fs.mkdtempSync(path.join(os.tmpdir(), 'mf-ckpt-'));
@@ -128,7 +132,7 @@ describe('Property 24: 每轮一个 Checkpoint 与保留上限', () => {
       ),
       pbtParams
     );
-  });
+  }, PROPERTY_TIMEOUT_MS);
 
   it('keeps the newest 100 checkpoints when the cap is 100', async () => {
     requireGit();
@@ -148,7 +152,7 @@ describe('Property 24: 每轮一个 Checkpoint 与保留上限', () => {
     expect(Math.min(...turns)).toBe(2);
     expect(Math.max(...turns)).toBe(101);
     expect(snapshotUserGit(userGit)).toBe(before);
-  });
+  }, EXAMPLE_TIMEOUT_MS);
 });
 
 // Feature: mathmodel-parity-and-beyond, Property 25: Checkpoint 恢复逐字节一致
@@ -196,7 +200,7 @@ describe('Property 25: Checkpoint 恢复逐字节一致', () => {
       ),
       pbtParams
     );
-  });
+  }, PROPERTY_TIMEOUT_MS);
 });
 
 // Feature: mathmodel-parity-and-beyond, Property 26: 恢复失败回滚
@@ -244,5 +248,5 @@ describe('Property 26: 恢复失败回滚', () => {
 
     // The project must be back to its pre-restore state.
     expectTreesEqual(treeOf(root), beforeRestore);
-  });
+  }, EXAMPLE_TIMEOUT_MS);
 });

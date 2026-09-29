@@ -120,6 +120,9 @@ export interface CheckpointServiceOptions {
 
 const DEFAULT_MAX_CHECKPOINTS = 100;
 
+/** Shadow repos already initialised and configured by this process. */
+const preparedShadowRepos = new Set<string>();
+
 const systemFs: CheckpointFs = {
   realpathSync: (target) => fs.realpathSync(target),
   existsSync: (target) => fs.existsSync(target),
@@ -345,7 +348,10 @@ export class CheckpointService {
         // Retention is best-effort; an existing snapshot is still usable.
       }
 
-      return { ok: true, value: { checkpointId: head, created: true } };
+      // Trimming rewrites the retained history, so the new checkpoint's id is read back
+      // afterwards; a later call for the same turn then reports the same id.
+      const checkpointId = (await this.currentHead(ctx.value)) ?? head;
+      return { ok: true, value: { checkpointId, created: true } };
     });
   }
 
@@ -493,7 +499,12 @@ export class CheckpointService {
   }
 
   private async ensureShadowRepo(git: string, gitDir: string, workTree: string): Promise<void> {
-    if (!this.fileSystem.existsSync(gitDir)) {
+    const exists = this.fileSystem.existsSync(gitDir);
+    // Configuring spawns eight git processes; do it once per shadow repo per process.
+    if (exists && preparedShadowRepos.has(gitDir)) {
+      return;
+    }
+    if (!exists) {
       await runExec(git, ['init', '--bare', gitDir], {
         env: { ...process.env, GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: os.devNull },
         windowsHide: true,
@@ -516,6 +527,7 @@ export class CheckpointService {
     fs.mkdirSync(infoDir, { recursive: true });
     fs.writeFileSync(path.join(infoDir, 'exclude'), '.git/\n');
     fs.writeFileSync(path.join(infoDir, 'attributes'), '* -text -filter\n');
+    preparedShadowRepos.add(gitDir);
   }
 
   private async currentHead(ctx: Context): Promise<string | null> {
@@ -577,19 +589,24 @@ export class CheckpointService {
     const count = Number.parseInt(countRaw.trim(), 10) || 0;
     if (count <= limit) return;
 
-    const kept = (
-      await runGitText(ctx.git, ['rev-list', `--max-count=${limit}`, 'HEAD'], ctx.env)
+    // One `git log` reads the tree and message of every retained commit, oldest first
+    // (`-n` limits before `--reverse` reorders), instead of two git calls per commit.
+    const records = (
+      await runGitText(ctx.git,
+        ['log', '--reverse', `-n${limit}`, '--format=%T%x00%B%x1e', 'HEAD'],
+        ctx.env
+      )
     )
-      .trim()
-      .split('\n')
-      .filter(Boolean)
-      .reverse();
+      .split('\x1e')
+      .map((record) => record.replace(/^\n/, ''))
+      .filter((record) => record.includes('\0'));
 
     let parent: string | null = null;
     let tip: string | null = null;
-    for (const hash of kept) {
-      const tree = (await runGitText(ctx.git, ['rev-parse', `${hash}^{tree}`], ctx.env)).trim();
-      const message = await runGitText(ctx.git, ['log', '-1', '--format=%B', hash], ctx.env);
+    for (const record of records) {
+      const separator = record.indexOf('\0');
+      const tree = record.slice(0, separator).trim();
+      const message = record.slice(separator + 1);
       const args = ['commit-tree', tree];
       if (parent) args.push('-p', parent);
       args.push('-m', message);
@@ -648,6 +665,7 @@ export class CheckpointService {
     return { changedFiles: plan.toWrite.length + plan.toDelete.length, failed };
   }
 
+  /** Files to write are only those whose content differs, so untouched files keep their mtime. */
   private async buildApplyPlan(ctx: Context, treeish: string, projectRoot: string): Promise<ApplyPlan> {
     const targetPaths = await this.treeFiles(ctx, treeish);
     const currentPaths = walkProject(projectRoot, this.fileSystem);
@@ -656,18 +674,28 @@ export class CheckpointService {
 
     const toWrite: Array<{ path: string; data: Buffer }> = [];
     for (const filePath of targetPaths.sort()) {
-      toWrite.push({
-        path: filePath,
-        data: await runGitBuffer(ctx.git, ['show', `${treeish}:${filePath}`], ctx.env),
-      });
+      const data = await runGitBuffer(ctx.git, ['show', `${treeish}:${filePath}`], ctx.env);
+      if (!this.hasSameContent(path.join(projectRoot, filePath), data)) {
+        toWrite.push({ path: filePath, data });
+      }
     }
     return { toWrite, toDelete };
   }
 
+  private hasSameContent(fullPath: string, data: Buffer): boolean {
+    try {
+      return this.fileSystem.readFileSync(fullPath).equals(data);
+    } catch {
+      return false;
+    }
+  }
+
   private async treeFiles(ctx: Context, treeish: string): Promise<string[]> {
     try {
-      const output = await runGitText(ctx.git, ['ls-tree', '-r', '--name-only', treeish], ctx.env);
-      return output.split('\n').filter(Boolean);
+      // `-z` keeps paths verbatim: without it git C-quotes names with quotes, backslashes
+      // or control characters even when core.quotepath is off.
+      const output = await runGitText(ctx.git, ['ls-tree', '-r', '-z', '--name-only', treeish], ctx.env);
+      return output.split('\0').filter(Boolean);
     } catch {
       return [];
     }
@@ -702,7 +730,8 @@ function walkProject(root: string, fileSystem: CheckpointFs): string[] {
       if (entry.isDirectory()) {
         stack.push(full);
       } else if (entry.isFile()) {
-        result.push(path.relative(root, full));
+        // git tree paths always use `/`; compare in that form so Windows paths match.
+        result.push(path.relative(root, full).split(path.sep).join('/'));
       }
     }
   }

@@ -74,19 +74,32 @@ const extArb = fc.oneof(
   fc.constant('.csv.bak')
 );
 
+// 文件名只用不含路径分隔符的字符：`/`、`\` 会让生成的路径与内存树的层级对不上
 const fileArb = fc.record({
   depth: fc.integer({ min: 0, max: 8 }),
-  name: fc.string({ minLength: 1, maxLength: 8 }),
+  name: fc.string({
+    unit: fc.constantFrom('a', 'b', 'Z', '0', ' ', '_', '-', '.', '中'),
+    minLength: 1,
+    maxLength: 8,
+  }),
   ext: extArb,
   size: fc.integer({ min: 0, max: 1_000_000 }),
   mtimeMs: fc.integer({ min: 0, max: 4_000_000_000 }),
 });
 
+type GeneratedFile = { depth: number; name: string; ext: string };
+
+function pathOf(f: GeneratedFile): string {
+  const dirs = f.depth === 0 ? '' : Array.from({ length: f.depth }, () => 'd').join('/') + '/';
+  return `${dirs}${f.name}${f.ext}`;
+}
+
+// 同一路径只出现一次：内存树按路径去重，重复路径会让期望数多于实际文件数
 const treeArb = fc
-  .array(fileArb, { minLength: 1, maxLength: 60 })
+  .uniqueArray(fileArb, { minLength: 1, maxLength: 60, selector: pathOf })
   .map((files) =>
     files.map((f) => ({
-      path: `${f.depth === 0 ? '' : Array.from({ length: f.depth }, () => 'd').join('/') + '/'}${f.name}${f.ext}`,
+      path: pathOf(f),
       size: f.size,
       mtimeMs: f.mtimeMs,
     }))

@@ -106,6 +106,38 @@ function toPosixPath(p: string): string {
   return p.split(path.sep).join('/');
 }
 
+export const MAX_PROJECT_NAME_LENGTH = 64;
+
+// eslint-disable-next-line no-control-regex
+const FORBIDDEN_NAME_CHARS = /[<>:"/\\|?*\u0000-\u001f]/;
+
+/**
+ * Rejects a project name that is not a single, portable directory name: the name comes over IPC
+ * from the renderer, so a separator or `..` must never let it escape the chosen parent directory.
+ */
+export function validateProjectName(name: string): void {
+  const length = Array.from(name).length;
+  if (!name.trim() || length > MAX_PROJECT_NAME_LENGTH) {
+    throw new ProjectCreateError('INVALID_NAME', `项目名称需为 1–${MAX_PROJECT_NAME_LENGTH} 个字符`);
+  }
+  if (FORBIDDEN_NAME_CHARS.test(name) || name === '.' || name === '..') {
+    throw new ProjectCreateError('INVALID_NAME', `项目名称不能包含路径分隔符或特殊字符：${name}`);
+  }
+  if (/[. ]$/.test(name)) {
+    throw new ProjectCreateError('INVALID_NAME', `项目名称不能以空格或句点结尾：${name}`);
+  }
+}
+
+/** Resolves a manifest-relative path, refusing anything that points outside `baseDir`. */
+function resolveInside(baseDir: string, relative: string): string {
+  const base = path.resolve(baseDir);
+  const resolved = path.resolve(base, relative);
+  if (!relative || path.isAbsolute(relative) || !resolved.startsWith(base + path.sep)) {
+    throw new ProjectCreateError('SOURCE_MISSING', `示例题清单中的文件路径无效：${relative}`);
+  }
+  return resolved;
+}
+
 interface CreateFromTemplateRequest {
   competition: Competition;
   name: string;
@@ -159,6 +191,7 @@ export class ProjectService {
   }
 
   async createFromTemplate(request: CreateFromTemplateRequest): Promise<string> {
+    validateProjectName(request.name);
     const origin: ProjectOrigin = {
       kind: 'competition',
       competitionId: request.competition.id,
@@ -177,18 +210,22 @@ export class ProjectService {
   }
 
   async createFromExample(request: CreateFromExampleRequest): Promise<string> {
+    validateProjectName(request.name);
     const existing = await this.listDirectoryNames(request.parentDir);
     const finalName = resolveUniqueDirName(request.name, new Set(existing));
+    validateProjectName(finalName);
 
     const inputFiles: string[] = [];
     const origin: ProjectOrigin = { kind: 'example', exampleId: request.manifest.id, inputFiles };
 
     return this.createProjectTransactional(request.parentDir, finalName, async (destDir) => {
       for (const relative of [request.manifest.problemFile, ...request.manifest.attachments]) {
-        const source = path.join(request.exampleDir, relative);
-        const destination = path.join(destDir, relative);
+        const source = resolveInside(request.exampleDir, relative);
+        const destination = resolveInside(destDir, relative);
+        // Attachments may live in a subdirectory (e.g. `attachments/data.csv`).
+        await this.fs.mkdir(path.dirname(destination), { recursive: true });
         await this.copyFileVerified(source, destination);
-        inputFiles.push(toPosixPath(relative));
+        inputFiles.push(toPosixPath(path.normalize(relative)));
       }
       await this.writeProjectMetadata(destDir, finalName, origin);
     });

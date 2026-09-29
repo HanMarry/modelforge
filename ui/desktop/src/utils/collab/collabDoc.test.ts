@@ -56,8 +56,9 @@ describe('Property 33: 批注同步收敛', () => {
       fc.property(
         fc.integer({ min: 0, max: 2 ** 31 - 1 }),
         fc.nat(30),
-        fc.nat(4),
-        (seed, opCount, shuffleRounds) => {
+        fc.integer({ min: 1, max: 3 }),
+        fc.nat(3),
+        (seed, opCount, phases, extraCopies) => {
           const rng = seededRandom(seed);
           const a = createCollabDocs();
           const b = createCollabDocs();
@@ -65,35 +66,47 @@ describe('Property 33: 批注同步收敛', () => {
             setFileText(a, file, randomText(rng));
           }
 
-          // Random edits and annotations on a random replica.
-          for (let i = 0; i < opCount; i += 1) {
-            const target = rng(2) === 0 ? a : b;
-            const file = FILES[rng(FILES.length)];
-            if (rng(2) === 0) {
-              setFileText(target, file, randomText(rng));
-            } else {
-              addAnnotation(target, file, 'alice', `comment ${i}`, rng(10));
+          // 每个阶段结束时两端各发出一次文本通道与批注通道的更新；文本更新只进文本文档，
+          // 批注更新只进批注文档，与房主端分通道同步一致。
+          type Delivery = {
+            to: ReturnType<typeof createCollabDocs>;
+            channel: 'text' | 'annotations';
+            update: Uint8Array;
+          };
+          const sent: Delivery[] = [];
+          for (let phase = 0; phase < phases; phase += 1) {
+            // Random edits and annotations on a random replica.
+            for (let i = 0; i < opCount; i += 1) {
+              const target = rng(2) === 0 ? a : b;
+              const file = FILES[rng(FILES.length)];
+              if (rng(2) === 0) {
+                setFileText(target, file, randomText(rng));
+              } else {
+                addAnnotation(target, file, 'alice', `comment ${phase}-${i}`, rng(10));
+              }
             }
+            sent.push(
+              { to: b, channel: 'text', update: encodeTextState(a) },
+              { to: a, channel: 'text', update: encodeTextState(b) },
+              { to: b, channel: 'annotations', update: encodeAnnotationState(a) },
+              { to: a, channel: 'annotations', update: encodeAnnotationState(b) }
+            );
           }
 
-          const updates = [
-            encodeTextState(a),
-            encodeTextState(b),
-            encodeAnnotationState(a),
-            encodeAnnotationState(b),
-          ];
-
-          // Deliver in arbitrary order with arbitrary repetition; yjs updates are idempotent.
-          for (let round = 0; round < shuffleRounds; round += 1) {
-            const order = [...updates].sort(() => rng(3) - 1);
-            for (const update of order) {
-              if (rng(2) === 0) {
-                applyTextUpdate(a, update);
-                applyTextUpdate(b, update);
-              } else {
-                applyAnnotationUpdate(a, update);
-                applyAnnotationUpdate(b, update);
-              }
+          // Every update arrives at least once, some more than once, in an arbitrary order.
+          const deliveries = [...sent];
+          for (let i = 0; i < extraCopies * sent.length; i += 1) {
+            deliveries.push(sent[rng(sent.length)]);
+          }
+          for (let i = deliveries.length - 1; i > 0; i -= 1) {
+            const j = rng(i + 1);
+            [deliveries[i], deliveries[j]] = [deliveries[j], deliveries[i]];
+          }
+          for (const delivery of deliveries) {
+            if (delivery.channel === 'text') {
+              applyTextUpdate(delivery.to, delivery.update);
+            } else {
+              applyAnnotationUpdate(delivery.to, delivery.update);
             }
           }
 

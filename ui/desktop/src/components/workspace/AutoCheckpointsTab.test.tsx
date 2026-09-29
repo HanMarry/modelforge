@@ -65,7 +65,9 @@ describe('AutoCheckpointsTab', () => {
     await waitFor(() => expect(diff).toHaveBeenCalledWith('/project', 'abc123', 'worktree'));
 
     expect(await screen.findByText('Restore this snapshot?')).toBeVisible();
-    expect(screen.getByText(/1 files will change/)).toBeVisible();
-    expect(screen.getByText(/2026-01-02/)).toBeVisible();
+    // 列表行里也显示创建时间，所以只在确认框的正文中核对创建时间与文件数（时间按本地时区显示）
+    expect(
+      screen.getByText(/Created \d{4}-\d{2}-\d{2} \d{2}:\d{2}\. 1 files will change/)
+    ).toBeVisible();
   });
 });
