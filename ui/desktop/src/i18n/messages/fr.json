@@ -3680,6 +3680,231 @@
   "onboardingSuccess.shareUsageData": {
     "defaultMessage": "Partager des données d'utilisation anonymes"
   },
+  "paperCheck.anonymous": {
+    "defaultMessage": "The competition requires anonymous papers"
+  },
+  "paperCheck.anonymousHint": {
+    "defaultMessage": "Searched for in the sources and the PDF. Kept on this computer only."
+  },
+  "paperCheck.description": {
+    "defaultMessage": "Checks the paper for common problems before you submit it. Files are only read, never changed."
+  },
+  "paperCheck.empty": {
+    "defaultMessage": "Pick the paper source and run the check to see the report."
+  },
+  "paperCheck.errorOutsideProject": {
+    "defaultMessage": "The paper must be inside the project folder."
+  },
+  "paperCheck.errorProjectNotFound": {
+    "defaultMessage": "The project folder no longer exists."
+  },
+  "paperCheck.errorTimeout": {
+    "defaultMessage": "The check did not finish in time."
+  },
+  "paperCheck.failed": {
+    "defaultMessage": "The check could not run: {detail}"
+  },
+  "paperCheck.fieldName": {
+    "defaultMessage": "Name"
+  },
+  "paperCheck.fieldSchool": {
+    "defaultMessage": "School"
+  },
+  "paperCheck.fieldTeam": {
+    "defaultMessage": "Team name"
+  },
+  "paperCheck.figureBitmap": {
+    "defaultMessage": "bitmap image"
+  },
+  "paperCheck.figureNoAxes": {
+    "defaultMessage": "no axis structure found"
+  },
+  "paperCheck.figureNoText": {
+    "defaultMessage": "no text layer"
+  },
+  "paperCheck.figureParseError": {
+    "defaultMessage": "could not be parsed"
+  },
+  "paperCheck.figureUnsupported": {
+    "defaultMessage": "unsupported format"
+  },
+  "paperCheck.finishedAt": {
+    "defaultMessage": "Finished {time}"
+  },
+  "paperCheck.issueAnonymityHit": {
+    "defaultMessage": "{field} “{term}” appears here"
+  },
+  "paperCheck.issueCount": {
+    "defaultMessage": "{count,plural,one{# issue} other{# issues}}"
+  },
+  "paperCheck.issueFigureMissing": {
+    "defaultMessage": "Missing {parts}"
+  },
+  "paperCheck.issueFigureUnreadable": {
+    "defaultMessage": "Cannot be checked: {reason}"
+  },
+  "paperCheck.issueNumberMismatch": {
+    "defaultMessage": "{paperValue} does not match {tableValue} in {table} (run {runId})"
+  },
+  "paperCheck.issuePdfMissing": {
+    "defaultMessage": "PDF missing: {pdf}"
+  },
+  "paperCheck.issuePdfStale": {
+    "defaultMessage": "Newer than {pdf}"
+  },
+  "paperCheck.issuePdfUnreadable": {
+    "defaultMessage": "The PDF text could not be read"
+  },
+  "paperCheck.issueQuestionUncovered": {
+    "defaultMessage": "Question {number} is never mentioned in the paper"
+  },
+  "paperCheck.issueReferenceNetwork": {
+    "defaultMessage": "[{index}] {title}: not verified (network)"
+  },
+  "paperCheck.issueReferenceUnverified": {
+    "defaultMessage": "[{index}] {title}: could not be verified ({reason})"
+  },
+  "paperCheck.itemAnonymity": {
+    "defaultMessage": "Anonymity"
+  },
+  "paperCheck.itemFigureLabels": {
+    "defaultMessage": "Figure labels and units"
+  },
+  "paperCheck.itemNumberConsistency": {
+    "defaultMessage": "Numbers match results"
+  },
+  "paperCheck.itemPdfFreshness": {
+    "defaultMessage": "PDF up to date"
+  },
+  "paperCheck.itemQuestionCoverage": {
+    "defaultMessage": "Question coverage"
+  },
+  "paperCheck.itemReferences": {
+    "defaultMessage": "References"
+  },
+  "paperCheck.loadingPapers": {
+    "defaultMessage": "Looking for paper sources…"
+  },
+  "paperCheck.locationLine": {
+    "defaultMessage": "{file}, line {line}"
+  },
+  "paperCheck.locationPage": {
+    "defaultMessage": "{file}, page {page}"
+  },
+  "paperCheck.names": {
+    "defaultMessage": "Member names"
+  },
+  "paperCheck.namesPlaceholder": {
+    "defaultMessage": "Separate names with commas"
+  },
+  "paperCheck.noPaper": {
+    "defaultMessage": "No LaTeX, Typst or Markdown paper source found in this project."
+  },
+  "paperCheck.omitted": {
+    "defaultMessage": "{count,plural,one{# more issue not shown} other{# more issues not shown}}"
+  },
+  "paperCheck.online": {
+    "defaultMessage": "Verify references online (Crossref)"
+  },
+  "paperCheck.onlineHint": {
+    "defaultMessage": "Up to 10 seconds per reference; not included in the 60-second limit."
+  },
+  "paperCheck.paperLabel": {
+    "defaultMessage": "Paper source"
+  },
+  "paperCheck.partXLabel": {
+    "defaultMessage": "x-axis label"
+  },
+  "paperCheck.partXUnit": {
+    "defaultMessage": "x-axis unit"
+  },
+  "paperCheck.partYLabel": {
+    "defaultMessage": "y-axis label"
+  },
+  "paperCheck.partYUnit": {
+    "defaultMessage": "y-axis unit"
+  },
+  "paperCheck.reasonCheckFailed": {
+    "defaultMessage": "The check failed: {detail}"
+  },
+  "paperCheck.reasonFiguresUnreadable": {
+    "defaultMessage": "None of the figures could be read."
+  },
+  "paperCheck.reasonMissingPaperSource": {
+    "defaultMessage": "The paper source file is missing."
+  },
+  "paperCheck.reasonMissingProblemStatement": {
+    "defaultMessage": "No problem statement found (a file named like 题目, 赛题 or problem)."
+  },
+  "paperCheck.reasonMissingProfile": {
+    "defaultMessage": "Enter the names, school or team name to search for."
+  },
+  "paperCheck.reasonMissingQuestionNumbers": {
+    "defaultMessage": "The problem statement names no question numbers."
+  },
+  "paperCheck.reasonMissingRunRecords": {
+    "defaultMessage": "No Run_Record found in .modelforge/runs."
+  },
+  "paperCheck.reasonNetworkUnavailable": {
+    "defaultMessage": "Crossref could not be reached."
+  },
+  "paperCheck.reasonNoFigures": {
+    "defaultMessage": "The paper shows no figures."
+  },
+  "paperCheck.reasonNoLinkedValues": {
+    "defaultMessage": "No number in the paper could be matched to a result table value."
+  },
+  "paperCheck.reasonNoReferences": {
+    "defaultMessage": "No reference list found."
+  },
+  "paperCheck.reasonNoResultTables": {
+    "defaultMessage": "No current result table (CSV, TSV or JSON output of a successful run)."
+  },
+  "paperCheck.reasonOffline": {
+    "defaultMessage": "Online verification is off."
+  },
+  "paperCheck.reasonTimedOut": {
+    "defaultMessage": "Stopped: the 60-second limit was reached."
+  },
+  "paperCheck.referenceDoiMismatch": {
+    "defaultMessage": "DOI belongs to another title"
+  },
+  "paperCheck.referenceDoiNotFound": {
+    "defaultMessage": "DOI not found"
+  },
+  "paperCheck.referenceNoIdentifier": {
+    "defaultMessage": "no DOI or title"
+  },
+  "paperCheck.referenceNoMatch": {
+    "defaultMessage": "no matching record"
+  },
+  "paperCheck.rescan": {
+    "defaultMessage": "Look for paper sources again"
+  },
+  "paperCheck.run": {
+    "defaultMessage": "Run check"
+  },
+  "paperCheck.running": {
+    "defaultMessage": "Checking…"
+  },
+  "paperCheck.school": {
+    "defaultMessage": "School"
+  },
+  "paperCheck.team": {
+    "defaultMessage": "Team name"
+  },
+  "paperCheck.title": {
+    "defaultMessage": "Paper check"
+  },
+  "paperCheck.verdictCannotRun": {
+    "defaultMessage": "Could not run"
+  },
+  "paperCheck.verdictIssues": {
+    "defaultMessage": "Issues found"
+  },
+  "paperCheck.verdictPass": {
+    "defaultMessage": "Passed"
+  },
   "paperView.all": {
     "defaultMessage": "All"
   },
@@ -4933,6 +5158,192 @@
   },
   "responseStyle.detailedLabel": {
     "defaultMessage": "Détaillé"
+  },
+  "review.cancel": {
+    "defaultMessage": "Stop review"
+  },
+  "review.checking": {
+    "defaultMessage": "Checking the paper file…"
+  },
+  "review.columnCurrent": {
+    "defaultMessage": "This time"
+  },
+  "review.columnDelta": {
+    "defaultMessage": "Change"
+  },
+  "review.columnDimension": {
+    "defaultMessage": "Dimension"
+  },
+  "review.columnPrevious": {
+    "defaultMessage": "Previous"
+  },
+  "review.comparedWith": {
+    "defaultMessage": "Compared with the review completed {time}"
+  },
+  "review.comparisonTitle": {
+    "defaultMessage": "Change since the last review"
+  },
+  "review.competition": {
+    "defaultMessage": "Competition"
+  },
+  "review.competitionPlaceholder": {
+    "defaultMessage": "Choose a competition"
+  },
+  "review.completedAt": {
+    "defaultMessage": "Completed {time} · {competition}"
+  },
+  "review.details": {
+    "defaultMessage": "Details"
+  },
+  "review.dimensionAssumptions": {
+    "defaultMessage": "Model assumptions"
+  },
+  "review.dimensionModelBuilding": {
+    "defaultMessage": "Model building"
+  },
+  "review.dimensionProblemAnalysis": {
+    "defaultMessage": "Problem analysis"
+  },
+  "review.dimensionSensitivity": {
+    "defaultMessage": "Sensitivity analysis"
+  },
+  "review.dimensionSolution": {
+    "defaultMessage": "Solution and results"
+  },
+  "review.dimensionWriting": {
+    "defaultMessage": "Writing"
+  },
+  "review.disclaimer": {
+    "defaultMessage": "Review results are generated by a model and are for reference only."
+  },
+  "review.errorCheckFailed": {
+    "defaultMessage": "Could not check the paper file: {detail}"
+  },
+  "review.errorNoCompetition": {
+    "defaultMessage": "No competition is selected. Choose the competition whose criteria the review should follow."
+  },
+  "review.errorNoPaper": {
+    "defaultMessage": "No paper is selected. Choose the paper file to review."
+  },
+  "review.errorOutsideProject": {
+    "defaultMessage": "The paper must be a file inside the current project."
+  },
+  "review.errorPaperEmpty": {
+    "defaultMessage": "The paper file is empty: {paper}"
+  },
+  "review.errorPaperNotFound": {
+    "defaultMessage": "The paper file does not exist: {paper}"
+  },
+  "review.errorPaperUnreadable": {
+    "defaultMessage": "The paper file cannot be read: {paper}"
+  },
+  "review.errorUnsupported": {
+    "defaultMessage": "Only LaTeX (.tex), Markdown (.md) and PDF files can be reviewed."
+  },
+  "review.failureApproval": {
+    "defaultMessage": "The Kernel asked for a tool approval, which this panel cannot grant. Switch the permission mode to automatic or smart approval, then try again."
+  },
+  "review.failureCancelled": {
+    "defaultMessage": "The review was interrupted."
+  },
+  "review.failureInvalid": {
+    "defaultMessage": "The model reply did not match the review format ({count} problems found)."
+  },
+  "review.failureKernelUnavailable": {
+    "defaultMessage": "The Kernel is not available: {detail}"
+  },
+  "review.failureModelCall": {
+    "defaultMessage": "The model call failed: {detail}"
+  },
+  "review.failureNoJson": {
+    "defaultMessage": "The model reply did not contain a review result."
+  },
+  "review.failureRefused": {
+    "defaultMessage": "The model declined to review this paper."
+  },
+  "review.failureSessionFailed": {
+    "defaultMessage": "Could not start a review session in the Kernel: {detail}"
+  },
+  "review.failureTimeout": {
+    "defaultMessage": "The review did not finish within {minutes} minutes."
+  },
+  "review.failureTruncated": {
+    "defaultMessage": "The model stopped before finishing its reply."
+  },
+  "review.firstReview": {
+    "defaultMessage": "This is the first review of this paper, so no comparison is shown."
+  },
+  "review.historyFailed": {
+    "defaultMessage": "Earlier reviews of this paper could not be loaded: {detail}"
+  },
+  "review.incompleteNote": {
+    "defaultMessage": "This result was not saved, and earlier reviews of this paper are unchanged."
+  },
+  "review.incompleteTitle": {
+    "defaultMessage": "Review incomplete"
+  },
+  "review.latestSaved": {
+    "defaultMessage": "Last saved review"
+  },
+  "review.locationLines": {
+    "defaultMessage": "{section} · lines {start}–{end}"
+  },
+  "review.locationPage": {
+    "defaultMessage": "{section} · page {page}"
+  },
+  "review.noPapers": {
+    "defaultMessage": "No LaTeX, Markdown or PDF paper was found in this project."
+  },
+  "review.noSuggestions": {
+    "defaultMessage": "The model gave no suggestions."
+  },
+  "review.notStarted": {
+    "defaultMessage": "The review was not started"
+  },
+  "review.openLocation": {
+    "defaultMessage": "Open in the editor: {location}"
+  },
+  "review.paper": {
+    "defaultMessage": "Paper"
+  },
+  "review.paperPlaceholder": {
+    "defaultMessage": "Choose a paper"
+  },
+  "review.papersFailed": {
+    "defaultMessage": "Could not list the papers in this project: {detail}"
+  },
+  "review.refreshPapers": {
+    "defaultMessage": "Refresh the paper list"
+  },
+  "review.running": {
+    "defaultMessage": "Reviewing {paper}. This can take several minutes; you can switch tabs meanwhile."
+  },
+  "review.saveFailed": {
+    "defaultMessage": "The review finished but could not be saved: {detail}"
+  },
+  "review.saving": {
+    "defaultMessage": "Saving the review…"
+  },
+  "review.score": {
+    "defaultMessage": "{score} / 10"
+  },
+  "review.scores": {
+    "defaultMessage": "Scores and reasons"
+  },
+  "review.sessionTitle": {
+    "defaultMessage": "Mock review: {paper}"
+  },
+  "review.start": {
+    "defaultMessage": "Start review"
+  },
+  "review.suggestions": {
+    "defaultMessage": "Suggestions"
+  },
+  "review.thisReview": {
+    "defaultMessage": "New review"
+  },
+  "review.title": {
+    "defaultMessage": "Mock review"
   },
   "runCompare.artifactIndexInvalid": {
     "defaultMessage": "The artifact status file could not be read, so out-of-date markers are missing."
@@ -6535,6 +6946,144 @@
   },
   "tablePreview.truncated": {
     "defaultMessage": "Showing the first {rows} rows and {cols} columns"
+  },
+  "taskResume.back": {
+    "defaultMessage": "Back"
+  },
+  "taskResume.checking": {
+    "defaultMessage": "Checking the steps against their Run_Records…"
+  },
+  "taskResume.chip": {
+    "defaultMessage": "Unfinished tasks: {count}"
+  },
+  "taskResume.close": {
+    "defaultMessage": "Close"
+  },
+  "taskResume.completed": {
+    "defaultMessage": "“{title}” is marked as completed"
+  },
+  "taskResume.continue": {
+    "defaultMessage": "Continue from the failure point"
+  },
+  "taskResume.dismiss": {
+    "defaultMessage": "Do not resume"
+  },
+  "taskResume.dismissFailed": {
+    "defaultMessage": "Could not update the task plan"
+  },
+  "taskResume.dismissedBadge": {
+    "defaultMessage": "Not prompted again"
+  },
+  "taskResume.errorSessionBusy": {
+    "defaultMessage": "The session is still running; try again when it has finished."
+  },
+  "taskResume.errorStalePlan": {
+    "defaultMessage": "The task plan has changed; check the steps again."
+  },
+  "taskResume.failed": {
+    "defaultMessage": "Could not resume the task"
+  },
+  "taskResume.intro": {
+    "defaultMessage": "These tasks stopped before they finished. Continue from the failure point: steps whose Run_Records still match the files are skipped."
+  },
+  "taskResume.markCompleted": {
+    "defaultMessage": "Mark as completed"
+  },
+  "taskResume.moreReasons": {
+    "defaultMessage": "and {count} more"
+  },
+  "taskResume.noRuns": {
+    "defaultMessage": "No run recorded"
+  },
+  "taskResume.overwriteBody": {
+    "defaultMessage": "Continuing from “{step}” runs the remaining steps again and overwrites these files. Nothing changes until you confirm."
+  },
+  "taskResume.overwriteCancel": {
+    "defaultMessage": "Cancel and stay paused"
+  },
+  "taskResume.overwriteConfirm": {
+    "defaultMessage": "Overwrite and continue"
+  },
+  "taskResume.overwriteModified": {
+    "defaultMessage": "modified {time}"
+  },
+  "taskResume.overwriteTitle": {
+    "defaultMessage": "Overwrite existing outputs?"
+  },
+  "taskResume.paused": {
+    "defaultMessage": "“{title}” stays paused; no file was changed"
+  },
+  "taskResume.planFrom": {
+    "defaultMessage": "Runs again from: {step}"
+  },
+  "taskResume.planNothing": {
+    "defaultMessage": "Every step still matches its Run_Records; nothing needs to run again."
+  },
+  "taskResume.planReasons": {
+    "defaultMessage": "Why this step runs again:"
+  },
+  "taskResume.planSkip": {
+    "defaultMessage": "Skipped, still match the files: {steps}"
+  },
+  "taskResume.planSkipNone": {
+    "defaultMessage": "No step can be skipped."
+  },
+  "taskResume.project": {
+    "defaultMessage": "Project: {name}"
+  },
+  "taskResume.reasonFileMissing": {
+    "defaultMessage": "File missing: {path}"
+  },
+  "taskResume.reasonHashMismatch": {
+    "defaultMessage": "Hash mismatch: {path}"
+  },
+  "taskResume.reasonNoRun": {
+    "defaultMessage": "Record missing: the step has no run"
+  },
+  "taskResume.reasonRecordMissing": {
+    "defaultMessage": "Record missing: {runId}"
+  },
+  "taskResume.reasonRecordTruncated": {
+    "defaultMessage": "Record missing: {runId} lists only the first 1000 files"
+  },
+  "taskResume.reasonRunFailed": {
+    "defaultMessage": "Run {runId} did not end with exit code 0"
+  },
+  "taskResume.resumed": {
+    "defaultMessage": "Continuing “{title}” from “{step}”"
+  },
+  "taskResume.runExitCode": {
+    "defaultMessage": "exit code {code}"
+  },
+  "taskResume.runFailure": {
+    "defaultMessage": "ended: {failure}"
+  },
+  "taskResume.runMissing": {
+    "defaultMessage": "Run_Record missing or unreadable"
+  },
+  "taskResume.runTimes": {
+    "defaultMessage": "{start} – {end}"
+  },
+  "taskResume.start": {
+    "defaultMessage": "Start"
+  },
+  "taskResume.statusInterrupted": {
+    "defaultMessage": "Interrupted"
+  },
+  "taskResume.statusPaused": {
+    "defaultMessage": "Paused"
+  },
+  "taskResume.stepCompleted": {
+    "defaultMessage": "Completed"
+  },
+  "taskResume.stepFailed": {
+    "defaultMessage": "Failure point"
+  },
+  "taskResume.stepNotReached": {
+    "defaultMessage": "Not reached"
+  },
+  "taskResume.title": {
+    "defaultMessage": "Unfinished tasks"
   },
   "telemetryConsentPrompt.description": {
     "defaultMessage": "Souhaitez-vous partager des données d'utilisation anonymes pour aider à améliorer ModelForge ? Nous ne collectons jamais vos conversations, votre code ou vos données personnelles."

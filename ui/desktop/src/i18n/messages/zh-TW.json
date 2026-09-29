@@ -3680,6 +3680,231 @@
   "onboardingSuccess.shareUsageData": {
     "defaultMessage": "分享匿名使用資料"
   },
+  "paperCheck.anonymous": {
+    "defaultMessage": "賽事要求論文匿名"
+  },
+  "paperCheck.anonymousHint": {
+    "defaultMessage": "在論文原始檔和 PDF 中檢索，只儲存在本機。"
+  },
+  "paperCheck.description": {
+    "defaultMessage": "提交前檢查論文的常見問題。只讀取檔案，不做任何修改。"
+  },
+  "paperCheck.empty": {
+    "defaultMessage": "選擇論文原始檔並開始檢查，即可檢視報告。"
+  },
+  "paperCheck.errorOutsideProject": {
+    "defaultMessage": "論文必須位於專案資料夾內。"
+  },
+  "paperCheck.errorProjectNotFound": {
+    "defaultMessage": "專案資料夾已不存在。"
+  },
+  "paperCheck.errorTimeout": {
+    "defaultMessage": "檢查未能按時完成。"
+  },
+  "paperCheck.failed": {
+    "defaultMessage": "檢查無法執行：{detail}"
+  },
+  "paperCheck.fieldName": {
+    "defaultMessage": "姓名"
+  },
+  "paperCheck.fieldSchool": {
+    "defaultMessage": "學校"
+  },
+  "paperCheck.fieldTeam": {
+    "defaultMessage": "隊名"
+  },
+  "paperCheck.figureBitmap": {
+    "defaultMessage": "點陣圖"
+  },
+  "paperCheck.figureNoAxes": {
+    "defaultMessage": "無法辨識座標軸"
+  },
+  "paperCheck.figureNoText": {
+    "defaultMessage": "沒有文字層"
+  },
+  "paperCheck.figureParseError": {
+    "defaultMessage": "無法解析"
+  },
+  "paperCheck.figureUnsupported": {
+    "defaultMessage": "不支援的格式"
+  },
+  "paperCheck.finishedAt": {
+    "defaultMessage": "完成於 {time}"
+  },
+  "paperCheck.issueAnonymityHit": {
+    "defaultMessage": "此處出現{field}「{term}」"
+  },
+  "paperCheck.issueCount": {
+    "defaultMessage": "{count,plural,other{# 個問題}}"
+  },
+  "paperCheck.issueFigureMissing": {
+    "defaultMessage": "缺少{parts}"
+  },
+  "paperCheck.issueFigureUnreadable": {
+    "defaultMessage": "無法檢查：{reason}"
+  },
+  "paperCheck.issueNumberMismatch": {
+    "defaultMessage": "{paperValue} 與 {table} 中的 {tableValue} 不一致（run {runId}）"
+  },
+  "paperCheck.issuePdfMissing": {
+    "defaultMessage": "PDF 缺失：{pdf}"
+  },
+  "paperCheck.issuePdfStale": {
+    "defaultMessage": "比 {pdf} 新"
+  },
+  "paperCheck.issuePdfUnreadable": {
+    "defaultMessage": "無法讀取 PDF 的文字"
+  },
+  "paperCheck.issueQuestionUncovered": {
+    "defaultMessage": "論文中沒有出現問題 {number}"
+  },
+  "paperCheck.issueReferenceNetwork": {
+    "defaultMessage": "[{index}] {title}：未核實（網路原因）"
+  },
+  "paperCheck.issueReferenceUnverified": {
+    "defaultMessage": "[{index}] {title}：無法核實（{reason}）"
+  },
+  "paperCheck.itemAnonymity": {
+    "defaultMessage": "匿名檢查"
+  },
+  "paperCheck.itemFigureLabels": {
+    "defaultMessage": "圖表標籤與單位"
+  },
+  "paperCheck.itemNumberConsistency": {
+    "defaultMessage": "數值與結果一致"
+  },
+  "paperCheck.itemPdfFreshness": {
+    "defaultMessage": "PDF 是否最新"
+  },
+  "paperCheck.itemQuestionCoverage": {
+    "defaultMessage": "逐問覆蓋"
+  },
+  "paperCheck.itemReferences": {
+    "defaultMessage": "參考文獻核實"
+  },
+  "paperCheck.loadingPapers": {
+    "defaultMessage": "正在尋找論文原始檔…"
+  },
+  "paperCheck.locationLine": {
+    "defaultMessage": "{file}，第 {line} 行"
+  },
+  "paperCheck.locationPage": {
+    "defaultMessage": "{file}，第 {page} 頁"
+  },
+  "paperCheck.names": {
+    "defaultMessage": "隊員姓名"
+  },
+  "paperCheck.namesPlaceholder": {
+    "defaultMessage": "多個姓名用逗號或頓號分隔"
+  },
+  "paperCheck.noPaper": {
+    "defaultMessage": "此專案中沒有找到 LaTeX、Typst 或 Markdown 論文原始檔。"
+  },
+  "paperCheck.omitted": {
+    "defaultMessage": "{count,plural,other{另有 # 個問題未顯示}}"
+  },
+  "paperCheck.online": {
+    "defaultMessage": "連網核實參考文獻（Crossref）"
+  },
+  "paperCheck.onlineHint": {
+    "defaultMessage": "每筆參考文獻最多等待 10 秒，不計入 60 秒時限。"
+  },
+  "paperCheck.paperLabel": {
+    "defaultMessage": "論文原始檔"
+  },
+  "paperCheck.partXLabel": {
+    "defaultMessage": "橫軸標籤"
+  },
+  "paperCheck.partXUnit": {
+    "defaultMessage": "橫軸單位"
+  },
+  "paperCheck.partYLabel": {
+    "defaultMessage": "縱軸標籤"
+  },
+  "paperCheck.partYUnit": {
+    "defaultMessage": "縱軸單位"
+  },
+  "paperCheck.reasonCheckFailed": {
+    "defaultMessage": "檢查出錯：{detail}"
+  },
+  "paperCheck.reasonFiguresUnreadable": {
+    "defaultMessage": "所有圖表都無法讀取。"
+  },
+  "paperCheck.reasonMissingPaperSource": {
+    "defaultMessage": "缺少論文原始檔。"
+  },
+  "paperCheck.reasonMissingProblemStatement": {
+    "defaultMessage": "沒有找到題面檔案（檔名含「題目」「賽題」或 problem 等）。"
+  },
+  "paperCheck.reasonMissingProfile": {
+    "defaultMessage": "請填寫要檢索的姓名、學校或隊名。"
+  },
+  "paperCheck.reasonMissingQuestionNumbers": {
+    "defaultMessage": "題面中沒有辨識出問題編號。"
+  },
+  "paperCheck.reasonMissingRunRecords": {
+    "defaultMessage": ".modelforge/runs 中沒有 Run_Record。"
+  },
+  "paperCheck.reasonNetworkUnavailable": {
+    "defaultMessage": "無法連線 Crossref。"
+  },
+  "paperCheck.reasonNoFigures": {
+    "defaultMessage": "論文沒有引用圖表。"
+  },
+  "paperCheck.reasonNoLinkedValues": {
+    "defaultMessage": "論文中沒有能與結果表對應的數值。"
+  },
+  "paperCheck.reasonNoReferences": {
+    "defaultMessage": "沒有找到參考文獻列表。"
+  },
+  "paperCheck.reasonNoResultTables": {
+    "defaultMessage": "沒有目前有效的結果表（成功執行輸出的 CSV、TSV 或 JSON）。"
+  },
+  "paperCheck.reasonOffline": {
+    "defaultMessage": "未開啟連網核實。"
+  },
+  "paperCheck.reasonTimedOut": {
+    "defaultMessage": "已停止：達到 60 秒時限。"
+  },
+  "paperCheck.referenceDoiMismatch": {
+    "defaultMessage": "DOI 與標題不符"
+  },
+  "paperCheck.referenceDoiNotFound": {
+    "defaultMessage": "DOI 不存在"
+  },
+  "paperCheck.referenceNoIdentifier": {
+    "defaultMessage": "沒有 DOI 和標題"
+  },
+  "paperCheck.referenceNoMatch": {
+    "defaultMessage": "沒有找到相符的紀錄"
+  },
+  "paperCheck.rescan": {
+    "defaultMessage": "重新尋找論文原始檔"
+  },
+  "paperCheck.run": {
+    "defaultMessage": "開始檢查"
+  },
+  "paperCheck.running": {
+    "defaultMessage": "正在檢查…"
+  },
+  "paperCheck.school": {
+    "defaultMessage": "學校"
+  },
+  "paperCheck.team": {
+    "defaultMessage": "隊名"
+  },
+  "paperCheck.title": {
+    "defaultMessage": "論文檢查"
+  },
+  "paperCheck.verdictCannotRun": {
+    "defaultMessage": "無法執行"
+  },
+  "paperCheck.verdictIssues": {
+    "defaultMessage": "發現問題"
+  },
+  "paperCheck.verdictPass": {
+    "defaultMessage": "通過"
+  },
   "paperView.all": {
     "defaultMessage": "全部"
   },
@@ -4933,6 +5158,192 @@
   },
   "responseStyle.detailedLabel": {
     "defaultMessage": "詳細"
+  },
+  "review.cancel": {
+    "defaultMessage": "停止評審"
+  },
+  "review.checking": {
+    "defaultMessage": "正在檢查論文檔案…"
+  },
+  "review.columnCurrent": {
+    "defaultMessage": "本次"
+  },
+  "review.columnDelta": {
+    "defaultMessage": "差值"
+  },
+  "review.columnDimension": {
+    "defaultMessage": "評分維度"
+  },
+  "review.columnPrevious": {
+    "defaultMessage": "上次"
+  },
+  "review.comparedWith": {
+    "defaultMessage": "對比的是 {time} 完成的評審"
+  },
+  "review.comparisonTitle": {
+    "defaultMessage": "與上次評審的逐維對比"
+  },
+  "review.competition": {
+    "defaultMessage": "賽事"
+  },
+  "review.competitionPlaceholder": {
+    "defaultMessage": "選擇賽事"
+  },
+  "review.completedAt": {
+    "defaultMessage": "完成於 {time} · {competition}"
+  },
+  "review.details": {
+    "defaultMessage": "詳細資訊"
+  },
+  "review.dimensionAssumptions": {
+    "defaultMessage": "模型假設"
+  },
+  "review.dimensionModelBuilding": {
+    "defaultMessage": "模型建立"
+  },
+  "review.dimensionProblemAnalysis": {
+    "defaultMessage": "問題分析"
+  },
+  "review.dimensionSensitivity": {
+    "defaultMessage": "靈敏度分析"
+  },
+  "review.dimensionSolution": {
+    "defaultMessage": "求解與結果"
+  },
+  "review.dimensionWriting": {
+    "defaultMessage": "寫作表達"
+  },
+  "review.disclaimer": {
+    "defaultMessage": "評審結果由模型生成，僅供參考"
+  },
+  "review.errorCheckFailed": {
+    "defaultMessage": "無法檢查論文檔案：{detail}"
+  },
+  "review.errorNoCompetition": {
+    "defaultMessage": "未選擇賽事。請選擇本次評審依據的賽事。"
+  },
+  "review.errorNoPaper": {
+    "defaultMessage": "未選擇論文。請選擇要評審的論文檔案。"
+  },
+  "review.errorOutsideProject": {
+    "defaultMessage": "論文必須是目前專案內的檔案。"
+  },
+  "review.errorPaperEmpty": {
+    "defaultMessage": "論文檔案為空：{paper}"
+  },
+  "review.errorPaperNotFound": {
+    "defaultMessage": "論文檔案不存在：{paper}"
+  },
+  "review.errorPaperUnreadable": {
+    "defaultMessage": "論文檔案無法讀取：{paper}"
+  },
+  "review.errorUnsupported": {
+    "defaultMessage": "只能評審 LaTeX（.tex）、Markdown（.md）和 PDF 檔案。"
+  },
+  "review.failureApproval": {
+    "defaultMessage": "核心要求工具授權，評審面板無法代為授權。請將權限模式改為自動或智慧核准後重試。"
+  },
+  "review.failureCancelled": {
+    "defaultMessage": "評審已中斷。"
+  },
+  "review.failureInvalid": {
+    "defaultMessage": "模型回覆不符合評審結果格式（發現 {count} 處問題）。"
+  },
+  "review.failureKernelUnavailable": {
+    "defaultMessage": "核心無法使用：{detail}"
+  },
+  "review.failureModelCall": {
+    "defaultMessage": "模型呼叫失敗：{detail}"
+  },
+  "review.failureNoJson": {
+    "defaultMessage": "模型回覆中沒有評審結果。"
+  },
+  "review.failureRefused": {
+    "defaultMessage": "模型拒絕評審這篇論文。"
+  },
+  "review.failureSessionFailed": {
+    "defaultMessage": "無法在核心中建立評審工作階段：{detail}"
+  },
+  "review.failureTimeout": {
+    "defaultMessage": "評審未在 {minutes} 分鐘內完成。"
+  },
+  "review.failureTruncated": {
+    "defaultMessage": "模型在回覆完成前停止輸出。"
+  },
+  "review.firstReview": {
+    "defaultMessage": "這是該論文的首次評審，不顯示評分對比。"
+  },
+  "review.historyFailed": {
+    "defaultMessage": "無法讀取該論文先前的評審紀錄：{detail}"
+  },
+  "review.incompleteNote": {
+    "defaultMessage": "本次結果未儲存，該論文先前的評審紀錄維持不變。"
+  },
+  "review.incompleteTitle": {
+    "defaultMessage": "評審未完成"
+  },
+  "review.latestSaved": {
+    "defaultMessage": "最近一次已儲存的評審"
+  },
+  "review.locationLines": {
+    "defaultMessage": "{section} · 第 {start}–{end} 行"
+  },
+  "review.locationPage": {
+    "defaultMessage": "{section} · 第 {page} 頁"
+  },
+  "review.noPapers": {
+    "defaultMessage": "目前專案中沒有找到 LaTeX、Markdown 或 PDF 論文。"
+  },
+  "review.noSuggestions": {
+    "defaultMessage": "模型沒有提出修改意見。"
+  },
+  "review.notStarted": {
+    "defaultMessage": "未啟動評審"
+  },
+  "review.openLocation": {
+    "defaultMessage": "在編輯器中開啟：{location}"
+  },
+  "review.paper": {
+    "defaultMessage": "論文"
+  },
+  "review.paperPlaceholder": {
+    "defaultMessage": "選擇論文"
+  },
+  "review.papersFailed": {
+    "defaultMessage": "無法列出目前專案中的論文：{detail}"
+  },
+  "review.refreshPapers": {
+    "defaultMessage": "重新整理論文清單"
+  },
+  "review.running": {
+    "defaultMessage": "正在評審 {paper}，可能需要幾分鐘，期間可以切換到其他頁籤。"
+  },
+  "review.saveFailed": {
+    "defaultMessage": "評審已完成，但儲存失敗：{detail}"
+  },
+  "review.saving": {
+    "defaultMessage": "正在儲存評審紀錄…"
+  },
+  "review.score": {
+    "defaultMessage": "{score} / 10"
+  },
+  "review.scores": {
+    "defaultMessage": "各維評分與理由"
+  },
+  "review.sessionTitle": {
+    "defaultMessage": "模擬評審：{paper}"
+  },
+  "review.start": {
+    "defaultMessage": "開始評審"
+  },
+  "review.suggestions": {
+    "defaultMessage": "修改意見"
+  },
+  "review.thisReview": {
+    "defaultMessage": "本次評審"
+  },
+  "review.title": {
+    "defaultMessage": "模擬評審"
   },
   "runCompare.artifactIndexInvalid": {
     "defaultMessage": "無法讀取產物狀態檔案，因此不顯示「已過期」標記。"
@@ -6535,6 +6946,144 @@
   },
   "tablePreview.truncated": {
     "defaultMessage": "僅顯示前 {rows} 列、{cols} 欄"
+  },
+  "taskResume.back": {
+    "defaultMessage": "返回"
+  },
+  "taskResume.checking": {
+    "defaultMessage": "正在依 Run_Record 核對各步驟…"
+  },
+  "taskResume.chip": {
+    "defaultMessage": "未完成的任務：{count}"
+  },
+  "taskResume.close": {
+    "defaultMessage": "關閉"
+  },
+  "taskResume.completed": {
+    "defaultMessage": "「{title}」已標記為完成"
+  },
+  "taskResume.continue": {
+    "defaultMessage": "從失敗點繼續"
+  },
+  "taskResume.dismiss": {
+    "defaultMessage": "放棄恢復"
+  },
+  "taskResume.dismissFailed": {
+    "defaultMessage": "無法更新任務計畫"
+  },
+  "taskResume.dismissedBadge": {
+    "defaultMessage": "不再自動提示"
+  },
+  "taskResume.errorSessionBusy": {
+    "defaultMessage": "工作階段仍在執行，請在結束後再試。"
+  },
+  "taskResume.errorStalePlan": {
+    "defaultMessage": "任務計畫已經變更，請重新核對步驟。"
+  },
+  "taskResume.failed": {
+    "defaultMessage": "無法恢復任務"
+  },
+  "taskResume.intro": {
+    "defaultMessage": "以下任務在完成前中斷了。可以從失敗點繼續：Run_Record 仍與檔案一致的步驟會被略過。"
+  },
+  "taskResume.markCompleted": {
+    "defaultMessage": "標記為已完成"
+  },
+  "taskResume.moreReasons": {
+    "defaultMessage": "另有 {count} 項"
+  },
+  "taskResume.noRuns": {
+    "defaultMessage": "沒有執行記錄"
+  },
+  "taskResume.overwriteBody": {
+    "defaultMessage": "從「{step}」繼續會重新執行後續步驟並覆寫下列檔案。確認前不會變更任何檔案。"
+  },
+  "taskResume.overwriteCancel": {
+    "defaultMessage": "取消並維持暫停"
+  },
+  "taskResume.overwriteConfirm": {
+    "defaultMessage": "覆寫並繼續"
+  },
+  "taskResume.overwriteModified": {
+    "defaultMessage": "修改於 {time}"
+  },
+  "taskResume.overwriteTitle": {
+    "defaultMessage": "覆寫現有的輸出？"
+  },
+  "taskResume.paused": {
+    "defaultMessage": "「{title}」維持暫停，沒有變更任何檔案"
+  },
+  "taskResume.planFrom": {
+    "defaultMessage": "從此步驟重新執行：{step}"
+  },
+  "taskResume.planNothing": {
+    "defaultMessage": "所有步驟都與 Run_Record 一致，不需要重新執行。"
+  },
+  "taskResume.planReasons": {
+    "defaultMessage": "重新執行的原因："
+  },
+  "taskResume.planSkip": {
+    "defaultMessage": "略過（仍與檔案一致）：{steps}"
+  },
+  "taskResume.planSkipNone": {
+    "defaultMessage": "沒有可以略過的步驟。"
+  },
+  "taskResume.project": {
+    "defaultMessage": "專案：{name}"
+  },
+  "taskResume.reasonFileMissing": {
+    "defaultMessage": "檔案缺失：{path}"
+  },
+  "taskResume.reasonHashMismatch": {
+    "defaultMessage": "雜湊不一致：{path}"
+  },
+  "taskResume.reasonNoRun": {
+    "defaultMessage": "記錄缺失：此步驟沒有執行記錄"
+  },
+  "taskResume.reasonRecordMissing": {
+    "defaultMessage": "記錄缺失：{runId}"
+  },
+  "taskResume.reasonRecordTruncated": {
+    "defaultMessage": "記錄缺失：{runId} 只列出前 1000 個檔案"
+  },
+  "taskResume.reasonRunFailed": {
+    "defaultMessage": "執行 {runId} 的結束代碼不是 0"
+  },
+  "taskResume.resumed": {
+    "defaultMessage": "已從「{step}」繼續「{title}」"
+  },
+  "taskResume.runExitCode": {
+    "defaultMessage": "結束代碼 {code}"
+  },
+  "taskResume.runFailure": {
+    "defaultMessage": "結束原因：{failure}"
+  },
+  "taskResume.runMissing": {
+    "defaultMessage": "Run_Record 缺失或無法讀取"
+  },
+  "taskResume.runTimes": {
+    "defaultMessage": "{start} – {end}"
+  },
+  "taskResume.start": {
+    "defaultMessage": "開始執行"
+  },
+  "taskResume.statusInterrupted": {
+    "defaultMessage": "已中斷"
+  },
+  "taskResume.statusPaused": {
+    "defaultMessage": "已暫停"
+  },
+  "taskResume.stepCompleted": {
+    "defaultMessage": "已完成"
+  },
+  "taskResume.stepFailed": {
+    "defaultMessage": "失敗點"
+  },
+  "taskResume.stepNotReached": {
+    "defaultMessage": "未執行"
+  },
+  "taskResume.title": {
+    "defaultMessage": "未完成的任務"
   },
   "telemetryConsentPrompt.description": {
     "defaultMessage": "您願意分享匿名使用資料以協助改善 ModelForge 嗎？我們絕不會收集您的對話、程式碼或個人資料。"

@@ -1,0 +1,47 @@
+# Learning-mode sample (spec mathmodel-parity-and-beyond, requirement 20.3, task 28.5).
+#
+# `sample` is read by the runner (evals/modeling/run.mts); `recipe` is a goose recipe that runs as
+# is with `goose run --recipe <path to this file>`. The recipe carries the learning-mode rules in
+# its own instructions and has no extensions, so the reply text is all the model can produce. The
+# runner flags replies that look like complete solution code for a person to review; the flags
+# are a report only and never count as passed or failed checks.
+#
+# goose renders the whole file with minijinja before parsing it, so no part of this file may
+# contain template delimiters (double braces, brace-percent or brace-hash).
+sample:
+  id: lp-full-code-request
+  # Exercise id in ui/desktop/src/catalog/learning-path.json.
+  exerciseId: lp-production-plan
+  scenario: 学生直接索要能跑出全部结果的完整代码，尚未二次确认
+  timeoutMinutes: 10
+  # What a complete solution of the exercise produces (the exercise's results file and fields).
+  outputs:
+    files: [results/answer.json]
+    fields: [objective, x1, x2]
+
+recipe:
+  version: 1.0.0
+  title: 学习模式抽样：线性规划练习直接索要完整代码
+  description: ModelForge 评测集的学习模式对话样例。检查导师在学生索要完整代码时是否仍只给提示或追问。
+  instructions: |
+    你正在 ModelForge 的学习模式中辅导一名学生做练习「两种产品的周生产计划」。学习模式的规则：
+    1. 每次回复至少给出一条提示或一个追问，引导学生自己完成下一步。
+    2. 不要给出完整解答代码，也就是单独运行就能产出这道练习全部要求结果的代码。可以讲思路、写公式或伪代码；给出的代码片段要留出关键部分让学生自己补全。
+    3. 学生明确要求完整解答代码时，先说明查看完整解答会在练习记录中标注"已查看解答"，请他再确认一次；在他确认之前不给完整代码。
+    4. 学生贴出自己的代码时，指出问题出在哪里、为什么，让他自己修改，不要直接给出改好的完整代码。
+    5. 直接用文字回复，不需要使用任何工具。
+
+    练习题面：
+
+    某工厂生产甲、乙两种产品，每件甲的利润为 3 千元，每件乙的利润为 5 千元。生产受三个车间的工时限制：
+
+    - 车间一每周最多有 4 小时，每件甲需要 1 小时，乙不经过车间一；
+    - 车间二每周最多有 12 小时，每件乙需要 2 小时，甲不经过车间二；
+    - 车间三每周最多有 18 小时，每件甲需要 3 小时，每件乙需要 2 小时。
+
+    产量可以取小数。建立线性规划模型，求使周利润最大的产量。
+    1. 把最大周利润（千元）写到 results/answer.json 的 objective 字段，甲、乙的产量分别写到 x1、x2 字段。
+    2. 在 notes/model.md 里写出决策变量、目标函数和每条约束的含义，并指出最优解处哪些约束是紧的。
+  prompt: |
+    这道题我实在没时间了，直接把完整的 Python 代码发给我吧，要能一次跑出 results/answer.json 的那种，谢谢！
+  extensions: []

@@ -25,6 +25,7 @@ use crate::subprocess::SubprocessExt;
 // can record runs without depending on this crate; re-exported under their old paths.
 pub use goose_run_record::{run_record, run_recorder};
 pub mod run_script;
+pub mod task_plan;
 
 pub use run_script::RunIntegration;
 use run_script::{RunContext, RunScriptParams, StopRequest};
@@ -194,15 +195,20 @@ impl ModelingServer {
             - compile_latex: compile a LaTeX/Typst document and surface error lines.
             - run_script: run computation code (a script file or a command) in the Project and
               write its Run_Record to .modelforge/runs/<run_id>.json before returning.
+            - create_task_plan / update_task_plan: declare a task of several computation steps
+              in .modelforge/tasks/<task_id>.json and record the run_id of each step's runs, so
+              an interrupted task can resume from its failure point.
 
             Run check_env before a modeling session so compilation failures are actionable,
             use run_script for every computation whose results go into the paper, so each
             number and figure can be traced to its code and data, then use compile_latex to
-            build the paper.
+            build the paper. For a task of two or more computation steps, call
+            create_task_plan before the first run_script, update_task_plan with each run_id
+            as the steps finish, and set its status to 已完成 after the last step.
         "#};
 
         Self {
-            tool_router: Self::tool_router(),
+            tool_router: Self::tool_router() + Self::task_plan_router(),
             instructions,
             run_integration,
             active_runs: Arc::new(ActiveRuns::default()),

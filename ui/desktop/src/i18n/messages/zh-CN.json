@@ -3680,6 +3680,231 @@
   "onboardingSuccess.shareUsageData": {
     "defaultMessage": "分享匿名使用数据"
   },
+  "paperCheck.anonymous": {
+    "defaultMessage": "赛事要求论文匿名"
+  },
+  "paperCheck.anonymousHint": {
+    "defaultMessage": "在论文源文件和 PDF 中检索，只保存在本机。"
+  },
+  "paperCheck.description": {
+    "defaultMessage": "提交前检查论文的常见问题。只读取文件，不做任何修改。"
+  },
+  "paperCheck.empty": {
+    "defaultMessage": "选择论文源文件并开始检查，即可查看报告。"
+  },
+  "paperCheck.errorOutsideProject": {
+    "defaultMessage": "论文必须位于项目文件夹内。"
+  },
+  "paperCheck.errorProjectNotFound": {
+    "defaultMessage": "项目文件夹已不存在。"
+  },
+  "paperCheck.errorTimeout": {
+    "defaultMessage": "检查未能按时完成。"
+  },
+  "paperCheck.failed": {
+    "defaultMessage": "检查无法运行：{detail}"
+  },
+  "paperCheck.fieldName": {
+    "defaultMessage": "姓名"
+  },
+  "paperCheck.fieldSchool": {
+    "defaultMessage": "学校"
+  },
+  "paperCheck.fieldTeam": {
+    "defaultMessage": "队名"
+  },
+  "paperCheck.figureBitmap": {
+    "defaultMessage": "位图"
+  },
+  "paperCheck.figureNoAxes": {
+    "defaultMessage": "无法识别坐标轴"
+  },
+  "paperCheck.figureNoText": {
+    "defaultMessage": "没有文字层"
+  },
+  "paperCheck.figureParseError": {
+    "defaultMessage": "无法解析"
+  },
+  "paperCheck.figureUnsupported": {
+    "defaultMessage": "不支持的格式"
+  },
+  "paperCheck.finishedAt": {
+    "defaultMessage": "完成于 {time}"
+  },
+  "paperCheck.issueAnonymityHit": {
+    "defaultMessage": "此处出现{field}“{term}”"
+  },
+  "paperCheck.issueCount": {
+    "defaultMessage": "{count,plural,other{# 个问题}}"
+  },
+  "paperCheck.issueFigureMissing": {
+    "defaultMessage": "缺少{parts}"
+  },
+  "paperCheck.issueFigureUnreadable": {
+    "defaultMessage": "无法检查：{reason}"
+  },
+  "paperCheck.issueNumberMismatch": {
+    "defaultMessage": "{paperValue} 与 {table} 中的 {tableValue} 不一致（run {runId}）"
+  },
+  "paperCheck.issuePdfMissing": {
+    "defaultMessage": "PDF 缺失：{pdf}"
+  },
+  "paperCheck.issuePdfStale": {
+    "defaultMessage": "比 {pdf} 新"
+  },
+  "paperCheck.issuePdfUnreadable": {
+    "defaultMessage": "无法读取 PDF 的文字"
+  },
+  "paperCheck.issueQuestionUncovered": {
+    "defaultMessage": "论文中没有出现问题 {number}"
+  },
+  "paperCheck.issueReferenceNetwork": {
+    "defaultMessage": "[{index}] {title}：未核实（网络原因）"
+  },
+  "paperCheck.issueReferenceUnverified": {
+    "defaultMessage": "[{index}] {title}：无法核实（{reason}）"
+  },
+  "paperCheck.itemAnonymity": {
+    "defaultMessage": "匿名检查"
+  },
+  "paperCheck.itemFigureLabels": {
+    "defaultMessage": "图表标签与单位"
+  },
+  "paperCheck.itemNumberConsistency": {
+    "defaultMessage": "数值与结果一致"
+  },
+  "paperCheck.itemPdfFreshness": {
+    "defaultMessage": "PDF 是否最新"
+  },
+  "paperCheck.itemQuestionCoverage": {
+    "defaultMessage": "逐问覆盖"
+  },
+  "paperCheck.itemReferences": {
+    "defaultMessage": "参考文献核实"
+  },
+  "paperCheck.loadingPapers": {
+    "defaultMessage": "正在查找论文源文件…"
+  },
+  "paperCheck.locationLine": {
+    "defaultMessage": "{file}，第 {line} 行"
+  },
+  "paperCheck.locationPage": {
+    "defaultMessage": "{file}，第 {page} 页"
+  },
+  "paperCheck.names": {
+    "defaultMessage": "队员姓名"
+  },
+  "paperCheck.namesPlaceholder": {
+    "defaultMessage": "多个姓名用逗号或顿号分隔"
+  },
+  "paperCheck.noPaper": {
+    "defaultMessage": "此项目中没有找到 LaTeX、Typst 或 Markdown 论文源文件。"
+  },
+  "paperCheck.omitted": {
+    "defaultMessage": "{count,plural,other{另有 # 个问题未显示}}"
+  },
+  "paperCheck.online": {
+    "defaultMessage": "联网核实参考文献（Crossref）"
+  },
+  "paperCheck.onlineHint": {
+    "defaultMessage": "每条参考文献最多等待 10 秒，不计入 60 秒时限。"
+  },
+  "paperCheck.paperLabel": {
+    "defaultMessage": "论文源文件"
+  },
+  "paperCheck.partXLabel": {
+    "defaultMessage": "横轴标签"
+  },
+  "paperCheck.partXUnit": {
+    "defaultMessage": "横轴单位"
+  },
+  "paperCheck.partYLabel": {
+    "defaultMessage": "纵轴标签"
+  },
+  "paperCheck.partYUnit": {
+    "defaultMessage": "纵轴单位"
+  },
+  "paperCheck.reasonCheckFailed": {
+    "defaultMessage": "检查出错：{detail}"
+  },
+  "paperCheck.reasonFiguresUnreadable": {
+    "defaultMessage": "所有图表都无法读取。"
+  },
+  "paperCheck.reasonMissingPaperSource": {
+    "defaultMessage": "缺少论文源文件。"
+  },
+  "paperCheck.reasonMissingProblemStatement": {
+    "defaultMessage": "没有找到题面文件（文件名含“题目”“赛题”或 problem 等）。"
+  },
+  "paperCheck.reasonMissingProfile": {
+    "defaultMessage": "请填写要检索的姓名、学校或队名。"
+  },
+  "paperCheck.reasonMissingQuestionNumbers": {
+    "defaultMessage": "题面中没有识别出问题编号。"
+  },
+  "paperCheck.reasonMissingRunRecords": {
+    "defaultMessage": ".modelforge/runs 中没有 Run_Record。"
+  },
+  "paperCheck.reasonNetworkUnavailable": {
+    "defaultMessage": "无法连接 Crossref。"
+  },
+  "paperCheck.reasonNoFigures": {
+    "defaultMessage": "论文没有引用图表。"
+  },
+  "paperCheck.reasonNoLinkedValues": {
+    "defaultMessage": "论文中没有能与结果表对应的数值。"
+  },
+  "paperCheck.reasonNoReferences": {
+    "defaultMessage": "没有找到参考文献列表。"
+  },
+  "paperCheck.reasonNoResultTables": {
+    "defaultMessage": "没有当前有效的结果表（成功运行输出的 CSV、TSV 或 JSON）。"
+  },
+  "paperCheck.reasonOffline": {
+    "defaultMessage": "未开启联网核实。"
+  },
+  "paperCheck.reasonTimedOut": {
+    "defaultMessage": "已停止：达到 60 秒时限。"
+  },
+  "paperCheck.referenceDoiMismatch": {
+    "defaultMessage": "DOI 与标题不符"
+  },
+  "paperCheck.referenceDoiNotFound": {
+    "defaultMessage": "DOI 不存在"
+  },
+  "paperCheck.referenceNoIdentifier": {
+    "defaultMessage": "没有 DOI 和标题"
+  },
+  "paperCheck.referenceNoMatch": {
+    "defaultMessage": "没有找到匹配的记录"
+  },
+  "paperCheck.rescan": {
+    "defaultMessage": "重新查找论文源文件"
+  },
+  "paperCheck.run": {
+    "defaultMessage": "开始检查"
+  },
+  "paperCheck.running": {
+    "defaultMessage": "正在检查…"
+  },
+  "paperCheck.school": {
+    "defaultMessage": "学校"
+  },
+  "paperCheck.team": {
+    "defaultMessage": "队名"
+  },
+  "paperCheck.title": {
+    "defaultMessage": "论文检查"
+  },
+  "paperCheck.verdictCannotRun": {
+    "defaultMessage": "无法执行"
+  },
+  "paperCheck.verdictIssues": {
+    "defaultMessage": "发现问题"
+  },
+  "paperCheck.verdictPass": {
+    "defaultMessage": "通过"
+  },
   "paperView.all": {
     "defaultMessage": "全部"
   },
@@ -4933,6 +5158,192 @@
   },
   "responseStyle.detailedLabel": {
     "defaultMessage": "详细"
+  },
+  "review.cancel": {
+    "defaultMessage": "停止评审"
+  },
+  "review.checking": {
+    "defaultMessage": "正在检查论文文件…"
+  },
+  "review.columnCurrent": {
+    "defaultMessage": "本次"
+  },
+  "review.columnDelta": {
+    "defaultMessage": "差值"
+  },
+  "review.columnDimension": {
+    "defaultMessage": "评分维度"
+  },
+  "review.columnPrevious": {
+    "defaultMessage": "上次"
+  },
+  "review.comparedWith": {
+    "defaultMessage": "对比的是 {time} 完成的评审"
+  },
+  "review.comparisonTitle": {
+    "defaultMessage": "与上次评审的逐维对比"
+  },
+  "review.competition": {
+    "defaultMessage": "赛事"
+  },
+  "review.competitionPlaceholder": {
+    "defaultMessage": "选择赛事"
+  },
+  "review.completedAt": {
+    "defaultMessage": "完成于 {time} · {competition}"
+  },
+  "review.details": {
+    "defaultMessage": "详情"
+  },
+  "review.dimensionAssumptions": {
+    "defaultMessage": "模型假设"
+  },
+  "review.dimensionModelBuilding": {
+    "defaultMessage": "模型建立"
+  },
+  "review.dimensionProblemAnalysis": {
+    "defaultMessage": "问题分析"
+  },
+  "review.dimensionSensitivity": {
+    "defaultMessage": "灵敏度分析"
+  },
+  "review.dimensionSolution": {
+    "defaultMessage": "求解与结果"
+  },
+  "review.dimensionWriting": {
+    "defaultMessage": "写作表达"
+  },
+  "review.disclaimer": {
+    "defaultMessage": "评审结果由模型生成，仅供参考"
+  },
+  "review.errorCheckFailed": {
+    "defaultMessage": "无法检查论文文件：{detail}"
+  },
+  "review.errorNoCompetition": {
+    "defaultMessage": "未选择赛事。请选择本次评审依据的赛事。"
+  },
+  "review.errorNoPaper": {
+    "defaultMessage": "未选择论文。请选择要评审的论文文件。"
+  },
+  "review.errorOutsideProject": {
+    "defaultMessage": "论文必须是当前项目内的文件。"
+  },
+  "review.errorPaperEmpty": {
+    "defaultMessage": "论文文件为空：{paper}"
+  },
+  "review.errorPaperNotFound": {
+    "defaultMessage": "论文文件不存在：{paper}"
+  },
+  "review.errorPaperUnreadable": {
+    "defaultMessage": "论文文件无法读取：{paper}"
+  },
+  "review.errorUnsupported": {
+    "defaultMessage": "只能评审 LaTeX（.tex）、Markdown（.md）和 PDF 文件。"
+  },
+  "review.failureApproval": {
+    "defaultMessage": "内核请求了工具授权，评审面板无法代为授权。请将权限模式改为自动或智能批准后重试。"
+  },
+  "review.failureCancelled": {
+    "defaultMessage": "评审被中断。"
+  },
+  "review.failureInvalid": {
+    "defaultMessage": "模型回复不符合评审结果格式（发现 {count} 处问题）。"
+  },
+  "review.failureKernelUnavailable": {
+    "defaultMessage": "内核不可用：{detail}"
+  },
+  "review.failureModelCall": {
+    "defaultMessage": "模型调用失败：{detail}"
+  },
+  "review.failureNoJson": {
+    "defaultMessage": "模型回复中没有评审结果。"
+  },
+  "review.failureRefused": {
+    "defaultMessage": "模型拒绝评审这篇论文。"
+  },
+  "review.failureSessionFailed": {
+    "defaultMessage": "无法在内核中创建评审会话：{detail}"
+  },
+  "review.failureTimeout": {
+    "defaultMessage": "评审未在 {minutes} 分钟内完成。"
+  },
+  "review.failureTruncated": {
+    "defaultMessage": "模型在回复完成前停止了输出。"
+  },
+  "review.firstReview": {
+    "defaultMessage": "这是该论文的首次评审，不显示评分对比。"
+  },
+  "review.historyFailed": {
+    "defaultMessage": "无法读取该论文此前的评审记录：{detail}"
+  },
+  "review.incompleteNote": {
+    "defaultMessage": "本次结果未保存，该论文此前的评审记录保持不变。"
+  },
+  "review.incompleteTitle": {
+    "defaultMessage": "评审未完成"
+  },
+  "review.latestSaved": {
+    "defaultMessage": "最近一次已保存的评审"
+  },
+  "review.locationLines": {
+    "defaultMessage": "{section} · 第 {start}–{end} 行"
+  },
+  "review.locationPage": {
+    "defaultMessage": "{section} · 第 {page} 页"
+  },
+  "review.noPapers": {
+    "defaultMessage": "当前项目中没有找到 LaTeX、Markdown 或 PDF 论文。"
+  },
+  "review.noSuggestions": {
+    "defaultMessage": "模型没有给出修改意见。"
+  },
+  "review.notStarted": {
+    "defaultMessage": "未启动评审"
+  },
+  "review.openLocation": {
+    "defaultMessage": "在编辑器中打开：{location}"
+  },
+  "review.paper": {
+    "defaultMessage": "论文"
+  },
+  "review.paperPlaceholder": {
+    "defaultMessage": "选择论文"
+  },
+  "review.papersFailed": {
+    "defaultMessage": "无法列出当前项目中的论文：{detail}"
+  },
+  "review.refreshPapers": {
+    "defaultMessage": "刷新论文列表"
+  },
+  "review.running": {
+    "defaultMessage": "正在评审 {paper}，可能需要几分钟，期间可以切换到其他页签。"
+  },
+  "review.saveFailed": {
+    "defaultMessage": "评审已完成，但保存失败：{detail}"
+  },
+  "review.saving": {
+    "defaultMessage": "正在保存评审记录…"
+  },
+  "review.score": {
+    "defaultMessage": "{score} / 10"
+  },
+  "review.scores": {
+    "defaultMessage": "各维评分与理由"
+  },
+  "review.sessionTitle": {
+    "defaultMessage": "模拟评审：{paper}"
+  },
+  "review.start": {
+    "defaultMessage": "开始评审"
+  },
+  "review.suggestions": {
+    "defaultMessage": "修改意见"
+  },
+  "review.thisReview": {
+    "defaultMessage": "本次评审"
+  },
+  "review.title": {
+    "defaultMessage": "模拟评审"
   },
   "runCompare.artifactIndexInvalid": {
     "defaultMessage": "无法读取产物状态文件，因此不显示“已过期”标记。"
@@ -6535,6 +6946,144 @@
   },
   "tablePreview.truncated": {
     "defaultMessage": "仅显示前 {rows} 行、{cols} 列"
+  },
+  "taskResume.back": {
+    "defaultMessage": "返回"
+  },
+  "taskResume.checking": {
+    "defaultMessage": "正在按 Run_Record 核对各步骤…"
+  },
+  "taskResume.chip": {
+    "defaultMessage": "未完成的任务：{count}"
+  },
+  "taskResume.close": {
+    "defaultMessage": "关闭"
+  },
+  "taskResume.completed": {
+    "defaultMessage": "“{title}”已标记为完成"
+  },
+  "taskResume.continue": {
+    "defaultMessage": "从失败点继续"
+  },
+  "taskResume.dismiss": {
+    "defaultMessage": "放弃恢复"
+  },
+  "taskResume.dismissFailed": {
+    "defaultMessage": "无法更新任务计划"
+  },
+  "taskResume.dismissedBadge": {
+    "defaultMessage": "不再自动提示"
+  },
+  "taskResume.errorSessionBusy": {
+    "defaultMessage": "会话仍在运行，请在结束后再试。"
+  },
+  "taskResume.errorStalePlan": {
+    "defaultMessage": "任务计划已经变化，请重新核对步骤。"
+  },
+  "taskResume.failed": {
+    "defaultMessage": "无法恢复任务"
+  },
+  "taskResume.intro": {
+    "defaultMessage": "以下任务在完成前中断了。可以从失败点继续：Run_Record 仍与文件一致的步骤会被跳过。"
+  },
+  "taskResume.markCompleted": {
+    "defaultMessage": "标记为已完成"
+  },
+  "taskResume.moreReasons": {
+    "defaultMessage": "另有 {count} 项"
+  },
+  "taskResume.noRuns": {
+    "defaultMessage": "没有运行记录"
+  },
+  "taskResume.overwriteBody": {
+    "defaultMessage": "从“{step}”继续会重新执行后续步骤并覆盖下列文件。确认前不会改动任何文件。"
+  },
+  "taskResume.overwriteCancel": {
+    "defaultMessage": "取消并保持暂停"
+  },
+  "taskResume.overwriteConfirm": {
+    "defaultMessage": "覆盖并继续"
+  },
+  "taskResume.overwriteModified": {
+    "defaultMessage": "修改于 {time}"
+  },
+  "taskResume.overwriteTitle": {
+    "defaultMessage": "覆盖已有的输出？"
+  },
+  "taskResume.paused": {
+    "defaultMessage": "“{title}”保持暂停，没有改动任何文件"
+  },
+  "taskResume.planFrom": {
+    "defaultMessage": "从此步骤重新执行：{step}"
+  },
+  "taskResume.planNothing": {
+    "defaultMessage": "所有步骤都与 Run_Record 一致，无需重新执行。"
+  },
+  "taskResume.planReasons": {
+    "defaultMessage": "重新执行的原因："
+  },
+  "taskResume.planSkip": {
+    "defaultMessage": "跳过（仍与文件一致）：{steps}"
+  },
+  "taskResume.planSkipNone": {
+    "defaultMessage": "没有可以跳过的步骤。"
+  },
+  "taskResume.project": {
+    "defaultMessage": "项目：{name}"
+  },
+  "taskResume.reasonFileMissing": {
+    "defaultMessage": "文件缺失：{path}"
+  },
+  "taskResume.reasonHashMismatch": {
+    "defaultMessage": "哈希不一致：{path}"
+  },
+  "taskResume.reasonNoRun": {
+    "defaultMessage": "记录缺失：该步骤没有运行记录"
+  },
+  "taskResume.reasonRecordMissing": {
+    "defaultMessage": "记录缺失：{runId}"
+  },
+  "taskResume.reasonRecordTruncated": {
+    "defaultMessage": "记录缺失：{runId} 只列出了前 1000 个文件"
+  },
+  "taskResume.reasonRunFailed": {
+    "defaultMessage": "运行 {runId} 的退出码不是 0"
+  },
+  "taskResume.resumed": {
+    "defaultMessage": "已从“{step}”继续“{title}”"
+  },
+  "taskResume.runExitCode": {
+    "defaultMessage": "退出码 {code}"
+  },
+  "taskResume.runFailure": {
+    "defaultMessage": "结束原因：{failure}"
+  },
+  "taskResume.runMissing": {
+    "defaultMessage": "Run_Record 缺失或无法读取"
+  },
+  "taskResume.runTimes": {
+    "defaultMessage": "{start} – {end}"
+  },
+  "taskResume.start": {
+    "defaultMessage": "开始执行"
+  },
+  "taskResume.statusInterrupted": {
+    "defaultMessage": "已中断"
+  },
+  "taskResume.statusPaused": {
+    "defaultMessage": "已暂停"
+  },
+  "taskResume.stepCompleted": {
+    "defaultMessage": "已完成"
+  },
+  "taskResume.stepFailed": {
+    "defaultMessage": "失败点"
+  },
+  "taskResume.stepNotReached": {
+    "defaultMessage": "未执行"
+  },
+  "taskResume.title": {
+    "defaultMessage": "未完成的任务"
   },
   "telemetryConsentPrompt.description": {
     "defaultMessage": "是否愿意分享匿名使用数据帮助改进 ModelForge？我们绝不采集你的对话、代码或个人数据。"

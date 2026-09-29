@@ -20,8 +20,6 @@ pub(super) const LEARNING_MODE_REQUESTS: &str = "learningModeRequests";
 
 /// Error `data.code` of a client → Kernel request whose capability was not declared.
 pub(super) const CAPABILITY_NOT_DECLARED: &str = "CAPABILITY_NOT_DECLARED";
-/// Error `data.code` of a registered method whose handler is still a placeholder.
-pub(super) const NOT_IMPLEMENTED: &str = "NOT_IMPLEMENTED";
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub(super) struct ModelForgeCapabilities {
@@ -83,17 +81,6 @@ pub(super) fn capability_not_declared(
             "declare clientCapabilities._meta.goose.{capability} in initialize to use {method}"
         ),
     }))
-}
-
-/// Answers a registered method whose handler is still a placeholder (layer C0); the C1 branch
-/// named in the contract replaces it.
-pub(super) fn not_implemented(method: &str) -> agent_client_protocol::Error {
-    agent_client_protocol::Error::new(-32603, format!("{method} is not implemented yet")).data(
-        serde_json::json!({
-            "code": NOT_IMPLEMENTED,
-            "method": method,
-        }),
-    )
 }
 
 /// An agent on a temporary data directory that negotiated `capabilities`.
@@ -272,15 +259,5 @@ mod tests {
         assert_eq!(data["code"], CAPABILITY_NOT_DECLARED);
         assert_eq!(data["capability"], TASK_RESUME_REQUESTS);
         assert_eq!(data["method"], "_goose/unstable/tasks/resume");
-
-        let error = not_implemented("_goose/unstable/tasks/resume");
-        assert_eq!(error.code, agent_client_protocol::ErrorCode::InternalError);
-        assert_eq!(
-            error.data,
-            Some(serde_json::json!({
-                "code": NOT_IMPLEMENTED,
-                "method": "_goose/unstable/tasks/resume",
-            }))
-        );
     }
 }

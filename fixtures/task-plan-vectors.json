@@ -1,0 +1,210 @@
+{
+  "description": "Task plan vectors shared by crates/goose-run-record/src/task_plan.rs and ui/desktop/src/utils/resumePlanner.ts (spec mathmodel-parity-and-beyond, requirement 22). Every entry of plans is in canonical form: both writers must reproduce it byte for byte as 2-space pretty JSON with a trailing newline. Every entry of invalid must be rejected; missing and invalid list the fields the desktop reports.",
+  "plans": [
+    {
+      "schemaVersion": 1,
+      "taskId": "20260920T101530123-a1b2c3",
+      "title": "问题一求解",
+      "status": "执行中",
+      "dismissed": false,
+      "createdAt": "2026-09-20T10:15:30.123+08:00",
+      "steps": [
+        {
+          "id": "clean",
+          "title": "数据清洗",
+          "runIds": [
+            "20260920T101531000-x1y2z3"
+          ]
+        },
+        {
+          "id": "fit",
+          "title": "模型求解",
+          "runIds": []
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "taskId": "q2_sensitivity-analysis",
+      "title": "Sensitivity \"what if\" \\ 分析 🚀",
+      "status": "已暂停",
+      "dismissed": true,
+      "createdAt": "2024-02-29T23:59:59.999Z",
+      "steps": [
+        {
+          "id": "prepare data",
+          "title": "准备数据 / prepare",
+          "runIds": [
+            "20240229T235900000-0a1b2c",
+            "20240229T235930500-zzzzzz"
+          ]
+        },
+        {
+          "id": "步骤二",
+          "title": "",
+          "runIds": [
+            "20240229T235950999-000000"
+          ]
+        },
+        {
+          "id": "plot",
+          "title": "绘图",
+          "runIds": []
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "taskId": "T",
+      "title": "",
+      "status": "已完成",
+      "dismissed": false,
+      "createdAt": "2025-12-31T00:00:00.000-05:30",
+      "steps": []
+    }
+  ],
+  "invalid": [
+    {
+      "name": "task id with a dot",
+      "missing": [],
+      "invalid": ["taskId"],
+      "plan": {
+        "schemaVersion": 1,
+        "taskId": "task.1",
+        "title": "t",
+        "status": "执行中",
+        "dismissed": false,
+        "createdAt": "2026-09-20T10:15:30.123+08:00",
+        "steps": []
+      }
+    },
+    {
+      "name": "unknown status",
+      "missing": [],
+      "invalid": ["status"],
+      "plan": {
+        "schemaVersion": 1,
+        "taskId": "t1",
+        "title": "t",
+        "status": "进行中",
+        "dismissed": false,
+        "createdAt": "2026-09-20T10:15:30.123+08:00",
+        "steps": []
+      }
+    },
+    {
+      "name": "schema version 2",
+      "missing": [],
+      "invalid": ["schemaVersion"],
+      "plan": {
+        "schemaVersion": 2,
+        "taskId": "t1",
+        "title": "t",
+        "status": "执行中",
+        "dismissed": false,
+        "createdAt": "2026-09-20T10:15:30.123+08:00",
+        "steps": []
+      }
+    },
+    {
+      "name": "createdAt without milliseconds",
+      "missing": [],
+      "invalid": ["createdAt"],
+      "plan": {
+        "schemaVersion": 1,
+        "taskId": "t1",
+        "title": "t",
+        "status": "执行中",
+        "dismissed": false,
+        "createdAt": "2026-09-20T10:15:30+08:00",
+        "steps": []
+      }
+    },
+    {
+      "name": "repeated step id",
+      "missing": [],
+      "invalid": ["steps[1].id"],
+      "plan": {
+        "schemaVersion": 1,
+        "taskId": "t1",
+        "title": "t",
+        "status": "执行中",
+        "dismissed": false,
+        "createdAt": "2026-09-20T10:15:30.123+08:00",
+        "steps": [
+          { "id": "a", "title": "first", "runIds": [] },
+          { "id": "a", "title": "second", "runIds": [] }
+        ]
+      }
+    },
+    {
+      "name": "empty step id",
+      "missing": [],
+      "invalid": ["steps[0].id"],
+      "plan": {
+        "schemaVersion": 1,
+        "taskId": "t1",
+        "title": "t",
+        "status": "执行中",
+        "dismissed": false,
+        "createdAt": "2026-09-20T10:15:30.123+08:00",
+        "steps": [{ "id": "", "title": "first", "runIds": [] }]
+      }
+    },
+    {
+      "name": "run id that is not a run id",
+      "missing": [],
+      "invalid": ["steps[0].runIds[0]"],
+      "plan": {
+        "schemaVersion": 1,
+        "taskId": "t1",
+        "title": "t",
+        "status": "执行中",
+        "dismissed": false,
+        "createdAt": "2026-09-20T10:15:30.123+08:00",
+        "steps": [{ "id": "a", "title": "first", "runIds": ["run-1"] }]
+      }
+    },
+    {
+      "name": "steps missing",
+      "missing": ["steps"],
+      "invalid": [],
+      "plan": {
+        "schemaVersion": 1,
+        "taskId": "t1",
+        "title": "t",
+        "status": "执行中",
+        "dismissed": false,
+        "createdAt": "2026-09-20T10:15:30.123+08:00"
+      }
+    },
+    {
+      "name": "dismissed is a string",
+      "missing": [],
+      "invalid": ["dismissed"],
+      "plan": {
+        "schemaVersion": 1,
+        "taskId": "t1",
+        "title": "t",
+        "status": "执行中",
+        "dismissed": "yes",
+        "createdAt": "2026-09-20T10:15:30.123+08:00",
+        "steps": []
+      }
+    },
+    {
+      "name": "step without runIds",
+      "missing": ["steps[0].runIds"],
+      "invalid": [],
+      "plan": {
+        "schemaVersion": 1,
+        "taskId": "t1",
+        "title": "t",
+        "status": "执行中",
+        "dismissed": false,
+        "createdAt": "2026-09-20T10:15:30.123+08:00",
+        "steps": [{ "id": "a", "title": "first" }]
+      }
+    }
+  ]
+}

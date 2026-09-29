@@ -6,9 +6,11 @@ import MarkdownContent from '../../MarkdownContent';
 import HexPreview from './HexPreview';
 import NotebookPreview from './NotebookPreview';
 import PdfPreview from './PdfPreview';
+import SourceLinesPreview from './SourceLinesPreview';
 import SpreadsheetPreview from './SpreadsheetPreview';
 import TablePreview from './TablePreview';
 import { PRISM_LANGUAGES, extensionOf, type PreviewKind } from './previewKind';
+import type { WorkspaceFileLocation } from '../featurePanelProps';
 import { defineMessages, useIntl } from '../../../i18n';
 
 const i18n = defineMessages({
@@ -49,6 +51,8 @@ interface FilePreviewProps {
   bytes: PreviewBytes | null;
   loading: boolean;
   onRetry?: () => void;
+  /** Line of a source file or page of a PDF to show first (paper check and review findings). */
+  location?: WorkspaceFileLocation;
 }
 
 export default function FilePreview({
@@ -59,6 +63,7 @@ export default function FilePreview({
   bytes,
   loading,
   onRetry,
+  location,
 }: FilePreviewProps) {
   const intl = useIntl();
   const isDark = useIsDarkTheme();
@@ -97,7 +102,7 @@ export default function FilePreview({
 
   if ((kind === 'pdf' || kind === 'spreadsheet') && bytes?.base64) {
     return kind === 'pdf' ? (
-      <PdfPreview base64={bytes.base64} />
+      <PdfPreview base64={bytes.base64} page={location?.page} />
     ) : (
       <SpreadsheetPreview base64={bytes.base64} />
     );
@@ -113,6 +118,14 @@ export default function FilePreview({
 
   const content = text?.content ?? '';
   const scroll = (node: React.ReactNode) => <div className="h-full overflow-auto">{node}</div>;
+
+  // A finding points at a line: show the source itself, scrolled there, instead of a rendering.
+  if (
+    location?.line !== undefined &&
+    (kind === 'code' || kind === 'text' || kind === 'markdown')
+  ) {
+    return <SourceLinesPreview content={content} line={location.line} />;
+  }
 
   if (kind === 'table') {
     return <TablePreview content={content} extension={extensionOf(entry.name)} />;

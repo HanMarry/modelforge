@@ -237,6 +237,24 @@ describe('PdfPreview', () => {
     await waitFor(() => expect(getDocumentSpy).toHaveBeenCalledTimes(2));
   });
 
+  it('opens at the requested page, clamped to the page count', async () => {
+    const { rerender } = render(
+      <IntlTestWrapper>
+        <PdfPreview base64={makeBase64()} page={2} />
+      </IntlTestWrapper>
+    );
+
+    await waitFor(() => expect(mockDocument.getPage).toHaveBeenLastCalledWith(2));
+    expect(screen.getByText(/2.*\/.*3/)).toBeInTheDocument();
+
+    rerender(
+      <IntlTestWrapper>
+        <PdfPreview base64={makeBase64()} page={9} />
+      </IntlTestWrapper>
+    );
+    await waitFor(() => expect(mockDocument.getPage).toHaveBeenLastCalledWith(3));
+  });
+
   it('zoom in and zoom out change the scale display', async () => {
     renderPdf(makeBase64());
 

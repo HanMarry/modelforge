@@ -69,6 +69,11 @@ const TEXT_EXTENSIONS = new Set([
   '.conf',
   '.text',
   '.dat',
+  // Paper sources that paper check findings open at a line: Typst and local LaTeX templates.
+  '.typ',
+  '.cls',
+  '.sty',
+  '.bst',
 ]);
 
 export function extensionOf(name: string): string {

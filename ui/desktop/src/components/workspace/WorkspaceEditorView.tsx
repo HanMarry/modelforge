@@ -1,8 +1,8 @@
 import { FolderOpen, X } from 'lucide-react';
-import type { WorkspaceEntry } from '../../types/workspaceApi';
 import { defineMessages, useIntl } from '../../i18n';
 import FilePreview from './preview/FilePreview';
 import { usePreviewData } from './preview/usePreviewData';
+import type { ActiveWorkspaceFile } from './useWorkspacePanel';
 
 const i18n = defineMessages({
   workspaceTab: { id: 'workspaceEditor.tab', defaultMessage: 'Files' },
@@ -15,7 +15,8 @@ const i18n = defineMessages({
 });
 
 interface WorkspaceEditorViewProps {
-  activeFile: WorkspaceEntry | null;
+  /** With a `location`, the preview scrolls to that line or page. */
+  activeFile: ActiveWorkspaceFile | null;
   workingDir: string;
   onClose: () => void;
   onClearFile: () => void;
@@ -78,6 +79,7 @@ export default function WorkspaceEditorView({
             bytes={preview.bytes}
             loading={preview.loading}
             onRetry={preview.retry}
+            location={activeFile.location}
           />
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-2 px-6 text-center">
