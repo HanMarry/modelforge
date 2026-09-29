@@ -6785,6 +6785,144 @@
   "tablePreview.truncated": {
     "defaultMessage": "仅显示前 {rows} 行、{cols} 列"
   },
+  "taskResume.back": {
+    "defaultMessage": "返回"
+  },
+  "taskResume.checking": {
+    "defaultMessage": "正在按 Run_Record 核对各步骤…"
+  },
+  "taskResume.chip": {
+    "defaultMessage": "未完成的任务：{count}"
+  },
+  "taskResume.close": {
+    "defaultMessage": "关闭"
+  },
+  "taskResume.completed": {
+    "defaultMessage": "“{title}”已标记为完成"
+  },
+  "taskResume.continue": {
+    "defaultMessage": "从失败点继续"
+  },
+  "taskResume.dismiss": {
+    "defaultMessage": "放弃恢复"
+  },
+  "taskResume.dismissFailed": {
+    "defaultMessage": "无法更新任务计划"
+  },
+  "taskResume.dismissedBadge": {
+    "defaultMessage": "不再自动提示"
+  },
+  "taskResume.errorSessionBusy": {
+    "defaultMessage": "会话仍在运行，请在结束后再试。"
+  },
+  "taskResume.errorStalePlan": {
+    "defaultMessage": "任务计划已经变化，请重新核对步骤。"
+  },
+  "taskResume.failed": {
+    "defaultMessage": "无法恢复任务"
+  },
+  "taskResume.intro": {
+    "defaultMessage": "以下任务在完成前中断了。可以从失败点继续：Run_Record 仍与文件一致的步骤会被跳过。"
+  },
+  "taskResume.markCompleted": {
+    "defaultMessage": "标记为已完成"
+  },
+  "taskResume.moreReasons": {
+    "defaultMessage": "另有 {count} 项"
+  },
+  "taskResume.noRuns": {
+    "defaultMessage": "没有运行记录"
+  },
+  "taskResume.overwriteBody": {
+    "defaultMessage": "从“{step}”继续会重新执行后续步骤并覆盖下列文件。确认前不会改动任何文件。"
+  },
+  "taskResume.overwriteCancel": {
+    "defaultMessage": "取消并保持暂停"
+  },
+  "taskResume.overwriteConfirm": {
+    "defaultMessage": "覆盖并继续"
+  },
+  "taskResume.overwriteModified": {
+    "defaultMessage": "修改于 {time}"
+  },
+  "taskResume.overwriteTitle": {
+    "defaultMessage": "覆盖已有的输出？"
+  },
+  "taskResume.paused": {
+    "defaultMessage": "“{title}”保持暂停，没有改动任何文件"
+  },
+  "taskResume.planFrom": {
+    "defaultMessage": "从此步骤重新执行：{step}"
+  },
+  "taskResume.planNothing": {
+    "defaultMessage": "所有步骤都与 Run_Record 一致，无需重新执行。"
+  },
+  "taskResume.planReasons": {
+    "defaultMessage": "重新执行的原因："
+  },
+  "taskResume.planSkip": {
+    "defaultMessage": "跳过（仍与文件一致）：{steps}"
+  },
+  "taskResume.planSkipNone": {
+    "defaultMessage": "没有可以跳过的步骤。"
+  },
+  "taskResume.project": {
+    "defaultMessage": "项目：{name}"
+  },
+  "taskResume.reasonFileMissing": {
+    "defaultMessage": "文件缺失：{path}"
+  },
+  "taskResume.reasonHashMismatch": {
+    "defaultMessage": "哈希不一致：{path}"
+  },
+  "taskResume.reasonNoRun": {
+    "defaultMessage": "记录缺失：该步骤没有运行记录"
+  },
+  "taskResume.reasonRecordMissing": {
+    "defaultMessage": "记录缺失：{runId}"
+  },
+  "taskResume.reasonRecordTruncated": {
+    "defaultMessage": "记录缺失：{runId} 只列出了前 1000 个文件"
+  },
+  "taskResume.reasonRunFailed": {
+    "defaultMessage": "运行 {runId} 的退出码不是 0"
+  },
+  "taskResume.resumed": {
+    "defaultMessage": "已从“{step}”继续“{title}”"
+  },
+  "taskResume.runExitCode": {
+    "defaultMessage": "退出码 {code}"
+  },
+  "taskResume.runFailure": {
+    "defaultMessage": "结束原因：{failure}"
+  },
+  "taskResume.runMissing": {
+    "defaultMessage": "Run_Record 缺失或无法读取"
+  },
+  "taskResume.runTimes": {
+    "defaultMessage": "{start} – {end}"
+  },
+  "taskResume.start": {
+    "defaultMessage": "开始执行"
+  },
+  "taskResume.statusInterrupted": {
+    "defaultMessage": "已中断"
+  },
+  "taskResume.statusPaused": {
+    "defaultMessage": "已暂停"
+  },
+  "taskResume.stepCompleted": {
+    "defaultMessage": "已完成"
+  },
+  "taskResume.stepFailed": {
+    "defaultMessage": "失败点"
+  },
+  "taskResume.stepNotReached": {
+    "defaultMessage": "未执行"
+  },
+  "taskResume.title": {
+    "defaultMessage": "未完成的任务"
+  },
   "telemetryConsentPrompt.description": {
     "defaultMessage": "是否愿意分享匿名使用数据帮助改进 ModelForge？我们绝不采集你的对话、代码或个人数据。"
   },

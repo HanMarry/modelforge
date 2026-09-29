@@ -9,4 +9,5 @@ export const taskResumeBridge: TaskResumeApi = {
   taskResumeList: (request) => ipcRenderer.invoke('task-resume-list', request),
   taskResumeContinue: (target) => ipcRenderer.invoke('task-resume-continue', target),
   taskResumeDismiss: (target) => ipcRenderer.invoke('task-resume-dismiss', target),
+  taskResumeComplete: (target) => ipcRenderer.invoke('task-resume-complete', target),
 };

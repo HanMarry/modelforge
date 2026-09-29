@@ -5,6 +5,8 @@
 //!   credential redaction. The contract is `schemas/run-record.schema.json`.
 //! - [`run_recorder`]: [`run_recorder::RunRecorder`] measures one execution (code and input
 //!   hashes before it starts, output hashes after it ended) and writes its record.
+//! - [`task_plan`]: the plan of a long task, `<project>/.modelforge/tasks/<task_id>.json`, which
+//!   lists its steps and each step's run ids so an interrupted task can resume (requirement 22).
 //!
 //! Every tool that runs computation code records through this crate: the modeling extension's
 //! `run_script` in goose-mcp and the developer `shell` in goose (task 21.7). It depends on
@@ -12,3 +14,4 @@
 
 pub mod run_record;
 pub mod run_recorder;
+pub mod task_plan;

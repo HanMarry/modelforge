@@ -1,8 +1,9 @@
 //! `_goose/unstable/tasks/confirm-overwrite` (spec mathmodel-parity-and-beyond, task 25.4): the
 //! Kernel asks the desktop before a resumed step overwrites output files that already exist,
-//! listing their paths, sizes and modification times. Layer C0 provides the request and
-//! `GooseAcpAgent::confirm_overwrite`; the resume flow of branch `mp/s2-c1-resume` calls it.
-//! Contract: `.kiro/specs/mathmodel-parity-and-beyond/layer-c-contract-acp.md`.
+//! listing their paths, sizes and modification times. The resume flow (`task_resume.rs`) calls
+//! `GooseAcpAgent::confirm_overwrite` before it starts `resumeFrom` and keeps the task paused on
+//! anything but a confirm. Contract: `.kiro/specs/mathmodel-parity-and-beyond/
+//! layer-c-contract-acp.md`.
 
 use agent_client_protocol::{
     Client, ConnectionTo, JsonRpcMessage, JsonRpcRequest, JsonRpcResponse, UntypedMessage,
@@ -22,7 +23,6 @@ impl GooseAcpAgent {
     /// `overwriteConfirmRequests`, a connection that is gone, an error answer or a dropped request
     /// all return `Cancel`, and the caller then leaves the task paused with every file untouched
     /// (requirement 22.6). There is no time limit: the user decides.
-    #[allow(dead_code)] // Called by the resume flow (task 25.4, branch mp/s2-c1-resume).
     pub(super) async fn confirm_overwrite(
         &self,
         request: ConfirmOverwriteRequest,
