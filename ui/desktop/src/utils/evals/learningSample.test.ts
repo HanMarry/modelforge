@@ -223,7 +223,7 @@ describe('learningSample examples', () => {
 });
 
 describe('learningSample properties', () => {
-  const codeLine = fc.constantFrom(
+  const codeLine = fc.constantFrom<string>(
     'import numpy as np',
     'from scipy import stats',
     'x = np.array([1, 2, 3])',
