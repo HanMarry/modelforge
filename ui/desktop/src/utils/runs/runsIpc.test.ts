@@ -38,7 +38,12 @@ function register(featureDeps: FeatureIpcDeps): Map<string, Handler> {
   const handlers = new Map<string, Handler>();
   store = createArtifactStore({ watch: null, log: () => undefined });
   registerRunsIpc(
-    { handle: (channel: string, listener: Handler) => handlers.set(channel, listener) },
+    {
+      // The real listener takes an IpcMainInvokeEvent; the tests call it with a stub event.
+      handle: (channel: string, listener: (...args: never[]) => unknown) => {
+        handlers.set(channel, listener as unknown as Handler);
+      },
+    },
     featureDeps,
     store
   );
