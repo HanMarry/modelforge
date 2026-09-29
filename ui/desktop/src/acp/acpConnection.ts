@@ -14,6 +14,7 @@ import {
   type GooseAcpCallbacks,
   type GooseAcpClient,
 } from './gooseAcpClient';
+import { requestAcpCheckpointEnsure } from './checkpointRequests';
 import { requestAcpPermission } from './permissionRequests';
 import { requestAcpRecipeParams } from './recipeParamRequests';
 
@@ -152,6 +153,7 @@ async function openConnection(generation: number): Promise<AcpConnection> {
               mcpHostCapabilities: DEFAULT_GOOSE_MCP_HOST_CAPABILITIES,
               customNotifications: true,
               recipeParameterRequests: true,
+              checkpointRequests: true,
             },
           },
         },
@@ -220,6 +222,7 @@ function createClientCallbacks(): GooseAcpCallbacks {
     requestPermission: requestAcpPermission,
     unstable_createElicitation: requestAcpElicitation,
     unstable_sessionRecipeRequestParams: requestAcpRecipeParams,
+    unstable_sessionCheckpointEnsure: requestAcpCheckpointEnsure,
     sessionUpdate: handleAcpSessionNotification,
     unstable_sessionUpdate: handleAcpGooseSessionNotification,
     unstable_providerDeviceCode: handleAcpProviderDeviceCodeNotification,

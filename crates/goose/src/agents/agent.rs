@@ -302,6 +302,7 @@ pub struct Agent {
     pub(super) goal: Mutex<Option<String>>,
     pub(super) grind: Mutex<Option<String>>,
     steer_queues: Mutex<HashMap<String, SteerQueue>>,
+    checkpoint_guard: std::sync::Mutex<Option<Arc<dyn super::tool_execution::PreWriteGuard>>>,
 }
 
 fn ensure_message_event_id(event: AgentEvent) -> AgentEvent {
@@ -474,6 +475,7 @@ impl Agent {
             goal: Mutex::new(None),
             grind: Mutex::new(None),
             steer_queues: Mutex::new(HashMap::new()),
+            checkpoint_guard: std::sync::Mutex::new(None),
         }
     }
 
@@ -1055,6 +1057,20 @@ impl Agent {
         Ok(())
     }
 
+    /// Inject a pre-write guard (or clear it) for the next prompt. The ACP
+    /// server sets this when a client declares checkpoint support so developer
+    /// `write`/`edit`/`shell` tools snapshot the project before mutating files.
+    pub fn set_checkpoint_guard(
+        &self,
+        guard: Option<Arc<dyn super::tool_execution::PreWriteGuard>>,
+    ) {
+        *self.checkpoint_guard.lock().unwrap() = guard;
+    }
+
+    fn checkpoint_guard(&self) -> Option<Arc<dyn super::tool_execution::PreWriteGuard>> {
+        self.checkpoint_guard.lock().unwrap().clone()
+    }
+
     /// Dispatch a single tool call to the appropriate client
     #[instrument(
         skip(self, tool_call, request_id, cancellation_token, session),
@@ -1170,7 +1186,8 @@ impl Agent {
             session.id.clone(),
             Some(session.working_dir.clone()),
             Some(request_id.clone()),
-        );
+        )
+        .with_pre_write_guard(self.checkpoint_guard());
 
         debug!("WAITING_TOOL_START: {}", tool_call.name);
         let result = self

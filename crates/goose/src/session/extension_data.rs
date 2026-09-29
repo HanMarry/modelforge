@@ -142,6 +142,26 @@ impl EnabledExtensionsState {
     }
 }
 
+/// Monotonic turn counter persisted per session so checkpoint turn numbers never
+/// go backwards across Kernel restarts or context compaction.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CheckpointTurnState {
+    pub turn: u64,
+}
+
+impl ExtensionState for CheckpointTurnState {
+    const EXTENSION_NAME: &'static str = "checkpoint_turn";
+    const VERSION: &'static str = "v0";
+}
+
+impl CheckpointTurnState {
+    pub fn current_turn(extension_data: &ExtensionData) -> u64 {
+        Self::from_extension_data(extension_data)
+            .map(|state| state.turn)
+            .unwrap_or(0)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

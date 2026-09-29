@@ -25,6 +25,14 @@ use tree::{TreeParams, TreeTool};
 
 pub static EXTENSION_NAME: &str = "developer";
 
+const CHECKPOINT_FAILED_CODE: &str = "CHECKPOINT_FAILED";
+
+/// Tools that may modify the working tree and therefore need a checkpoint
+/// before running. `tree` and `read_image` are read-only and excluded.
+fn is_write_tool(name: &str) -> bool {
+    matches!(name, "write" | "edit" | "shell")
+}
+
 fn visible_text(text: impl Into<String>) -> ContentBlock {
     ContentBlock::Text(
         TextContent::new(text).with_annotations(Annotations::default().with_priority(0.0)),
@@ -209,6 +217,15 @@ impl McpClientTrait for DeveloperClient {
         cancel_token: CancellationToken,
     ) -> Result<CallToolResult, Error> {
         let working_dir = ctx.working_dir.as_deref();
+        if is_write_tool(name) {
+            if let Some(guard) = ctx.pre_write_guard() {
+                if let Err(reason) = guard.ensure(ctx.working_dir.clone()).await {
+                    return Ok(CallToolResult::error(vec![visible_text(format!(
+                        "Error: {CHECKPOINT_FAILED_CODE}: {reason}"
+                    ))]));
+                }
+            }
+        }
         match name {
             "shell" => match Self::parse_args::<ShellParams>(arguments) {
                 Ok(params) => Ok(self

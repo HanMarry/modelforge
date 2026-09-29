@@ -9,17 +9,20 @@ import {
   GOOSE_EXT_AGENT_REQUESTS,
   GOOSE_EXT_NOTIFICATIONS,
   GooseExtClient,
+  type EnsureCheckpointRequest_unstable,
+  type EnsureCheckpointResponse_unstable,
   type GooseSessionNotification_unstable,
   type ProviderDeviceCodeNotification_unstable,
   type RecipeParamsResponse_unstable,
   type RequestRecipeParams_unstable,
+  zEnsureCheckpointRequest_unstable,
   zGooseSessionNotification_unstable,
   zProviderDeviceCodeNotification_unstable,
   zRequestRecipeParams_unstable,
 } from '@aaif/goose-acp-client';
 
 const [gooseSessionUpdate, providerDeviceCode] = GOOSE_EXT_NOTIFICATIONS;
-const [gooseRecipeParamsRequest] = GOOSE_EXT_AGENT_REQUESTS;
+const [gooseRecipeParamsRequest, gooseCheckpointEnsureRequest] = GOOSE_EXT_AGENT_REQUESTS;
 
 export type GooseAcpCallbacks = Required<
   Pick<Client, 'requestPermission' | 'sessionUpdate' | 'unstable_createElicitation'>
@@ -27,6 +30,9 @@ export type GooseAcpCallbacks = Required<
   unstable_sessionRecipeRequestParams: (
     request: RequestRecipeParams_unstable
   ) => Promise<RecipeParamsResponse_unstable>;
+  unstable_sessionCheckpointEnsure: (
+    request: EnsureCheckpointRequest_unstable
+  ) => Promise<EnsureCheckpointResponse_unstable>;
   unstable_sessionUpdate: (notification: GooseSessionNotification_unstable) => Promise<void>;
   unstable_providerDeviceCode: (
     notification: ProviderDeviceCodeNotification_unstable
@@ -54,6 +60,11 @@ export function connectGooseAcpClient(
     )
     .onRequest(gooseRecipeParamsRequest.method, zRequestRecipeParams_unstable, (context) =>
       callbacks.unstable_sessionRecipeRequestParams(context.params)
+    )
+    .onRequest(
+      gooseCheckpointEnsureRequest.method,
+      zEnsureCheckpointRequest_unstable,
+      (context) => callbacks.unstable_sessionCheckpointEnsure(context.params)
     )
     .onNotification(gooseSessionUpdate.method, zGooseSessionNotification_unstable, (context) =>
       callbacks.unstable_sessionUpdate(context.params)

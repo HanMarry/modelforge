@@ -73,6 +73,7 @@ import './utils/gitBranchIpc';
 import './utils/recipeHash';
 import { registerWorkspaceIpc } from './utils/workspaceIpc';
 import { registerGitVersionIpc } from './utils/gitVersionIpc';
+import { registerCheckpointIpc } from './utils/checkpoints/checkpointIpc';
 import { disposeTerminalSessions, registerTerminalIpc } from './utils/terminalIpc';
 import { registerCatalogIpc } from './utils/catalogIpc';
 import { registerDatasetIpc } from './utils/datasetIpc';
@@ -81,6 +82,7 @@ import { registerGalleryIpc } from './utils/gallery/galleryIpc';
 
 registerWorkspaceIpc();
 registerGitVersionIpc();
+registerCheckpointIpc();
 registerTerminalIpc();
 registerCatalogIpc();
 registerDatasetIpc();

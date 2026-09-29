@@ -71,6 +71,49 @@ export interface GitVersionResult {
   error?: string;
 }
 
+export type AutoCheckpointKind = 'auto' | 'pre-restore';
+
+export interface AutoCheckpoint {
+  id: string;
+  shortId: string;
+  createdAt: number;
+  sessionId: string;
+  turn: number;
+  kind: AutoCheckpointKind;
+  filesChanged: number;
+}
+
+export interface AutoCheckpointFileChange {
+  status: 'A' | 'D' | 'M';
+  path: string;
+  binary: boolean;
+}
+
+export interface AutoCheckpointDiff {
+  files: AutoCheckpointFileChange[];
+  textByPath: Record<string, string>;
+}
+
+export type AutoCheckpointErrorCode = 'GIT_UNAVAILABLE' | 'CHECKPOINT_FAILED' | 'INVALID_PATH' | 'NOT_FOUND';
+
+export interface AutoCheckpointError {
+  code: AutoCheckpointErrorCode;
+  message: string;
+}
+
+export interface AutoCheckpointEnsureResult {
+  checkpointId: string;
+  created: boolean;
+}
+
+export interface AutoCheckpointRestoreResult {
+  changedFiles: number;
+}
+
+export type AutoCheckpointResult<T> =
+  | { ok: true; value: T }
+  | { ok: false; error: AutoCheckpointError };
+
 export type TerminalMode = 'pty' | 'pipe';
 
 export interface TerminalSessionInfo {

@@ -30,6 +30,11 @@ import type {
   ImportShareData,
 } from './utils/gallery/galleryService';
 import type {
+  AutoCheckpoint,
+  AutoCheckpointDiff,
+  AutoCheckpointEnsureResult,
+  AutoCheckpointRestoreResult,
+  AutoCheckpointResult,
   EnvironmentProbe,
   GitCheckpoint,
   GitCheckpointFile,
@@ -201,6 +206,21 @@ type ElectronAPI = {
   gitVersionSave: (dir: string, message: string) => Promise<GitVersionResult>;
   gitVersionRestore: (dir: string, hash: string) => Promise<GitVersionResult>;
   gitVersionInit: (dir: string) => Promise<GitVersionResult>;
+  checkpointEnsure: (
+    dir: string,
+    sessionId: string,
+    turn: number
+  ) => Promise<AutoCheckpointResult<AutoCheckpointEnsureResult>>;
+  checkpointList: (dir: string, limit?: number) => Promise<AutoCheckpointResult<AutoCheckpoint[]>>;
+  checkpointDiff: (
+    dir: string,
+    a: string,
+    b: string | 'worktree'
+  ) => Promise<AutoCheckpointResult<AutoCheckpointDiff>>;
+  checkpointRestore: (
+    dir: string,
+    checkpointId: string
+  ) => Promise<AutoCheckpointResult<AutoCheckpointRestoreResult>>;
   terminalCreate: (request: {
     cwd?: string;
     cols?: number;
@@ -447,6 +467,14 @@ const electronAPI: ElectronAPI = {
   gitVersionRestore: (dir: string, hash: string) =>
     ipcRenderer.invoke('git-version-restore', dir, hash),
   gitVersionInit: (dir: string) => ipcRenderer.invoke('git-version-init', dir),
+  checkpointEnsure: (dir: string, sessionId: string, turn: number) =>
+    ipcRenderer.invoke('checkpoint-ensure', dir, sessionId, turn),
+  checkpointList: (dir: string, limit?: number) =>
+    ipcRenderer.invoke('checkpoint-list', dir, limit),
+  checkpointDiff: (dir: string, a: string, b: string | 'worktree') =>
+    ipcRenderer.invoke('checkpoint-diff', dir, a, b),
+  checkpointRestore: (dir: string, checkpointId: string) =>
+    ipcRenderer.invoke('checkpoint-restore', dir, checkpointId),
   terminalCreate: (request: { cwd?: string; cols?: number; rows?: number }) =>
     ipcRenderer.invoke('terminal-create', request),
   terminalWrite: (id: string, data: string) => ipcRenderer.invoke('terminal-write', id, data),

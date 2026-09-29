@@ -2421,7 +2421,8 @@ impl ExtensionManager {
             ctx.session_id.clone(),
             ctx.working_dir.clone(),
             ctx.tool_call_request_id.clone(),
-        );
+        )
+        .with_pre_write_guard(ctx.pre_write_guard());
         let (owned_ctx, tool_call_notifications_receiver) =
             if let Some(notification_emitter) = ctx.notification_emitter().cloned() {
                 (

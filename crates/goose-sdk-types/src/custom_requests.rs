@@ -4,6 +4,8 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+mod checkpoint;
+pub use checkpoint::*;
 mod recipe;
 pub use recipe::*;
 mod schedule;

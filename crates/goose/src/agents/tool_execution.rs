@@ -1,10 +1,12 @@
 use async_stream::try_stream;
+use async_trait::async_trait;
 use futures::stream::{self, BoxStream};
 use futures::{Stream, StreamExt};
 use rmcp::model::CallToolResult;
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
+use std::sync::Arc;
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 
@@ -32,6 +34,15 @@ impl ToolCallNotificationEmitter {
     }
 }
 
+/// Guards tools that may modify the working tree (developer `write`/`edit`/
+/// `shell`). The ACP server injects a guard when a client declares checkpoint
+/// support; `ensure` must succeed before the tool runs, and success is cached so
+/// a turn only creates one checkpoint.
+#[async_trait]
+pub trait PreWriteGuard: Send + Sync {
+    async fn ensure(&self, working_dir: Option<PathBuf>) -> Result<(), String>;
+}
+
 /// Context passed through the tool call dispatch chain.
 #[derive(Clone)]
 pub struct ToolCallContext {
@@ -39,6 +50,7 @@ pub struct ToolCallContext {
     pub working_dir: Option<PathBuf>,
     pub tool_call_request_id: Option<String>,
     notification_emitter: Option<ToolCallNotificationEmitter>,
+    pre_write_guard: Option<Arc<dyn PreWriteGuard>>,
 }
 
 impl ToolCallContext {
@@ -52,6 +64,7 @@ impl ToolCallContext {
             working_dir,
             tool_call_request_id,
             notification_emitter: None,
+            pre_write_guard: None,
         }
     }
 
@@ -69,6 +82,18 @@ impl ToolCallContext {
 
     pub(crate) fn notification_emitter(&self) -> Option<&ToolCallNotificationEmitter> {
         self.notification_emitter.as_ref()
+    }
+
+    pub(crate) fn with_pre_write_guard(
+        mut self,
+        pre_write_guard: Option<Arc<dyn PreWriteGuard>>,
+    ) -> Self {
+        self.pre_write_guard = pre_write_guard;
+        self
+    }
+
+    pub(crate) fn pre_write_guard(&self) -> Option<Arc<dyn PreWriteGuard>> {
+        self.pre_write_guard.clone()
     }
 }
 
