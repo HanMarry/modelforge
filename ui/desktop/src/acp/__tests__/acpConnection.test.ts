@@ -85,6 +85,23 @@ describe('ACP connection ownership', () => {
     });
   });
 
+  it('declares the Goose capabilities the desktop handles', async () => {
+    const { getAcpClient } = await import('../acpConnection');
+
+    await getAcpClient();
+
+    const [, params] = mockClientFactory.initialize.mock.calls[0];
+    expect(params.clientCapabilities._meta.goose).toMatchObject({
+      customNotifications: true,
+      recipeParameterRequests: true,
+      checkpointRequests: true,
+      runNotifications: true,
+      overwriteConfirmRequests: true,
+      taskResumeRequests: true,
+      learningModeRequests: true,
+    });
+  });
+
   it('automatically reconnects after close and shares the result between callers', async () => {
     const { getAcpClient } = await import('../acpConnection');
     const firstClient = await getAcpClient();

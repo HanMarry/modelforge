@@ -39,8 +39,11 @@ function callbacks(): GooseAcpCallbacks {
       values: { name: 'Ada' },
     }),
     unstable_sessionCheckpointEnsure: vi.fn().mockResolvedValue({ checkpointId: null }),
+    unstable_tasksConfirmOverwrite: vi.fn().mockResolvedValue({ action: 'cancel' }),
     unstable_sessionUpdate: vi.fn(),
     unstable_providerDeviceCode: vi.fn(),
+    unstable_runsStarted: vi.fn(),
+    unstable_runsFinished: vi.fn(),
   };
 }
 
@@ -124,6 +127,86 @@ describe('Goose ACP client composition', () => {
       result: { tools: [] },
     });
     await expect(toolsRequest).resolves.toEqual({ tools: [] });
+
+    client.connection.close();
+    await client.connection.closed;
+  });
+
+  it('routes the ModelForge layer C notifications and requests', async () => {
+    const stream = createTestStream();
+    const handlers = callbacks();
+    const client = connectGooseAcpClient(stream, handlers);
+    const runId = '20260920T101530123-a1b2c3';
+
+    const started = {
+      sessionId: 'session-1',
+      toolCallId: 'tool-1',
+      runId,
+      workingDir: '/projects/q1',
+      declaredOutputs: ['results/out.csv'],
+    };
+    stream.push({ jsonrpc: '2.0', method: '_goose/unstable/runs/started', params: started });
+    await vi.waitFor(() => {
+      expect(handlers.unstable_runsStarted).toHaveBeenCalledWith(started);
+    });
+
+    const finished = {
+      sessionId: 'session-1',
+      toolCallId: 'tool-1',
+      runId,
+      workingDir: '/projects/q1',
+      recordPath: `.modelforge/runs/${runId}.json`,
+      exitCode: null,
+      failure: '超时',
+      outputs: [],
+    };
+    stream.push({ jsonrpc: '2.0', method: '_goose/unstable/runs/finished', params: finished });
+    await vi.waitFor(() => {
+      expect(handlers.unstable_runsFinished).toHaveBeenCalledWith(finished);
+    });
+
+    stream.push({
+      jsonrpc: '2.0',
+      id: 7,
+      method: '_goose/unstable/tasks/confirm-overwrite',
+      params: {
+        sessionId: 'session-1',
+        taskId: 'task-1',
+        stepId: 'fit',
+        workingDir: '/projects/q1',
+        files: [
+          { path: 'results/out.csv', size: 2048, modifiedAt: '2026-09-20T10:15:30.123+08:00' },
+        ],
+      },
+    });
+    await waitForWrites(stream, 1);
+    expect(handlers.unstable_tasksConfirmOverwrite).toHaveBeenCalledOnce();
+    expect(stream.writes[0]).toMatchObject({ id: 7, result: { action: 'cancel' } });
+
+    const resumeParams = {
+      sessionId: 'session-1',
+      taskId: 'task-1',
+      skip: ['clean'],
+      resumeFrom: 'fit',
+      staleReasons: [{ kind: 'record-missing', runId: null }],
+    };
+    const resume = client.goose.tasksResume_unstable(resumeParams);
+    await waitForWrites(stream, 2);
+    const resumeRequest = stream.writes[1] as { id: number; method: string; params: unknown };
+    expect(resumeRequest.method).toBe('_goose/unstable/tasks/resume');
+    expect(resumeRequest.params).toEqual(resumeParams);
+    stream.push({ jsonrpc: '2.0', id: resumeRequest.id, result: { outcome: 'resumed' } });
+    await expect(resume).resolves.toEqual({ outcome: 'resumed' });
+
+    const learningMode = client.goose.sessionLearningModeSet_unstable({
+      sessionId: 'session-1',
+      learningMode: { exerciseId: 'regression-basics', solutionUnlocked: false },
+    });
+    await waitForWrites(stream, 3);
+    const learningRequest = stream.writes[2] as { id: number; method: string };
+    expect(learningRequest.method).toBe('_goose/unstable/session/learning-mode/set');
+    stream.push({ jsonrpc: '2.0', id: learningRequest.id, result: {} });
+    await expect(learningMode).resolves.toBeUndefined();
 
     client.connection.close();
     await client.connection.closed;

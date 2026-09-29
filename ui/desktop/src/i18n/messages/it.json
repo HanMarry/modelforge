@@ -2774,8 +2774,164 @@
   "launcher.placeholder": {
     "defaultMessage": "Chiedi qualsiasi cosa a ModelForge..."
   },
+  "learning.exercise.cancel": {
+    "defaultMessage": "Cancel"
+  },
+  "learning.exercise.chatFailed": {
+    "defaultMessage": "Could not start a learning-mode chat"
+  },
+  "learning.exercise.checkError": {
+    "defaultMessage": "The check failed: {message}. The exercise status has not changed and your submission is kept."
+  },
+  "learning.exercise.checkFailed": {
+    "defaultMessage": "Not passed: {reason}"
+  },
+  "learning.exercise.checkPassed": {
+    "defaultMessage": "Passed"
+  },
+  "learning.exercise.checkPending": {
+    "defaultMessage": "Not checked yet"
+  },
+  "learning.exercise.checkTimeout": {
+    "defaultMessage": "The check did not finish within 60 seconds. The exercise status has not changed and your submission is kept."
+  },
+  "learning.exercise.checking": {
+    "defaultMessage": "Checking…"
+  },
+  "learning.exercise.checks": {
+    "defaultMessage": "Check items"
+  },
+  "learning.exercise.chooseProjectDir": {
+    "defaultMessage": "Choose folder"
+  },
+  "learning.exercise.close": {
+    "defaultMessage": "Close exercise"
+  },
+  "learning.exercise.completedAt": {
+    "defaultMessage": "Completed at {time}"
+  },
+  "learning.exercise.confirm": {
+    "defaultMessage": "View solution"
+  },
+  "learning.exercise.confirmMessage": {
+    "defaultMessage": "The agent will write the complete solution code in a new chat, and this exercise will be marked \"Solution viewed\" for good."
+  },
+  "learning.exercise.confirmTitle": {
+    "defaultMessage": "View the full solution?"
+  },
+  "learning.exercise.invalidProject": {
+    "defaultMessage": "The project folder cannot be read. The exercise status has not changed and your submission is kept."
+  },
+  "learning.exercise.learningMode": {
+    "defaultMessage": "Learning mode"
+  },
+  "learning.exercise.learningModeActive": {
+    "defaultMessage": "Chats in learning mode for this exercise: {count}"
+  },
+  "learning.exercise.learningModeHint": {
+    "defaultMessage": "In learning mode the agent answers with hints and questions instead of full solution code."
+  },
+  "learning.exercise.leaveLearningMode": {
+    "defaultMessage": "Leave learning mode"
+  },
+  "learning.exercise.needProjectDir": {
+    "defaultMessage": "Choose the project folder that holds your exercise files first."
+  },
+  "learning.exercise.noProjectDir": {
+    "defaultMessage": "No folder chosen"
+  },
+  "learning.exercise.practiceInChat": {
+    "defaultMessage": "Practise in chat"
+  },
+  "learning.exercise.projectDir": {
+    "defaultMessage": "Project folder"
+  },
+  "learning.exercise.projectDirHint": {
+    "defaultMessage": "The folder that holds your exercise files; the checks read files from it."
+  },
+  "learning.exercise.recheck": {
+    "defaultMessage": "Check again"
+  },
+  "learning.exercise.statement": {
+    "defaultMessage": "Exercise"
+  },
+  "learning.exercise.subjective": {
+    "defaultMessage": "judged by the agent"
+  },
+  "learning.exercise.submission": {
+    "defaultMessage": "Your submission"
+  },
+  "learning.exercise.submissionPlaceholder": {
+    "defaultMessage": "Describe what you did and what you found. You can revise it and resubmit."
+  },
+  "learning.exercise.submit": {
+    "defaultMessage": "Submit for checking"
+  },
+  "learning.exercise.unlockFailed": {
+    "defaultMessage": "Could not unlock the solution"
+  },
+  "learning.exercise.viewSolution": {
+    "defaultMessage": "View full solution"
+  },
+  "learning.progress.count": {
+    "defaultMessage": "{completed} / {total}"
+  },
+  "learning.progress.hint": {
+    "defaultMessage": "An exercise counts once every check item has passed."
+  },
+  "learning.progress.percent": {
+    "defaultMessage": "{percent}%"
+  },
+  "learning.progress.title": {
+    "defaultMessage": "Progress by course group"
+  },
+  "learning.status.completed": {
+    "defaultMessage": "Completed"
+  },
+  "learning.status.failed": {
+    "defaultMessage": "Not passed"
+  },
+  "learning.status.notStarted": {
+    "defaultMessage": "Not started"
+  },
+  "learning.status.solutionViewed": {
+    "defaultMessage": "Solution viewed"
+  },
   "learning.title": {
     "defaultMessage": "Learning Path"
+  },
+  "learning.view.exercises": {
+    "defaultMessage": "Exercises"
+  },
+  "learning.view.groupProgress": {
+    "defaultMessage": "{completed} / {total} completed"
+  },
+  "learning.view.loadFailed": {
+    "defaultMessage": "Could not load the learning path: {message}"
+  },
+  "learning.view.loading": {
+    "defaultMessage": "Loading the learning path…"
+  },
+  "learning.view.objectives": {
+    "defaultMessage": "Learning objectives"
+  },
+  "learning.view.retry": {
+    "defaultMessage": "Try again"
+  },
+  "learning.view.skills": {
+    "defaultMessage": "Linked skills"
+  },
+  "learning.view.subtitle": {
+    "defaultMessage": "Five course groups, each with exercises that are checked when you submit your results."
+  },
+  "learning.view.tabCourses": {
+    "defaultMessage": "Courses"
+  },
+  "learning.view.tabProfile": {
+    "defaultMessage": "My progress"
+  },
+  "learning.view.tabs": {
+    "defaultMessage": "Learning path sections"
   },
   "loadingGoose.compacting": {
     "defaultMessage": "ModelForge sta compattando la conversazione..."
@@ -5005,6 +5161,180 @@
   },
   "responseStyle.detailedLabel": {
     "defaultMessage": "Dettagliato"
+  },
+  "runCompare.artifactIndexInvalid": {
+    "defaultMessage": "The artifact status file could not be read, so out-of-date markers are missing."
+  },
+  "runCompare.busy": {
+    "defaultMessage": "The current chat is still working. Try again when it finishes."
+  },
+  "runCompare.compare": {
+    "defaultMessage": "Compare"
+  },
+  "runCompare.compareFailed": {
+    "defaultMessage": "Could not compare these runs."
+  },
+  "runCompare.comparing": {
+    "defaultMessage": "Comparing…"
+  },
+  "runCompare.composed": {
+    "defaultMessage": "The writing task was added to the chat input. Send it to start."
+  },
+  "runCompare.differs": {
+    "defaultMessage": "Values differ"
+  },
+  "runCompare.duration": {
+    "defaultMessage": "Duration"
+  },
+  "runCompare.empty": {
+    "defaultMessage": "No run records in this project yet. Runs of computation code appear here."
+  },
+  "runCompare.ended": {
+    "defaultMessage": "Ended"
+  },
+  "runCompare.errorDetail": {
+    "defaultMessage": "Details: {detail}"
+  },
+  "runCompare.exitCode": {
+    "defaultMessage": "Exit code"
+  },
+  "runCompare.exitCodeValue": {
+    "defaultMessage": "Exit code {code}"
+  },
+  "runCompare.failedKernelError": {
+    "defaultMessage": "Paragraph not generated: the Kernel returned an error."
+  },
+  "runCompare.failedKernelUnavailable": {
+    "defaultMessage": "Paragraph not generated: the Kernel is not available."
+  },
+  "runCompare.failedTimeout": {
+    "defaultMessage": "Paragraph not generated: the Kernel did not finish within {seconds} seconds."
+  },
+  "runCompare.failureCancelled": {
+    "defaultMessage": "cancelled by user"
+  },
+  "runCompare.failureNonZero": {
+    "defaultMessage": "non-zero exit code"
+  },
+  "runCompare.failureTimeout": {
+    "defaultMessage": "timed out"
+  },
+  "runCompare.field": {
+    "defaultMessage": "Item"
+  },
+  "runCompare.flagFailed": {
+    "defaultMessage": "Failed"
+  },
+  "runCompare.flagFailedReason": {
+    "defaultMessage": "Failed: {reason}"
+  },
+  "runCompare.flagStale": {
+    "defaultMessage": "Out of date"
+  },
+  "runCompare.generate": {
+    "defaultMessage": "Generate comparison paragraph"
+  },
+  "runCompare.generated": {
+    "defaultMessage": "The comparison paragraph is in the current chat."
+  },
+  "runCompare.generating": {
+    "defaultMessage": "Writing the paragraph in the current chat, up to {seconds} seconds…"
+  },
+  "runCompare.inputMismatch": {
+    "defaultMessage": "Input data differs; the comparison may be invalid."
+  },
+  "runCompare.inputMismatchFiles": {
+    "defaultMessage": "Input files that differ:"
+  },
+  "runCompare.inputsMatch": {
+    "defaultMessage": "Both runs read the same input files."
+  },
+  "runCompare.inputsTruncated": {
+    "defaultMessage": "An input list was cut at 1000 files; files beyond that were not compared."
+  },
+  "runCompare.listFailed": {
+    "defaultMessage": "Could not load the run records."
+  },
+  "runCompare.loading": {
+    "defaultMessage": "Loading run records…"
+  },
+  "runCompare.metaProblem": {
+    "defaultMessage": "The .meta.json of {runId} could not be read, so its method, parameters and metrics are missing."
+  },
+  "runCompare.method": {
+    "defaultMessage": "Method"
+  },
+  "runCompare.metrics": {
+    "defaultMessage": "Metrics"
+  },
+  "runCompare.noExitCode": {
+    "defaultMessage": "No exit code"
+  },
+  "runCompare.noRows": {
+    "defaultMessage": "Neither run recorded parameters or metrics. A script can write them to a .meta.json file next to the run record."
+  },
+  "runCompare.params": {
+    "defaultMessage": "Parameters"
+  },
+  "runCompare.problemInvalid": {
+    "defaultMessage": "invalid: {fields}"
+  },
+  "runCompare.problemItem": {
+    "defaultMessage": "{path} ({reason})"
+  },
+  "runCompare.problemMissing": {
+    "defaultMessage": "missing: {fields}"
+  },
+  "runCompare.problemSyntax": {
+    "defaultMessage": "JSON error at line {line}, column {column}"
+  },
+  "runCompare.problems": {
+    "defaultMessage": "Run record files that could not be read: {count}"
+  },
+  "runCompare.refresh": {
+    "defaultMessage": "Refresh run records"
+  },
+  "runCompare.retry": {
+    "defaultMessage": "Retry"
+  },
+  "runCompare.runA": {
+    "defaultMessage": "Run A"
+  },
+  "runCompare.runB": {
+    "defaultMessage": "Run B"
+  },
+  "runCompare.runId": {
+    "defaultMessage": "Run ID"
+  },
+  "runCompare.runsLegend": {
+    "defaultMessage": "Run records"
+  },
+  "runCompare.selectHint": {
+    "defaultMessage": "Select exactly two run records of the same project to compare them."
+  },
+  "runCompare.selectedCount": {
+    "defaultMessage": "Selected: {count}"
+  },
+  "runCompare.started": {
+    "defaultMessage": "Started"
+  },
+  "runCompare.subtitle": {
+    "defaultMessage": "Pick two runs of this project to see them side by side."
+  },
+  "runCompare.title": {
+    "defaultMessage": "Compare runs"
+  },
+  "runCompare.unverified": {
+    "defaultMessage": "Not verified"
+  },
+  "runCompare.verification": {
+    "defaultMessage": "Verification"
+  },
+  "runCompare.verificationUnknown": {
+    "defaultMessage": "Unknown, no artifact status yet"
+  },
+  "runCompare.verifiedAt": {
+    "defaultMessage": "Verified at {time}"
   },
   "scheduleDetailView.actions": {
     "defaultMessage": "Azioni"

@@ -9,7 +9,7 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::Duration;
 
-use rmcp::model::{Annotations, CallToolResult, ContentBlock, TextContent};
+use rmcp::model::{Annotations, CallToolResult, ContentBlock, ServerNotification, TextContent};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use tokio::io::{AsyncBufReadExt, BufReader};
@@ -28,6 +28,7 @@ pub use super::shell_output_streaming::{
     ShellOutputStream, DEVELOPER_SHELL_OUTPUT_NOTIFICATION_METHOD,
 };
 use super::shell_output_streaming::{ShellOutputBatcher, SHELL_LIVE_OUTPUT_FLUSH_INTERVAL};
+use super::shell_run_record::{self, ActiveRun, PreparedRun, RunReport, RunSource};
 
 /// Check if the current process is running inside a Flatpak sandbox.
 ///
@@ -373,16 +374,28 @@ impl ShellTool {
         session_id: Option<&str>,
         cancellation_token: CancellationToken,
     ) -> CallToolResult {
-        self.shell_with_cwd_and_emitter(params, working_dir, session_id, None, cancellation_token)
-            .await
+        self.shell_with_cwd_and_emitter(
+            params,
+            working_dir,
+            session_id,
+            None,
+            None,
+            cancellation_token,
+        )
+        .await
     }
 
+    /// Runs `params.command` in `working_dir`. With `runs`, a python, Rscript or matlab command
+    /// that runs a code file inside `working_dir` (the Project) also gets a Run_Record, written
+    /// before this returns (task 21.7, see [`shell_run_record`]); every other command runs as
+    /// without `runs`.
     pub(crate) async fn shell_with_cwd_and_emitter(
         &self,
         params: ShellParams,
         working_dir: Option<&std::path::Path>,
         session_id: Option<&str>,
         notification_emitter: Option<ToolCallNotificationEmitter>,
+        runs: Option<RunSource>,
         cancellation_token: CancellationToken,
     ) -> CallToolResult {
         if params.command.trim().is_empty() {
@@ -406,21 +419,55 @@ impl ShellTool {
         #[cfg(windows)]
         let login_path_ref: Option<&str> = None;
 
-        let execution = match run_command(
-            &params.command,
-            params.timeout_secs,
-            working_dir,
-            login_path_ref,
-            session_id,
-            notification_emitter,
-            cancellation_token,
-        )
-        .await
-        {
-            Ok(execution) => execution,
-            Err(error) => return Self::error_result(&error, None),
+        let prepared = match (runs, working_dir) {
+            (Some(runs), Some(project_root)) => {
+                shell_run_record::prepare(&params.command, project_root, session_id, runs).await
+            }
+            _ => PreparedRun::Skip,
+        };
+        let unrecorded = match &prepared {
+            PreparedRun::Unrecorded(reason) => Some(RunReport::unrecorded(reason)),
+            PreparedRun::Skip | PreparedRun::Record(_) => None,
+        };
+        let (execution, run_report) = if let PreparedRun::Record(run) = prepared {
+            let call = OwnedShellCall {
+                command_line: params.command.clone(),
+                timeout_secs: params.timeout_secs,
+                working_dir: working_dir.map(std::path::Path::to_path_buf),
+                login_path: login_path_ref.map(str::to_string),
+                session_id: session_id.map(str::to_string),
+            };
+            let (execution, report) =
+                run_recorded(*run, call, notification_emitter, cancellation_token).await;
+            (execution, Some(report))
+        } else {
+            let execution = run_command(
+                &params.command,
+                params.timeout_secs,
+                working_dir,
+                login_path_ref,
+                session_id,
+                ShellNotifications {
+                    emitter: notification_emitter,
+                    run_started: None,
+                },
+                cancellation_token,
+            )
+            .await;
+            (execution, unrecorded)
         };
 
+        let mut result = match execution {
+            Ok(execution) => self.render_execution(&params, execution),
+            Err(error) => Self::error_result(&error, None),
+        };
+        if let Some(report) = run_report {
+            report.attach(&mut result);
+        }
+        result
+    }
+
+    fn render_execution(&self, params: &ShellParams, execution: ExecutionOutput) -> CallToolResult {
         // Derive stdout, stderr, and interleaved display from the single tagged-line buffer
         let (raw_stdout, raw_stderr, interleaved) = split_lines(&execution.lines);
 
@@ -541,9 +588,88 @@ struct ExecutionOutput {
     /// Lines in arrival order, tagged by source: (is_stderr, text)
     lines: Vec<(bool, String)>,
     exit_code: Option<i32>,
+    /// The signal that killed the shell, when it has no exit code (Unix).
+    signal: Option<i32>,
     timed_out: bool,
+    /// The cancellation token stopped the command.
+    cancelled: bool,
     output_truncated: bool,
     output_collection_error: Option<String>,
+}
+
+/// Where a running shell command reports.
+struct ShellNotifications {
+    /// Live output goes here, and so does `run_started`.
+    emitter: Option<ToolCallNotificationEmitter>,
+    /// `modelforge/run_started` of a recorded run, sent once the process started.
+    run_started: Option<ServerNotification>,
+}
+
+/// The inputs of a shell call, owned so that a recorded run can go on in its own task.
+struct OwnedShellCall {
+    command_line: String,
+    timeout_secs: Option<u64>,
+    working_dir: Option<PathBuf>,
+    login_path: Option<String>,
+    session_id: Option<String>,
+}
+
+/// Runs a recorded computation command and writes its Run_Record. The work happens in its own
+/// task: goose drops a tool call it no longer waits for (the user cancelled the turn), and the
+/// task still sees the cancellation, stops the process and records the run as cancelled. The
+/// caller gets the output only once the record is on disk (requirement 22.4).
+async fn run_recorded(
+    run: ActiveRun,
+    call: OwnedShellCall,
+    emitter: Option<ToolCallNotificationEmitter>,
+    cancellation_token: CancellationToken,
+) -> (Result<ExecutionOutput, String>, RunReport) {
+    let task = tokio::spawn(async move {
+        let probes = run.start_probes(call.login_path.as_deref());
+        let notifications = ShellNotifications {
+            emitter,
+            run_started: Some(run.started_notification()),
+        };
+        let execution = run_command(
+            &call.command_line,
+            call.timeout_secs,
+            call.working_dir.as_deref(),
+            call.login_path.as_deref(),
+            call.session_id.as_deref(),
+            notifications,
+            cancellation_token,
+        )
+        .await;
+        let outcome = execution.as_ref().ok().map(|execution| {
+            shell_run_record::run_outcome(
+                execution.timed_out,
+                execution.cancelled,
+                execution.exit_code,
+                execution.signal,
+            )
+        });
+        let report = run.finish(outcome, probes).await;
+        (execution, report)
+    });
+    match task.await {
+        Ok(done) => done,
+        Err(error) => (
+            Err(format!("The shell task failed: {error}")),
+            RunReport::unrecorded(&format!("the shell task failed: {error}")),
+        ),
+    }
+}
+
+/// Unix reports a process killed by a signal without an exit code.
+#[cfg(unix)]
+fn termination_signal(status: &std::process::ExitStatus) -> Option<i32> {
+    use std::os::unix::process::ExitStatusExt;
+    status.signal()
+}
+
+#[cfg(not(unix))]
+fn termination_signal(_status: &std::process::ExitStatus) -> Option<i32> {
+    None
 }
 
 fn resolve_shell_timeout(timeout_secs: Option<u64>) -> u64 {
@@ -560,9 +686,13 @@ async fn run_command(
     working_dir: Option<&std::path::Path>,
     login_path: Option<&str>,
     session_id: Option<&str>,
-    notification_emitter: Option<ToolCallNotificationEmitter>,
+    notifications: ShellNotifications,
     cancellation_token: CancellationToken,
 ) -> Result<ExecutionOutput, String> {
+    let ShellNotifications {
+        emitter: notification_emitter,
+        run_started,
+    } = notifications;
     let timeout_secs = Some(resolve_shell_timeout(timeout_secs));
 
     let mut command = build_shell_command(command_line, working_dir, login_path, session_id);
@@ -574,6 +704,9 @@ async fn run_command(
     let mut child = command
         .spawn()
         .map_err(|error| format!("Failed to spawn shell command: {}", error))?;
+    if let (Some(emitter), Some(notification)) = (&notification_emitter, run_started) {
+        emitter.emit_best_effort(notification);
+    }
 
     let child_stdout = child
         .stdout
@@ -594,12 +727,12 @@ async fn run_command(
     let abort_handle = output_task.abort_handle();
 
     let mut timed_out = false;
-    let exit_code = if let Some(timeout_secs) = timeout_secs.filter(|value| *value > 0) {
+    let mut cancelled = false;
+    let status = if let Some(timeout_secs) = timeout_secs.filter(|value| *value > 0) {
         tokio::select! {
             result = tokio::time::timeout(Duration::from_secs(timeout_secs), child.wait()) => match result {
-                Ok(wait_result) => wait_result
-                    .map_err(|error| format!("Failed waiting on shell command: {}", error))?
-                    .code(),
+                Ok(wait_result) => Some(wait_result
+                    .map_err(|error| format!("Failed waiting on shell command: {}", error))?),
                 Err(_) => {
                     timed_out = true;
                     let _ = child.start_kill();
@@ -608,6 +741,7 @@ async fn run_command(
                 }
             },
             _ = cancellation_token.cancelled() => {
+                cancelled = true;
                 let _ = child.start_kill();
                 let _ = child.wait().await;
                 None
@@ -615,16 +749,18 @@ async fn run_command(
         }
     } else {
         tokio::select! {
-            result = child.wait() => result
-                .map_err(|error| format!("Failed waiting on shell command: {}", error))?
-                .code(),
+            result = child.wait() => Some(result
+                .map_err(|error| format!("Failed waiting on shell command: {}", error))?),
             _ = cancellation_token.cancelled() => {
+                cancelled = true;
                 let _ = child.start_kill();
                 let _ = child.wait().await;
                 None
             }
         }
     };
+    let exit_code = status.as_ref().and_then(std::process::ExitStatus::code);
+    let signal = status.as_ref().and_then(termination_signal);
 
     const OUTPUT_DRAIN_TIMEOUT_MILLIS: u64 = 500;
     let mut output_collection_error = None;
@@ -661,7 +797,9 @@ async fn run_command(
     Ok(ExecutionOutput {
         lines,
         exit_code,
+        signal,
         timed_out,
+        cancelled,
         output_truncated,
         output_collection_error,
     })
@@ -994,6 +1132,7 @@ mod tests {
                 None,
                 None,
                 Some(ToolCallNotificationEmitter::new(sender)),
+                None,
                 CancellationToken::new(),
             )
             .await;

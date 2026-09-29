@@ -2774,8 +2774,164 @@
   "launcher.placeholder": {
     "defaultMessage": "问 ModelForge 任何问题…"
   },
+  "learning.exercise.cancel": {
+    "defaultMessage": "取消"
+  },
+  "learning.exercise.chatFailed": {
+    "defaultMessage": "无法开始学习模式对话"
+  },
+  "learning.exercise.checkError": {
+    "defaultMessage": "检查失败：{message}。练习状态没有改变，你的提交内容已保留。"
+  },
+  "learning.exercise.checkFailed": {
+    "defaultMessage": "未通过：{reason}"
+  },
+  "learning.exercise.checkPassed": {
+    "defaultMessage": "通过"
+  },
+  "learning.exercise.checkPending": {
+    "defaultMessage": "尚未检查"
+  },
+  "learning.exercise.checkTimeout": {
+    "defaultMessage": "检查未能在 60 秒内完成。练习状态没有改变，你的提交内容已保留。"
+  },
+  "learning.exercise.checking": {
+    "defaultMessage": "正在检查…"
+  },
+  "learning.exercise.checks": {
+    "defaultMessage": "检查项"
+  },
+  "learning.exercise.chooseProjectDir": {
+    "defaultMessage": "选择文件夹"
+  },
+  "learning.exercise.close": {
+    "defaultMessage": "关闭练习"
+  },
+  "learning.exercise.completedAt": {
+    "defaultMessage": "完成于 {time}"
+  },
+  "learning.exercise.confirm": {
+    "defaultMessage": "查看解答"
+  },
+  "learning.exercise.confirmMessage": {
+    "defaultMessage": "智能体会在新对话中给出完整解答代码，这道练习将一直标注“已查看解答”。"
+  },
+  "learning.exercise.confirmTitle": {
+    "defaultMessage": "查看完整解答？"
+  },
+  "learning.exercise.invalidProject": {
+    "defaultMessage": "无法读取项目文件夹。练习状态没有改变，你的提交内容已保留。"
+  },
+  "learning.exercise.learningMode": {
+    "defaultMessage": "学习模式"
+  },
+  "learning.exercise.learningModeActive": {
+    "defaultMessage": "本练习处于学习模式的对话：{count} 个"
+  },
+  "learning.exercise.learningModeHint": {
+    "defaultMessage": "学习模式下，智能体用提示和追问引导你，不直接给出完整解答代码。"
+  },
+  "learning.exercise.leaveLearningMode": {
+    "defaultMessage": "退出学习模式"
+  },
+  "learning.exercise.needProjectDir": {
+    "defaultMessage": "请先选择存放练习文件的项目文件夹。"
+  },
+  "learning.exercise.noProjectDir": {
+    "defaultMessage": "尚未选择文件夹"
+  },
+  "learning.exercise.practiceInChat": {
+    "defaultMessage": "在对话中练习"
+  },
+  "learning.exercise.projectDir": {
+    "defaultMessage": "项目文件夹"
+  },
+  "learning.exercise.projectDirHint": {
+    "defaultMessage": "存放练习文件的文件夹，检查项会从这里读取文件。"
+  },
+  "learning.exercise.recheck": {
+    "defaultMessage": "重新检查"
+  },
+  "learning.exercise.statement": {
+    "defaultMessage": "题目"
+  },
+  "learning.exercise.subjective": {
+    "defaultMessage": "由智能体评阅"
+  },
+  "learning.exercise.submission": {
+    "defaultMessage": "你的提交"
+  },
+  "learning.exercise.submissionPlaceholder": {
+    "defaultMessage": "写下你做了什么、得到了什么结论。可以修改后重新提交。"
+  },
+  "learning.exercise.submit": {
+    "defaultMessage": "提交检查"
+  },
+  "learning.exercise.unlockFailed": {
+    "defaultMessage": "无法解锁完整解答"
+  },
+  "learning.exercise.viewSolution": {
+    "defaultMessage": "查看完整解答"
+  },
+  "learning.progress.count": {
+    "defaultMessage": "{completed} / {total}"
+  },
+  "learning.progress.hint": {
+    "defaultMessage": "一道练习的所有检查项都通过后才算完成。"
+  },
+  "learning.progress.percent": {
+    "defaultMessage": "{percent}%"
+  },
+  "learning.progress.title": {
+    "defaultMessage": "各课程分组的进度"
+  },
+  "learning.status.completed": {
+    "defaultMessage": "已完成"
+  },
+  "learning.status.failed": {
+    "defaultMessage": "未通过"
+  },
+  "learning.status.notStarted": {
+    "defaultMessage": "未开始"
+  },
+  "learning.status.solutionViewed": {
+    "defaultMessage": "已查看解答"
+  },
   "learning.title": {
     "defaultMessage": "学习路径"
+  },
+  "learning.view.exercises": {
+    "defaultMessage": "练习"
+  },
+  "learning.view.groupProgress": {
+    "defaultMessage": "已完成 {completed} / {total}"
+  },
+  "learning.view.loadFailed": {
+    "defaultMessage": "无法加载学习路径：{message}"
+  },
+  "learning.view.loading": {
+    "defaultMessage": "正在加载学习路径…"
+  },
+  "learning.view.objectives": {
+    "defaultMessage": "学习目标"
+  },
+  "learning.view.retry": {
+    "defaultMessage": "重试"
+  },
+  "learning.view.skills": {
+    "defaultMessage": "关联技能"
+  },
+  "learning.view.subtitle": {
+    "defaultMessage": "五个课程分组，每组都有练习，提交结果后会自动检查。"
+  },
+  "learning.view.tabCourses": {
+    "defaultMessage": "课程"
+  },
+  "learning.view.tabProfile": {
+    "defaultMessage": "我的进度"
+  },
+  "learning.view.tabs": {
+    "defaultMessage": "学习路径栏目"
   },
   "loadingGoose.compacting": {
     "defaultMessage": "ModelForge 正在压缩对话…"
@@ -5005,6 +5161,180 @@
   },
   "responseStyle.detailedLabel": {
     "defaultMessage": "详细"
+  },
+  "runCompare.artifactIndexInvalid": {
+    "defaultMessage": "无法读取产物状态文件，因此不显示“已过期”标记。"
+  },
+  "runCompare.busy": {
+    "defaultMessage": "当前对话仍在执行，完成后再试。"
+  },
+  "runCompare.compare": {
+    "defaultMessage": "对比"
+  },
+  "runCompare.compareFailed": {
+    "defaultMessage": "无法对比这两次运行。"
+  },
+  "runCompare.comparing": {
+    "defaultMessage": "正在对比…"
+  },
+  "runCompare.composed": {
+    "defaultMessage": "写作任务已填入输入框，发送后开始生成。"
+  },
+  "runCompare.differs": {
+    "defaultMessage": "取值不同"
+  },
+  "runCompare.duration": {
+    "defaultMessage": "耗时"
+  },
+  "runCompare.empty": {
+    "defaultMessage": "本项目还没有运行记录。运行计算代码后会显示在这里。"
+  },
+  "runCompare.ended": {
+    "defaultMessage": "结束时间"
+  },
+  "runCompare.errorDetail": {
+    "defaultMessage": "详情：{detail}"
+  },
+  "runCompare.exitCode": {
+    "defaultMessage": "退出码"
+  },
+  "runCompare.exitCodeValue": {
+    "defaultMessage": "退出码 {code}"
+  },
+  "runCompare.failedKernelError": {
+    "defaultMessage": "对比段落生成失败：内核返回错误。"
+  },
+  "runCompare.failedKernelUnavailable": {
+    "defaultMessage": "对比段落生成失败：内核不可用。"
+  },
+  "runCompare.failedTimeout": {
+    "defaultMessage": "对比段落生成失败：内核在 {seconds} 秒内未返回结果（超时）。"
+  },
+  "runCompare.failureCancelled": {
+    "defaultMessage": "用户取消"
+  },
+  "runCompare.failureNonZero": {
+    "defaultMessage": "非零退出码"
+  },
+  "runCompare.failureTimeout": {
+    "defaultMessage": "超时"
+  },
+  "runCompare.field": {
+    "defaultMessage": "对比项"
+  },
+  "runCompare.flagFailed": {
+    "defaultMessage": "执行失败"
+  },
+  "runCompare.flagFailedReason": {
+    "defaultMessage": "执行失败：{reason}"
+  },
+  "runCompare.flagStale": {
+    "defaultMessage": "已过期"
+  },
+  "runCompare.generate": {
+    "defaultMessage": "生成对比段落"
+  },
+  "runCompare.generated": {
+    "defaultMessage": "对比段落已生成，见当前对话。"
+  },
+  "runCompare.generating": {
+    "defaultMessage": "正在当前对话中生成段落，最长等待 {seconds} 秒…"
+  },
+  "runCompare.inputMismatch": {
+    "defaultMessage": "输入数据不一致，对比结论可能无效"
+  },
+  "runCompare.inputMismatchFiles": {
+    "defaultMessage": "不一致的输入文件："
+  },
+  "runCompare.inputsMatch": {
+    "defaultMessage": "两次运行读取的输入文件一致。"
+  },
+  "runCompare.inputsTruncated": {
+    "defaultMessage": "输入文件清单超过 1000 项已截断，超出部分未比对。"
+  },
+  "runCompare.listFailed": {
+    "defaultMessage": "无法加载运行记录。"
+  },
+  "runCompare.loading": {
+    "defaultMessage": "正在加载运行记录…"
+  },
+  "runCompare.metaProblem": {
+    "defaultMessage": "{runId} 的 .meta.json 无法读取，因此缺少其方法、参数与指标。"
+  },
+  "runCompare.method": {
+    "defaultMessage": "方法"
+  },
+  "runCompare.metrics": {
+    "defaultMessage": "关键指标"
+  },
+  "runCompare.noExitCode": {
+    "defaultMessage": "无退出码"
+  },
+  "runCompare.noRows": {
+    "defaultMessage": "两次运行都没有记录参数与指标。脚本可以把它们写入运行记录旁的 .meta.json 文件。"
+  },
+  "runCompare.params": {
+    "defaultMessage": "参数"
+  },
+  "runCompare.problemInvalid": {
+    "defaultMessage": "无效：{fields}"
+  },
+  "runCompare.problemItem": {
+    "defaultMessage": "{path}（{reason}）"
+  },
+  "runCompare.problemMissing": {
+    "defaultMessage": "缺少：{fields}"
+  },
+  "runCompare.problemSyntax": {
+    "defaultMessage": "第 {line} 行第 {column} 列 JSON 语法错误"
+  },
+  "runCompare.problems": {
+    "defaultMessage": "无法读取的运行记录文件：{count} 个"
+  },
+  "runCompare.refresh": {
+    "defaultMessage": "刷新运行记录"
+  },
+  "runCompare.retry": {
+    "defaultMessage": "重试"
+  },
+  "runCompare.runA": {
+    "defaultMessage": "运行 A"
+  },
+  "runCompare.runB": {
+    "defaultMessage": "运行 B"
+  },
+  "runCompare.runId": {
+    "defaultMessage": "运行 ID"
+  },
+  "runCompare.runsLegend": {
+    "defaultMessage": "运行记录"
+  },
+  "runCompare.selectHint": {
+    "defaultMessage": "需在同一项目中恰好选择两条运行记录才能对比。"
+  },
+  "runCompare.selectedCount": {
+    "defaultMessage": "已选 {count} 条"
+  },
+  "runCompare.started": {
+    "defaultMessage": "开始时间"
+  },
+  "runCompare.subtitle": {
+    "defaultMessage": "选择本项目中的两次运行，左右并列查看。"
+  },
+  "runCompare.title": {
+    "defaultMessage": "方案对比"
+  },
+  "runCompare.unverified": {
+    "defaultMessage": "未验证"
+  },
+  "runCompare.verification": {
+    "defaultMessage": "验证结论"
+  },
+  "runCompare.verificationUnknown": {
+    "defaultMessage": "未知，尚无产物状态记录"
+  },
+  "runCompare.verifiedAt": {
+    "defaultMessage": "已验证（{time}）"
   },
   "scheduleDetailView.actions": {
     "defaultMessage": "操作"

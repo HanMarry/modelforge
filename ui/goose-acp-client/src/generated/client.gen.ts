@@ -158,6 +158,8 @@ import type {
   RemoveSessionExtensionRequest_unstable,
   RenameSessionRequest_unstable,
   ResetPromptRequest_unstable,
+  ResumeTaskRequest_unstable,
+  ResumeTaskResponse_unstable,
   RunScheduleNowRequest_unstable,
   RunScheduleNowResponse_unstable,
   SavePromptRequest_unstable,
@@ -167,6 +169,7 @@ import type {
   ScanRecipeResponse_unstable,
   ScheduleRecipeRequest_unstable,
   SetConfigExtensionEnabledRequest_unstable,
+  SetLearningModeRequest_unstable,
   SetRecipeSlashCommandRequest_unstable,
   SetSessionSystemPromptRequest_unstable,
   SetToolPermissionsRequest_unstable,
@@ -252,6 +255,7 @@ import {
   zReadResourceResponse_unstable,
   zRecipeToYamlResponse_unstable,
   zRefreshProviderInventoryResponse_unstable,
+  zResumeTaskResponse_unstable,
   zRunScheduleNowResponse_unstable,
   zSaveRecipeResponse_unstable,
   zScanRecipeResponse_unstable,
@@ -1370,5 +1374,23 @@ export class GooseExtClient {
     return zLocalInferenceBuiltinChatTemplatesListResponse_unstable.parse(
       raw,
     ) as LocalInferenceBuiltinChatTemplatesListResponse_unstable;
+  }
+
+  async tasksResume_unstable(
+    params: ResumeTaskRequest_unstable,
+  ): Promise<ResumeTaskResponse_unstable> {
+    const raw = await this.conn.request("_goose/unstable/tasks/resume", params);
+    return zResumeTaskResponse_unstable.parse(
+      raw,
+    ) as ResumeTaskResponse_unstable;
+  }
+
+  async sessionLearningModeSet_unstable(
+    params: SetLearningModeRequest_unstable,
+  ): Promise<void> {
+    await this.conn.request(
+      "_goose/unstable/session/learning-mode/set",
+      params,
+    );
   }
 }

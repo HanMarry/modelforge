@@ -162,6 +162,36 @@ impl CheckpointTurnState {
     }
 }
 
+/// Learning mode of a session (spec mathmodel-parity-and-beyond, requirements 20.3 and 20.7):
+/// the learning-path exercise the user is working on and whether they unlocked its full
+/// solution. Absent while the session is not in learning mode. Set through
+/// `_goose/unstable/session/learning-mode/set` (`acp/server/learning_mode.rs`), which also
+/// re-applies it to the agent's system prompt whenever the session is activated.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LearningModeState {
+    pub exercise_id: String,
+    pub solution_unlocked: bool,
+}
+
+impl ExtensionState for LearningModeState {
+    const EXTENSION_NAME: &'static str = "learning_mode";
+    const VERSION: &'static str = "v0";
+}
+
+impl LearningModeState {
+    /// Stores `state` in `extension_data`, or removes the learning mode when it is `None`.
+    pub fn store(extension_data: &mut ExtensionData, state: Option<&Self>) -> Result<()> {
+        match state {
+            Some(state) => state.to_extension_data(extension_data),
+            None => {
+                let key = format!("{}.{}", Self::EXTENSION_NAME, Self::VERSION);
+                extension_data.extension_states.remove(&key);
+                Ok(())
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -284,6 +314,46 @@ mod tests {
             deserialized.get_extension_state("memory", "v1"),
             Some(&json!({"key": "value"}))
         );
+    }
+
+    #[test]
+    fn test_learning_mode_state_is_stored_and_removed() {
+        let mut extension_data = ExtensionData::new();
+        extension_data.set_extension_state("todo", "v0", json!("keep me"));
+        assert_eq!(
+            LearningModeState::from_extension_data(&extension_data),
+            None
+        );
+
+        let state = LearningModeState {
+            exercise_id: "clean-temperature-log".to_string(),
+            solution_unlocked: false,
+        };
+        LearningModeState::store(&mut extension_data, Some(&state)).unwrap();
+        assert_eq!(
+            extension_data.get_extension_state("learning_mode", "v0"),
+            Some(&json!({
+                "exercise_id": "clean-temperature-log",
+                "solution_unlocked": false
+            }))
+        );
+        assert_eq!(
+            LearningModeState::from_extension_data(&extension_data),
+            Some(state)
+        );
+
+        LearningModeState::store(&mut extension_data, None).unwrap();
+        assert_eq!(
+            LearningModeState::from_extension_data(&extension_data),
+            None
+        );
+        assert_eq!(
+            extension_data.get_extension_state("todo", "v0"),
+            Some(&json!("keep me"))
+        );
+        // Removing twice is harmless.
+        LearningModeState::store(&mut extension_data, None).unwrap();
+        assert_eq!(extension_data.extension_states.len(), 1);
     }
 
     #[test]

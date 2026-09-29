@@ -109,20 +109,25 @@ mod dispatch;
 mod elicitation;
 mod extensions;
 mod fork_session;
+mod learning_mode;
 mod list_sessions;
 mod load_session;
 mod local_inference;
 mod manage_sessions;
 mod message_meta;
+mod modelforge_capabilities;
 mod new_session;
 mod onboarding;
+mod overwrite_confirm;
 mod prompts;
 mod providers;
 mod recipe;
 mod resources;
+mod runs;
 mod schedule;
 mod slash_commands;
 mod sources;
+mod task_resume;
 mod tool_calls;
 mod tool_notifications;
 mod tools;
@@ -366,6 +371,7 @@ pub struct GooseAcpAgent {
     client_supports_goose_custom_notifications: OnceCell<bool>,
     client_supports_recipe_param_requests: OnceCell<bool>,
     client_supports_checkpoint_requests: OnceCell<bool>,
+    client_modelforge_capabilities: OnceCell<modelforge_capabilities::ModelForgeCapabilities>,
     client_requests_tool_call_label_enrichment: OnceCell<bool>,
     use_login_shell_path: OnceCell<bool>,
     client_cx: OnceCell<ConnectionTo<Client>>,
@@ -478,6 +484,15 @@ struct GooseClientCapabilities {
     checkpoint_requests: Option<bool>,
     #[serde(rename = "toolCallLabelEnrichment", default)]
     tool_call_label_enrichment: Option<bool>,
+    // ModelForge layer C (see `modelforge_capabilities`).
+    #[serde(rename = "runNotifications", default)]
+    run_notifications: Option<bool>,
+    #[serde(rename = "overwriteConfirmRequests", default)]
+    overwrite_confirm_requests: Option<bool>,
+    #[serde(rename = "taskResumeRequests", default)]
+    task_resume_requests: Option<bool>,
+    #[serde(rename = "learningModeRequests", default)]
+    learning_mode_requests: Option<bool>,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -1025,6 +1040,7 @@ impl GooseAcpAgent {
             client_supports_goose_custom_notifications: OnceCell::new(),
             client_supports_recipe_param_requests: OnceCell::new(),
             client_supports_checkpoint_requests: OnceCell::new(),
+            client_modelforge_capabilities: OnceCell::new(),
             client_requests_tool_call_label_enrichment: OnceCell::new(),
             use_login_shell_path: OnceCell::new(),
             client_cx: OnceCell::new(),
@@ -1195,6 +1211,7 @@ impl GooseAcpAgent {
         let agent = agent_result.agent.clone();
         self.apply_acp_extension_overrides(cx, &agent, session)
             .await;
+        learning_mode::apply_session_learning_mode(&agent, session).await;
         self.spawn_provider_inventory_refresh(session, &agent);
 
         Ok((agent, agent_result.extension_results))
@@ -1602,6 +1619,11 @@ impl GooseAcpAgent {
         let tool_call_notifier = ToolCallNotifier::new(cx, session_id);
         tool_call_notifier.send_update(update)?;
 
+        if self.supports_run_notifications() {
+            self.notify_run_finished(cx, session_id.0.as_ref(), tool_response, tool_request)
+                .await;
+        }
+
         Ok(())
     }
 
@@ -1862,6 +1884,11 @@ impl GooseAcpAgent {
         );
         let _ = self.client_supports_checkpoint_requests.set(
             extract_client_supports_checkpoint_requests(goose_client_capabilities.as_ref()),
+        );
+        let _ = self.client_modelforge_capabilities.set(
+            modelforge_capabilities::extract_modelforge_capabilities(
+                goose_client_capabilities.as_ref(),
+            ),
         );
         let client_requests_tool_call_label_enrichment = goose_client_capabilities
             .as_ref()
@@ -2287,6 +2314,10 @@ impl GooseAcpAgent {
                     }
                 }
                 Ok(crate::agents::AgentEvent::McpNotification((request_id, notification))) => {
+                    if self.supports_run_notifications() {
+                        self.notify_run_started(cx, session_id, &request_id, &notification)
+                            .await;
+                    }
                     if let Some(update) =
                         tool_notifications::tool_notification_update(request_id, notification)
                     {

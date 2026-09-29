@@ -48,7 +48,8 @@
                 {
                   "id": "cleaning-notes",
                   "kind": "subjective",
-                  "description": "notes/cleaning.md 逐条说明了每一处缺失与异常的处理方式和理由，并写明了识别异常所用的规则"
+                  "description": "notes/cleaning.md 逐条说明了每一处缺失与异常的处理方式和理由，并写明了识别异常所用的规则",
+                  "files": ["notes/cleaning.md"]
                 }
               ]
             }
@@ -90,7 +91,8 @@
                 {
                   "id": "test-notes",
                   "kind": "subjective",
-                  "description": "notes/test.md 说明了为什么用独立样本检验而不是配对检验，检查了正态性与方差齐性，并给出了均值差或效应量"
+                  "description": "notes/test.md 说明了为什么用独立样本检验而不是配对检验，检查了正态性与方差齐性，并给出了均值差或效应量",
+                  "files": ["notes/test.md"]
                 }
               ]
             }
@@ -147,7 +149,8 @@
                 {
                   "id": "model-notes",
                   "kind": "subjective",
-                  "description": "notes/model.md 写清了决策变量、目标函数与每条约束的含义，并正确指出了最优解处的紧约束"
+                  "description": "notes/model.md 写清了决策变量、目标函数与每条约束的含义，并正确指出了最优解处的紧约束",
+                  "files": ["notes/model.md"]
                 }
               ]
             },
@@ -177,7 +180,8 @@
                 {
                   "id": "sensitivity-notes",
                   "kind": "subjective",
-                  "description": "notes/sensitivity.md 说明了求范围的方法，并指出 c 超过上界后最优方案的变化"
+                  "description": "notes/sensitivity.md 说明了求范围的方法，并指出 c 超过上界后最优方案的变化",
+                  "files": ["notes/sensitivity.md"]
                 }
               ]
             }
@@ -210,7 +214,8 @@
                 {
                   "id": "experiment-notes",
                   "kind": "subjective",
-                  "description": "notes/experiment.md 写明了算法、参数、评估次数与随机种子，并报告了至少 3 次独立运行的统计结果"
+                  "description": "notes/experiment.md 写明了算法、参数、评估次数与随机种子，并报告了至少 3 次独立运行的统计结果",
+                  "files": ["notes/experiment.md"]
                 }
               ]
             }
@@ -267,7 +272,8 @@
                 {
                   "id": "residual-notes",
                   "kind": "subjective",
-                  "description": "notes/regression.md 给出了残差并据此判断直线模型是否合适，说明了外推的风险"
+                  "description": "notes/regression.md 给出了残差并据此判断直线模型是否合适，说明了外推的风险",
+                  "files": ["notes/regression.md"]
                 }
               ]
             }
@@ -300,7 +306,8 @@
                 {
                   "id": "smoothing-notes",
                   "kind": "subjective",
-                  "description": "notes/smoothing.md 比较了不同 α 的预测，并与朴素预测做了对比"
+                  "description": "notes/smoothing.md 比较了不同 α 的预测，并与朴素预测做了对比",
+                  "files": ["notes/smoothing.md"]
                 }
               ]
             }
@@ -348,7 +355,8 @@
                 {
                   "id": "ahp-notes",
                   "kind": "subjective",
-                  "description": "notes/ahp.md 写明了求权重的方法、λmax、CI 与 RI，并给出了一致性检验的结论"
+                  "description": "notes/ahp.md 写明了求权重的方法、λmax、CI 与 RI，并给出了一致性检验的结论",
+                  "files": ["notes/ahp.md"]
                 }
               ]
             }
@@ -387,7 +395,8 @@
                 {
                   "id": "topsis-notes",
                   "kind": "subjective",
-                  "description": "notes/topsis.md 说明了成本型指标的正向化方法，并做了权重扰动、报告了排名是否改变"
+                  "description": "notes/topsis.md 说明了成本型指标的正向化方法，并做了权重扰动、报告了排名是否改变",
+                  "files": ["notes/topsis.md"]
                 }
               ]
             }
@@ -423,12 +432,14 @@
                 {
                   "id": "assumptions-reasoned",
                   "kind": "subjective",
-                  "description": "每条假设都给出了理由和不成立时的影响，并且在模型中被用到"
+                  "description": "每条假设都给出了理由和不成立时的影响，并且在模型中被用到",
+                  "files": ["paper/assumptions.md"]
                 },
                 {
                   "id": "notation-complete",
                   "kind": "subjective",
-                  "description": "符号表覆盖了模型中出现的全部符号，并注明了单位"
+                  "description": "符号表覆盖了模型中出现的全部符号，并注明了单位",
+                  "files": ["paper/assumptions.md"]
                 }
               ]
             }
@@ -458,12 +469,14 @@
                 {
                   "id": "abstract-structure",
                   "kind": "subjective",
-                  "description": "摘要依次交代了问题、方法、具体数值结果（最大周利润及对应产量、利润的稳定范围）和结论"
+                  "description": "摘要依次交代了问题、方法、具体数值结果（最大周利润及对应产量、利润的稳定范围）和结论",
+                  "files": ["paper/abstract.md"]
                 },
                 {
                   "id": "abstract-concise",
                   "kind": "subjective",
-                  "description": "摘要不超过 300 字，没有空话套话"
+                  "description": "摘要不超过 300 字，没有空话套话",
+                  "files": ["paper/abstract.md"]
                 }
               ]
             }
@@ -493,7 +506,8 @@
                 {
                   "id": "revision-targeted",
                   "kind": "subjective",
-                  "description": "notes/revision.md 的每处改动都对应到一条具体的修改意见，并针对得分最低的维度"
+                  "description": "notes/revision.md 的每处改动都对应到一条具体的修改意见，并针对得分最低的维度",
+                  "files": ["notes/revision.md"]
                 }
               ]
             }
