@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "id": "practice-university-evaluation",
+  "conventions": "value 为参考值；tolerance.mode 为 exact 时须完全相等（对象、数组逐项相等），为 abs 时允许的绝对误差为 tolerance.value（对象按每个键分别比较），为 range 时须落在 [min, max] 内。value 为 null 的项待定，写明原因，不参与自动比较。",
+  "data": {
+    "generator": "ui/desktop/resources/examples/practice-university-evaluation/generate-data.js",
+    "seed": 20240101,
+    "files": [
+      {
+        "path": "attachments/universities.csv",
+        "sha256": "8862945aca72d18be5f170011af278c64e21d0a8e7e347899fe30ee3d2081531"
+      }
+    ]
+  },
+  "method": "参考值由一次性脚本（Node.js v22.14.0，未入库）直接从附件计算。计算前用示例题自带的生成脚本按固定种子重新生成附件，结果与仓库中的文件逐字节一致。排序的稳健性用 5 种方法对照：熵权（min-max）加权和、熵权（min-max）TOPSIS、熵权（原始值比重）TOPSIS、等权 min-max 加权和、等权 TOPSIS。示例题的参考思路（solution/）没有给出具体数值。",
+  "values": [
+    {
+      "key": "pearson_papers_citations",
+      "question": "问题一",
+      "description": "论文数与总被引次数的相关系数",
+      "definition": "papers 与 citations 的 Pearson 相关系数，基于全部 20 行原始数据。",
+      "value": 0.8283,
+      "tolerance": { "mode": "abs", "value": 0.01 },
+      "toleranceBasis": "相关系数在原始数据上唯一确定，差异只来自舍入；0.01 覆盖保留 2 位小数的舍入误差（±0.005）并留有余量。"
+    },
+    {
+      "key": "pearson_papers_h_index",
+      "question": "问题一",
+      "description": "论文数与 H 指数的相关系数",
+      "definition": "papers 与 h_index 的 Pearson 相关系数，基于全部 20 行原始数据。",
+      "value": 0.224,
+      "tolerance": { "mode": "abs", "value": 0.01 },
+      "toleranceBasis": "同 pearson_papers_citations。",
+      "note": "生成脚本中 h_index 与 papers 相互独立。参考思路 q1.md 说论文数与 H 指数高度相关，与数据不符，检查项以数据为准。"
+    },
+    {
+      "key": "entropy_weights_minmax",
+      "question": "问题一",
+      "description": "熵权法权重（min-max 口径）",
+      "definition": "min-max 归一化 (x − min)/(max − min) 后按列求比重 p，e = −(1/ln 20)·Σ p·ln p，0·ln 0 记为 0，w = (1 − e)/Σ(1 − e)。",
+      "value": {
+        "papers": 0.2154,
+        "citations": 0.2816,
+        "h_index": 0.143,
+        "research_funding": 0.201,
+        "awards": 0.159
+      },
+      "tolerance": { "mode": "abs", "value": 0.006 },
+      "toleranceBasis": "同一口径下唯一确定。0.006 覆盖保留 2 位小数的舍入误差（±0.005），以及几种常见的小变体：归一化后整体加 0.0001（最大差 0.0001）、加 0.01（最大差 0.0054）、缩放到 [0.002, 1]（最大差 0.0012）。",
+      "note": "直接按原始值求比重的变体为 papers 0.2028、citations 0.2977、h_index 0.0817、research_funding 0.2019、awards 0.2159，与本口径的差异超出允许误差。"
+    },
+    {
+      "key": "top_weight_indicator",
+      "question": "问题一",
+      "description": "熵权法中权重最大的指标",
+      "definition": "entropy_weights_minmax 中权重最大的指标。",
+      "value": "citations",
+      "tolerance": { "mode": "exact" },
+      "toleranceBasis": "min-max、原始值比重、归一化后加 0.0001、加 0.01、缩放到 [0.002, 1] 五种变体下都是 citations（0.2762–0.2977），次高指标不超过 0.2171。"
+    },
+    {
+      "key": "topsis_entropy_top3",
+      "question": "问题二",
+      "description": "熵权 TOPSIS 前 3 名",
+      "definition": "以 entropy_weights_minmax 为权重，对原始数据做向量归一化，5 项指标都按效益型处理的 TOPSIS 相对贴近度前 3 名，按名次排列。",
+      "value": ["U08", "U02", "U04"],
+      "tolerance": { "mode": "exact" },
+      "toleranceBasis": "同一口径下唯一确定。贴近度依次为 0.8233、0.7127、0.5567，第 4 名 U16 为 0.5009，差距远大于舍入误差。"
+    },
+    {
+      "key": "rank_first",
+      "question": "问题二",
+      "description": "最终综合排序第 1 名",
+      "definition": "作答者最终综合排序的第 1 名。",
+      "value": "U08",
+      "tolerance": { "mode": "exact" },
+      "toleranceBasis": "5 种对照方法的第 1 名都是 U08，与方法选择无关。"
+    },
+    {
+      "key": "rank_last",
+      "question": "问题二",
+      "description": "最终综合排序最后 1 名",
+      "definition": "作答者最终综合排序的最后 1 名。",
+      "value": "U15",
+      "tolerance": { "mode": "exact" },
+      "toleranceBasis": "5 种对照方法的最后 1 名都是 U15，与方法选择无关。"
+    }
+  ]
+}

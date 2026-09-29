@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "id": "practice-bike-rebalancing",
+  "conventions": "value 为参考值；tolerance.mode 为 exact 时须完全相等（对象、数组逐项相等），为 abs 时允许的绝对误差为 tolerance.value（对象按每个键分别比较），为 range 时须落在 [min, max] 内。value 为 null 的项待定，写明原因，不参与自动比较。",
+  "data": {
+    "generator": "ui/desktop/resources/examples/practice-bike-rebalancing/generate-data.js",
+    "seed": 20230901,
+    "files": [
+      {
+        "path": "attachments/stations.csv",
+        "sha256": "4465f40e13dffcbb9f897f4811a547ec747f6d40e170e5d856215a558e686a84"
+      },
+      {
+        "path": "attachments/demand.csv",
+        "sha256": "731a0a984a76c98ee9f7204f93dfb1cd3e082261ca2678d8601652d67678f516"
+      }
+    ]
+  },
+  "method": "参考值由一次性脚本（Node.js v22.14.0，未入库）直接从附件计算。计算前用示例题自带的生成脚本按固定种子重新生成附件，结果与仓库中的文件逐字节一致。示例题的参考思路（solution/）没有给出具体数值。",
+  "values": [
+    {
+      "key": "total_net_demand",
+      "question": "问题一",
+      "description": "全天净需求总和",
+      "definition": "12 个站点、0–23 时全部 net_demand 之和。",
+      "value": -65,
+      "tolerance": { "mode": "exact" },
+      "toleranceBasis": "整数求和，没有舍入。"
+    },
+    {
+      "key": "top_gap_station",
+      "question": "问题一",
+      "description": "全天整体缺口最大的站点",
+      "definition": "按作答者自己的缺口定义取最大者。",
+      "value": "S03",
+      "tolerance": { "mode": "exact" },
+      "toleranceBasis": "4 种常见口径下都是 S03，与口径无关：全天 net_demand 之和（S03 为 23，次高 S02 为 7）；从 0 时起累计 net_demand 的峰值（S03 为 32，次高 S01 为 13）；从初始车辆数出发逐时模拟（借车不超过现有车辆，还车不超过容量）的未满足借车量（S03 为 31，其余站点均为 0）；参考思路 q1.md 的逐时（net_demand − 当前车辆数）直接求和，当前车辆数按同一模拟得到（S03 为 −22，次高 S12 为 −197）。"
+    },
+    {
+      "key": "min_initial_bikes",
+      "question": "问题一",
+      "description": "各站点零缺车所需的最少初始车辆数",
+      "definition": "max(0, 从 0 时起按小时顺序累计 net_demand 的最大值)，不考虑容量上限。",
+      "value": {
+        "S01": 13,
+        "S02": 9,
+        "S03": 32,
+        "S04": 0,
+        "S05": 4,
+        "S06": 0,
+        "S07": 3,
+        "S08": 0,
+        "S09": 1,
+        "S10": 4,
+        "S11": 2,
+        "S12": 11
+      },
+      "tolerance": { "mode": "exact" },
+      "toleranceBasis": "整数运算，按固定口径唯一确定。",
+      "note": "所有站点的最少值都不超过站点容量；S03 的累计峰值出现在 20 时。"
+    },
+    {
+      "key": "min_initial_bikes_total",
+      "question": "问题一",
+      "description": "最少初始车辆数合计",
+      "definition": "min_initial_bikes 各站点之和。",
+      "value": 79,
+      "tolerance": { "mode": "exact" },
+      "toleranceBasis": "整数求和，没有舍入。",
+      "note": "现有初始车辆共 264 辆、总容量 568，只靠站间调度即可满足。"
+    },
+    {
+      "key": "min_rebalance_bikes",
+      "question": "问题二",
+      "description": "凌晨至少需要搬入的车辆总数",
+      "definition": "以 min_initial_bikes 为目标值时，各站点 max(0, 目标值 − 初始车辆数) 之和。",
+      "value": 31,
+      "tolerance": { "mode": "exact" },
+      "toleranceBasis": "整数运算，按固定口径唯一确定。",
+      "note": "只有 S03 低于目标（初始 1 辆，目标 32 辆）。31 辆超过调度车载重 30 辆，单车方案至少要向 S03 送车两次。"
+    },
+    {
+      "key": "vrp_total_distance",
+      "question": "问题二",
+      "description": "单车调度方案的总行驶距离",
+      "definition": "问题二调度方案的欧氏总行驶距离，与站点坐标同单位。",
+      "value": null,
+      "tolerance": null,
+      "pending": "取决于作答者自定的目标值口径与求解算法，示例题参考思路没有给出数值。需维护者选定目标值口径，用精确算法（如 OR-Tools）求出最优距离后补填。"
+    },
+    {
+      "key": "satisfaction_gain",
+      "question": "问题二",
+      "description": "调度后的需求满足率提升",
+      "definition": "调度后相对调度前的全天需求满足率提升，单位为百分点。",
+      "value": null,
+      "tolerance": null,
+      "pending": "满足率的定义与调度方案都由作答者决定，示例题参考思路没有给出数值。需维护者确定满足率口径与参考方案后补填。"
+    },
+    {
+      "key": "two_vehicle_distance_saving",
+      "question": "问题三",
+      "description": "2 车协同相比单车节省的行驶距离",
+      "definition": "问题三 2 车方案与问题二单车方案的总行驶距离之差，与站点坐标同单位。",
+      "value": null,
+      "tolerance": null,
+      "pending": "依赖问题二的参考方案（vrp_total_distance 待定）以及 2 车方案的最优解，示例题参考思路没有给出数值。"
+    }
+  ]
+}

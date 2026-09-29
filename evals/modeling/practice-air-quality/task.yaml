@@ -1,0 +1,60 @@
+# Modeling evaluation task (spec mathmodel-parity-and-beyond, requirement 23.1).
+#
+# `eval` is read by the runner (evals/modeling/run.mts). `recipe` is a goose recipe: goose reads a
+# nested `recipe:` key (Recipe::from_content in crates/goose/src/recipe/mod.rs) and ignores the
+# rest, so this file runs as is with `goose run --recipe <path to this file>`, started in a fresh
+# working directory that holds a copy of `eval.inputs`.
+#
+# goose renders the whole file with minijinja before parsing it, so no part of this file may
+# contain template delimiters (double braces, brace-percent or brace-hash).
+eval:
+  # Directory name under evals/modeling/ and example id under ui/desktop/resources/examples/.
+  id: practice-air-quality
+  title: 城市空气质量预测
+  # One of 优化类, 预测/统计类, 综合评价类.
+  category: 预测/统计类
+  # Example directory, relative to the repository root.
+  example: ui/desktop/resources/examples/practice-air-quality
+  license: CC BY 4.0
+  # Copied from `example` into the empty working directory, keeping these relative paths.
+  # The reference solution (solution/) is deliberately not copied.
+  inputs: [problem.md, attachments/air_quality.csv]
+  # Requirement 23.7: a task running longer than this is stopped and recorded as 失败 / 超时.
+  timeoutMinutes: 60
+  outputs:
+    # `compiled` in the result is true when this PDF exists and is not empty after the run.
+    paper: paper.pdf
+    # JSON object with a single `values` field, keyed by the keys in baseline.json.
+    values: results.json
+  checks: checks.yaml
+  baseline: baseline.json
+
+recipe:
+  version: 1.0.0
+  title: 评测：城市空气质量预测
+  description: ModelForge 建模评测集（预测/统计类）。无人值守完成原创示例题并输出论文与关键数值。
+  instructions: |
+    这是一次无人值守的建模评测运行，没有人会回答你的问题。
+    - 不要向用户提问或等待确认。题目没有说明的地方自行做出合理假设，并在论文的"模型假设"一节写明。
+    - 只在当前工作目录内读写文件。题面是 problem.md，附件在 attachments/ 目录。
+    - 开始前先加载 math-modeling 技能，并用 modeling 扩展的 check_env 确认 Python 与 LaTeX 环境。
+    - 用 Python 求解，代码放在 code/ 目录；固定随机种子，保证重新运行得到相同结果；打印所有写进论文的数值。
+    - 论文用中文 LaTeX 写在 paper.tex，结构为 摘要、问题重述、问题分析、模型假设、符号说明、模型建立与求解、模型检验、模型评价与推广、参考文献。
+    - 用 modeling 扩展的 compile_latex（engine 设为 xelatex）把 paper.tex 编译为 paper.pdf；编译失败时按报错修改后重试。
+    - 按 prompt 的要求写 results.json。其中的数值必须来自代码输出，并与论文一致。
+  prompt: |
+    请完成当前工作目录中的建模题「城市空气质量预测」：阅读 problem.md 以及附件 attachments/air_quality.csv，依次回答问题一、问题二、问题三，按 instructions 产出 code/、paper.tex 与 paper.pdf。
+
+    完成后在工作目录写 results.json：它是一个 JSON 对象，只有 values 一个字段，values 的键为下列键名，一个都不能省略；算不出的值写 null。下列口径只用于评测核对，论文可以采用你自己的方法。
+    - row_count（整数）：附件的数据行数，不含表头。
+    - missing_value_count（整数）：附件全部字段的缺失值总数。
+    - pearson_pm25（对象，字段名到数值）：temperature、humidity、wind_speed、traffic_index 各自与 pm2_5 的 Pearson 相关系数，用未经异常值处理的原始数据计算，保留 4 位小数。
+    - top_feature（字符串，字段名）：对 pm2_5 影响最大、重要性排第一的特征。
+    - ols_coef_temperature、ols_coef_humidity、ols_coef_wind_speed、ols_coef_traffic_index（数值）：以 pm2_5 为因变量、上述 4 个字段为自变量、含截距、不做标准化的多元线性回归在你的训练集上拟合得到的系数。
+    - ols_test_rmse（数值）：该线性回归在你的测试集上的 RMSE。
+    - ols_test_r2（数值）：该线性回归在你的测试集上的 R²。
+  extensions:
+    - type: platform
+      name: developer
+    - type: builtin
+      name: modeling
