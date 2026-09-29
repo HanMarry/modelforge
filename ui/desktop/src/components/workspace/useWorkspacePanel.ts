@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { WorkspaceEntry } from '../../types/workspaceApi';
 import { AppEvents } from '../../constants/events';
+import type { WorkspaceFileLocation } from './featurePanelProps';
 import type { WorkspaceTab } from './WorkspacePanel';
+
+/** The file in the editor column, with the line or page a finding points at, if any. */
+export interface ActiveWorkspaceFile extends WorkspaceEntry {
+  location?: WorkspaceFileLocation;
+}
 
 const OPEN_KEY = 'modelforge.workspacePanelOpen';
 const TAB_KEY = 'modelforge.workspacePanelTab';
@@ -31,9 +37,14 @@ export interface WorkspacePanelState {
    * stays on the right while the preview gets real width.
    */
   isEditorOpen: boolean;
-  activeFile: WorkspaceEntry | null;
+  activeFile: ActiveWorkspaceFile | null;
   openFile: (entry: WorkspaceEntry) => void;
-  revealFile: (entry: WorkspaceEntry) => void;
+  /**
+   * Shows the file in the editor column. With a `location` (paper check and review findings)
+   * the editor scrolls to that line or page and the current tab stays selected, so the list of
+   * findings remains next to the file; without one the file tree is shown.
+   */
+  revealFile: (entry: WorkspaceEntry, location?: WorkspaceFileLocation) => void;
   clearActiveFile: () => void;
   setTab: (tab: WorkspaceTab) => void;
   selectTab: (tab: WorkspaceTab) => void;
@@ -59,7 +70,7 @@ export function useWorkspacePanel(enabled = true): WorkspacePanelState {
   });
   const [isMounted, setIsMounted] = useState(isOpen);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
-  const [activeFile, setActiveFile] = useState<WorkspaceEntry | null>(null);
+  const [activeFile, setActiveFile] = useState<ActiveWorkspaceFile | null>(null);
 
   useEffect(() => {
     window.localStorage.setItem(OPEN_KEY, String(isOpen));
@@ -85,11 +96,14 @@ export function useWorkspacePanel(enabled = true): WorkspacePanelState {
 
   const clearActiveFile = useCallback(() => setActiveFile(null), []);
 
-  /** Artifact cards in the transcript reveal their file in the editor column. */
-  const revealFile = useCallback((entry: WorkspaceEntry) => {
-    setActiveFile(entry);
+  /** Artifact cards in the transcript and findings lists reveal their file in the editor column. */
+  const revealFile = useCallback((entry: WorkspaceEntry, location?: WorkspaceFileLocation) => {
+    // A fresh object each time, so revealing the same place again scrolls there again.
+    setActiveFile(location === undefined ? entry : { ...entry, location: { ...location } });
     setIsMounted(true);
-    setTabState('files');
+    if (location === undefined) {
+      setTabState('files');
+    }
     setIsOpen(true);
     setIsEditorOpen(true);
   }, []);
@@ -97,8 +111,10 @@ export function useWorkspacePanel(enabled = true): WorkspacePanelState {
   useEffect(() => {
     if (!enabled) return undefined;
     const handleOpenFile = (event: Event) => {
-      const detail = (event as CustomEvent<{ entry?: WorkspaceEntry }>).detail;
-      if (detail?.entry) revealFile(detail.entry);
+      const detail = (
+        event as CustomEvent<{ entry?: WorkspaceEntry; location?: WorkspaceFileLocation }>
+      ).detail;
+      if (detail?.entry) revealFile(detail.entry, detail.location);
     };
     window.addEventListener(AppEvents.OPEN_WORKSPACE_FILE, handleOpenFile);
     return () => window.removeEventListener(AppEvents.OPEN_WORKSPACE_FILE, handleOpenFile);

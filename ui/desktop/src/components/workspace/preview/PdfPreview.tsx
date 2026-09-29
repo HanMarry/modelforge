@@ -25,9 +25,11 @@ function decodeBase64(base64: string): Uint8Array {
 
 interface PdfPreviewProps {
   base64: string;
+  /** 1-based page to show once the document has loaded (paper check and review findings). */
+  page?: number;
 }
 
-export default function PdfPreview({ base64 }: PdfPreviewProps) {
+export default function PdfPreview({ base64, page }: PdfPreviewProps) {
   const intl = useIntl();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -71,6 +73,12 @@ export default function PdfPreview({ base64 }: PdfPreviewProps) {
       void task.destroy();
     };
   }, [base64]);
+
+  // Jump to the requested page once the document is there, and whenever another is requested.
+  useEffect(() => {
+    if (!document || page === undefined || !Number.isFinite(page)) return;
+    setPageNumber(Math.min(Math.max(Math.trunc(page), 1), document.numPages));
+  }, [document, page]);
 
   // Fit-to-width recomputes the scale whenever the panel is resized.
   useEffect(() => {

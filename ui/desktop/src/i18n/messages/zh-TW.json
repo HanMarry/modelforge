@@ -3683,6 +3683,231 @@
   "onboardingSuccess.shareUsageData": {
     "defaultMessage": "分享匿名使用資料"
   },
+  "paperCheck.anonymous": {
+    "defaultMessage": "賽事要求論文匿名"
+  },
+  "paperCheck.anonymousHint": {
+    "defaultMessage": "在論文原始檔和 PDF 中檢索，只儲存在本機。"
+  },
+  "paperCheck.description": {
+    "defaultMessage": "提交前檢查論文的常見問題。只讀取檔案，不做任何修改。"
+  },
+  "paperCheck.empty": {
+    "defaultMessage": "選擇論文原始檔並開始檢查，即可檢視報告。"
+  },
+  "paperCheck.errorOutsideProject": {
+    "defaultMessage": "論文必須位於專案資料夾內。"
+  },
+  "paperCheck.errorProjectNotFound": {
+    "defaultMessage": "專案資料夾已不存在。"
+  },
+  "paperCheck.errorTimeout": {
+    "defaultMessage": "檢查未能按時完成。"
+  },
+  "paperCheck.failed": {
+    "defaultMessage": "檢查無法執行：{detail}"
+  },
+  "paperCheck.fieldName": {
+    "defaultMessage": "姓名"
+  },
+  "paperCheck.fieldSchool": {
+    "defaultMessage": "學校"
+  },
+  "paperCheck.fieldTeam": {
+    "defaultMessage": "隊名"
+  },
+  "paperCheck.figureBitmap": {
+    "defaultMessage": "點陣圖"
+  },
+  "paperCheck.figureNoAxes": {
+    "defaultMessage": "無法辨識座標軸"
+  },
+  "paperCheck.figureNoText": {
+    "defaultMessage": "沒有文字層"
+  },
+  "paperCheck.figureParseError": {
+    "defaultMessage": "無法解析"
+  },
+  "paperCheck.figureUnsupported": {
+    "defaultMessage": "不支援的格式"
+  },
+  "paperCheck.finishedAt": {
+    "defaultMessage": "完成於 {time}"
+  },
+  "paperCheck.issueAnonymityHit": {
+    "defaultMessage": "此處出現{field}「{term}」"
+  },
+  "paperCheck.issueCount": {
+    "defaultMessage": "{count,plural,other{# 個問題}}"
+  },
+  "paperCheck.issueFigureMissing": {
+    "defaultMessage": "缺少{parts}"
+  },
+  "paperCheck.issueFigureUnreadable": {
+    "defaultMessage": "無法檢查：{reason}"
+  },
+  "paperCheck.issueNumberMismatch": {
+    "defaultMessage": "{paperValue} 與 {table} 中的 {tableValue} 不一致（run {runId}）"
+  },
+  "paperCheck.issuePdfMissing": {
+    "defaultMessage": "PDF 缺失：{pdf}"
+  },
+  "paperCheck.issuePdfStale": {
+    "defaultMessage": "比 {pdf} 新"
+  },
+  "paperCheck.issuePdfUnreadable": {
+    "defaultMessage": "無法讀取 PDF 的文字"
+  },
+  "paperCheck.issueQuestionUncovered": {
+    "defaultMessage": "論文中沒有出現問題 {number}"
+  },
+  "paperCheck.issueReferenceNetwork": {
+    "defaultMessage": "[{index}] {title}：未核實（網路原因）"
+  },
+  "paperCheck.issueReferenceUnverified": {
+    "defaultMessage": "[{index}] {title}：無法核實（{reason}）"
+  },
+  "paperCheck.itemAnonymity": {
+    "defaultMessage": "匿名檢查"
+  },
+  "paperCheck.itemFigureLabels": {
+    "defaultMessage": "圖表標籤與單位"
+  },
+  "paperCheck.itemNumberConsistency": {
+    "defaultMessage": "數值與結果一致"
+  },
+  "paperCheck.itemPdfFreshness": {
+    "defaultMessage": "PDF 是否最新"
+  },
+  "paperCheck.itemQuestionCoverage": {
+    "defaultMessage": "逐問覆蓋"
+  },
+  "paperCheck.itemReferences": {
+    "defaultMessage": "參考文獻核實"
+  },
+  "paperCheck.loadingPapers": {
+    "defaultMessage": "正在尋找論文原始檔…"
+  },
+  "paperCheck.locationLine": {
+    "defaultMessage": "{file}，第 {line} 行"
+  },
+  "paperCheck.locationPage": {
+    "defaultMessage": "{file}，第 {page} 頁"
+  },
+  "paperCheck.names": {
+    "defaultMessage": "隊員姓名"
+  },
+  "paperCheck.namesPlaceholder": {
+    "defaultMessage": "多個姓名用逗號或頓號分隔"
+  },
+  "paperCheck.noPaper": {
+    "defaultMessage": "此專案中沒有找到 LaTeX、Typst 或 Markdown 論文原始檔。"
+  },
+  "paperCheck.omitted": {
+    "defaultMessage": "{count,plural,other{另有 # 個問題未顯示}}"
+  },
+  "paperCheck.online": {
+    "defaultMessage": "連網核實參考文獻（Crossref）"
+  },
+  "paperCheck.onlineHint": {
+    "defaultMessage": "每筆參考文獻最多等待 10 秒，不計入 60 秒時限。"
+  },
+  "paperCheck.paperLabel": {
+    "defaultMessage": "論文原始檔"
+  },
+  "paperCheck.partXLabel": {
+    "defaultMessage": "橫軸標籤"
+  },
+  "paperCheck.partXUnit": {
+    "defaultMessage": "橫軸單位"
+  },
+  "paperCheck.partYLabel": {
+    "defaultMessage": "縱軸標籤"
+  },
+  "paperCheck.partYUnit": {
+    "defaultMessage": "縱軸單位"
+  },
+  "paperCheck.reasonCheckFailed": {
+    "defaultMessage": "檢查出錯：{detail}"
+  },
+  "paperCheck.reasonFiguresUnreadable": {
+    "defaultMessage": "所有圖表都無法讀取。"
+  },
+  "paperCheck.reasonMissingPaperSource": {
+    "defaultMessage": "缺少論文原始檔。"
+  },
+  "paperCheck.reasonMissingProblemStatement": {
+    "defaultMessage": "沒有找到題面檔案（檔名含「題目」「賽題」或 problem 等）。"
+  },
+  "paperCheck.reasonMissingProfile": {
+    "defaultMessage": "請填寫要檢索的姓名、學校或隊名。"
+  },
+  "paperCheck.reasonMissingQuestionNumbers": {
+    "defaultMessage": "題面中沒有辨識出問題編號。"
+  },
+  "paperCheck.reasonMissingRunRecords": {
+    "defaultMessage": ".modelforge/runs 中沒有 Run_Record。"
+  },
+  "paperCheck.reasonNetworkUnavailable": {
+    "defaultMessage": "無法連線 Crossref。"
+  },
+  "paperCheck.reasonNoFigures": {
+    "defaultMessage": "論文沒有引用圖表。"
+  },
+  "paperCheck.reasonNoLinkedValues": {
+    "defaultMessage": "論文中沒有能與結果表對應的數值。"
+  },
+  "paperCheck.reasonNoReferences": {
+    "defaultMessage": "沒有找到參考文獻列表。"
+  },
+  "paperCheck.reasonNoResultTables": {
+    "defaultMessage": "沒有目前有效的結果表（成功執行輸出的 CSV、TSV 或 JSON）。"
+  },
+  "paperCheck.reasonOffline": {
+    "defaultMessage": "未開啟連網核實。"
+  },
+  "paperCheck.reasonTimedOut": {
+    "defaultMessage": "已停止：達到 60 秒時限。"
+  },
+  "paperCheck.referenceDoiMismatch": {
+    "defaultMessage": "DOI 與標題不符"
+  },
+  "paperCheck.referenceDoiNotFound": {
+    "defaultMessage": "DOI 不存在"
+  },
+  "paperCheck.referenceNoIdentifier": {
+    "defaultMessage": "沒有 DOI 和標題"
+  },
+  "paperCheck.referenceNoMatch": {
+    "defaultMessage": "沒有找到相符的紀錄"
+  },
+  "paperCheck.rescan": {
+    "defaultMessage": "重新尋找論文原始檔"
+  },
+  "paperCheck.run": {
+    "defaultMessage": "開始檢查"
+  },
+  "paperCheck.running": {
+    "defaultMessage": "正在檢查…"
+  },
+  "paperCheck.school": {
+    "defaultMessage": "學校"
+  },
+  "paperCheck.team": {
+    "defaultMessage": "隊名"
+  },
+  "paperCheck.title": {
+    "defaultMessage": "論文檢查"
+  },
+  "paperCheck.verdictCannotRun": {
+    "defaultMessage": "無法執行"
+  },
+  "paperCheck.verdictIssues": {
+    "defaultMessage": "發現問題"
+  },
+  "paperCheck.verdictPass": {
+    "defaultMessage": "通過"
+  },
   "paperView.all": {
     "defaultMessage": "全部"
   },
