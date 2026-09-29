@@ -12,6 +12,7 @@ mod calculator_extension;
 mod compaction_lifecycle;
 mod dummy_api;
 mod hooks_lifecycle;
+mod parity;
 mod pipeline;
 mod prompt_skill_lifecycle;
 mod provider_lifecycle;
