@@ -35,7 +35,7 @@ export const acpReviewKernel: ReviewKernel = {
       void acpRenameSession(sessionId, title).catch(() => undefined);
       return sessionId;
     } catch (error) {
-      throw new Error(formatAcpError(error));
+      throw new Error(formatAcpError(error), { cause: error });
     }
   },
 
@@ -44,7 +44,7 @@ export const acpReviewKernel: ReviewKernel = {
       const response = await acpPromptSession(sessionId, createUserMessage(text));
       return String(response.stopReason);
     } catch (error) {
-      throw new Error(formatAcpError(error));
+      throw new Error(formatAcpError(error), { cause: error });
     }
   },
 
