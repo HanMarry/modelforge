@@ -16043,8 +16043,6 @@ snapshots:
       inherits: 2.0.4
       readable-stream: 3.6.2
 
-  tmp@0.2.7: {}
-
   traverse@0.3.9: {}
 
   unzipper@0.10.14:
