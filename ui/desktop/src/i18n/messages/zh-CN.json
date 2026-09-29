@@ -482,6 +482,93 @@
   "chatSettings.responseStylesTitle": {
     "defaultMessage": "回复风格"
   },
+  "competitions.cancel": {
+    "defaultMessage": "取消"
+  },
+  "competitions.chooseLocation": {
+    "defaultMessage": "选择保存位置"
+  },
+  "competitions.clearFilter": {
+    "defaultMessage": "清除筛选"
+  },
+  "competitions.contest": {
+    "defaultMessage": "比赛时间"
+  },
+  "competitions.create": {
+    "defaultMessage": "创建项目"
+  },
+  "competitions.empty": {
+    "defaultMessage": "没有符合条件的赛事"
+  },
+  "competitions.examples": {
+    "defaultMessage": "示例题"
+  },
+  "competitions.genericTemplate": {
+    "defaultMessage": "通用论文模板"
+  },
+  "competitions.keyword": {
+    "defaultMessage": "关键字"
+  },
+  "competitions.keywordPlaceholder": {
+    "defaultMessage": "按赛事名称搜索"
+  },
+  "competitions.noExamples": {
+    "defaultMessage": "暂无示例题"
+  },
+  "competitions.noTemplates": {
+    "defaultMessage": "暂无对应模板"
+  },
+  "competitions.organizer": {
+    "defaultMessage": "主办方"
+  },
+  "competitions.projectName": {
+    "defaultMessage": "项目名称"
+  },
+  "competitions.projectNamePlaceholder": {
+    "defaultMessage": "1–64 个字符"
+  },
+  "competitions.registration": {
+    "defaultMessage": "报名时间"
+  },
+  "competitions.saveLocation": {
+    "defaultMessage": "保存位置"
+  },
+  "competitions.startPrep": {
+    "defaultMessage": "开始备赛"
+  },
+  "competitions.status": {
+    "defaultMessage": "状态"
+  },
+  "competitions.statusEnded": {
+    "defaultMessage": "已结束"
+  },
+  "competitions.statusNotStarted": {
+    "defaultMessage": "未开始"
+  },
+  "competitions.statusRegistering": {
+    "defaultMessage": "报名中"
+  },
+  "competitions.statusRunning": {
+    "defaultMessage": "进行中"
+  },
+  "competitions.subtitle": {
+    "defaultMessage": "查看主要赛事的时间节点与对应论文模板"
+  },
+  "competitions.templates": {
+    "defaultMessage": "论文模板"
+  },
+  "competitions.title": {
+    "defaultMessage": "数学建模赛事"
+  },
+  "competitions.toBeAnnounced": {
+    "defaultMessage": "待公布"
+  },
+  "competitions.updated": {
+    "defaultMessage": "数据更新日期"
+  },
+  "competitions.website": {
+    "defaultMessage": "官网"
+  },
   "configSettings.configReset": {
     "defaultMessage": "配置已重置"
   },
@@ -1184,6 +1271,63 @@
   "customProviderForm.valuePlaceholder": {
     "defaultMessage": "值"
   },
+  "datasets.empty": {
+    "defaultMessage": "当前项目没有可预览的数据文件"
+  },
+  "datasets.emptyFormats": {
+    "defaultMessage": "支持 .csv、.xlsx、.json、.parquet"
+  },
+  "datasets.fields": {
+    "defaultMessage": "字段"
+  },
+  "datasets.generateDescription": {
+    "defaultMessage": "生成数据说明"
+  },
+  "datasets.kernelUnavailable": {
+    "defaultMessage": "内核未运行，请先启动内核"
+  },
+  "datasets.missing": {
+    "defaultMessage": "缺失"
+  },
+  "datasets.modified": {
+    "defaultMessage": "修改时间"
+  },
+  "datasets.noFileSelected": {
+    "defaultMessage": "选择数据文件后生成数据说明"
+  },
+  "datasets.openExternally": {
+    "defaultMessage": "用外部程序打开"
+  },
+  "datasets.parseFailed": {
+    "defaultMessage": "无法解析该文件"
+  },
+  "datasets.preview": {
+    "defaultMessage": "预览（前 {count} 行）"
+  },
+  "datasets.rows": {
+    "defaultMessage": "总行数"
+  },
+  "datasets.sheet": {
+    "defaultMessage": "工作表"
+  },
+  "datasets.size": {
+    "defaultMessage": "大小"
+  },
+  "datasets.subtitle": {
+    "defaultMessage": "查看和预览项目中的数据文件"
+  },
+  "datasets.title": {
+    "defaultMessage": "数据集"
+  },
+  "datasets.tooLarge": {
+    "defaultMessage": "文件超过 200 MB 预览上限"
+  },
+  "datasets.truncated": {
+    "defaultMessage": "仅显示前 1000 项（共 {total} 项）"
+  },
+  "datasets.type": {
+    "defaultMessage": "类型"
+  },
   "defaultCardButtons.configureSettings": {
     "defaultMessage": "配置 {name} 设置"
   },
@@ -1456,6 +1600,51 @@
   },
   "errorBoundary.reload": {
     "defaultMessage": "重新加载"
+  },
+  "examples.cancel": {
+    "defaultMessage": "取消"
+  },
+  "examples.category": {
+    "defaultMessage": "题型"
+  },
+  "examples.chooseLocation": {
+    "defaultMessage": "选择保存位置"
+  },
+  "examples.create": {
+    "defaultMessage": "创建并打开"
+  },
+  "examples.download": {
+    "defaultMessage": "需自行下载"
+  },
+  "examples.downloadHint": {
+    "defaultMessage": "下载题面与附件后放入项目即可开始"
+  },
+  "examples.empty": {
+    "defaultMessage": "暂无可用示例题"
+  },
+  "examples.license": {
+    "defaultMessage": "许可"
+  },
+  "examples.loading": {
+    "defaultMessage": "加载中…"
+  },
+  "examples.officialSource": {
+    "defaultMessage": "官方来源"
+  },
+  "examples.open": {
+    "defaultMessage": "打开"
+  },
+  "examples.solution": {
+    "defaultMessage": "参考思路"
+  },
+  "examples.source": {
+    "defaultMessage": "来源"
+  },
+  "examples.subtitle": {
+    "defaultMessage": "选择一道示例题，跟着流程做一遍建模"
+  },
+  "examples.title": {
+    "defaultMessage": "示例题库"
   },
   "extensionConfigFields.commandLabel": {
     "defaultMessage": "命令"
@@ -2914,6 +3103,15 @@
   },
   "navigation.itemCatalog": {
     "defaultMessage": "扩展"
+  },
+  "navigation.itemCompetitions": {
+    "defaultMessage": "赛事"
+  },
+  "navigation.itemDatasets": {
+    "defaultMessage": "数据集"
+  },
+  "navigation.itemExamples": {
+    "defaultMessage": "示例题"
   },
   "navigation.itemFigures": {
     "defaultMessage": "科研绘图"

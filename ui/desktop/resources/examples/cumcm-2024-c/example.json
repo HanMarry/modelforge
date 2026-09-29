@@ -1,0 +1,19 @@
+{
+  "id": "cumcm-2024-c",
+  "title": "农作物的种植策略",
+  "category": "优化类",
+  "source": "2024 全国大学生数学建模竞赛 C 题",
+  "license": {
+    "type": "赛题版权归主办方",
+    "redistributable": false,
+    "note": "题面与附件版权归全国大学生数学建模竞赛组委会，本应用不随包分发；请从官网下载题面与数据后自行导入。"
+  },
+  "officialUrl": "https://www.mcm.edu.cn/",
+  "problemFile": "题目.pdf",
+  "attachments": ["附件1.xlsx", "附件2.xlsx"],
+  "solution": [
+    { "question": "问题一", "file": "solution/q1.md" },
+    { "question": "问题二", "file": "solution/q2.md" },
+    { "question": "问题三", "file": "solution/q3.md" }
+  ]
+}

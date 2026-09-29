@@ -482,6 +482,93 @@
   "chatSettings.responseStylesTitle": {
     "defaultMessage": "Yanıt Stilleri"
   },
+  "competitions.cancel": {
+    "defaultMessage": "Cancel"
+  },
+  "competitions.chooseLocation": {
+    "defaultMessage": "Choose save location"
+  },
+  "competitions.clearFilter": {
+    "defaultMessage": "Clear filters"
+  },
+  "competitions.contest": {
+    "defaultMessage": "Contest"
+  },
+  "competitions.create": {
+    "defaultMessage": "Create project"
+  },
+  "competitions.empty": {
+    "defaultMessage": "No competitions match your filter"
+  },
+  "competitions.examples": {
+    "defaultMessage": "Examples"
+  },
+  "competitions.genericTemplate": {
+    "defaultMessage": "Generic paper template"
+  },
+  "competitions.keyword": {
+    "defaultMessage": "Keyword"
+  },
+  "competitions.keywordPlaceholder": {
+    "defaultMessage": "Search by name"
+  },
+  "competitions.noExamples": {
+    "defaultMessage": "No examples yet"
+  },
+  "competitions.noTemplates": {
+    "defaultMessage": "No matching template"
+  },
+  "competitions.organizer": {
+    "defaultMessage": "Organizer"
+  },
+  "competitions.projectName": {
+    "defaultMessage": "Project name"
+  },
+  "competitions.projectNamePlaceholder": {
+    "defaultMessage": "1–64 characters"
+  },
+  "competitions.registration": {
+    "defaultMessage": "Registration"
+  },
+  "competitions.saveLocation": {
+    "defaultMessage": "Save location"
+  },
+  "competitions.startPrep": {
+    "defaultMessage": "Start preparing"
+  },
+  "competitions.status": {
+    "defaultMessage": "Status"
+  },
+  "competitions.statusEnded": {
+    "defaultMessage": "Ended"
+  },
+  "competitions.statusNotStarted": {
+    "defaultMessage": "Not started"
+  },
+  "competitions.statusRegistering": {
+    "defaultMessage": "Registration open"
+  },
+  "competitions.statusRunning": {
+    "defaultMessage": "Running"
+  },
+  "competitions.subtitle": {
+    "defaultMessage": "Contest dates and their paper templates"
+  },
+  "competitions.templates": {
+    "defaultMessage": "Paper templates"
+  },
+  "competitions.title": {
+    "defaultMessage": "Competitions"
+  },
+  "competitions.toBeAnnounced": {
+    "defaultMessage": "To be announced"
+  },
+  "competitions.updated": {
+    "defaultMessage": "Data updated"
+  },
+  "competitions.website": {
+    "defaultMessage": "Website"
+  },
   "configSettings.configReset": {
     "defaultMessage": "Yapılandırma Sıfırlama"
   },
@@ -1184,6 +1271,63 @@
   "customProviderForm.valuePlaceholder": {
     "defaultMessage": "Değer"
   },
+  "datasets.empty": {
+    "defaultMessage": "No data files to preview in this project"
+  },
+  "datasets.emptyFormats": {
+    "defaultMessage": "Supports .csv, .xlsx, .json, .parquet"
+  },
+  "datasets.fields": {
+    "defaultMessage": "Fields"
+  },
+  "datasets.generateDescription": {
+    "defaultMessage": "Generate data description"
+  },
+  "datasets.kernelUnavailable": {
+    "defaultMessage": "Kernel not running; start it first"
+  },
+  "datasets.missing": {
+    "defaultMessage": "Missing"
+  },
+  "datasets.modified": {
+    "defaultMessage": "Modified"
+  },
+  "datasets.noFileSelected": {
+    "defaultMessage": "Select a file to generate a description"
+  },
+  "datasets.openExternally": {
+    "defaultMessage": "Open with system program"
+  },
+  "datasets.parseFailed": {
+    "defaultMessage": "Unable to parse this file"
+  },
+  "datasets.preview": {
+    "defaultMessage": "Preview (first {count} rows)"
+  },
+  "datasets.rows": {
+    "defaultMessage": "Rows"
+  },
+  "datasets.sheet": {
+    "defaultMessage": "Worksheet"
+  },
+  "datasets.size": {
+    "defaultMessage": "Size"
+  },
+  "datasets.subtitle": {
+    "defaultMessage": "View and preview project data files"
+  },
+  "datasets.title": {
+    "defaultMessage": "Datasets"
+  },
+  "datasets.tooLarge": {
+    "defaultMessage": "File exceeds the 200 MB preview limit"
+  },
+  "datasets.truncated": {
+    "defaultMessage": "Showing first 1000 of {total}"
+  },
+  "datasets.type": {
+    "defaultMessage": "Type"
+  },
   "defaultCardButtons.configureSettings": {
     "defaultMessage": "{name} ayarlarını yapılandırın"
   },
@@ -1456,6 +1600,51 @@
   },
   "errorBoundary.reload": {
     "defaultMessage": "Yeniden yükle"
+  },
+  "examples.cancel": {
+    "defaultMessage": "Cancel"
+  },
+  "examples.category": {
+    "defaultMessage": "Category"
+  },
+  "examples.chooseLocation": {
+    "defaultMessage": "Choose save location"
+  },
+  "examples.create": {
+    "defaultMessage": "Create and open"
+  },
+  "examples.download": {
+    "defaultMessage": "Download required"
+  },
+  "examples.downloadHint": {
+    "defaultMessage": "Download the statement and attachments to get started"
+  },
+  "examples.empty": {
+    "defaultMessage": "No examples available"
+  },
+  "examples.license": {
+    "defaultMessage": "License"
+  },
+  "examples.loading": {
+    "defaultMessage": "Loading…"
+  },
+  "examples.officialSource": {
+    "defaultMessage": "Official source"
+  },
+  "examples.open": {
+    "defaultMessage": "Open"
+  },
+  "examples.solution": {
+    "defaultMessage": "Reference approach"
+  },
+  "examples.source": {
+    "defaultMessage": "Source"
+  },
+  "examples.subtitle": {
+    "defaultMessage": "Pick an example and follow it through"
+  },
+  "examples.title": {
+    "defaultMessage": "Example library"
   },
   "extensionConfigFields.commandLabel": {
     "defaultMessage": "Komut"
@@ -2914,6 +3103,15 @@
   },
   "navigation.itemCatalog": {
     "defaultMessage": "Extensions"
+  },
+  "navigation.itemCompetitions": {
+    "defaultMessage": "Competitions"
+  },
+  "navigation.itemDatasets": {
+    "defaultMessage": "Datasets"
+  },
+  "navigation.itemExamples": {
+    "defaultMessage": "Examples"
   },
   "navigation.itemFigures": {
     "defaultMessage": "Figures"

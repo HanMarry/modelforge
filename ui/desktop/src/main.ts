@@ -71,10 +71,14 @@ import './utils/recipeHash';
 import { registerWorkspaceIpc } from './utils/workspaceIpc';
 import { registerGitVersionIpc } from './utils/gitVersionIpc';
 import { disposeTerminalSessions, registerTerminalIpc } from './utils/terminalIpc';
+import { registerCatalogIpc } from './utils/catalogIpc';
+import { registerDatasetIpc } from './utils/datasetIpc';
 
 registerWorkspaceIpc();
 registerGitVersionIpc();
 registerTerminalIpc();
+registerCatalogIpc();
+registerDatasetIpc();
 import type { GooseApp } from './types/apps';
 import installExtension, { REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer';
 import { WEB_PROTOCOLS } from './utils/urlSecurity';

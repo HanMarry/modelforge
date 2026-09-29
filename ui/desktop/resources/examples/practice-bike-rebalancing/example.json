@@ -1,0 +1,18 @@
+{
+  "id": "practice-bike-rebalancing",
+  "title": "共享单车调度优化",
+  "category": "优化类",
+  "source": "ModelForge 原创示例题",
+  "license": {
+    "type": "CC BY 4.0",
+    "redistributable": true,
+    "note": "本题为 ModelForge 原创合成数据示例，可自由使用、修改与再分发，署名即可。"
+  },
+  "problemFile": "problem.md",
+  "attachments": ["attachments/stations.csv", "attachments/demand.csv"],
+  "solution": [
+    { "question": "问题一", "file": "solution/q1.md" },
+    { "question": "问题二", "file": "solution/q2.md" },
+    { "question": "问题三", "file": "solution/q3.md" }
+  ]
+}

@@ -1,6 +1,8 @@
 node_modules
 .vite/
 out
+# Filtered example bundle produced by scripts/bundle-examples.js
+.bundle/
 src/bin/goosed
 src/bin/goose-npm/
 /src/bin/*.exe
