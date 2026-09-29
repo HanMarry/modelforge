@@ -2774,8 +2774,164 @@
   "launcher.placeholder": {
     "defaultMessage": "Frag ModelForge irgendetwas..."
   },
+  "learning.exercise.cancel": {
+    "defaultMessage": "Cancel"
+  },
+  "learning.exercise.chatFailed": {
+    "defaultMessage": "Could not start a learning-mode chat"
+  },
+  "learning.exercise.checkError": {
+    "defaultMessage": "The check failed: {message}. The exercise status has not changed and your submission is kept."
+  },
+  "learning.exercise.checkFailed": {
+    "defaultMessage": "Not passed: {reason}"
+  },
+  "learning.exercise.checkPassed": {
+    "defaultMessage": "Passed"
+  },
+  "learning.exercise.checkPending": {
+    "defaultMessage": "Not checked yet"
+  },
+  "learning.exercise.checkTimeout": {
+    "defaultMessage": "The check did not finish within 60 seconds. The exercise status has not changed and your submission is kept."
+  },
+  "learning.exercise.checking": {
+    "defaultMessage": "Checking…"
+  },
+  "learning.exercise.checks": {
+    "defaultMessage": "Check items"
+  },
+  "learning.exercise.chooseProjectDir": {
+    "defaultMessage": "Choose folder"
+  },
+  "learning.exercise.close": {
+    "defaultMessage": "Close exercise"
+  },
+  "learning.exercise.completedAt": {
+    "defaultMessage": "Completed at {time}"
+  },
+  "learning.exercise.confirm": {
+    "defaultMessage": "View solution"
+  },
+  "learning.exercise.confirmMessage": {
+    "defaultMessage": "The agent will write the complete solution code in a new chat, and this exercise will be marked \"Solution viewed\" for good."
+  },
+  "learning.exercise.confirmTitle": {
+    "defaultMessage": "View the full solution?"
+  },
+  "learning.exercise.invalidProject": {
+    "defaultMessage": "The project folder cannot be read. The exercise status has not changed and your submission is kept."
+  },
+  "learning.exercise.learningMode": {
+    "defaultMessage": "Learning mode"
+  },
+  "learning.exercise.learningModeActive": {
+    "defaultMessage": "Chats in learning mode for this exercise: {count}"
+  },
+  "learning.exercise.learningModeHint": {
+    "defaultMessage": "In learning mode the agent answers with hints and questions instead of full solution code."
+  },
+  "learning.exercise.leaveLearningMode": {
+    "defaultMessage": "Leave learning mode"
+  },
+  "learning.exercise.needProjectDir": {
+    "defaultMessage": "Choose the project folder that holds your exercise files first."
+  },
+  "learning.exercise.noProjectDir": {
+    "defaultMessage": "No folder chosen"
+  },
+  "learning.exercise.practiceInChat": {
+    "defaultMessage": "Practise in chat"
+  },
+  "learning.exercise.projectDir": {
+    "defaultMessage": "Project folder"
+  },
+  "learning.exercise.projectDirHint": {
+    "defaultMessage": "The folder that holds your exercise files; the checks read files from it."
+  },
+  "learning.exercise.recheck": {
+    "defaultMessage": "Check again"
+  },
+  "learning.exercise.statement": {
+    "defaultMessage": "Exercise"
+  },
+  "learning.exercise.subjective": {
+    "defaultMessage": "judged by the agent"
+  },
+  "learning.exercise.submission": {
+    "defaultMessage": "Your submission"
+  },
+  "learning.exercise.submissionPlaceholder": {
+    "defaultMessage": "Describe what you did and what you found. You can revise it and resubmit."
+  },
+  "learning.exercise.submit": {
+    "defaultMessage": "Submit for checking"
+  },
+  "learning.exercise.unlockFailed": {
+    "defaultMessage": "Could not unlock the solution"
+  },
+  "learning.exercise.viewSolution": {
+    "defaultMessage": "View full solution"
+  },
+  "learning.progress.count": {
+    "defaultMessage": "{completed} / {total}"
+  },
+  "learning.progress.hint": {
+    "defaultMessage": "An exercise counts once every check item has passed."
+  },
+  "learning.progress.percent": {
+    "defaultMessage": "{percent}%"
+  },
+  "learning.progress.title": {
+    "defaultMessage": "Progress by course group"
+  },
+  "learning.status.completed": {
+    "defaultMessage": "Completed"
+  },
+  "learning.status.failed": {
+    "defaultMessage": "Not passed"
+  },
+  "learning.status.notStarted": {
+    "defaultMessage": "Not started"
+  },
+  "learning.status.solutionViewed": {
+    "defaultMessage": "Solution viewed"
+  },
   "learning.title": {
     "defaultMessage": "Learning Path"
+  },
+  "learning.view.exercises": {
+    "defaultMessage": "Exercises"
+  },
+  "learning.view.groupProgress": {
+    "defaultMessage": "{completed} / {total} completed"
+  },
+  "learning.view.loadFailed": {
+    "defaultMessage": "Could not load the learning path: {message}"
+  },
+  "learning.view.loading": {
+    "defaultMessage": "Loading the learning path…"
+  },
+  "learning.view.objectives": {
+    "defaultMessage": "Learning objectives"
+  },
+  "learning.view.retry": {
+    "defaultMessage": "Try again"
+  },
+  "learning.view.skills": {
+    "defaultMessage": "Linked skills"
+  },
+  "learning.view.subtitle": {
+    "defaultMessage": "Five course groups, each with exercises that are checked when you submit your results."
+  },
+  "learning.view.tabCourses": {
+    "defaultMessage": "Courses"
+  },
+  "learning.view.tabProfile": {
+    "defaultMessage": "My progress"
+  },
+  "learning.view.tabs": {
+    "defaultMessage": "Learning path sections"
   },
   "loadingGoose.compacting": {
     "defaultMessage": "ModelForge komprimiert die Unterhaltung..."
