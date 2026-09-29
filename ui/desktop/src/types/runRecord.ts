@@ -64,6 +64,21 @@ export interface RunRecordProblem {
   parseErrorAt?: { line: number; column: number };
 }
 
+/** Valid Run_Records of one Project, keyed by `runId`. */
+export type RunRecordMap = ReadonlyMap<string, RunRecord>;
+
+/**
+ * Current state of one Project file: its lowercase hexadecimal SHA-256, or `FILE_HASH_MISSING` /
+ * `FILE_HASH_UNREADABLE` from `utils/runRecord.ts`. A SHA-256 never equals either marker.
+ */
+export type FileHashValue = string;
+
+/**
+ * Current hashes of Project files, keyed by Project-relative path (design C2). Computed by the
+ * I/O layer and shared by staleness detection, run comparison and resume planning.
+ */
+export type FileHashSnapshot = ReadonlyMap<string, FileHashValue>;
+
 export type ParseRunRecordResult =
   | { ok: true; record: RunRecord }
   | ({ ok: false } & RunRecordProblem);

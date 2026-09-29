@@ -25,6 +25,11 @@ export const RUN_RECORD_MAX_FILES = 1000;
 export const SEED_UNSET = '未设置';
 export const RUN_FAILURES: readonly RunFailure[] = ['非零退出码', '超时', '用户取消'];
 
+/** `FileHashSnapshot` value for a file that does not exist. */
+export const FILE_HASH_MISSING = 'missing';
+/** `FileHashSnapshot` value for a file that exists but cannot be read. */
+export const FILE_HASH_UNREADABLE = 'unreadable';
+
 /** Top-level fields in the order writers emit them. `failure` is the only optional one. */
 export const RUN_RECORD_FIELDS = [
   'schemaVersion',
