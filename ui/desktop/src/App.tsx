@@ -51,6 +51,8 @@ import StandaloneAppView from './components/apps/StandaloneAppView';
 import CompetitionsView from './components/competitions/CompetitionsView';
 import ExamplesView from './components/examples/ExamplesView';
 import DatasetsView from './components/datasets/DatasetsView';
+import GalleryView from './components/gallery/GalleryView';
+import BrowserApprovalDialog from './components/workspace/BrowserApprovalDialog';
 import { View, ViewOptions } from './utils/navigationUtils';
 
 import { useNavigation } from './hooks/useNavigation';
@@ -663,6 +665,7 @@ export function AppInner() {
       />
       <ExtensionInstallModal addExtension={addExtension} setView={setView} />
       <RecipeParamsModalContainer />
+      <BrowserApprovalDialog />
       <div className="relative w-screen h-screen overflow-hidden bg-background-secondary flex flex-col">
         <div className="titlebar-drag-region" />
         <div style={{ position: 'relative', width: '100%', height: '100%' }}>
@@ -711,6 +714,7 @@ export function AppInner() {
               <Route path="paper" element={<PaperTemplatesView />} />
               <Route path="connectors" element={<ConnectorsView />} />
               <Route path="diagnostics" element={<DiagnosticsView />} />
+              <Route path="gallery" element={<GalleryView />} />
               <Route path="permission" element={<PermissionRoute />} />
               <Route path="competitions" element={<CompetitionsView />} />
               <Route path="examples" element={<ExamplesView />} />

@@ -76,6 +76,8 @@ import { registerGitVersionIpc } from './utils/gitVersionIpc';
 import { disposeTerminalSessions, registerTerminalIpc } from './utils/terminalIpc';
 import { registerCatalogIpc } from './utils/catalogIpc';
 import { registerDatasetIpc } from './utils/datasetIpc';
+import { registerBrowserIpc } from './utils/browser/browserIpc';
+import { registerGalleryIpc } from './utils/gallery/galleryIpc';
 
 registerWorkspaceIpc();
 registerGitVersionIpc();
@@ -225,6 +227,8 @@ const credentialStore = createAgentKernelSecretStore({
 // Every key value the store handled is masked in the logs (requirement 1.10).
 registerLogSecrets(() => credentialStore.sensitiveValues());
 registerCredentialIpc(ipcMain, credentialStore);
+registerBrowserIpc({ getMainWindow: () => getRegularWindows()[0] ?? null });
+registerGalleryIpc({ sensitiveValues: () => credentialStore.sensitiveValues() });
 
 // Keys older versions stored as `raw:` Base64 are encrypted once secure storage is ready; an
 // entry that fails stays as it is and is retried on the next start (requirement 2.4, 2.5).

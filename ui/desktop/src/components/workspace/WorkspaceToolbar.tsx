@@ -3,6 +3,7 @@ import {
   ClipboardList,
   FileText,
   Frame,
+  Globe,
   History,
   PanelRightClose,
   PanelRightOpen,
@@ -21,6 +22,7 @@ const i18n = defineMessages({
   versions: { id: 'workspaceToolbar.versions', defaultMessage: 'Versions' },
   figures: { id: 'workspaceToolbar.figures', defaultMessage: 'Figures' },
   diagrams: { id: 'workspaceToolbar.diagrams', defaultMessage: 'Diagrams' },
+  browser: { id: 'workspaceToolbar.browser', defaultMessage: 'Browser' },
   open: { id: 'workspaceToolbar.open', defaultMessage: 'Open panel' },
   close: { id: 'workspaceToolbar.close', defaultMessage: 'Hide panel' },
 });
@@ -41,6 +43,7 @@ const BUTTONS: { id: WorkspaceTab; icon: typeof FileText; labelKey: keyof typeof
   { id: 'versions', icon: History, labelKey: 'versions' },
   { id: 'figures', icon: Wand2, labelKey: 'figures' },
   { id: 'diagrams', icon: Frame, labelKey: 'diagrams' },
+  { id: 'browser', icon: Globe, labelKey: 'browser' },
 ];
 
 export default function WorkspaceToolbar({

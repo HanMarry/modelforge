@@ -204,6 +204,28 @@ export function isAcpSessionLoadInFlight(sessionId: string): boolean {
   return inFlightSessionLoads.has(sessionId);
 }
 
+/**
+ * The in-app browser MCP server, injected into every session so the Kernel can call `browser_*`
+ * tools (requirement 12). The endpoint carries a per-launch token; a missing server degrades to
+ * no browser tools rather than failing the session.
+ */
+async function browserMcpServers(): Promise<NonNullable<NewSessionRequest['mcpServers']>> {
+  try {
+    const endpoint = await window.electron.getBrowserMcpEndpoint();
+    if (!endpoint) return [];
+    return [
+      {
+        type: 'http',
+        name: 'modelforge-browser',
+        url: endpoint.url,
+        headers: [{ name: 'Authorization', value: `Bearer ${endpoint.token}` }],
+      },
+    ];
+  } catch {
+    return [];
+  }
+}
+
 async function loadAcpSession(sessionId: string): Promise<AcpLoadSessionResult> {
   const client = await getAcpClient();
   const initialSessionInfoResponse = await client.goose.sessionInfo_unstable({ sessionId });
@@ -211,7 +233,7 @@ async function loadAcpSession(sessionId: string): Promise<AcpLoadSessionResult> 
   const response = await client.connection.agent.request(methods.agent.session.load, {
     sessionId,
     cwd: initialSessionInfo.cwd,
-    mcpServers: [],
+    mcpServers: await browserMcpServers(),
   });
   // Loading can populate missing provider/model metadata.
   const sessionInfoResponse = await client.goose.sessionInfo_unstable({ sessionId });
@@ -253,7 +275,11 @@ export async function acpNewSession(
   if (recipe?.recipeParameterScopeId) {
     meta.recipeParameterScopeId = recipe.recipeParameterScopeId;
   }
-  const request: NewSessionRequest = { cwd, mcpServers: [], _meta: meta };
+  const request: NewSessionRequest = {
+    cwd,
+    mcpServers: await browserMcpServers(),
+    _meta: meta,
+  };
   const response = await client.connection.agent.request(methods.agent.session.new, request);
   const sessionId = String(response.sessionId);
   const sessionInfoResponse = await client.goose.sessionInfo_unstable({ sessionId });
