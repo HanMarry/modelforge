@@ -7,10 +7,10 @@
  * kernel stays the default and is left completely untouched.
  *
  * Secrets never come back out of goose (the ACP surface masks them), so the app keeps its
- * own encrypted copy of the provider key. It is captured when the user saves a provider
- * key in the app UI, or entered directly in the kernel settings.
+ * own copy of the provider key in the desktop credential store (encrypted, or in memory for
+ * the session when the OS offers no secure storage). It is captured when the user saves a
+ * provider key in the app UI, or entered directly in the kernel settings.
  */
-import fs from 'node:fs';
 import path from 'node:path';
 import { provisionAgentRuntime, type ProvisionedAgentRuntime } from './agentRuntime';
 import { setAgentRuntimeEnv } from '../gooseServe';
@@ -21,6 +21,15 @@ import {
   resolveGooseConfigDir,
   type GooseProviderState,
 } from './gooseProviderState';
+import {
+  createCredentialStore,
+  nodeCredentialFs,
+  type CredentialCrypto,
+  type CredentialFileSystem,
+  type CredentialStore,
+  type DeleteResult,
+  type SaveResult,
+} from './credentialStore';
 import type { AgentKernelId, AgentKernelSettings } from './settings';
 
 export {
@@ -29,18 +38,6 @@ export {
   resolveGooseConfigDir,
   type GooseProviderState,
 };
-
-export interface AgentKernelSecretCodec {
-  encode: (plaintext: string) => string;
-  decode: (stored: string) => string | null;
-}
-
-export interface AgentKernelSecretStore {
-  get: (id: string) => string | null;
-  set: (id: string, value: string) => void;
-  delete: (id: string) => void;
-  has: (id: string) => boolean;
-}
 
 export type AgentKernelKeySource = 'kernel' | 'provider' | 'env' | 'none';
 
@@ -83,18 +80,18 @@ export interface AgentKernelManager {
   /** Switches the model the kernel proxies to, without restarting it. */
   setModel: (model: string) => AgentKernelStatus;
   /** Remembers a provider key captured from the app's provider settings. */
-  rememberProviderKey: (providerId: string, apiKey: string) => void;
-  setKernelKey: (providerId: string, apiKey: string) => void;
-  clearKernelKey: (providerId: string) => void;
-  forgetProviderKey: (providerId: string) => void;
+  rememberProviderKey: (providerId: string, apiKey: string) => Promise<SaveResult>;
+  setKernelKey: (providerId: string, apiKey: string) => Promise<SaveResult>;
+  clearKernelKey: (providerId: string) => Promise<DeleteResult>;
+  forgetProviderKey: (providerId: string) => Promise<DeleteResult>;
   dispose: () => Promise<void>;
 }
 
 export interface AgentKernelManagerOptions {
   /** Directory for generated per-runtime config directories. */
   runtimeRoot: string;
-  secretsFile: string;
-  codec: AgentKernelSecretCodec;
+  /** Where the kernel keys are kept; see `createAgentKernelSecretStore`. */
+  secrets: CredentialStore;
   gooseConfigDir: string;
   log?: (message: string) => void;
   provision?: (
@@ -107,63 +104,38 @@ export interface AgentKernelManagerOptions {
 
 export const BUILTIN_KERNEL_PROVIDER = 'builtin';
 
-function readJsonFile<T>(file: string): T | null {
-  try {
-    return JSON.parse(fs.readFileSync(file, 'utf8')) as T;
-  } catch {
-    return null;
-  }
+export interface AgentKernelSecretStoreOptions {
+  /** Usually `userData/agent-kernel-secrets.json`. */
+  file: string;
+  crypto: CredentialCrypto;
+  fs?: CredentialFileSystem;
+  log?: (message: string) => void;
 }
 
-export function createAgentKernelSecretStore(
-  file: string,
-  codec: AgentKernelSecretCodec
-): AgentKernelSecretStore {
-  const read = (): Record<string, string> => readJsonFile<Record<string, string>>(file) ?? {};
-
-  const write = (values: Record<string, string>): void => {
-    fs.mkdirSync(path.dirname(file), { recursive: true });
-    fs.writeFileSync(file, JSON.stringify(values, null, 2), { encoding: 'utf8', mode: 0o600 });
-  };
-
-  return {
-    get: (id) => {
-      const stored = read()[id];
-      if (!stored) {
-        return null;
-      }
-      return codec.decode(stored);
-    },
-    set: (id, value) => {
-      const values = read();
-      values[id] = codec.encode(value);
-      write(values);
-    },
-    delete: (id) => {
-      const values = read();
-      if (!(id in values)) {
-        return;
-      }
-      delete values[id];
-      write(values);
-    },
-    has: (id) => Boolean(read()[id]),
-  };
+/** The kernel keys live in the desktop credential store (requirement 2). */
+export function createAgentKernelSecretStore({
+  file,
+  crypto,
+  fs = nodeCredentialFs,
+  log,
+}: AgentKernelSecretStoreOptions): CredentialStore {
+  return createCredentialStore({ file, crypto, fs, log });
 }
 
 const providerKeyId = (providerId: string): string => `provider:${providerId}`;
 const kernelKeyId = (providerId: string): string => `kernel:${providerId}`;
 
+const missingProvider: SaveResult = { outcome: 'failed', error: { code: 'INVALID_INPUT' } };
+const nothingToDelete: DeleteResult = { ok: true };
+
 export function createAgentKernelManager({
   runtimeRoot,
-  secretsFile,
-  codec,
+  secrets,
   gooseConfigDir,
   log = () => {},
   provision = provisionAgentRuntime,
   env = process.env,
 }: AgentKernelManagerOptions): AgentKernelManager {
-  const secrets = createAgentKernelSecretStore(secretsFile, codec);
   let active: ProvisionedAgentRuntime | null = null;
   let status: AgentKernelStatus = {
     runtime: 'builtin',
@@ -414,28 +386,14 @@ export function createAgentKernelManager({
       log(`agent kernel: upstream model switched to ${trimmed}`);
       return { ...status };
     },
-    rememberProviderKey: (providerId, apiKey) => {
-      if (!providerId) {
-        return;
-      }
-      if (apiKey) {
-        secrets.set(providerKeyId(providerId), apiKey);
-      } else {
-        secrets.delete(providerKeyId(providerId));
-      }
-    },
-    setKernelKey: (providerId, apiKey) => {
-      if (!providerId || !apiKey) {
-        return;
-      }
-      secrets.set(kernelKeyId(providerId), apiKey);
-    },
-    clearKernelKey: (providerId) => {
-      if (providerId) {
-        secrets.delete(kernelKeyId(providerId));
-      }
-    },
-    forgetProviderKey: (providerId) => secrets.delete(providerKeyId(providerId)),
+    rememberProviderKey: async (providerId, apiKey) =>
+      providerId ? secrets.save(providerKeyId(providerId), apiKey) : missingProvider,
+    setKernelKey: async (providerId, apiKey) =>
+      providerId ? secrets.save(kernelKeyId(providerId), apiKey) : missingProvider,
+    clearKernelKey: async (providerId) =>
+      providerId ? secrets.delete(kernelKeyId(providerId)) : nothingToDelete,
+    forgetProviderKey: async (providerId) =>
+      providerId ? secrets.delete(providerKeyId(providerId)) : nothingToDelete,
     dispose: disposeActive,
   };
 }
