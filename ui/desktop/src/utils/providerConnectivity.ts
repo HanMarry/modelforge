@@ -63,7 +63,7 @@ function headerValueFor(header: string, key: string): string {
 export async function testProviderConnection(
   target: ProviderConnectionTarget,
   key: string,
-  signal?: AbortSignal
+  signal?: globalThis.AbortSignal
 ): Promise<ProviderConnectionResult> {
   const base = target.baseUrl.trim().replace(/\/+$/, '');
   const url = `${base}/models`;

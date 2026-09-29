@@ -344,6 +344,57 @@
   "authSettings.title": {
     "defaultMessage": "供應商憑證"
   },
+  "autoCheckpointsTab.agentActive": {
+    "defaultMessage": "請等待本輪對話結束後再還原。"
+  },
+  "autoCheckpointsTab.binary": {
+    "defaultMessage": "已變更（二進位）"
+  },
+  "autoCheckpointsTab.cancel": {
+    "defaultMessage": "取消"
+  },
+  "autoCheckpointsTab.confirmBody": {
+    "defaultMessage": "建立於 {createdAt}。將變更 {count} 個檔案。"
+  },
+  "autoCheckpointsTab.confirmTitle": {
+    "defaultMessage": "還原到這個快照？"
+  },
+  "autoCheckpointsTab.empty": {
+    "defaultMessage": "尚無自動快照。代理程式寫入檔案前會自動建立快照。"
+  },
+  "autoCheckpointsTab.filesChanged": {
+    "defaultMessage": "{count} 個檔案有變更"
+  },
+  "autoCheckpointsTab.loading": {
+    "defaultMessage": "載入中…"
+  },
+  "autoCheckpointsTab.restore": {
+    "defaultMessage": "還原到此處"
+  },
+  "autoCheckpointsTab.restoreFailed": {
+    "defaultMessage": "還原失敗：{message}"
+  },
+  "autoCheckpointsTab.restored": {
+    "defaultMessage": "已還原到這個快照"
+  },
+  "autoCheckpointsTab.restoring": {
+    "defaultMessage": "正在還原…"
+  },
+  "autoCheckpointsTab.select": {
+    "defaultMessage": "選擇"
+  },
+  "autoCheckpointsTab.selectHint": {
+    "defaultMessage": "選擇兩個快照進行比較，或選擇一個進行還原。"
+  },
+  "autoCheckpointsTab.showDiff": {
+    "defaultMessage": "比較"
+  },
+  "autoCheckpointsTab.title": {
+    "defaultMessage": "自動快照"
+  },
+  "autoCheckpointsTab.unavailable": {
+    "defaultMessage": "Git 無法使用，無法建立快照。"
+  },
   "backButton.back": {
     "defaultMessage": "返回"
   },
@@ -387,49 +438,49 @@
     "defaultMessage": "搜尋擴充功能…"
   },
   "browserApproval.approve": {
-    "defaultMessage": "Approve"
+    "defaultMessage": "核准"
   },
   "browserApproval.click": {
-    "defaultMessage": "Click"
+    "defaultMessage": "點擊"
   },
   "browserApproval.currentUrl": {
-    "defaultMessage": "Current page"
+    "defaultMessage": "目前頁面"
   },
   "browserApproval.deny": {
-    "defaultMessage": "Deny"
+    "defaultMessage": "拒絕"
   },
   "browserApproval.target": {
-    "defaultMessage": "Target element"
+    "defaultMessage": "目標元素"
   },
   "browserApproval.text": {
-    "defaultMessage": "Text to type"
+    "defaultMessage": "要輸入的文字"
   },
   "browserApproval.title": {
-    "defaultMessage": "Browser action needs approval"
+    "defaultMessage": "瀏覽器操作需要核准"
   },
   "browserApproval.type": {
-    "defaultMessage": "Type"
+    "defaultMessage": "輸入"
   },
   "browserPanel.address": {
-    "defaultMessage": "Search or enter URL"
+    "defaultMessage": "搜尋或輸入網址"
   },
   "browserPanel.back": {
-    "defaultMessage": "Back"
+    "defaultMessage": "上一頁"
   },
   "browserPanel.forward": {
-    "defaultMessage": "Forward"
+    "defaultMessage": "下一頁"
   },
   "browserPanel.loadFailed": {
-    "defaultMessage": "Could not load the page"
+    "defaultMessage": "無法載入頁面"
   },
   "browserPanel.reload": {
-    "defaultMessage": "Reload"
+    "defaultMessage": "重新載入"
   },
   "browserPanel.retry": {
-    "defaultMessage": "Retry"
+    "defaultMessage": "重試"
   },
   "browserPanel.schemeRejected": {
-    "defaultMessage": "URL protocol not supported"
+    "defaultMessage": "不支援此 URL 通訊協定"
   },
   "cardButtons.configure": {
     "defaultMessage": "設定"
@@ -2121,70 +2172,70 @@
     "defaultMessage": "這種檔案類型沒有內建預覽，請用外部程式開啟。"
   },
   "gallery.candidates": {
-    "defaultMessage": "Files to include"
+    "defaultMessage": "要包含的檔案"
   },
   "gallery.empty": {
-    "defaultMessage": "No works yet"
+    "defaultMessage": "尚無作品"
   },
   "gallery.excludedNote": {
-    "defaultMessage": "Some files are always excluded"
+    "defaultMessage": "部分檔案一律會被排除"
   },
   "gallery.export": {
-    "defaultMessage": "Export share package"
+    "defaultMessage": "匯出分享包"
   },
   "gallery.exportCancel": {
-    "defaultMessage": "Cancel"
+    "defaultMessage": "取消"
   },
   "gallery.exportConfirm": {
-    "defaultMessage": "Export"
+    "defaultMessage": "匯出"
   },
   "gallery.exportSaved": {
-    "defaultMessage": "Saved to {path}"
+    "defaultMessage": "已儲存到 {path}"
   },
   "gallery.import": {
-    "defaultMessage": "Import"
+    "defaultMessage": "匯入"
   },
   "gallery.importedSource": {
-    "defaultMessage": "Local import"
+    "defaultMessage": "本機匯入"
   },
   "gallery.localSource": {
-    "defaultMessage": "Local"
+    "defaultMessage": "本機"
   },
   "gallery.metadataAbstract": {
-    "defaultMessage": "Abstract"
+    "defaultMessage": "摘要"
   },
   "gallery.metadataCategory": {
-    "defaultMessage": "Category"
+    "defaultMessage": "題型"
   },
   "gallery.metadataCompetition": {
-    "defaultMessage": "Competition"
+    "defaultMessage": "賽事"
   },
   "gallery.metadataTitle": {
-    "defaultMessage": "Title"
+    "defaultMessage": "標題"
   },
   "gallery.noPdf": {
-    "defaultMessage": "No exportable paper PDF"
+    "defaultMessage": "沒有可匯出的論文 PDF"
   },
   "gallery.notFilled": {
-    "defaultMessage": "Not filled in"
+    "defaultMessage": "未填寫"
   },
   "gallery.refresh": {
-    "defaultMessage": "Refresh"
+    "defaultMessage": "重新整理"
   },
   "gallery.remoteLabel": {
-    "defaultMessage": "Remote works source"
+    "defaultMessage": "遠端作品來源"
   },
   "gallery.remoteSource": {
-    "defaultMessage": "Remote"
+    "defaultMessage": "遠端"
   },
   "gallery.remoteUnreachable": {
-    "defaultMessage": "Remote service unreachable"
+    "defaultMessage": "遠端服務無法連線"
   },
   "gallery.temporaryRule": {
-    "defaultMessage": "Temporary rule: a paper PDF marks a work"
+    "defaultMessage": "暫行規則：有論文 PDF 即視為作品"
   },
   "gallery.title": {
-    "defaultMessage": "Gallery"
+    "defaultMessage": "作品廣場"
   },
   "gitBranchIndicator.failedToSwitch": {
     "defaultMessage": "無法切換至 {branch}"
@@ -3324,7 +3375,7 @@
     "defaultMessage": "扩展"
   },
   "navigation.itemCollab": {
-    "defaultMessage": "Join Collaboration"
+    "defaultMessage": "加入協作"
   },
   "navigation.itemCompetitions": {
     "defaultMessage": "赛事"
@@ -3339,7 +3390,7 @@
     "defaultMessage": "科研绘图"
   },
   "navigation.itemGallery": {
-    "defaultMessage": "Gallery"
+    "defaultMessage": "作品廣場"
   },
   "navigation.itemHome": {
     "defaultMessage": "新建会话"
@@ -3930,7 +3981,7 @@
     "defaultMessage": "程式碼與相依套件"
   },
   "projectPanel.collab": {
-    "defaultMessage": "Collaborate"
+    "defaultMessage": "協作"
   },
   "projectPanel.collapse": {
     "defaultMessage": "收合"
@@ -6215,6 +6266,9 @@
   "userMessage.removeImageFromEdit": {
     "defaultMessage": "從訊息中移除圖片"
   },
+  "versionsPanel.autoSnapshotsTab": {
+    "defaultMessage": "自動快照"
+  },
   "versionsPanel.cancel": {
     "defaultMessage": "取消"
   },
@@ -6226,6 +6280,9 @@
   },
   "versionsPanel.failed": {
     "defaultMessage": "操作失敗"
+  },
+  "versionsPanel.gitHistoryTab": {
+    "defaultMessage": "Git 歷史"
   },
   "versionsPanel.gitMissing": {
     "defaultMessage": "未安裝 Git"
@@ -6360,7 +6417,7 @@
     "defaultMessage": "檔案較大，僅顯示前一部分"
   },
   "workspacePanel.browser": {
-    "defaultMessage": "Browser"
+    "defaultMessage": "瀏覽器"
   },
   "workspacePanel.close": {
     "defaultMessage": "關閉面板"
@@ -6390,7 +6447,7 @@
     "defaultMessage": "版本"
   },
   "workspaceToolbar.browser": {
-    "defaultMessage": "Browser"
+    "defaultMessage": "瀏覽器"
   },
   "workspaceToolbar.close": {
     "defaultMessage": "收合面板"

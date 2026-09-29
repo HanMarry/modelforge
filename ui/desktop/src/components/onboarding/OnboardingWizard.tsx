@@ -175,8 +175,11 @@ export default function OnboardingWizard({ initialStep, onComplete }: Onboarding
     persist(next(state));
   };
 
+  // 单独取出当前步骤：react-hooks 规则把 `state.current` 当作 ref 读取，不接受它作依赖
+  const currentStep = state.current;
+
   useEffect(() => {
-    if (state.current !== 'environment' || environment) {
+    if (currentStep !== 'environment' || environment) {
       return;
     }
     const timer = setTimeout(
@@ -214,7 +217,7 @@ export default function OnboardingWizard({ initialStep, onComplete }: Onboarding
       }
     })();
     return () => clearTimeout(timer);
-  }, [state.current, environment]);
+  }, [currentStep, environment]);
 
   const index = stepIndex(state.current);
   const canNext =

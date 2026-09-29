@@ -182,6 +182,9 @@ jobs:
         with:
           key: ${{ matrix.tls-feature }}
 
+      - name: Repair stale v8 prebuilt marker
+        run: .github/scripts/repair-v8-prebuilt.sh
+
       - name: Build and Test with ${{ matrix.tls-feature }}
         run: |
           gnome-keyring-daemon --components=secrets --daemonize --unlock <<< 'foobar'
@@ -214,6 +217,9 @@ jobs:
         uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6  # v2.9.2
         with:
           key: roaming
+
+      - name: Repair stale v8 prebuilt marker
+        run: .github/scripts/repair-v8-prebuilt.sh
 
       - name: Build and Test with roaming
         run: |

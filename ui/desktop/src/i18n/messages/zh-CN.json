@@ -344,6 +344,57 @@
   "authSettings.title": {
     "defaultMessage": "提供商凭据"
   },
+  "autoCheckpointsTab.agentActive": {
+    "defaultMessage": "请等待本轮对话结束后再恢复。"
+  },
+  "autoCheckpointsTab.binary": {
+    "defaultMessage": "已变更（二进制）"
+  },
+  "autoCheckpointsTab.cancel": {
+    "defaultMessage": "取消"
+  },
+  "autoCheckpointsTab.confirmBody": {
+    "defaultMessage": "创建于 {createdAt}。将改变 {count} 个文件。"
+  },
+  "autoCheckpointsTab.confirmTitle": {
+    "defaultMessage": "恢复到这个快照？"
+  },
+  "autoCheckpointsTab.empty": {
+    "defaultMessage": "还没有自动快照。智能体写入文件前会自动创建快照。"
+  },
+  "autoCheckpointsTab.filesChanged": {
+    "defaultMessage": "{count} 个文件有变更"
+  },
+  "autoCheckpointsTab.loading": {
+    "defaultMessage": "加载中…"
+  },
+  "autoCheckpointsTab.restore": {
+    "defaultMessage": "恢复到此处"
+  },
+  "autoCheckpointsTab.restoreFailed": {
+    "defaultMessage": "恢复失败：{message}"
+  },
+  "autoCheckpointsTab.restored": {
+    "defaultMessage": "已恢复到这个快照"
+  },
+  "autoCheckpointsTab.restoring": {
+    "defaultMessage": "正在恢复…"
+  },
+  "autoCheckpointsTab.select": {
+    "defaultMessage": "选择"
+  },
+  "autoCheckpointsTab.selectHint": {
+    "defaultMessage": "选择两个快照进行对比，或选择一个进行恢复。"
+  },
+  "autoCheckpointsTab.showDiff": {
+    "defaultMessage": "对比"
+  },
+  "autoCheckpointsTab.title": {
+    "defaultMessage": "自动快照"
+  },
+  "autoCheckpointsTab.unavailable": {
+    "defaultMessage": "Git 不可用，无法创建快照。"
+  },
   "backButton.back": {
     "defaultMessage": "返回"
   },
@@ -387,49 +438,49 @@
     "defaultMessage": "搜索扩展…"
   },
   "browserApproval.approve": {
-    "defaultMessage": "Approve"
+    "defaultMessage": "批准"
   },
   "browserApproval.click": {
-    "defaultMessage": "Click"
+    "defaultMessage": "点击"
   },
   "browserApproval.currentUrl": {
-    "defaultMessage": "Current page"
+    "defaultMessage": "当前页面"
   },
   "browserApproval.deny": {
-    "defaultMessage": "Deny"
+    "defaultMessage": "拒绝"
   },
   "browserApproval.target": {
-    "defaultMessage": "Target element"
+    "defaultMessage": "目标元素"
   },
   "browserApproval.text": {
-    "defaultMessage": "Text to type"
+    "defaultMessage": "待输入文本"
   },
   "browserApproval.title": {
-    "defaultMessage": "Browser action needs approval"
+    "defaultMessage": "浏览器操作需要审批"
   },
   "browserApproval.type": {
-    "defaultMessage": "Type"
+    "defaultMessage": "输入"
   },
   "browserPanel.address": {
-    "defaultMessage": "Search or enter URL"
+    "defaultMessage": "搜索或输入网址"
   },
   "browserPanel.back": {
-    "defaultMessage": "Back"
+    "defaultMessage": "后退"
   },
   "browserPanel.forward": {
-    "defaultMessage": "Forward"
+    "defaultMessage": "前进"
   },
   "browserPanel.loadFailed": {
-    "defaultMessage": "Could not load the page"
+    "defaultMessage": "无法加载页面"
   },
   "browserPanel.reload": {
-    "defaultMessage": "Reload"
+    "defaultMessage": "刷新"
   },
   "browserPanel.retry": {
-    "defaultMessage": "Retry"
+    "defaultMessage": "重试"
   },
   "browserPanel.schemeRejected": {
-    "defaultMessage": "URL protocol not supported"
+    "defaultMessage": "URL 协议不受支持"
   },
   "cardButtons.configure": {
     "defaultMessage": "配置"
@@ -2121,70 +2172,70 @@
     "defaultMessage": "这种文件类型没有内置预览，请用外部程序打开。"
   },
   "gallery.candidates": {
-    "defaultMessage": "Files to include"
+    "defaultMessage": "要包含的文件"
   },
   "gallery.empty": {
-    "defaultMessage": "No works yet"
+    "defaultMessage": "还没有作品"
   },
   "gallery.excludedNote": {
-    "defaultMessage": "Some files are always excluded"
+    "defaultMessage": "部分文件始终会被排除"
   },
   "gallery.export": {
-    "defaultMessage": "Export share package"
+    "defaultMessage": "导出分享包"
   },
   "gallery.exportCancel": {
-    "defaultMessage": "Cancel"
+    "defaultMessage": "取消"
   },
   "gallery.exportConfirm": {
-    "defaultMessage": "Export"
+    "defaultMessage": "导出"
   },
   "gallery.exportSaved": {
-    "defaultMessage": "Saved to {path}"
+    "defaultMessage": "已保存到 {path}"
   },
   "gallery.import": {
-    "defaultMessage": "Import"
+    "defaultMessage": "导入"
   },
   "gallery.importedSource": {
-    "defaultMessage": "Local import"
+    "defaultMessage": "本地导入"
   },
   "gallery.localSource": {
-    "defaultMessage": "Local"
+    "defaultMessage": "本机"
   },
   "gallery.metadataAbstract": {
-    "defaultMessage": "Abstract"
+    "defaultMessage": "摘要"
   },
   "gallery.metadataCategory": {
-    "defaultMessage": "Category"
+    "defaultMessage": "题型"
   },
   "gallery.metadataCompetition": {
-    "defaultMessage": "Competition"
+    "defaultMessage": "赛事"
   },
   "gallery.metadataTitle": {
-    "defaultMessage": "Title"
+    "defaultMessage": "标题"
   },
   "gallery.noPdf": {
-    "defaultMessage": "No exportable paper PDF"
+    "defaultMessage": "没有可导出的论文 PDF"
   },
   "gallery.notFilled": {
-    "defaultMessage": "Not filled in"
+    "defaultMessage": "未填写"
   },
   "gallery.refresh": {
-    "defaultMessage": "Refresh"
+    "defaultMessage": "刷新"
   },
   "gallery.remoteLabel": {
-    "defaultMessage": "Remote works source"
+    "defaultMessage": "远程作品源"
   },
   "gallery.remoteSource": {
-    "defaultMessage": "Remote"
+    "defaultMessage": "远程"
   },
   "gallery.remoteUnreachable": {
-    "defaultMessage": "Remote service unreachable"
+    "defaultMessage": "远程服务不可达"
   },
   "gallery.temporaryRule": {
-    "defaultMessage": "Temporary rule: a paper PDF marks a work"
+    "defaultMessage": "临时规则：有论文 PDF 即视为作品"
   },
   "gallery.title": {
-    "defaultMessage": "Gallery"
+    "defaultMessage": "作品广场"
   },
   "gitBranchIndicator.failedToSwitch": {
     "defaultMessage": "无法切换到 {branch}"
@@ -3324,7 +3375,7 @@
     "defaultMessage": "扩展"
   },
   "navigation.itemCollab": {
-    "defaultMessage": "Join Collaboration"
+    "defaultMessage": "加入协作"
   },
   "navigation.itemCompetitions": {
     "defaultMessage": "赛事"
@@ -3339,7 +3390,7 @@
     "defaultMessage": "科研绘图"
   },
   "navigation.itemGallery": {
-    "defaultMessage": "Gallery"
+    "defaultMessage": "作品广场"
   },
   "navigation.itemHome": {
     "defaultMessage": "新建会话"
@@ -3930,7 +3981,7 @@
     "defaultMessage": "代码与依赖"
   },
   "projectPanel.collab": {
-    "defaultMessage": "Collaborate"
+    "defaultMessage": "协作"
   },
   "projectPanel.collapse": {
     "defaultMessage": "收起"
@@ -6215,6 +6266,9 @@
   "userMessage.removeImageFromEdit": {
     "defaultMessage": "从消息中移除图片"
   },
+  "versionsPanel.autoSnapshotsTab": {
+    "defaultMessage": "自动快照"
+  },
   "versionsPanel.cancel": {
     "defaultMessage": "取消"
   },
@@ -6226,6 +6280,9 @@
   },
   "versionsPanel.failed": {
     "defaultMessage": "操作失败"
+  },
+  "versionsPanel.gitHistoryTab": {
+    "defaultMessage": "Git 历史"
   },
   "versionsPanel.gitMissing": {
     "defaultMessage": "未安装 Git"
@@ -6360,7 +6417,7 @@
     "defaultMessage": "文件较大，仅显示前一部分"
   },
   "workspacePanel.browser": {
-    "defaultMessage": "Browser"
+    "defaultMessage": "浏览器"
   },
   "workspacePanel.close": {
     "defaultMessage": "关闭面板"
@@ -6390,7 +6447,7 @@
     "defaultMessage": "版本"
   },
   "workspaceToolbar.browser": {
-    "defaultMessage": "Browser"
+    "defaultMessage": "浏览器"
   },
   "workspaceToolbar.close": {
     "defaultMessage": "收起面板"

@@ -344,6 +344,57 @@
   "authSettings.title": {
     "defaultMessage": "Sağlayıcı Kimlik Bilgileri"
   },
+  "autoCheckpointsTab.agentActive": {
+    "defaultMessage": "Wait for the current turn to finish before restoring."
+  },
+  "autoCheckpointsTab.binary": {
+    "defaultMessage": "Changed (binary)"
+  },
+  "autoCheckpointsTab.cancel": {
+    "defaultMessage": "Cancel"
+  },
+  "autoCheckpointsTab.confirmBody": {
+    "defaultMessage": "Created {createdAt}. {count} files will change."
+  },
+  "autoCheckpointsTab.confirmTitle": {
+    "defaultMessage": "Restore this snapshot?"
+  },
+  "autoCheckpointsTab.empty": {
+    "defaultMessage": "No automatic snapshots yet. Snapshots are created before the agent writes files."
+  },
+  "autoCheckpointsTab.filesChanged": {
+    "defaultMessage": "{count} files changed"
+  },
+  "autoCheckpointsTab.loading": {
+    "defaultMessage": "Loading…"
+  },
+  "autoCheckpointsTab.restore": {
+    "defaultMessage": "Restore to here"
+  },
+  "autoCheckpointsTab.restoreFailed": {
+    "defaultMessage": "Restore failed: {message}"
+  },
+  "autoCheckpointsTab.restored": {
+    "defaultMessage": "Restored to this snapshot"
+  },
+  "autoCheckpointsTab.restoring": {
+    "defaultMessage": "Restoring…"
+  },
+  "autoCheckpointsTab.select": {
+    "defaultMessage": "Select"
+  },
+  "autoCheckpointsTab.selectHint": {
+    "defaultMessage": "Select two snapshots to compare, or one to restore."
+  },
+  "autoCheckpointsTab.showDiff": {
+    "defaultMessage": "Compare"
+  },
+  "autoCheckpointsTab.title": {
+    "defaultMessage": "Automatic snapshots"
+  },
+  "autoCheckpointsTab.unavailable": {
+    "defaultMessage": "Git is unavailable, so snapshots cannot be created."
+  },
   "backButton.back": {
     "defaultMessage": "Geri"
   },
@@ -6215,6 +6266,9 @@
   "userMessage.removeImageFromEdit": {
     "defaultMessage": "Görseli mesajdan kaldır"
   },
+  "versionsPanel.autoSnapshotsTab": {
+    "defaultMessage": "Auto snapshots"
+  },
   "versionsPanel.cancel": {
     "defaultMessage": "Cancel"
   },
@@ -6226,6 +6280,9 @@
   },
   "versionsPanel.failed": {
     "defaultMessage": "Operation failed"
+  },
+  "versionsPanel.gitHistoryTab": {
+    "defaultMessage": "Git history"
   },
   "versionsPanel.gitMissing": {
     "defaultMessage": "Git is not installed"

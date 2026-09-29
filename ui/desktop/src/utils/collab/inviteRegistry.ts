@@ -67,7 +67,7 @@ export function createInviteRegistry(options: InviteRegistryOptions = {}): Invit
   };
 
   const issue = (now: number): string => {
-    let code = '';
+    let code: string;
     do {
       code = Array.from({ length: INVITE_CODE_LENGTH }, () =>
         INVITE_CODE_ALPHABET[nextInt(INVITE_CODE_ALPHABET.length)]

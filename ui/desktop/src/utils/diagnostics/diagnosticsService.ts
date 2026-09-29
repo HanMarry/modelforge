@@ -53,11 +53,11 @@ export interface CategoryResult {
 }
 
 /** One category probe; it resolves to a verdict or throws/times out (runAll catches both). */
-export type DiagnosticDetector = (signal?: AbortSignal) => Promise<CategoryResult>;
+export type DiagnosticDetector = (signal?: globalThis.AbortSignal) => Promise<CategoryResult>;
 
 export interface RunAllOptions {
   timeoutMs?: number;
-  signal?: AbortSignal;
+  signal?: globalThis.AbortSignal;
   onProgress?: (category: DiagnosticCategory, result: CategoryResult) => void;
 }
 

@@ -2984,10 +2984,17 @@ mod tests {
         );
     }
 
+    /// Tests whose outcome depends on whether a handoff memo fits must not see a
+    /// `GOOSE_CONTEXT_LIMIT` another test sets concurrently, so they hold it unset.
+    fn unset_context_limit() -> env_lock::EnvGuard<'static> {
+        env_lock::lock_env([("GOOSE_CONTEXT_LIMIT", None::<&str>)])
+    }
+
     #[tokio::test]
     async fn streamed_error_after_bare_retry_consumes_handoff_context() {
         use futures::StreamExt;
 
+        let _guard = unset_context_limit();
         let (tx, mut rx) = mpsc::channel(1);
         let (provider, model) = test_provider_with_tx(Some(tx));
         let messages = vec![
@@ -3044,6 +3051,7 @@ mod tests {
     async fn cancelled_first_prompt_rolls_back_handoff_context_claim() {
         use futures::StreamExt;
 
+        let _guard = unset_context_limit();
         let (tx, mut rx) = mpsc::channel(1);
         let (provider, model) = test_provider_with_tx(Some(tx));
         let messages = vec![
@@ -3070,6 +3078,7 @@ mod tests {
     async fn refused_first_prompt_rolls_back_handoff_context_claim() {
         use futures::StreamExt;
 
+        let _guard = unset_context_limit();
         let (tx, mut rx) = mpsc::channel(1);
         let (provider, model) = test_provider_with_tx(Some(tx));
         let messages = vec![
@@ -3096,6 +3105,7 @@ mod tests {
     async fn completed_first_prompt_commits_handoff_context_claim() {
         use futures::StreamExt;
 
+        let _guard = unset_context_limit();
         let (tx, mut rx) = mpsc::channel(1);
         let (provider, model) = test_provider_with_tx(Some(tx));
         let messages = vec![
@@ -3120,6 +3130,7 @@ mod tests {
 
     #[tokio::test]
     async fn dropped_first_prompt_stream_rolls_back_handoff_context_claim() {
+        let _guard = unset_context_limit();
         let (tx, mut rx) = mpsc::channel(1);
         let (provider, model) = test_provider_with_tx(Some(tx));
         let messages = vec![
@@ -3152,7 +3163,7 @@ mod tests {
 
     #[tokio::test]
     async fn failed_handoff_send_consumes_the_claim() {
-        let _guard = env_lock::lock_env([("GOOSE_CONTEXT_LIMIT", None::<&str>)]);
+        let _guard = unset_context_limit();
         let (tx, rx) = mpsc::channel(1);
         drop(rx);
         let (provider, model) = test_provider_with_tx(Some(tx));
@@ -3186,6 +3197,7 @@ mod tests {
     async fn rejected_handoff_prompt_retries_once_without_the_memo() {
         use futures::StreamExt;
 
+        let _guard = unset_context_limit();
         let (tx, mut rx) = mpsc::channel(2);
         let (provider, model) = test_provider_with_tx(Some(tx));
         let messages = vec![
@@ -3227,6 +3239,7 @@ mod tests {
     async fn rejected_retry_surfaces_the_error() {
         use futures::StreamExt;
 
+        let _guard = unset_context_limit();
         let (tx, mut rx) = mpsc::channel(2);
         let (provider, model) = test_provider_with_tx(Some(tx));
         let messages = vec![
@@ -3265,6 +3278,7 @@ mod tests {
     async fn auth_failure_surfaces_instead_of_retrying_without_the_memo() {
         use futures::StreamExt;
 
+        let _guard = unset_context_limit();
         let (tx, mut rx) = mpsc::channel(2);
         let (provider, model) = test_provider_with_tx(Some(tx));
         let messages = vec![
@@ -3305,6 +3319,7 @@ mod tests {
     async fn a_budget_too_small_for_a_memo_keeps_the_claim() {
         use futures::StreamExt;
 
+        let _guard = unset_context_limit();
         let (tx, mut rx) = mpsc::channel(1);
         let (provider, model) = test_provider_with_tx(Some(tx));
         // A window this small leaves no room for a memo beside the current prompt.
@@ -3343,6 +3358,7 @@ mod tests {
     async fn exhausted_credits_surface_without_spending_the_handoff() {
         use futures::StreamExt;
 
+        let _guard = unset_context_limit();
         let (tx, mut rx) = mpsc::channel(2);
         let (provider, model) = test_provider_with_tx(Some(tx));
         let messages = vec![
