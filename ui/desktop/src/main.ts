@@ -31,12 +31,15 @@ import { checkBackendStatus } from './backendStatus';
 import { installBackendCertificateVerifiers } from './backendCertificateVerifier';
 import * as skillEnablement from './utils/skillEnablement';
 import { configureProxy } from './proxy';
-import { startGooseServe } from './gooseServe';
+import { findGooseBinaryPath, startGooseServe } from './gooseServe';
 import {
   createAgentKernelManager,
   createAgentKernelSecretStore,
   resolveGooseConfigDir,
 } from './utils/agentKernel';
+import { listCustomProviders, readSecretFromFile } from './utils/gooseProviderState';
+import { registerDiagnosticsIpc } from './utils/diagnostics/diagnosticsIpc';
+import type { ConfiguredProvider } from './utils/diagnostics/diagnosticsService';
 import { createKernelKeyIpcHandlers, registerCredentialIpc } from './utils/credentialIpc';
 import {
   bundledCodexSearchPathEnv,
@@ -243,6 +246,34 @@ const agentKernel = createAgentKernelManager({
   log: (message) => log.info(`[agent-kernel] ${message}`),
 });
 
+/**
+ * Providers the diagnostics centre can reach with a raw key: custom providers the user added,
+ * with the key resolved from the desktop credential store, the environment, or goose's file
+ * secret store (requirement 6.2).
+ */
+const listDiagnosticsProviders = async (): Promise<ConfiguredProvider[]> => {
+  const configDir = resolveGooseConfigDir();
+  return listCustomProviders(configDir)
+    .map((provider) => {
+      const key =
+        credentialStore.get(`provider:${provider.activeProvider}`) ??
+        credentialStore.get(`kernel:${provider.activeProvider}`) ??
+        process.env[provider.apiKeyEnv] ??
+        readSecretFromFile(path.join(configDir, 'secrets.yaml'), provider.apiKeyEnv) ??
+        '';
+      return { name: provider.activeProvider, baseUrl: provider.baseUrl, key };
+    })
+    .filter((provider) => provider.baseUrl && provider.key);
+};
+
+// Diagnostics centre and first-boot connectivity IPC (requirement 3.6, 5.2, 6).
+registerDiagnosticsIpc(ipcMain, {
+  getBinaryPath: () =>
+    findGooseBinaryPath({ isPackaged: app.isPackaged, resourcesPath: process.resourcesPath }),
+  listConfiguredProviders: listDiagnosticsProviders,
+  secrets: () => credentialStore.sensitiveValues(),
+});
+
 /** Codex runtime shipped with packaged Windows builds; resolved once, it cannot change at runtime. */
 const bundledCodexRuntime = resolveBundledCodexRuntime({
   platform: process.platform,
@@ -323,6 +354,14 @@ function getSettings(): Settings {
       agentKernel: {
         ...defaultSettings.agentKernel,
         ...(stored.agentKernel ?? {}),
+      },
+      onboarding: {
+        ...defaultSettings.onboarding,
+        ...(stored.onboarding ?? {}),
+        steps: {
+          ...defaultSettings.onboarding.steps,
+          ...(stored.onboarding?.steps ?? {}),
+        },
       },
       keyboardShortcuts: {
         ...defaultSettings.keyboardShortcuts,
@@ -2186,6 +2225,7 @@ const validSettingKeys: Set<string> = new Set([
   'disableAutoDownload',
   'recentModels',
   'agentKernel',
+  'onboarding',
 ]);
 
 ipcMain.handle('set-setting', (_event, key: SettingKey, value: unknown) => {

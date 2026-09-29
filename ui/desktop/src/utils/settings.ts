@@ -3,6 +3,23 @@ export type RecentModel = {
   model: string;
 };
 
+/**
+ * First-boot wizard persistence (requirement 5.4). Each step is `pending`, `done` or
+ * `skipped`; `completed` is set once the user finishes or skips the final step. The
+ * diagnostics centre reads `steps` to offer "补做" entries for skipped steps.
+ */
+export type OnboardingStepId = 'provider' | 'key' | 'environment' | 'example';
+export type OnboardingStepStatus = 'pending' | 'done' | 'skipped';
+export interface OnboardingState {
+  completed: boolean;
+  steps: Record<OnboardingStepId, OnboardingStepStatus>;
+}
+
+export const defaultOnboarding: OnboardingState = {
+  completed: false,
+  steps: { provider: 'pending', key: 'pending', environment: 'pending', example: 'pending' },
+};
+
 export interface ExternalBackendConfig {
   enabled: boolean;
   url: string;
@@ -74,6 +91,7 @@ export interface Settings {
   // Key is kept as `externalGoosed` for backward compat with persisted user settings.
   externalGoosed: ExternalBackendConfig;
   agentKernel: AgentKernelSettings;
+  onboarding: OnboardingState;
   globalShortcut?: string | null;
   keyboardShortcuts: KeyboardShortcuts;
 
@@ -131,6 +149,7 @@ export const defaultSettings: Settings = {
     secret: '',
   },
   agentKernel: { ...defaultAgentKernel },
+  onboarding: { ...defaultOnboarding, steps: { ...defaultOnboarding.steps } },
 
   // UI preferences
   theme: 'light',

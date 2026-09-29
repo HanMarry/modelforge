@@ -10,6 +10,15 @@ import type { IpcResult } from './utils/ipcResult';
 import { defaultSettings } from './utils/settings';
 import type { DisabledSkillRecord } from './utils/skillEnablement';
 import type { OpenExternalUrlResult } from './utils/urlSecurity';
+import type { ProviderConnectionResult, ProviderConnectionTarget } from './utils/providerConnectivity';
+import type {
+  CategoryResult,
+  DiagnosticCategory,
+  DiagnosticReport,
+  ExportResult,
+  KernelProvenance,
+} from './utils/diagnostics/diagnosticsService';
+import type { LocalRuntimeDetection } from './utils/runtimeDetection';
 import type {
   EnvironmentProbe,
   GitCheckpoint,
@@ -240,6 +249,22 @@ type ElectronAPI = {
   refreshAgentKernel: () => Promise<AgentKernelStatus>;
   /** Switches the model the kernel proxies to; takes effect on the next request. */
   setAgentKernelModel: (model: string) => Promise<AgentKernelStatus>;
+  /** Tests connectivity to a provider endpoint with the given key (requirement 5.2). */
+  testProviderConnection: (
+    target: ProviderConnectionTarget,
+    key: string
+  ) => Promise<ProviderConnectionResult>;
+  /** Runs all four diagnostics categories; progress arrives via onDiagnosticsProgress. */
+  diagnosticsRun: () => Promise<Record<DiagnosticCategory, CategoryResult>>;
+  onDiagnosticsProgress: (
+    callback: (category: DiagnosticCategory, result: CategoryResult) => void
+  ) => () => void;
+  /** Writes a masked diagnostics report to `target` (requirement 6.7, 6.8). */
+  diagnosticsExport: (target: string, report: DiagnosticReport) => Promise<ExportResult>;
+  /** Build provenance of the running kernel (requirement 3.6, 3.9). */
+  kernelProvenance: () => Promise<KernelProvenance>;
+  /** Detects locally installed Claude Code / Codex for the first-boot wizard (5.5). */
+  detectLocalRuntimes: () => Promise<LocalRuntimeDetection[]>;
   setWakelock: (enable: boolean) => Promise<boolean>;
   getWakelockState: () => Promise<boolean>;
   setSpellcheck: (enable: boolean) => Promise<boolean>;
@@ -445,6 +470,24 @@ const electronAPI: ElectronAPI = {
   applyAgentKernel: () => ipcRenderer.invoke('agent-kernel-apply'),
   refreshAgentKernel: () => ipcRenderer.invoke('agent-kernel-refresh'),
   setAgentKernelModel: (model: string) => ipcRenderer.invoke('agent-kernel-set-model', model),
+  testProviderConnection: (target: ProviderConnectionTarget, key: string) =>
+    ipcRenderer.invoke('provider-test-connection', target, key),
+  diagnosticsRun: () => ipcRenderer.invoke('diagnostics-run'),
+  onDiagnosticsProgress: (
+    callback: (category: DiagnosticCategory, result: CategoryResult) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      category: DiagnosticCategory,
+      result: CategoryResult
+    ) => callback(category, result);
+    ipcRenderer.on('diagnostics-progress', listener);
+    return () => ipcRenderer.removeListener('diagnostics-progress', listener);
+  },
+  diagnosticsExport: (target: string, report: DiagnosticReport) =>
+    ipcRenderer.invoke('diagnostics-export', target, report),
+  kernelProvenance: () => ipcRenderer.invoke('kernel-provenance'),
+  detectLocalRuntimes: () => ipcRenderer.invoke('detect-local-runtimes'),
   setWakelock: (enable: boolean) => ipcRenderer.invoke('set-wakelock', enable),
   getWakelockState: () => ipcRenderer.invoke('get-wakelock-state'),
   setSpellcheck: (enable: boolean) => ipcRenderer.invoke('set-spellcheck', enable),
