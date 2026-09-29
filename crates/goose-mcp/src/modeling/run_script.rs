@@ -88,7 +88,8 @@ pub struct RunScriptParams {
 }
 
 /// What every run of this server uses: where credential values come from and who hears about
-/// runs. Both default to nothing; the integration layer supplies real ones.
+/// runs. Both default to nothing; the integration layer supplies real ones, for the builtin
+/// servers through [`super::set_builtin_run_integration`].
 #[derive(Clone)]
 pub struct RunIntegration {
     pub secrets: Arc<dyn SecretValues>,

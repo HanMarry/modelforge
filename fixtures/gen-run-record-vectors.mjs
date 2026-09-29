@@ -3,7 +3,7 @@
  * Generates fixtures/run-record-vectors.json, the cross-language Run_Record vectors
  * (spec mathmodel-parity-and-beyond, Property 36 and 38).
  *
- * - `records`: 100 valid records. Rust (crates/goose-mcp/src/modeling/run_record.rs) and the
+ * - `records`: 100 valid records. Rust (crates/goose-run-record/src/run_record.rs) and the
  *   desktop (ui/desktop/src/utils/runRecord.test.ts) both parse each one and must re-serialize
  *   it to the same JSON value, so a record written by either side reads back unchanged on the
  *   other.

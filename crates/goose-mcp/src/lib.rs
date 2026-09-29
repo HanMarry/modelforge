@@ -48,20 +48,25 @@ fn spawn_and_serve<S>(
 }
 
 macro_rules! builtin {
-    ($name:ident, $server_ty:ty) => {{
+    ($name:ident, $server_ty:ty) => {
+        builtin!($name, $server_ty, new)
+    };
+    ($name:ident, $server_ty:ty, $constructor:ident) => {{
         fn spawn(r: tokio::io::DuplexStream, w: tokio::io::DuplexStream) {
-            spawn_and_serve(stringify!($name), <$server_ty>::new(), (r, w));
+            spawn_and_serve(stringify!($name), <$server_ty>::$constructor(), (r, w));
         }
         (stringify!($name), spawn as SpawnServerFn)
     }};
 }
 
+/// The builtin extensions goose runs in process. Each spawn creates a fresh server; `modeling`
+/// servers take the run integration installed with [`modeling::set_builtin_run_integration`].
 pub static BUILTIN_EXTENSIONS: Lazy<HashMap<&'static str, SpawnServerFn>> = Lazy::new(|| {
     HashMap::from([
         builtin!(autovisualiser, AutoVisualiserRouter),
         builtin!(computercontroller, ComputerControllerServer),
         builtin!(memory, MemoryServer),
-        builtin!(modeling, ModelingServer),
+        builtin!(modeling, ModelingServer, builtin),
         builtin!(tutorial, TutorialServer),
     ])
 });

@@ -5470,19 +5470,17 @@ dependencies = [
  "chrono",
  "docx-rs",
  "etcetera",
+ "goose-run-record",
  "image 0.24.9",
  "include_dir",
  "indoc",
  "lopdf",
  "once_cell",
  "process-wrap",
- "proptest",
- "rand 0.10.2",
  "rmcp 3.2.0",
  "schemars 1.2.2",
  "serde",
  "serde_json",
- "sha2 0.11.0",
  "shell-words",
  "tempfile",
  "tokio",
@@ -5571,6 +5569,20 @@ dependencies = [
  "tokio",
  "tokio-util",
  "tracing",
+]
+
+[[package]]
+name = "goose-run-record"
+version = "1.50.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "proptest",
+ "rand 0.10.2",
+ "serde",
+ "serde_json",
+ "sha2 0.11.0",
+ "tempfile",
 ]
 
 [[package]]
