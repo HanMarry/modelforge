@@ -2774,8 +2774,164 @@
   "launcher.placeholder": {
     "defaultMessage": "问 ModelForge 任何问题…"
   },
+  "learning.exercise.cancel": {
+    "defaultMessage": "取消"
+  },
+  "learning.exercise.chatFailed": {
+    "defaultMessage": "无法开始学习模式对话"
+  },
+  "learning.exercise.checkError": {
+    "defaultMessage": "检查失败：{message}。练习状态没有改变，你的提交内容已保留。"
+  },
+  "learning.exercise.checkFailed": {
+    "defaultMessage": "未通过：{reason}"
+  },
+  "learning.exercise.checkPassed": {
+    "defaultMessage": "通过"
+  },
+  "learning.exercise.checkPending": {
+    "defaultMessage": "尚未检查"
+  },
+  "learning.exercise.checkTimeout": {
+    "defaultMessage": "检查未能在 60 秒内完成。练习状态没有改变，你的提交内容已保留。"
+  },
+  "learning.exercise.checking": {
+    "defaultMessage": "正在检查…"
+  },
+  "learning.exercise.checks": {
+    "defaultMessage": "检查项"
+  },
+  "learning.exercise.chooseProjectDir": {
+    "defaultMessage": "选择文件夹"
+  },
+  "learning.exercise.close": {
+    "defaultMessage": "关闭练习"
+  },
+  "learning.exercise.completedAt": {
+    "defaultMessage": "完成于 {time}"
+  },
+  "learning.exercise.confirm": {
+    "defaultMessage": "查看解答"
+  },
+  "learning.exercise.confirmMessage": {
+    "defaultMessage": "智能体会在新对话中给出完整解答代码，这道练习将一直标注“已查看解答”。"
+  },
+  "learning.exercise.confirmTitle": {
+    "defaultMessage": "查看完整解答？"
+  },
+  "learning.exercise.invalidProject": {
+    "defaultMessage": "无法读取项目文件夹。练习状态没有改变，你的提交内容已保留。"
+  },
+  "learning.exercise.learningMode": {
+    "defaultMessage": "学习模式"
+  },
+  "learning.exercise.learningModeActive": {
+    "defaultMessage": "本练习处于学习模式的对话：{count} 个"
+  },
+  "learning.exercise.learningModeHint": {
+    "defaultMessage": "学习模式下，智能体用提示和追问引导你，不直接给出完整解答代码。"
+  },
+  "learning.exercise.leaveLearningMode": {
+    "defaultMessage": "退出学习模式"
+  },
+  "learning.exercise.needProjectDir": {
+    "defaultMessage": "请先选择存放练习文件的项目文件夹。"
+  },
+  "learning.exercise.noProjectDir": {
+    "defaultMessage": "尚未选择文件夹"
+  },
+  "learning.exercise.practiceInChat": {
+    "defaultMessage": "在对话中练习"
+  },
+  "learning.exercise.projectDir": {
+    "defaultMessage": "项目文件夹"
+  },
+  "learning.exercise.projectDirHint": {
+    "defaultMessage": "存放练习文件的文件夹，检查项会从这里读取文件。"
+  },
+  "learning.exercise.recheck": {
+    "defaultMessage": "重新检查"
+  },
+  "learning.exercise.statement": {
+    "defaultMessage": "题目"
+  },
+  "learning.exercise.subjective": {
+    "defaultMessage": "由智能体评阅"
+  },
+  "learning.exercise.submission": {
+    "defaultMessage": "你的提交"
+  },
+  "learning.exercise.submissionPlaceholder": {
+    "defaultMessage": "写下你做了什么、得到了什么结论。可以修改后重新提交。"
+  },
+  "learning.exercise.submit": {
+    "defaultMessage": "提交检查"
+  },
+  "learning.exercise.unlockFailed": {
+    "defaultMessage": "无法解锁完整解答"
+  },
+  "learning.exercise.viewSolution": {
+    "defaultMessage": "查看完整解答"
+  },
+  "learning.progress.count": {
+    "defaultMessage": "{completed} / {total}"
+  },
+  "learning.progress.hint": {
+    "defaultMessage": "一道练习的所有检查项都通过后才算完成。"
+  },
+  "learning.progress.percent": {
+    "defaultMessage": "{percent}%"
+  },
+  "learning.progress.title": {
+    "defaultMessage": "各课程分组的进度"
+  },
+  "learning.status.completed": {
+    "defaultMessage": "已完成"
+  },
+  "learning.status.failed": {
+    "defaultMessage": "未通过"
+  },
+  "learning.status.notStarted": {
+    "defaultMessage": "未开始"
+  },
+  "learning.status.solutionViewed": {
+    "defaultMessage": "已查看解答"
+  },
   "learning.title": {
     "defaultMessage": "学习路径"
+  },
+  "learning.view.exercises": {
+    "defaultMessage": "练习"
+  },
+  "learning.view.groupProgress": {
+    "defaultMessage": "已完成 {completed} / {total}"
+  },
+  "learning.view.loadFailed": {
+    "defaultMessage": "无法加载学习路径：{message}"
+  },
+  "learning.view.loading": {
+    "defaultMessage": "正在加载学习路径…"
+  },
+  "learning.view.objectives": {
+    "defaultMessage": "学习目标"
+  },
+  "learning.view.retry": {
+    "defaultMessage": "重试"
+  },
+  "learning.view.skills": {
+    "defaultMessage": "关联技能"
+  },
+  "learning.view.subtitle": {
+    "defaultMessage": "五个课程分组，每组都有练习，提交结果后会自动检查。"
+  },
+  "learning.view.tabCourses": {
+    "defaultMessage": "课程"
+  },
+  "learning.view.tabProfile": {
+    "defaultMessage": "我的进度"
+  },
+  "learning.view.tabs": {
+    "defaultMessage": "学习路径栏目"
   },
   "loadingGoose.compacting": {
     "defaultMessage": "ModelForge 正在压缩对话…"
