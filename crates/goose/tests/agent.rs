@@ -1185,8 +1185,23 @@ mod tests {
         #[tokio::test]
         async fn test_extension_manager_tools_available() {
             let (agent, session_id) = setup_agent_with_extension_manager().await;
-            let tools = agent.list_tools(&session_id, None).await;
 
+            // The extension manager decides whether to expose `manage_extensions` by reading the
+            // session back from storage; a just-created session is not always visible on the
+            // first read, so poll briefly before asserting.
+            let mut manage_tool_found = false;
+            for _ in 0..20 {
+                let tools = agent.list_tools(&session_id, None).await;
+                manage_tool_found = tools.iter().any(|tool| {
+                    tool.name == format!("extensionmanager__{MANAGE_EXTENSIONS_TOOL_NAME}")
+                });
+                if manage_tool_found {
+                    break;
+                }
+                tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+            }
+
+            let tools = agent.list_tools(&session_id, None).await;
             // Note: Tool names are prefixed with the normalized extension name "extensionmanager"
             // not the display name "Extension Manager"
             let search_tool = tools.iter().find(|tool| {
@@ -1196,12 +1211,8 @@ mod tests {
                 search_tool.is_some(),
                 "search_available_extensions tool should be available"
             );
-
-            let manage_tool = tools.iter().find(|tool| {
-                tool.name == format!("extensionmanager__{MANAGE_EXTENSIONS_TOOL_NAME}")
-            });
             assert!(
-                manage_tool.is_some(),
+                manage_tool_found,
                 "manage_extensions tool should be available"
             );
         }
