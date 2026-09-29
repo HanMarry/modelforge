@@ -18,7 +18,7 @@ export type {
   CheckpointKind,
   CheckpointResult,
   CheckpointError,
-} from './checkpoints/checkpointService';
+} from './checkpointService';
 
 let service: CheckpointService | null = null;
 

@@ -178,7 +178,7 @@ export interface CollabHost {
 
 const SHARE_EXCLUDE: readonly string[] = MANDATORY_EXCLUDE_PATTERNS;
 
-export function createCollabHost(options: CollabHostOptions): Promise<CollabHost> {
+export async function createCollabHost(options: CollabHostOptions): Promise<CollabHost> {
   const now = options.now ?? (() => Date.now());
   const log = options.log ?? (() => {});
   const heartbeatTimeoutMs = options.heartbeatTimeoutMs ?? HEARTBEAT_TIMEOUT_MS;

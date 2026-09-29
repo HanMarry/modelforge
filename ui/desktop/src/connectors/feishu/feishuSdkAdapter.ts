@@ -10,7 +10,6 @@ import {
   createFeishuConnector,
   type FeishuAcpPort,
   type FeishuConnector,
-  type FeishuInboundEvent,
   type FeishuSessionStore,
 } from './feishuConnector';
 import type { Stream } from '@agentclientprotocol/sdk';
@@ -32,21 +31,12 @@ export function createLarkEventSource(options: LarkEventSourceOptions) {
   const log = options.log ?? (() => {});
   const redact = options.redact ?? ((text) => text);
 
-  let handler: ((event: FeishuInboundEvent) => void) | null = null;
-
   return {
-    onMessage: (next: (event: FeishuInboundEvent) => void) => {
-      handler = next;
-      return () => {
-        handler = null;
-      };
-    },
+    onMessage: () => () => {},
     start: async () => {
       log(`feishu long connection is not wired to a LarkChannel yet (app ${redact(options.appId)})`);
     },
-    stop: async () => {
-      handler = null;
-    },
+    stop: async () => {},
   };
 }
 
@@ -132,8 +122,8 @@ export function createFeishuController(options: FeishuControllerOptions) {
             const client = new Client({
               appId: config.appId,
               appSecret: config.appSecret,
-              appType: lark.AppType.SelfBuild,
-              domain: lark.Domain.FeiShu,
+              appType: AppType.SelfBuild,
+              domain: Domain.FeiShu,
             });
             await client.im.message.create({
               params: { receive_id_type: 'chat_id' },
