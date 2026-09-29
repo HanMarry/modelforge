@@ -2141,10 +2141,13 @@ pub async fn handle_tetrate_auth() -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Custom provider headers, if any, and the names of the ones marked sensitive.
+type CustomHeaders = (Option<HashMap<String, String>>, Vec<String>);
+
 /// Prompts the user to collect custom HTTP headers for a provider, and returns them with the
 /// names of the sensitive ones. Auth header names are sensitive without asking; saving the
 /// provider moves the sensitive values to the secure store (requirements 1.1, 1.2).
-fn collect_custom_headers() -> anyhow::Result<(Option<HashMap<String, String>>, Vec<String>)> {
+fn collect_custom_headers() -> anyhow::Result<CustomHeaders> {
     let use_custom_headers = cliclack::confirm("Does this provider require custom headers?")
         .initial_value(false)
         .interact()?;
