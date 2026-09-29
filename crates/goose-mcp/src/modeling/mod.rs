@@ -235,6 +235,8 @@ impl ModelingServer {
             project_root,
             provider: meta_string(&context.meta, run_script::PROVIDER_META_KEY),
             model: meta_string(&context.meta, run_script::MODEL_META_KEY),
+            tool_call_id: meta_string(&context.meta, run_script::TOOL_CALL_ID_META_KEY),
+            notifier: Some(Arc::new(context.peer.clone())),
         };
         let active = self.active_runs.register(context.id.clone());
         let cancelled = context.ct.clone();

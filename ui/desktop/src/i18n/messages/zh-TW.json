@@ -2267,9 +2267,6 @@
   "gallery.remoteUnreachable": {
     "defaultMessage": "遠端服務無法連線"
   },
-  "gallery.temporaryRule": {
-    "defaultMessage": "暫行規則：有論文 PDF 即視為作品"
-  },
   "gallery.title": {
     "defaultMessage": "作品廣場"
   },
@@ -4780,6 +4777,171 @@
   },
   "responseStyle.detailedLabel": {
     "defaultMessage": "詳細"
+  },
+  "runs.badgeLabel": {
+    "defaultMessage": "{status}：檢視 {path} 的詳細資料"
+  },
+  "runs.checkFailed": {
+    "defaultMessage": "無法檢查結果，請重試。"
+  },
+  "runs.checkStale": {
+    "defaultMessage": "檢查過期結果"
+  },
+  "runs.close": {
+    "defaultMessage": "關閉"
+  },
+  "runs.code": {
+    "defaultMessage": "程式碼"
+  },
+  "runs.command": {
+    "defaultMessage": "指令"
+  },
+  "runs.detailsTitle": {
+    "defaultMessage": "產物詳細資料"
+  },
+  "runs.endedAt": {
+    "defaultMessage": "結束時間"
+  },
+  "runs.exitCode": {
+    "defaultMessage": "結束代碼"
+  },
+  "runs.exitCodeNone": {
+    "defaultMessage": "無"
+  },
+  "runs.failure": {
+    "defaultMessage": "失敗類型"
+  },
+  "runs.failureCancelled": {
+    "defaultMessage": "使用者取消"
+  },
+  "runs.failureNonZero": {
+    "defaultMessage": "非零結束代碼"
+  },
+  "runs.failureTimeout": {
+    "defaultMessage": "逾時"
+  },
+  "runs.fileChanged": {
+    "defaultMessage": "執行後已變更"
+  },
+  "runs.fileMatch": {
+    "defaultMessage": "與記錄一致"
+  },
+  "runs.fileMissing": {
+    "defaultMessage": "缺少"
+  },
+  "runs.fileUnreadable": {
+    "defaultMessage": "無法讀取"
+  },
+  "runs.fileUnrecorded": {
+    "defaultMessage": "記錄中沒有雜湊值"
+  },
+  "runs.indexFailed": {
+    "defaultMessage": "無法載入產物狀態。"
+  },
+  "runs.inputs": {
+    "defaultMessage": "輸入檔案"
+  },
+  "runs.loadFailed": {
+    "defaultMessage": "無法載入執行記錄，請關閉後重試。"
+  },
+  "runs.loading": {
+    "defaultMessage": "正在載入執行記錄…"
+  },
+  "runs.markVerified": {
+    "defaultMessage": "標記為已驗證"
+  },
+  "runs.modifiedOutside": {
+    "defaultMessage": "此檔案在產生它的執行之後，於 ModelForge 之外被修改。"
+  },
+  "runs.modifiedOutsideHint": {
+    "defaultMessage": "於 ModelForge 之外被修改"
+  },
+  "runs.noInputs": {
+    "defaultMessage": "沒有記錄輸入檔案"
+  },
+  "runs.noRecord": {
+    "defaultMessage": "無執行記錄"
+  },
+  "runs.otherTitle": {
+    "defaultMessage": "其他已追蹤的產物"
+  },
+  "runs.reasonCodeChanged": {
+    "defaultMessage": "程式碼已變更：{path}"
+  },
+  "runs.reasonInputChanged": {
+    "defaultMessage": "輸入已變更：{path}"
+  },
+  "runs.reasonMissing": {
+    "defaultMessage": "檔案缺少：{path}"
+  },
+  "runs.reasonOutputModified": {
+    "defaultMessage": "於 ModelForge 之外被修改：{path}"
+  },
+  "runs.reasonUnreadable": {
+    "defaultMessage": "無法讀取：{path}"
+  },
+  "runs.reasonsTitle": {
+    "defaultMessage": "過期原因"
+  },
+  "runs.recordedHash": {
+    "defaultMessage": "記錄的 SHA-256：{hash}"
+  },
+  "runs.rejectNotGenerated": {
+    "defaultMessage": "未標記：只有狀態為「已產生」的產物才能標記為已驗證，目前狀態為{status}。"
+  },
+  "runs.rejectNotTracked": {
+    "defaultMessage": "未標記：此檔案尚未作為產物追蹤。"
+  },
+  "runs.rejectRecordMissing": {
+    "defaultMessage": "未標記：此產物的執行記錄缺少或無法讀取。"
+  },
+  "runs.rejectRunFailed": {
+    "defaultMessage": "未標記：產生此產物的執行結束代碼不是 0。"
+  },
+  "runs.runId": {
+    "defaultMessage": "執行 ID"
+  },
+  "runs.seed": {
+    "defaultMessage": "隨機種子"
+  },
+  "runs.seedUnset": {
+    "defaultMessage": "未設定"
+  },
+  "runs.startedAt": {
+    "defaultMessage": "開始時間"
+  },
+  "runs.status": {
+    "defaultMessage": "狀態"
+  },
+  "runs.statusFailed": {
+    "defaultMessage": "執行失敗"
+  },
+  "runs.statusFileFound": {
+    "defaultMessage": "已發現檔案"
+  },
+  "runs.statusGenerated": {
+    "defaultMessage": "已產生"
+  },
+  "runs.statusNotStarted": {
+    "defaultMessage": "未開始"
+  },
+  "runs.statusRunning": {
+    "defaultMessage": "執行中"
+  },
+  "runs.statusStale": {
+    "defaultMessage": "已過期"
+  },
+  "runs.statusVerified": {
+    "defaultMessage": "已驗證"
+  },
+  "runs.thisFile": {
+    "defaultMessage": "本檔案"
+  },
+  "runs.verifiedAt": {
+    "defaultMessage": "已於 {time} 驗證（執行 {runId}）"
+  },
+  "runs.verifyFailed": {
+    "defaultMessage": "無法儲存驗證記錄，請重試。"
   },
   "scheduleDetailView.actions": {
     "defaultMessage": "動作"

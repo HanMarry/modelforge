@@ -2267,9 +2267,6 @@
   "gallery.remoteUnreachable": {
     "defaultMessage": "Remote service unreachable"
   },
-  "gallery.temporaryRule": {
-    "defaultMessage": "Temporary rule: a paper PDF marks a work"
-  },
   "gallery.title": {
     "defaultMessage": "Gallery"
   },
@@ -4780,6 +4777,171 @@
   },
   "responseStyle.detailedLabel": {
     "defaultMessage": "Detalhado"
+  },
+  "runs.badgeLabel": {
+    "defaultMessage": "{status}: show details for {path}"
+  },
+  "runs.checkFailed": {
+    "defaultMessage": "Could not check the results. Try again."
+  },
+  "runs.checkStale": {
+    "defaultMessage": "Check for outdated results"
+  },
+  "runs.close": {
+    "defaultMessage": "Close"
+  },
+  "runs.code": {
+    "defaultMessage": "Code"
+  },
+  "runs.command": {
+    "defaultMessage": "Command"
+  },
+  "runs.detailsTitle": {
+    "defaultMessage": "Result details"
+  },
+  "runs.endedAt": {
+    "defaultMessage": "Ended"
+  },
+  "runs.exitCode": {
+    "defaultMessage": "Exit code"
+  },
+  "runs.exitCodeNone": {
+    "defaultMessage": "None"
+  },
+  "runs.failure": {
+    "defaultMessage": "Failure"
+  },
+  "runs.failureCancelled": {
+    "defaultMessage": "Cancelled by the user"
+  },
+  "runs.failureNonZero": {
+    "defaultMessage": "Non-zero exit code"
+  },
+  "runs.failureTimeout": {
+    "defaultMessage": "Timed out"
+  },
+  "runs.fileChanged": {
+    "defaultMessage": "Changed since the run"
+  },
+  "runs.fileMatch": {
+    "defaultMessage": "Matches the record"
+  },
+  "runs.fileMissing": {
+    "defaultMessage": "Missing"
+  },
+  "runs.fileUnreadable": {
+    "defaultMessage": "Cannot be read"
+  },
+  "runs.fileUnrecorded": {
+    "defaultMessage": "No recorded hash"
+  },
+  "runs.indexFailed": {
+    "defaultMessage": "Could not load the status of the results."
+  },
+  "runs.inputs": {
+    "defaultMessage": "Inputs"
+  },
+  "runs.loadFailed": {
+    "defaultMessage": "Could not load the run record. Close this and try again."
+  },
+  "runs.loading": {
+    "defaultMessage": "Loading the run record…"
+  },
+  "runs.markVerified": {
+    "defaultMessage": "Mark as verified"
+  },
+  "runs.modifiedOutside": {
+    "defaultMessage": "This file was changed outside ModelForge after the run that produced it."
+  },
+  "runs.modifiedOutsideHint": {
+    "defaultMessage": "Changed outside ModelForge"
+  },
+  "runs.noInputs": {
+    "defaultMessage": "No input files recorded"
+  },
+  "runs.noRecord": {
+    "defaultMessage": "No run record"
+  },
+  "runs.otherTitle": {
+    "defaultMessage": "Other tracked results"
+  },
+  "runs.reasonCodeChanged": {
+    "defaultMessage": "Code changed: {path}"
+  },
+  "runs.reasonInputChanged": {
+    "defaultMessage": "Input changed: {path}"
+  },
+  "runs.reasonMissing": {
+    "defaultMessage": "Missing: {path}"
+  },
+  "runs.reasonOutputModified": {
+    "defaultMessage": "Changed outside ModelForge: {path}"
+  },
+  "runs.reasonUnreadable": {
+    "defaultMessage": "Cannot be read: {path}"
+  },
+  "runs.reasonsTitle": {
+    "defaultMessage": "Why it is out of date"
+  },
+  "runs.recordedHash": {
+    "defaultMessage": "Recorded SHA-256: {hash}"
+  },
+  "runs.rejectNotGenerated": {
+    "defaultMessage": "Not marked: only a result with the status Generated can be verified. This one is {status}."
+  },
+  "runs.rejectNotTracked": {
+    "defaultMessage": "Not marked: this file is not tracked as a result yet."
+  },
+  "runs.rejectRecordMissing": {
+    "defaultMessage": "Not marked: the run record of this result is missing or cannot be read."
+  },
+  "runs.rejectRunFailed": {
+    "defaultMessage": "Not marked: the run that produced this result did not exit with code 0."
+  },
+  "runs.runId": {
+    "defaultMessage": "Run ID"
+  },
+  "runs.seed": {
+    "defaultMessage": "Random seed"
+  },
+  "runs.seedUnset": {
+    "defaultMessage": "Not set"
+  },
+  "runs.startedAt": {
+    "defaultMessage": "Started"
+  },
+  "runs.status": {
+    "defaultMessage": "Status"
+  },
+  "runs.statusFailed": {
+    "defaultMessage": "Run failed"
+  },
+  "runs.statusFileFound": {
+    "defaultMessage": "File found"
+  },
+  "runs.statusGenerated": {
+    "defaultMessage": "Generated"
+  },
+  "runs.statusNotStarted": {
+    "defaultMessage": "Not started"
+  },
+  "runs.statusRunning": {
+    "defaultMessage": "Running"
+  },
+  "runs.statusStale": {
+    "defaultMessage": "Out of date"
+  },
+  "runs.statusVerified": {
+    "defaultMessage": "Verified"
+  },
+  "runs.thisFile": {
+    "defaultMessage": "This file"
+  },
+  "runs.verifiedAt": {
+    "defaultMessage": "Verified at {time} against run {runId}"
+  },
+  "runs.verifyFailed": {
+    "defaultMessage": "Could not save the verification. Try again."
   },
   "scheduleDetailView.actions": {
     "defaultMessage": "Ações"

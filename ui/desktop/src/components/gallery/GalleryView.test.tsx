@@ -19,7 +19,6 @@ function localWork(overrides: Partial<GalleryWork> = {}): GalleryWork {
     source: 'local',
     pdfPath: '/project/paper.pdf',
     projectDir: '/project',
-    temporaryRule: true,
     ...overrides,
   };
 }
@@ -53,8 +52,10 @@ describe('GalleryView', () => {
       </IntlTestWrapper>
     );
 
-    expect(await screen.findByText('Temporary rule: a paper PDF marks a work')).toBeVisible();
+    expect(await screen.findByText('Local')).toBeVisible();
     expect(screen.getAllByText(/Not filled in/).length).toBeGreaterThanOrEqual(2);
+    // The temporary "a paper PDF marks a work" rule is gone (task 22.10).
+    expect(screen.queryByText(/Temporary rule/)).not.toBeInTheDocument();
   });
 
   it('shows a prompt when the project has no exportable paper PDF', async () => {

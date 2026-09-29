@@ -79,4 +79,54 @@ describe('run notifications', () => {
   it('resolves without listeners', async () => {
     await expect(handleAcpRunStartedNotification(started)).resolves.toBeUndefined();
   });
+
+  describe('with the desktop main process', () => {
+    const original = window.electron;
+
+    afterEach(() => {
+      window.electron = original;
+    });
+
+    it('passes each notification on to the main process', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+      const artifactsRunStarted = vi
+        .fn()
+        .mockResolvedValue({ ok: true, data: { schemaVersion: 1, entries: {} } });
+      const artifactsRunFinished = vi
+        .fn()
+        .mockResolvedValue({ ok: false, error: { code: 'READ_FAILED', message: 'unreadable' } });
+      window.electron = { ...original, artifactsRunStarted, artifactsRunFinished };
+
+      await handleAcpRunStartedNotification(started);
+      await handleAcpRunFinishedNotification(finished);
+
+      expect(artifactsRunStarted).toHaveBeenCalledExactlyOnceWith({
+        workingDir: '/projects/q1',
+        runId: RUN_ID,
+        declaredOutputs: ['results/out.csv'],
+      });
+      expect(artifactsRunFinished).toHaveBeenCalledExactlyOnceWith({
+        workingDir: '/projects/q1',
+        runId: RUN_ID,
+        recordPath: `.modelforge/runs/${RUN_ID}.json`,
+      });
+      // The refusal is logged; the rescan of the Project catches up later.
+      expect(warn).toHaveBeenCalledOnce();
+    });
+
+    it('still notifies the listeners when the main process cannot be reached', async () => {
+      vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+      const onStarted = vi.fn();
+      unsubscribers.push(subscribeToRunStarted(onStarted));
+      window.electron = {
+        ...original,
+        artifactsRunStarted: vi.fn(() => {
+          throw new Error('the main process is gone');
+        }),
+      };
+
+      await expect(handleAcpRunStartedNotification(started)).resolves.toBeUndefined();
+      expect(onStarted).toHaveBeenCalledExactlyOnceWith(started);
+    });
+  });
 });

@@ -6,13 +6,14 @@ use crate::session_context::{SESSION_ID_HEADER, TOOL_CALL_REQUEST_ID_HEADER, WOR
 /// MCP client implementation for Goose
 #[expect(deprecated)]
 use rmcp::model::{CreateMessageRequestParams, CreateMessageResult, SamplingMessage};
+use rmcp::model::{
+    CustomNotification, ElicitationAction, ErrorCode, ExtensionCapabilities, Extensions,
+    JsonObject, MetaObject,
+};
 #[expect(deprecated)]
 use rmcp::model::{
     ElicitRequestParams, ElicitResult, ListRootsResult, LoggingMessageNotification, Root,
     SamplingMessageContentBlock,
-};
-use rmcp::model::{
-    ElicitationAction, ErrorCode, ExtensionCapabilities, Extensions, JsonObject, MetaObject,
 };
 use rmcp::{
     model::{
@@ -377,6 +378,28 @@ fn working_dir_roots(dir: &std::path::Path) -> ListRootsResult {
     ListRootsResult::new(vec![Root::new(uri).with_name("working_directory")])
 }
 
+/// Method prefix of the custom notifications an MCP server may send to the tool calls it is
+/// running, like progress and logging: ModelForge's own, such as `modelforge/run_started`
+/// (layer-c-contract-acp.md, section 3.2). Other custom notifications are dropped, so an
+/// extension cannot pose as goose's own events such as `platform_event`.
+const FORWARDED_CUSTOM_NOTIFICATION_PREFIX: &str = "modelforge/";
+
+/// The custom notification as the running tool calls receive it, or `None` when it is not
+/// forwarded.
+fn forwarded_custom_notification(
+    mut notification: CustomNotification,
+    extensions: Extensions,
+) -> Option<ServerNotification> {
+    if !notification
+        .method
+        .starts_with(FORWARDED_CUSTOM_NOTIFICATION_PREFIX)
+    {
+        return None;
+    }
+    notification.extensions = extensions;
+    Some(ServerNotification::CustomNotification(notification))
+}
+
 /// Fan out a notification to all subscribers, dropping senders whose receivers are gone.
 fn fan_out_notification(
     handlers: &mut Vec<Sender<ServerNotification>>,
@@ -413,6 +436,17 @@ impl ClientHandler for GooseClient {
 
     async fn on_tool_list_changed(&self, _context: rmcp::service::NotificationContext<RoleClient>) {
         self.handle_tool_list_changed().await;
+    }
+
+    async fn on_custom_notification(
+        &self,
+        notification: CustomNotification,
+        context: rmcp::service::NotificationContext<rmcp::RoleClient>,
+    ) {
+        if let Some(notification) = forwarded_custom_notification(notification, context.extensions)
+        {
+            fan_out_notification(&mut *self.notification_handlers.lock().await, notification);
+        }
     }
 
     #[expect(deprecated)]
@@ -1895,5 +1929,34 @@ mod tests {
             received,
             ServerNotification::ProgressNotification(_)
         ));
+    }
+
+    #[test]
+    fn only_modelforge_custom_notifications_reach_tool_calls() {
+        let method = goose_mcp::modeling::run_script::RUN_STARTED_NOTIFICATION;
+        assert!(method.starts_with(FORWARDED_CUSTOM_NOTIFICATION_PREFIX));
+
+        let params = json!({ "runId": "20260920T101530123-a1b2c3", "toolCallId": "call_1" });
+        let run_started = CustomNotification::new(method, Some(params.clone()));
+        match forwarded_custom_notification(run_started, Extensions::default()) {
+            Some(ServerNotification::CustomNotification(forwarded)) => {
+                assert_eq!(forwarded.method, method);
+                assert_eq!(forwarded.params, Some(params));
+            }
+            other => panic!("expected the run start to be forwarded, got {other:?}"),
+        }
+
+        for method in [
+            "platform_event",
+            "notifications/custom",
+            "modelforge",
+            "goose/modelforge/run_started",
+        ] {
+            let notification = CustomNotification::new(method, Some(json!({})));
+            assert!(
+                forwarded_custom_notification(notification, Extensions::default()).is_none(),
+                "{method} must not be forwarded"
+            );
+        }
     }
 }
