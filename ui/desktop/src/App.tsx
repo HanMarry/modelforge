@@ -48,6 +48,9 @@ import FigureTemplatesView from './components/FigureTemplatesView';
 import PaperTemplatesView from './components/PaperTemplatesView';
 import ConnectorsView from './components/ConnectorsView';
 import StandaloneAppView from './components/apps/StandaloneAppView';
+import CompetitionsView from './components/competitions/CompetitionsView';
+import ExamplesView from './components/examples/ExamplesView';
+import DatasetsView from './components/datasets/DatasetsView';
 import { View, ViewOptions } from './utils/navigationUtils';
 
 import { useNavigation } from './hooks/useNavigation';
@@ -709,6 +712,9 @@ export function AppInner() {
               <Route path="connectors" element={<ConnectorsView />} />
               <Route path="diagnostics" element={<DiagnosticsView />} />
               <Route path="permission" element={<PermissionRoute />} />
+              <Route path="competitions" element={<CompetitionsView />} />
+              <Route path="examples" element={<ExamplesView />} />
+              <Route path="datasets" element={<DatasetsView />} />
             </Route>
           </Routes>
         </div>

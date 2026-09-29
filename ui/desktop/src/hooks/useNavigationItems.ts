@@ -1,8 +1,10 @@
 import {
   Activity,
   AppWindow,
+  BookOpen,
   ChartNoAxesCombined,
   Clock,
+  Database,
   FileText,
   History,
   ListTree,
@@ -11,6 +13,7 @@ import {
   Puzzle,
   Settings,
   Shapes,
+  Trophy,
   UserRound,
   Zap,
 } from 'lucide-react';
@@ -57,6 +60,9 @@ export const CATALOG_GROUP: NavGroup = {
 /** Top-level items, in sidebar order. */
 export const NAV_ITEMS: NavItem[] = [
   { id: 'home', path: '/', label: '新建会话', icon: MessageSquarePlus },
+  { id: 'competitions', path: '/competitions', label: '赛事', icon: Trophy },
+  { id: 'examples', path: '/examples', label: '示例题', icon: BookOpen },
+  { id: 'datasets', path: '/datasets', label: '数据集', icon: Database },
   { id: 'figures', path: '/figures', label: '科研绘图', icon: ChartNoAxesCombined },
   { id: 'paper', path: '/paper', label: '论文模板', icon: FileText },
   { id: 'apps', path: '/apps', label: '应用', icon: AppWindow },
@@ -86,6 +92,9 @@ export const PROFILE_NAV_ITEM: NavItem = {
  */
 const navItemMessages = defineMessages({
   home: { id: 'navigation.itemHome', defaultMessage: 'New Session' },
+  competitions: { id: 'navigation.itemCompetitions', defaultMessage: 'Competitions' },
+  examples: { id: 'navigation.itemExamples', defaultMessage: 'Examples' },
+  datasets: { id: 'navigation.itemDatasets', defaultMessage: 'Datasets' },
   figures: { id: 'navigation.itemFigures', defaultMessage: 'Figures' },
   paper: { id: 'navigation.itemPaper', defaultMessage: 'Paper Templates' },
   apps: { id: 'navigation.itemApps', defaultMessage: 'Apps' },
@@ -104,6 +113,9 @@ const navItemMessages = defineMessages({
 /** Message id per nav item id. */
 const MESSAGE_ID_BY_ITEM: Record<string, keyof typeof navItemMessages> = {
   home: 'home',
+  competitions: 'competitions',
+  examples: 'examples',
+  datasets: 'datasets',
   figures: 'figures',
   paper: 'paper',
   apps: 'apps',

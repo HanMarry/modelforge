@@ -9,8 +9,10 @@ let cfg = {
   // `resources/builtin-examples/` (real contest statements, local study copies only) is
   // deliberately not listed: the organisers' material is not licensed for redistribution
   // (spec requirement 9.6), so the installer ships without it and the home cards link to
-  // the official source instead.
-  extraResource: ['src/bin', 'src/images', 'src/app-update.yml'],
+  // the official source instead. `.bundle/examples/` is produced by `bundle-examples.js`,
+  // which keeps only the example manifests and reference solutions of non-redistributable
+  // problems plus the full files of redistributable ones.
+  extraResource: ['src/bin', 'src/images', 'src/app-update.yml', '.bundle/examples'],
   icon: 'src/images/icon',
   // Windows specific configuration
   win32: {
@@ -198,6 +200,10 @@ module.exports = {
           {
             entry: 'src/preload.ts',
             config: 'vite.preload.config.mts',
+          },
+          {
+            entry: 'src/datasetParserMain.ts',
+            config: 'vite.main.config.mts',
           },
         ],
         renderer: [

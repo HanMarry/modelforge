@@ -7,6 +7,8 @@ import type { BundledCodexRuntimeStatus } from './utils/bundledCodexRuntime';
 import type { CredentialSaveResult } from './utils/credentialIpc';
 import type { CredentialStoreStatus, MigrationResult } from './utils/credentialStore';
 import type { IpcResult } from './utils/ipcResult';
+import type { CompetitionCatalog, ExampleEntry } from './types/catalog';
+import type { DataFileListResult, DataPreview } from './types/datasets';
 import { defaultSettings } from './utils/settings';
 import type { DisabledSkillRecord } from './utils/skillEnablement';
 import type { OpenExternalUrlResult } from './utils/urlSecurity';
@@ -318,6 +320,29 @@ type ElectronAPI = {
   getGitBranchInfo: (dir: string) => Promise<{ branch: string } | null>;
   listGitBranches: (dir: string) => Promise<string[]>;
   switchGitBranch: (dir: string, branch: string) => Promise<{ success: boolean; error?: string }>;
+  /** Competition hub catalogue (requirement 8). */
+  competitionsList: () => Promise<CompetitionCatalog>;
+  /** Example library entries (requirement 9). */
+  examplesList: () => Promise<ExampleEntry[]>;
+  projectCreateFromTemplate: (request: {
+    competitionId: string;
+    name: string;
+    parentDir: string;
+  }) => Promise<IpcResult<{ projectDir: string }>>;
+  projectCreateFromExample: (request: {
+    exampleId: string;
+    name: string;
+    parentDir: string;
+  }) => Promise<IpcResult<{ projectDir: string }>>;
+  exampleOpenSolution: (
+    exampleId: string
+  ) => Promise<IpcResult<{ sections: Array<{ question: string; content: string }> }>>;
+  /** Dataset library (requirement 10). */
+  datasetsList: (root: string) => Promise<IpcResult<DataFileListResult>>;
+  datasetsPreview: (request: {
+    filePath: string;
+    sheet?: string;
+  }) => Promise<IpcResult<DataPreview>>;
 };
 
 type AppConfigAPI = {
@@ -577,6 +602,16 @@ const electronAPI: ElectronAPI = {
   listGitBranches: (dir: string) => ipcRenderer.invoke('list-git-branches', dir),
   switchGitBranch: (dir: string, branch: string) =>
     ipcRenderer.invoke('switch-git-branch', dir, branch),
+  competitionsList: () => ipcRenderer.invoke('competitions-list'),
+  examplesList: () => ipcRenderer.invoke('examples-list'),
+  projectCreateFromTemplate: (request: { competitionId: string; name: string; parentDir: string }) =>
+    ipcRenderer.invoke('project-create-from-template', request),
+  projectCreateFromExample: (request: { exampleId: string; name: string; parentDir: string }) =>
+    ipcRenderer.invoke('project-create-from-example', request),
+  exampleOpenSolution: (exampleId: string) => ipcRenderer.invoke('example-open-solution', exampleId),
+  datasetsList: (root: string) => ipcRenderer.invoke('datasets-list', root),
+  datasetsPreview: (request: { filePath: string; sheet?: string }) =>
+    ipcRenderer.invoke('datasets-preview', request),
 };
 
 function getAppLocale(): unknown {
