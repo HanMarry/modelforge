@@ -2,6 +2,7 @@ pub mod edit;
 pub mod image;
 pub mod shell;
 mod shell_output_streaming;
+pub(crate) mod shell_run_record;
 pub mod tree;
 
 use crate::agents::extension::PlatformExtensionContext;
@@ -19,6 +20,7 @@ use rmcp::model::{
 use schemars::{schema_for, JsonSchema};
 use serde_json::Value;
 use shell::{shell_display_name, ShellOutput, ShellParams, ShellTool};
+use shell_run_record::RunSource;
 use std::sync::Arc;
 use tokio_util::sync::CancellationToken;
 use tree::{TreeParams, TreeTool};
@@ -41,6 +43,8 @@ fn visible_text(text: impl Into<String>) -> ContentBlock {
 
 pub struct DeveloperClient {
     info: InitializeResult,
+    /// For the provider and model a shell Run_Record names (task 21.7).
+    session_manager: Arc<crate::session::SessionManager>,
     shell_tool: Arc<ShellTool>,
     edit_tools: Arc<EditTools>,
     tree_tool: Arc<TreeTool>,
@@ -89,6 +93,7 @@ impl DeveloperClient {
 
         Ok(Self {
             info,
+            session_manager: context.session_manager,
             shell_tool: Arc::new(ShellTool::new(context.use_login_shell_path)?),
             edit_tools: Arc::new(EditTools::new()),
             tree_tool: Arc::new(TreeTool::new()),
@@ -235,6 +240,10 @@ impl McpClientTrait for DeveloperClient {
                         working_dir,
                         Some(&ctx.session_id),
                         ctx.notification_emitter().cloned(),
+                        Some(RunSource {
+                            tool_call_id: ctx.tool_call_request_id.clone(),
+                            sessions: Some(self.session_manager.clone()),
+                        }),
                         cancel_token,
                     )
                     .await),
