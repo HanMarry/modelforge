@@ -386,6 +386,51 @@
   "bottomMenuExtensionSelection.searchExtensions": {
     "defaultMessage": "拡張機能を検索..."
   },
+  "browserApproval.approve": {
+    "defaultMessage": "Approve"
+  },
+  "browserApproval.click": {
+    "defaultMessage": "Click"
+  },
+  "browserApproval.currentUrl": {
+    "defaultMessage": "Current page"
+  },
+  "browserApproval.deny": {
+    "defaultMessage": "Deny"
+  },
+  "browserApproval.target": {
+    "defaultMessage": "Target element"
+  },
+  "browserApproval.text": {
+    "defaultMessage": "Text to type"
+  },
+  "browserApproval.title": {
+    "defaultMessage": "Browser action needs approval"
+  },
+  "browserApproval.type": {
+    "defaultMessage": "Type"
+  },
+  "browserPanel.address": {
+    "defaultMessage": "Search or enter URL"
+  },
+  "browserPanel.back": {
+    "defaultMessage": "Back"
+  },
+  "browserPanel.forward": {
+    "defaultMessage": "Forward"
+  },
+  "browserPanel.loadFailed": {
+    "defaultMessage": "Could not load the page"
+  },
+  "browserPanel.reload": {
+    "defaultMessage": "Reload"
+  },
+  "browserPanel.retry": {
+    "defaultMessage": "Retry"
+  },
+  "browserPanel.schemeRejected": {
+    "defaultMessage": "URL protocol not supported"
+  },
   "cardButtons.configure": {
     "defaultMessage": "設定"
   },
@@ -1778,6 +1823,72 @@
   "filePreview.unsupported": {
     "defaultMessage": "No preview for this file type - open it with an external program."
   },
+  "gallery.candidates": {
+    "defaultMessage": "Files to include"
+  },
+  "gallery.empty": {
+    "defaultMessage": "No works yet"
+  },
+  "gallery.excludedNote": {
+    "defaultMessage": "Some files are always excluded"
+  },
+  "gallery.export": {
+    "defaultMessage": "Export share package"
+  },
+  "gallery.exportCancel": {
+    "defaultMessage": "Cancel"
+  },
+  "gallery.exportConfirm": {
+    "defaultMessage": "Export"
+  },
+  "gallery.exportSaved": {
+    "defaultMessage": "Saved to {path}"
+  },
+  "gallery.import": {
+    "defaultMessage": "Import"
+  },
+  "gallery.importedSource": {
+    "defaultMessage": "Local import"
+  },
+  "gallery.localSource": {
+    "defaultMessage": "Local"
+  },
+  "gallery.metadataAbstract": {
+    "defaultMessage": "Abstract"
+  },
+  "gallery.metadataCategory": {
+    "defaultMessage": "Category"
+  },
+  "gallery.metadataCompetition": {
+    "defaultMessage": "Competition"
+  },
+  "gallery.metadataTitle": {
+    "defaultMessage": "Title"
+  },
+  "gallery.noPdf": {
+    "defaultMessage": "No exportable paper PDF"
+  },
+  "gallery.notFilled": {
+    "defaultMessage": "Not filled in"
+  },
+  "gallery.refresh": {
+    "defaultMessage": "Refresh"
+  },
+  "gallery.remoteLabel": {
+    "defaultMessage": "Remote works source"
+  },
+  "gallery.remoteSource": {
+    "defaultMessage": "Remote"
+  },
+  "gallery.remoteUnreachable": {
+    "defaultMessage": "Remote service unreachable"
+  },
+  "gallery.temporaryRule": {
+    "defaultMessage": "Temporary rule: a paper PDF marks a work"
+  },
+  "gallery.title": {
+    "defaultMessage": "Gallery"
+  },
   "gitBranchIndicator.failedToSwitch": {
     "defaultMessage": "{branch} への切り替えに失敗しました"
   },
@@ -2917,6 +3028,9 @@
   },
   "navigation.itemFigures": {
     "defaultMessage": "Figures"
+  },
+  "navigation.itemGallery": {
+    "defaultMessage": "Gallery"
   },
   "navigation.itemHome": {
     "defaultMessage": "新規チャット"
@@ -5933,6 +6047,9 @@
   "workspaceFiles.truncated": {
     "defaultMessage": "Showing the first portion of a large file"
   },
+  "workspacePanel.browser": {
+    "defaultMessage": "Browser"
+  },
   "workspacePanel.close": {
     "defaultMessage": "Close panel"
   },
@@ -5959,6 +6076,9 @@
   },
   "workspacePanel.versions": {
     "defaultMessage": "Versions"
+  },
+  "workspaceToolbar.browser": {
+    "defaultMessage": "Browser"
   },
   "workspaceToolbar.close": {
     "defaultMessage": "Hide panel"

@@ -40,7 +40,9 @@ export function useWorkspacePanel(enabled = true): WorkspacePanelState {
   const [tab, setTabState] = useState<WorkspaceTab>(() => {
     const stored = window.localStorage.getItem(TAB_KEY);
     return stored &&
-      ['project', 'files', 'versions', 'environment', 'figures', 'diagrams'].includes(stored)
+      ['project', 'files', 'versions', 'environment', 'figures', 'diagrams', 'browser'].includes(
+        stored
+      )
       ? (stored as WorkspaceTab)
       : 'project';
   });

@@ -10,6 +10,14 @@ import type { IpcResult } from './utils/ipcResult';
 import { defaultSettings } from './utils/settings';
 import type { DisabledSkillRecord } from './utils/skillEnablement';
 import type { OpenExternalUrlResult } from './utils/urlSecurity';
+import type { BrowserNavigateResult, BrowserNavState } from './utils/browser/browserPanelHost';
+import type {
+  ExportShareData,
+  ExportShareInput,
+  GalleryResult,
+  GalleryWork,
+  ImportShareData,
+} from './utils/gallery/galleryService';
 import type {
   EnvironmentProbe,
   GitCheckpoint,
@@ -293,6 +301,24 @@ type ElectronAPI = {
   getGitBranchInfo: (dir: string) => Promise<{ branch: string } | null>;
   listGitBranches: (dir: string) => Promise<string[]>;
   switchGitBranch: (dir: string, branch: string) => Promise<{ success: boolean; error?: string }>;
+  // Built-in browser panel (requirement 12)
+  browserNavigate: (url: string) => Promise<BrowserNavigateResult>;
+  browserBack: () => Promise<BrowserNavState>;
+  browserForward: () => Promise<BrowserNavState>;
+  browserReload: () => Promise<BrowserNavState>;
+  browserSetBounds: (
+    bounds: { x: number; y: number; width: number; height: number } | null
+  ) => Promise<BrowserNavState>;
+  getBrowserMcpEndpoint: () => Promise<{ url: string; token: string } | null>;
+  browserApprovalRespond: (id: string, approved: boolean) => Promise<void>;
+  // Local works gallery (requirement 13)
+  galleryList: () => Promise<GalleryWork[]>;
+  galleryCandidates: (
+    projectDir: string
+  ) => Promise<{ candidates: string[]; excluded: { path: string; reason: string }[] }>;
+  galleryExport: (input: ExportShareInput) => Promise<GalleryResult<ExportShareData>>;
+  galleryImport: () => Promise<GalleryResult<ImportShareData>>;
+  galleryRemote: (url: string) => Promise<GalleryResult<GalleryWork[]>>;
 };
 
 type AppConfigAPI = {
@@ -534,6 +560,20 @@ const electronAPI: ElectronAPI = {
   listGitBranches: (dir: string) => ipcRenderer.invoke('list-git-branches', dir),
   switchGitBranch: (dir: string, branch: string) =>
     ipcRenderer.invoke('switch-git-branch', dir, branch),
+  browserNavigate: (url: string) => ipcRenderer.invoke('browser-navigate', url),
+  browserBack: () => ipcRenderer.invoke('browser-back'),
+  browserForward: () => ipcRenderer.invoke('browser-forward'),
+  browserReload: () => ipcRenderer.invoke('browser-reload'),
+  browserSetBounds: (bounds) => ipcRenderer.invoke('browser-set-bounds', bounds),
+  getBrowserMcpEndpoint: () => ipcRenderer.invoke('browser-mcp-endpoint'),
+  browserApprovalRespond: (id: string, approved: boolean) =>
+    ipcRenderer.invoke('browser-approval-respond', id, approved),
+  galleryList: () => ipcRenderer.invoke('gallery-list'),
+  galleryCandidates: (projectDir: string) =>
+    ipcRenderer.invoke('gallery-candidates', projectDir),
+  galleryExport: (input: ExportShareInput) => ipcRenderer.invoke('gallery-export', input),
+  galleryImport: () => ipcRenderer.invoke('gallery-import'),
+  galleryRemote: (url: string) => ipcRenderer.invoke('gallery-remote', url),
 };
 
 function getAppLocale(): unknown {

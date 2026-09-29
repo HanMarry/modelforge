@@ -4,6 +4,7 @@ import {
   ClipboardList,
   FolderOpen,
   Frame,
+  Globe,
   History,
   Terminal as TerminalIcon,
   Wand2,
@@ -18,9 +19,16 @@ import EnvironmentPanel from './EnvironmentPanel';
 import FiguresPanel from './FiguresPanel';
 import DiagramsPanel from './DiagramsPanel';
 import ProjectPanel from './ProjectPanel';
+import BrowserPanel from './BrowserPanel';
 
 export type WorkspaceTab =
-  'project' | 'files' | 'versions' | 'environment' | 'figures' | 'diagrams';
+  | 'project'
+  | 'files'
+  | 'versions'
+  | 'environment'
+  | 'figures'
+  | 'diagrams'
+  | 'browser';
 
 const i18n = defineMessages({
   project: { id: 'workspacePanel.project', defaultMessage: 'Project' },
@@ -29,6 +37,7 @@ const i18n = defineMessages({
   environment: { id: 'workspacePanel.environment', defaultMessage: 'Environment' },
   figures: { id: 'workspacePanel.figures', defaultMessage: 'Figures' },
   diagrams: { id: 'workspacePanel.diagrams', defaultMessage: 'Diagrams' },
+  browser: { id: 'workspacePanel.browser', defaultMessage: 'Browser' },
   close: { id: 'workspacePanel.close', defaultMessage: 'Close panel' },
   resize: { id: 'workspacePanel.resize', defaultMessage: 'Drag to resize' },
   noWorkingDir: {
@@ -45,6 +54,7 @@ const TABS: { id: WorkspaceTab; icon: typeof FileText; labelKey: keyof typeof i1
   { id: 'environment', icon: TerminalIcon, labelKey: 'environment' },
   { id: 'figures', icon: Wand2, labelKey: 'figures' },
   { id: 'diagrams', icon: Frame, labelKey: 'diagrams' },
+  { id: 'browser', icon: Globe, labelKey: 'browser' },
 ];
 
 const MIN_WIDTH = 320;
@@ -186,6 +196,11 @@ export default function WorkspacePanel({
                 onWorkingDirChange={onWorkingDirChange}
                 onOpenEnvironment={() => onSelectTab('environment')}
               />
+            </div>
+          )}
+          {visitedTabs.has('browser') && (
+            <div className={cn('h-full min-h-0', tab !== 'browser' && 'hidden')}>
+              <BrowserPanel active={isOpen && tab === 'browser'} />
             </div>
           )}
           {!workingDir ? (
