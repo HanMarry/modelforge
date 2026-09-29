@@ -6,10 +6,10 @@
  * exclusion set can be listed or read; text edits additionally require the editable
  * role, while comments are accepted from both roles.
  *
- * The mandatory exclusion patterns mirror task 17.1's forced exclusions
- * (.modelforge/sessions/**, *.log, .env*, **/credentials*, agent-kernel-secrets.json).
- * The share filter that computes the share set is owned by the gallery workstream
- * (shareFilter.ts); this module only applies it.
+ * The mandatory exclusion patterns mirror task 17.1's forced exclusions:
+ * the sessions directory, log files, env files, credentials files at any depth,
+ * and the agent kernel secrets file. The share filter that computes the share
+ * set is owned by the gallery workstream (shareFilter.ts); this module only applies it.
  */
 
 export const MANDATORY_EXCLUDE_PATTERNS: readonly string[] = [
