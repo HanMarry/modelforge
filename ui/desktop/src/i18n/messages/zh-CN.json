@@ -5162,6 +5162,192 @@
   "responseStyle.detailedLabel": {
     "defaultMessage": "详细"
   },
+  "review.cancel": {
+    "defaultMessage": "停止评审"
+  },
+  "review.checking": {
+    "defaultMessage": "正在检查论文文件…"
+  },
+  "review.columnCurrent": {
+    "defaultMessage": "本次"
+  },
+  "review.columnDelta": {
+    "defaultMessage": "差值"
+  },
+  "review.columnDimension": {
+    "defaultMessage": "评分维度"
+  },
+  "review.columnPrevious": {
+    "defaultMessage": "上次"
+  },
+  "review.comparedWith": {
+    "defaultMessage": "对比的是 {time} 完成的评审"
+  },
+  "review.comparisonTitle": {
+    "defaultMessage": "与上次评审的逐维对比"
+  },
+  "review.competition": {
+    "defaultMessage": "赛事"
+  },
+  "review.competitionPlaceholder": {
+    "defaultMessage": "选择赛事"
+  },
+  "review.completedAt": {
+    "defaultMessage": "完成于 {time} · {competition}"
+  },
+  "review.details": {
+    "defaultMessage": "详情"
+  },
+  "review.dimensionAssumptions": {
+    "defaultMessage": "模型假设"
+  },
+  "review.dimensionModelBuilding": {
+    "defaultMessage": "模型建立"
+  },
+  "review.dimensionProblemAnalysis": {
+    "defaultMessage": "问题分析"
+  },
+  "review.dimensionSensitivity": {
+    "defaultMessage": "灵敏度分析"
+  },
+  "review.dimensionSolution": {
+    "defaultMessage": "求解与结果"
+  },
+  "review.dimensionWriting": {
+    "defaultMessage": "写作表达"
+  },
+  "review.disclaimer": {
+    "defaultMessage": "评审结果由模型生成，仅供参考"
+  },
+  "review.errorCheckFailed": {
+    "defaultMessage": "无法检查论文文件：{detail}"
+  },
+  "review.errorNoCompetition": {
+    "defaultMessage": "未选择赛事。请选择本次评审依据的赛事。"
+  },
+  "review.errorNoPaper": {
+    "defaultMessage": "未选择论文。请选择要评审的论文文件。"
+  },
+  "review.errorOutsideProject": {
+    "defaultMessage": "论文必须是当前项目内的文件。"
+  },
+  "review.errorPaperEmpty": {
+    "defaultMessage": "论文文件为空：{paper}"
+  },
+  "review.errorPaperNotFound": {
+    "defaultMessage": "论文文件不存在：{paper}"
+  },
+  "review.errorPaperUnreadable": {
+    "defaultMessage": "论文文件无法读取：{paper}"
+  },
+  "review.errorUnsupported": {
+    "defaultMessage": "只能评审 LaTeX（.tex）、Markdown（.md）和 PDF 文件。"
+  },
+  "review.failureApproval": {
+    "defaultMessage": "内核请求了工具授权，评审面板无法代为授权。请将权限模式改为自动或智能批准后重试。"
+  },
+  "review.failureCancelled": {
+    "defaultMessage": "评审被中断。"
+  },
+  "review.failureInvalid": {
+    "defaultMessage": "模型回复不符合评审结果格式（发现 {count} 处问题）。"
+  },
+  "review.failureKernelUnavailable": {
+    "defaultMessage": "内核不可用：{detail}"
+  },
+  "review.failureModelCall": {
+    "defaultMessage": "模型调用失败：{detail}"
+  },
+  "review.failureNoJson": {
+    "defaultMessage": "模型回复中没有评审结果。"
+  },
+  "review.failureRefused": {
+    "defaultMessage": "模型拒绝评审这篇论文。"
+  },
+  "review.failureSessionFailed": {
+    "defaultMessage": "无法在内核中创建评审会话：{detail}"
+  },
+  "review.failureTimeout": {
+    "defaultMessage": "评审未在 {minutes} 分钟内完成。"
+  },
+  "review.failureTruncated": {
+    "defaultMessage": "模型在回复完成前停止了输出。"
+  },
+  "review.firstReview": {
+    "defaultMessage": "这是该论文的首次评审，不显示评分对比。"
+  },
+  "review.historyFailed": {
+    "defaultMessage": "无法读取该论文此前的评审记录：{detail}"
+  },
+  "review.incompleteNote": {
+    "defaultMessage": "本次结果未保存，该论文此前的评审记录保持不变。"
+  },
+  "review.incompleteTitle": {
+    "defaultMessage": "评审未完成"
+  },
+  "review.latestSaved": {
+    "defaultMessage": "最近一次已保存的评审"
+  },
+  "review.locationLines": {
+    "defaultMessage": "{section} · 第 {start}–{end} 行"
+  },
+  "review.locationPage": {
+    "defaultMessage": "{section} · 第 {page} 页"
+  },
+  "review.noPapers": {
+    "defaultMessage": "当前项目中没有找到 LaTeX、Markdown 或 PDF 论文。"
+  },
+  "review.noSuggestions": {
+    "defaultMessage": "模型没有给出修改意见。"
+  },
+  "review.notStarted": {
+    "defaultMessage": "未启动评审"
+  },
+  "review.openLocation": {
+    "defaultMessage": "在编辑器中打开：{location}"
+  },
+  "review.paper": {
+    "defaultMessage": "论文"
+  },
+  "review.paperPlaceholder": {
+    "defaultMessage": "选择论文"
+  },
+  "review.papersFailed": {
+    "defaultMessage": "无法列出当前项目中的论文：{detail}"
+  },
+  "review.refreshPapers": {
+    "defaultMessage": "刷新论文列表"
+  },
+  "review.running": {
+    "defaultMessage": "正在评审 {paper}，可能需要几分钟，期间可以切换到其他页签。"
+  },
+  "review.saveFailed": {
+    "defaultMessage": "评审已完成，但保存失败：{detail}"
+  },
+  "review.saving": {
+    "defaultMessage": "正在保存评审记录…"
+  },
+  "review.score": {
+    "defaultMessage": "{score} / 10"
+  },
+  "review.scores": {
+    "defaultMessage": "各维评分与理由"
+  },
+  "review.sessionTitle": {
+    "defaultMessage": "模拟评审：{paper}"
+  },
+  "review.start": {
+    "defaultMessage": "开始评审"
+  },
+  "review.suggestions": {
+    "defaultMessage": "修改意见"
+  },
+  "review.thisReview": {
+    "defaultMessage": "本次评审"
+  },
+  "review.title": {
+    "defaultMessage": "模拟评审"
+  },
   "runCompare.artifactIndexInvalid": {
     "defaultMessage": "无法读取产物状态文件，因此不显示“已过期”标记。"
   },

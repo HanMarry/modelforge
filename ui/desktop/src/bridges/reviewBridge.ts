@@ -8,4 +8,5 @@ import type { ReviewApi } from '../types/reviewApi';
 export const reviewBridge: ReviewApi = {
   reviewList: (paper) => ipcRenderer.invoke('review-list', paper),
   reviewSave: (request) => ipcRenderer.invoke('review-save', request),
+  reviewPaperCheck: (paper) => ipcRenderer.invoke('review-paper-check', paper),
 };
