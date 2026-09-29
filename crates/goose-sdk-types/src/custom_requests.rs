@@ -6,10 +6,14 @@ use std::collections::HashMap;
 
 mod checkpoint;
 pub use checkpoint::*;
+mod learning;
+pub use learning::*;
 mod recipe;
 pub use recipe::*;
 mod schedule;
 pub use schedule::*;
+mod tasks;
+pub use tasks::*;
 
 /// Schema descriptor for a single custom method, produced by the
 /// `#[custom_methods]` macro's generated `custom_method_schemas()` function.

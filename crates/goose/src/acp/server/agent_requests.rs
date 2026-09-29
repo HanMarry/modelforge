@@ -8,7 +8,8 @@
 //! it, then add one line to [`agent_request_schemas`].
 
 use goose_sdk_types::custom_requests::{
-    EnsureCheckpointRequest, EnsureCheckpointResponse, RecipeParamsResponse, RequestRecipeParams,
+    ConfirmOverwriteRequest, ConfirmOverwriteResponse, EnsureCheckpointRequest,
+    EnsureCheckpointResponse, RecipeParamsResponse, RequestRecipeParams, CONFIRM_OVERWRITE_METHOD,
     ENSURE_CHECKPOINT_METHOD, REQUEST_RECIPE_PARAMS_METHOD,
 };
 use schemars::{JsonSchema, SchemaGenerator};
@@ -50,6 +51,10 @@ pub fn agent_request_schemas(generator: &mut SchemaGenerator) -> Vec<CustomMetho
         agent_request_schema::<EnsureCheckpointRequest, EnsureCheckpointResponse>(
             generator,
             ENSURE_CHECKPOINT_METHOD,
+        ),
+        agent_request_schema::<ConfirmOverwriteRequest, ConfirmOverwriteResponse>(
+            generator,
+            CONFIRM_OVERWRITE_METHOD,
         ),
     ]
 }

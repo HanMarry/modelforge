@@ -6667,6 +6667,102 @@
       "x-side": "agent",
       "x-method": "_goose/unstable/local-inference/chat-templates/builtin/list"
     },
+    "ResumeTaskRequest_unstable": {
+      "type": "object",
+      "properties": {
+        "sessionId": {
+          "type": "string"
+        },
+        "taskId": {
+          "type": "string"
+        },
+        "skip": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "resumeFrom": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "staleReasons": {
+          "type": "array",
+          "items": {},
+          "default": []
+        }
+      },
+      "required": [
+        "sessionId",
+        "taskId",
+        "skip"
+      ],
+      "description": "Resume an interrupted task from the step the desktop planned.",
+      "x-side": "agent",
+      "x-method": "_goose/unstable/tasks/resume"
+    },
+    "ResumeTaskResponse_unstable": {
+      "type": "object",
+      "properties": {
+        "outcome": {
+          "$ref": "#/$defs/ResumeTaskOutcome"
+        }
+      },
+      "required": [
+        "outcome"
+      ],
+      "x-side": "agent",
+      "x-method": "_goose/unstable/tasks/resume"
+    },
+    "ResumeTaskOutcome": {
+      "type": "string",
+      "enum": [
+        "resumed",
+        "paused",
+        "completed"
+      ]
+    },
+    "SetLearningModeRequest_unstable": {
+      "type": "object",
+      "properties": {
+        "sessionId": {
+          "type": "string"
+        },
+        "learningMode": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LearningModeDto"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "sessionId"
+      ],
+      "description": "Set or clear the learning mode of a session.",
+      "x-side": "agent",
+      "x-method": "_goose/unstable/session/learning-mode/set"
+    },
+    "LearningModeDto": {
+      "type": "object",
+      "properties": {
+        "exerciseId": {
+          "type": "string"
+        },
+        "solutionUnlocked": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "exerciseId",
+        "solutionUnlocked"
+      ]
+    },
     "GooseSessionNotification_unstable": {
       "type": "object",
       "properties": {
@@ -6953,6 +7049,88 @@
       "x-side": "agent",
       "x-method": "_goose/unstable/providers/authentication/device-code"
     },
+    "RunStartedNotification_unstable": {
+      "type": "object",
+      "properties": {
+        "sessionId": {
+          "type": "string"
+        },
+        "toolCallId": {
+          "type": "string"
+        },
+        "runId": {
+          "type": "string"
+        },
+        "workingDir": {
+          "type": "string"
+        },
+        "declaredOutputs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "sessionId",
+        "toolCallId",
+        "runId",
+        "workingDir",
+        "declaredOutputs"
+      ],
+      "description": "A run of Project code has started.",
+      "x-side": "agent",
+      "x-method": "_goose/unstable/runs/started"
+    },
+    "RunFinishedNotification_unstable": {
+      "type": "object",
+      "properties": {
+        "sessionId": {
+          "type": "string"
+        },
+        "toolCallId": {
+          "type": "string"
+        },
+        "runId": {
+          "type": "string"
+        },
+        "workingDir": {
+          "type": "string"
+        },
+        "recordPath": {
+          "type": "string"
+        },
+        "exitCode": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "failure": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "outputs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "sessionId",
+        "toolCallId",
+        "runId",
+        "workingDir",
+        "recordPath",
+        "outputs"
+      ],
+      "description": "A run of Project code has ended and its Run_Record is on disk.",
+      "x-side": "agent",
+      "x-method": "_goose/unstable/runs/finished"
+    },
     "RequestRecipeParams_unstable": {
       "type": "object",
       "properties": {
@@ -7039,6 +7217,79 @@
       },
       "x-side": "client",
       "x-method": "_goose/unstable/session/checkpoint/ensure"
+    },
+    "ConfirmOverwriteRequest_unstable": {
+      "type": "object",
+      "properties": {
+        "sessionId": {
+          "type": "string"
+        },
+        "taskId": {
+          "type": "string"
+        },
+        "stepId": {
+          "type": "string"
+        },
+        "workingDir": {
+          "type": "string"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/OverwriteFileInfo"
+          }
+        }
+      },
+      "required": [
+        "sessionId",
+        "taskId",
+        "stepId",
+        "workingDir",
+        "files"
+      ],
+      "description": "Ask the client whether a resumed step may overwrite output files that already exist.",
+      "x-side": "client",
+      "x-method": "_goose/unstable/tasks/confirm-overwrite"
+    },
+    "OverwriteFileInfo": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "modifiedAt": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "size",
+        "modifiedAt"
+      ]
+    },
+    "ConfirmOverwriteResponse_unstable": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "$ref": "#/$defs/ConfirmOverwriteAction"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "x-side": "client",
+      "x-method": "_goose/unstable/tasks/confirm-overwrite"
+    },
+    "ConfirmOverwriteAction": {
+      "type": "string",
+      "enum": [
+        "confirm",
+        "cancel"
+      ]
     },
     "ExtRequest": {
       "properties": {
@@ -8023,6 +8274,24 @@
                   ],
                   "description": "Params for _goose/unstable/local-inference/chat-templates/builtin/list",
                   "title": "LocalInferenceBuiltinChatTemplatesListRequest_unstable"
+                },
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/ResumeTaskRequest_unstable"
+                    }
+                  ],
+                  "description": "Params for _goose/unstable/tasks/resume",
+                  "title": "ResumeTaskRequest_unstable"
+                },
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/SetLearningModeRequest_unstable"
+                    }
+                  ],
+                  "description": "Params for _goose/unstable/session/learning-mode/set",
+                  "title": "SetLearningModeRequest_unstable"
                 }
               ]
             },
@@ -8653,6 +8922,14 @@
                         }
                       ],
                       "title": "LocalInferenceBuiltinChatTemplatesListResponse_unstable"
+                    },
+                    {
+                      "allOf": [
+                        {
+                          "$ref": "#/$defs/ResumeTaskResponse_unstable"
+                        }
+                      ],
+                      "title": "ResumeTaskResponse_unstable"
                     }
                   ]
                 },
@@ -8726,6 +9003,24 @@
                   ],
                   "description": "Params for _goose/unstable/providers/authentication/device-code",
                   "title": "ProviderDeviceCodeNotification_unstable"
+                },
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/RunStartedNotification_unstable"
+                    }
+                  ],
+                  "description": "Params for _goose/unstable/runs/started",
+                  "title": "RunStartedNotification_unstable"
+                },
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/RunFinishedNotification_unstable"
+                    }
+                  ],
+                  "description": "Params for _goose/unstable/runs/finished",
+                  "title": "RunFinishedNotification_unstable"
                 }
               ]
             },
@@ -8774,6 +9069,15 @@
                   ],
                   "description": "Params for _goose/unstable/session/checkpoint/ensure",
                   "title": "EnsureCheckpointRequest_unstable"
+                },
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/ConfirmOverwriteRequest_unstable"
+                    }
+                  ],
+                  "description": "Params for _goose/unstable/tasks/confirm-overwrite",
+                  "title": "ConfirmOverwriteRequest_unstable"
                 }
               ]
             },
@@ -8820,6 +9124,14 @@
                         }
                       ],
                       "title": "EnsureCheckpointResponse_unstable"
+                    },
+                    {
+                      "allOf": [
+                        {
+                          "$ref": "#/$defs/ConfirmOverwriteResponse_unstable"
+                        }
+                      ],
+                      "title": "ConfirmOverwriteResponse_unstable"
                     }
                   ]
                 },
