@@ -1211,6 +1211,7 @@ impl GooseAcpAgent {
         let agent = agent_result.agent.clone();
         self.apply_acp_extension_overrides(cx, &agent, session)
             .await;
+        learning_mode::apply_session_learning_mode(&agent, session).await;
         self.spawn_provider_inventory_refresh(session, &agent);
 
         Ok((agent, agent_result.extension_results))

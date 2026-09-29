@@ -2267,6 +2267,9 @@
   "gallery.remoteUnreachable": {
     "defaultMessage": "遠端服務無法連線"
   },
+  "gallery.temporaryRule": {
+    "defaultMessage": "暫行規則：有論文 PDF 即視為作品"
+  },
   "gallery.title": {
     "defaultMessage": "作品廣場"
   },
@@ -2771,8 +2774,164 @@
   "launcher.placeholder": {
     "defaultMessage": "向 ModelForge 詢問任何問題…"
   },
+  "learning.exercise.cancel": {
+    "defaultMessage": "取消"
+  },
+  "learning.exercise.chatFailed": {
+    "defaultMessage": "無法開始學習模式對話"
+  },
+  "learning.exercise.checkError": {
+    "defaultMessage": "檢查失敗：{message}。練習狀態沒有改變，你的提交內容已保留。"
+  },
+  "learning.exercise.checkFailed": {
+    "defaultMessage": "未通過：{reason}"
+  },
+  "learning.exercise.checkPassed": {
+    "defaultMessage": "通過"
+  },
+  "learning.exercise.checkPending": {
+    "defaultMessage": "尚未檢查"
+  },
+  "learning.exercise.checkTimeout": {
+    "defaultMessage": "檢查未能在 60 秒內完成。練習狀態沒有改變，你的提交內容已保留。"
+  },
+  "learning.exercise.checking": {
+    "defaultMessage": "正在檢查…"
+  },
+  "learning.exercise.checks": {
+    "defaultMessage": "檢查項"
+  },
+  "learning.exercise.chooseProjectDir": {
+    "defaultMessage": "選擇資料夾"
+  },
+  "learning.exercise.close": {
+    "defaultMessage": "關閉練習"
+  },
+  "learning.exercise.completedAt": {
+    "defaultMessage": "完成於 {time}"
+  },
+  "learning.exercise.confirm": {
+    "defaultMessage": "查看解答"
+  },
+  "learning.exercise.confirmMessage": {
+    "defaultMessage": "智能體會在新對話中給出完整解答程式碼，這道練習將一直標註「已查看解答」。"
+  },
+  "learning.exercise.confirmTitle": {
+    "defaultMessage": "查看完整解答？"
+  },
+  "learning.exercise.invalidProject": {
+    "defaultMessage": "無法讀取專案資料夾。練習狀態沒有改變，你的提交內容已保留。"
+  },
+  "learning.exercise.learningMode": {
+    "defaultMessage": "學習模式"
+  },
+  "learning.exercise.learningModeActive": {
+    "defaultMessage": "本練習處於學習模式的對話：{count} 個"
+  },
+  "learning.exercise.learningModeHint": {
+    "defaultMessage": "學習模式下，智能體用提示和追問引導你，不直接給出完整解答程式碼。"
+  },
+  "learning.exercise.leaveLearningMode": {
+    "defaultMessage": "退出學習模式"
+  },
+  "learning.exercise.needProjectDir": {
+    "defaultMessage": "請先選擇存放練習檔案的專案資料夾。"
+  },
+  "learning.exercise.noProjectDir": {
+    "defaultMessage": "尚未選擇資料夾"
+  },
+  "learning.exercise.practiceInChat": {
+    "defaultMessage": "在對話中練習"
+  },
+  "learning.exercise.projectDir": {
+    "defaultMessage": "專案資料夾"
+  },
+  "learning.exercise.projectDirHint": {
+    "defaultMessage": "存放練習檔案的資料夾，檢查項會從這裡讀取檔案。"
+  },
+  "learning.exercise.recheck": {
+    "defaultMessage": "重新檢查"
+  },
+  "learning.exercise.statement": {
+    "defaultMessage": "題目"
+  },
+  "learning.exercise.subjective": {
+    "defaultMessage": "由智能體評閱"
+  },
+  "learning.exercise.submission": {
+    "defaultMessage": "你的提交"
+  },
+  "learning.exercise.submissionPlaceholder": {
+    "defaultMessage": "寫下你做了什麼、得到了什麼結論。可以修改後重新提交。"
+  },
+  "learning.exercise.submit": {
+    "defaultMessage": "提交檢查"
+  },
+  "learning.exercise.unlockFailed": {
+    "defaultMessage": "無法解鎖完整解答"
+  },
+  "learning.exercise.viewSolution": {
+    "defaultMessage": "查看完整解答"
+  },
+  "learning.progress.count": {
+    "defaultMessage": "{completed} / {total}"
+  },
+  "learning.progress.hint": {
+    "defaultMessage": "一道練習的所有檢查項都通過後才算完成。"
+  },
+  "learning.progress.percent": {
+    "defaultMessage": "{percent}%"
+  },
+  "learning.progress.title": {
+    "defaultMessage": "各課程分組的進度"
+  },
+  "learning.status.completed": {
+    "defaultMessage": "已完成"
+  },
+  "learning.status.failed": {
+    "defaultMessage": "未通過"
+  },
+  "learning.status.notStarted": {
+    "defaultMessage": "未開始"
+  },
+  "learning.status.solutionViewed": {
+    "defaultMessage": "已查看解答"
+  },
   "learning.title": {
     "defaultMessage": "學習路徑"
+  },
+  "learning.view.exercises": {
+    "defaultMessage": "練習"
+  },
+  "learning.view.groupProgress": {
+    "defaultMessage": "已完成 {completed} / {total}"
+  },
+  "learning.view.loadFailed": {
+    "defaultMessage": "無法載入學習路徑：{message}"
+  },
+  "learning.view.loading": {
+    "defaultMessage": "正在載入學習路徑…"
+  },
+  "learning.view.objectives": {
+    "defaultMessage": "學習目標"
+  },
+  "learning.view.retry": {
+    "defaultMessage": "重試"
+  },
+  "learning.view.skills": {
+    "defaultMessage": "關聯技能"
+  },
+  "learning.view.subtitle": {
+    "defaultMessage": "五個課程分組，每組都有練習，提交結果後會自動檢查。"
+  },
+  "learning.view.tabCourses": {
+    "defaultMessage": "課程"
+  },
+  "learning.view.tabProfile": {
+    "defaultMessage": "我的進度"
+  },
+  "learning.view.tabs": {
+    "defaultMessage": "學習路徑欄目"
   },
   "loadingGoose.compacting": {
     "defaultMessage": "ModelForge 正在壓縮對話…"
@@ -4777,6 +4936,180 @@
   },
   "responseStyle.detailedLabel": {
     "defaultMessage": "詳細"
+  },
+  "runCompare.artifactIndexInvalid": {
+    "defaultMessage": "無法讀取產物狀態檔案，因此不顯示「已過期」標記。"
+  },
+  "runCompare.busy": {
+    "defaultMessage": "目前對話仍在執行，完成後再試。"
+  },
+  "runCompare.compare": {
+    "defaultMessage": "對比"
+  },
+  "runCompare.compareFailed": {
+    "defaultMessage": "無法對比這兩次執行。"
+  },
+  "runCompare.comparing": {
+    "defaultMessage": "正在對比…"
+  },
+  "runCompare.composed": {
+    "defaultMessage": "寫作任務已填入輸入框，傳送後開始產生。"
+  },
+  "runCompare.differs": {
+    "defaultMessage": "取值不同"
+  },
+  "runCompare.duration": {
+    "defaultMessage": "耗時"
+  },
+  "runCompare.empty": {
+    "defaultMessage": "本專案還沒有執行記錄。執行計算程式碼後會顯示在這裡。"
+  },
+  "runCompare.ended": {
+    "defaultMessage": "結束時間"
+  },
+  "runCompare.errorDetail": {
+    "defaultMessage": "詳情：{detail}"
+  },
+  "runCompare.exitCode": {
+    "defaultMessage": "結束代碼"
+  },
+  "runCompare.exitCodeValue": {
+    "defaultMessage": "結束代碼 {code}"
+  },
+  "runCompare.failedKernelError": {
+    "defaultMessage": "對比段落產生失敗：內核傳回錯誤。"
+  },
+  "runCompare.failedKernelUnavailable": {
+    "defaultMessage": "對比段落產生失敗：內核不可用。"
+  },
+  "runCompare.failedTimeout": {
+    "defaultMessage": "對比段落產生失敗：內核在 {seconds} 秒內未傳回結果（逾時）。"
+  },
+  "runCompare.failureCancelled": {
+    "defaultMessage": "使用者取消"
+  },
+  "runCompare.failureNonZero": {
+    "defaultMessage": "非零結束代碼"
+  },
+  "runCompare.failureTimeout": {
+    "defaultMessage": "逾時"
+  },
+  "runCompare.field": {
+    "defaultMessage": "對比項"
+  },
+  "runCompare.flagFailed": {
+    "defaultMessage": "執行失敗"
+  },
+  "runCompare.flagFailedReason": {
+    "defaultMessage": "執行失敗：{reason}"
+  },
+  "runCompare.flagStale": {
+    "defaultMessage": "已過期"
+  },
+  "runCompare.generate": {
+    "defaultMessage": "產生對比段落"
+  },
+  "runCompare.generated": {
+    "defaultMessage": "對比段落已產生，見目前對話。"
+  },
+  "runCompare.generating": {
+    "defaultMessage": "正在目前對話中產生段落，最長等待 {seconds} 秒…"
+  },
+  "runCompare.inputMismatch": {
+    "defaultMessage": "輸入資料不一致，對比結論可能無效"
+  },
+  "runCompare.inputMismatchFiles": {
+    "defaultMessage": "不一致的輸入檔案："
+  },
+  "runCompare.inputsMatch": {
+    "defaultMessage": "兩次執行讀取的輸入檔案一致。"
+  },
+  "runCompare.inputsTruncated": {
+    "defaultMessage": "輸入檔案清單超過 1000 項已截斷，超出部分未比對。"
+  },
+  "runCompare.listFailed": {
+    "defaultMessage": "無法載入執行記錄。"
+  },
+  "runCompare.loading": {
+    "defaultMessage": "正在載入執行記錄…"
+  },
+  "runCompare.metaProblem": {
+    "defaultMessage": "{runId} 的 .meta.json 無法讀取，因此缺少其方法、參數與指標。"
+  },
+  "runCompare.method": {
+    "defaultMessage": "方法"
+  },
+  "runCompare.metrics": {
+    "defaultMessage": "關鍵指標"
+  },
+  "runCompare.noExitCode": {
+    "defaultMessage": "無結束代碼"
+  },
+  "runCompare.noRows": {
+    "defaultMessage": "兩次執行都沒有記錄參數與指標。腳本可以把它們寫入執行記錄旁的 .meta.json 檔案。"
+  },
+  "runCompare.params": {
+    "defaultMessage": "參數"
+  },
+  "runCompare.problemInvalid": {
+    "defaultMessage": "無效：{fields}"
+  },
+  "runCompare.problemItem": {
+    "defaultMessage": "{path}（{reason}）"
+  },
+  "runCompare.problemMissing": {
+    "defaultMessage": "缺少：{fields}"
+  },
+  "runCompare.problemSyntax": {
+    "defaultMessage": "第 {line} 行第 {column} 欄 JSON 語法錯誤"
+  },
+  "runCompare.problems": {
+    "defaultMessage": "無法讀取的執行記錄檔案：{count} 個"
+  },
+  "runCompare.refresh": {
+    "defaultMessage": "重新整理執行記錄"
+  },
+  "runCompare.retry": {
+    "defaultMessage": "重試"
+  },
+  "runCompare.runA": {
+    "defaultMessage": "執行 A"
+  },
+  "runCompare.runB": {
+    "defaultMessage": "執行 B"
+  },
+  "runCompare.runId": {
+    "defaultMessage": "執行 ID"
+  },
+  "runCompare.runsLegend": {
+    "defaultMessage": "執行記錄"
+  },
+  "runCompare.selectHint": {
+    "defaultMessage": "需在同一專案中恰好選擇兩筆執行記錄才能對比。"
+  },
+  "runCompare.selectedCount": {
+    "defaultMessage": "已選 {count} 筆"
+  },
+  "runCompare.started": {
+    "defaultMessage": "開始時間"
+  },
+  "runCompare.subtitle": {
+    "defaultMessage": "選擇本專案中的兩次執行，左右並列檢視。"
+  },
+  "runCompare.title": {
+    "defaultMessage": "方案對比"
+  },
+  "runCompare.unverified": {
+    "defaultMessage": "未驗證"
+  },
+  "runCompare.verification": {
+    "defaultMessage": "驗證結論"
+  },
+  "runCompare.verificationUnknown": {
+    "defaultMessage": "未知，尚無產物狀態記錄"
+  },
+  "runCompare.verifiedAt": {
+    "defaultMessage": "已驗證（{time}）"
   },
   "runs.badgeLabel": {
     "defaultMessage": "{status}：檢視 {path} 的詳細資料"
