@@ -12,8 +12,8 @@ import type {
  * `overwriteConfirmRequests`. Contract:
  * `.kiro/specs/mathmodel-parity-and-beyond/layer-c-contract-acp.md`.
  *
- * Until branch `mp/s2-c1-resume` installs a handler that asks the user, every overwrite is
- * cancelled.
+ * `components/resume/TaskResumePrompt.tsx` installs a handler that asks the user while it is
+ * mounted (always, in the app); without a handler every overwrite is cancelled.
  */
 
 export type OverwriteConfirmHandler = (

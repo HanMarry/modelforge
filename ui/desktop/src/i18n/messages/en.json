@@ -6044,6 +6044,144 @@
   "tablePreview.truncated": {
     "defaultMessage": "Showing the first {rows} rows and {cols} columns"
   },
+  "taskResume.back": {
+    "defaultMessage": "Back"
+  },
+  "taskResume.checking": {
+    "defaultMessage": "Checking the steps against their Run_Records…"
+  },
+  "taskResume.chip": {
+    "defaultMessage": "Unfinished tasks: {count}"
+  },
+  "taskResume.close": {
+    "defaultMessage": "Close"
+  },
+  "taskResume.completed": {
+    "defaultMessage": "“{title}” is marked as completed"
+  },
+  "taskResume.continue": {
+    "defaultMessage": "Continue from the failure point"
+  },
+  "taskResume.dismiss": {
+    "defaultMessage": "Do not resume"
+  },
+  "taskResume.dismissFailed": {
+    "defaultMessage": "Could not update the task plan"
+  },
+  "taskResume.dismissedBadge": {
+    "defaultMessage": "Not prompted again"
+  },
+  "taskResume.errorSessionBusy": {
+    "defaultMessage": "The session is still running; try again when it has finished."
+  },
+  "taskResume.errorStalePlan": {
+    "defaultMessage": "The task plan has changed; check the steps again."
+  },
+  "taskResume.failed": {
+    "defaultMessage": "Could not resume the task"
+  },
+  "taskResume.intro": {
+    "defaultMessage": "These tasks stopped before they finished. Continue from the failure point: steps whose Run_Records still match the files are skipped."
+  },
+  "taskResume.markCompleted": {
+    "defaultMessage": "Mark as completed"
+  },
+  "taskResume.moreReasons": {
+    "defaultMessage": "and {count} more"
+  },
+  "taskResume.noRuns": {
+    "defaultMessage": "No run recorded"
+  },
+  "taskResume.overwriteBody": {
+    "defaultMessage": "Continuing from “{step}” runs the remaining steps again and overwrites these files. Nothing changes until you confirm."
+  },
+  "taskResume.overwriteCancel": {
+    "defaultMessage": "Cancel and stay paused"
+  },
+  "taskResume.overwriteConfirm": {
+    "defaultMessage": "Overwrite and continue"
+  },
+  "taskResume.overwriteModified": {
+    "defaultMessage": "modified {time}"
+  },
+  "taskResume.overwriteTitle": {
+    "defaultMessage": "Overwrite existing outputs?"
+  },
+  "taskResume.paused": {
+    "defaultMessage": "“{title}” stays paused; no file was changed"
+  },
+  "taskResume.planFrom": {
+    "defaultMessage": "Runs again from: {step}"
+  },
+  "taskResume.planNothing": {
+    "defaultMessage": "Every step still matches its Run_Records; nothing needs to run again."
+  },
+  "taskResume.planReasons": {
+    "defaultMessage": "Why this step runs again:"
+  },
+  "taskResume.planSkip": {
+    "defaultMessage": "Skipped, still match the files: {steps}"
+  },
+  "taskResume.planSkipNone": {
+    "defaultMessage": "No step can be skipped."
+  },
+  "taskResume.project": {
+    "defaultMessage": "Project: {name}"
+  },
+  "taskResume.reasonFileMissing": {
+    "defaultMessage": "File missing: {path}"
+  },
+  "taskResume.reasonHashMismatch": {
+    "defaultMessage": "Hash mismatch: {path}"
+  },
+  "taskResume.reasonNoRun": {
+    "defaultMessage": "Record missing: the step has no run"
+  },
+  "taskResume.reasonRecordMissing": {
+    "defaultMessage": "Record missing: {runId}"
+  },
+  "taskResume.reasonRecordTruncated": {
+    "defaultMessage": "Record missing: {runId} lists only the first 1000 files"
+  },
+  "taskResume.reasonRunFailed": {
+    "defaultMessage": "Run {runId} did not end with exit code 0"
+  },
+  "taskResume.resumed": {
+    "defaultMessage": "Continuing “{title}” from “{step}”"
+  },
+  "taskResume.runExitCode": {
+    "defaultMessage": "exit code {code}"
+  },
+  "taskResume.runFailure": {
+    "defaultMessage": "ended: {failure}"
+  },
+  "taskResume.runMissing": {
+    "defaultMessage": "Run_Record missing or unreadable"
+  },
+  "taskResume.runTimes": {
+    "defaultMessage": "{start} – {end}"
+  },
+  "taskResume.start": {
+    "defaultMessage": "Start"
+  },
+  "taskResume.statusInterrupted": {
+    "defaultMessage": "Interrupted"
+  },
+  "taskResume.statusPaused": {
+    "defaultMessage": "Paused"
+  },
+  "taskResume.stepCompleted": {
+    "defaultMessage": "Completed"
+  },
+  "taskResume.stepFailed": {
+    "defaultMessage": "Failure point"
+  },
+  "taskResume.stepNotReached": {
+    "defaultMessage": "Not reached"
+  },
+  "taskResume.title": {
+    "defaultMessage": "Unfinished tasks"
+  },
   "telemetryConsentPrompt.description": {
     "defaultMessage": "Would you like to share anonymous usage data to help improve ModelForge? We never collect your conversations, code, or personal data."
   },
