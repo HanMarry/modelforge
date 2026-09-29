@@ -17,6 +17,10 @@ export function errorMessage(err: Error | unknown, default_value?: string) {
   if (typeof acpData === 'string') {
     return acpData;
   }
+  // Structured ACP error data (e.g. provider credential failures) carries its text in `message`.
+  if (isRecord(acpData) && typeof acpData.message === 'string' && acpData.message) {
+    return acpData.message;
+  }
 
   if (err instanceof Error) {
     return err.message;

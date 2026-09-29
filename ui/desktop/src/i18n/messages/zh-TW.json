@@ -1067,6 +1067,9 @@
   "customProviderForm.clear": {
     "defaultMessage": "清除"
   },
+  "customProviderForm.configWriteFailed": {
+    "defaultMessage": "無法寫入 {provider} 的設定檔：{reason}。已填寫的內容已保留，可以直接重試。"
+  },
   "customProviderForm.configureManually": {
     "defaultMessage": "手動設定"
   },
@@ -1078,6 +1081,9 @@
   },
   "customProviderForm.createProvider": {
     "defaultMessage": "建立供應商"
+  },
+  "customProviderForm.credentialWriteFailed": {
+    "defaultMessage": "無法儲存 {provider} 的憑證：{reason}。已填寫的內容已保留，可以直接重試。"
   },
   "customProviderForm.customHeaders": {
     "defaultMessage": "自訂標頭"
@@ -1115,6 +1121,15 @@
   "customProviderForm.headerNoSpaces": {
     "defaultMessage": "標頭名稱不可包含空格"
   },
+  "customProviderForm.invalidHeader": {
+    "defaultMessage": "{provider} 的請求標頭 {header} 無法儲存：{reason}。"
+  },
+  "customProviderForm.markNewSensitive": {
+    "defaultMessage": "將新的請求標頭標記為敏感"
+  },
+  "customProviderForm.markSensitive": {
+    "defaultMessage": "將 {name} 標記為敏感"
+  },
   "customProviderForm.modelsPlaceholder": {
     "defaultMessage": "model-a, model-b, model-c"
   },
@@ -1135,6 +1150,15 @@
   },
   "customProviderForm.requiresApiKey": {
     "defaultMessage": "此供應商需要 API 金鑰"
+  },
+  "customProviderForm.savedValueLabel": {
+    "defaultMessage": "{name} 的已儲存值已隱藏。輸入新值即可取代。"
+  },
+  "customProviderForm.sensitive": {
+    "defaultMessage": "敏感"
+  },
+  "customProviderForm.sensitiveHint": {
+    "defaultMessage": "敏感值會儲存在系統憑證庫中，儲存後不再顯示。Authorization、Proxy-Authorization、X-API-Key 與 api-key 一律視為敏感。"
   },
   "customProviderForm.startFromTemplate": {
     "defaultMessage": "從供應商範本開始"
@@ -3631,6 +3655,9 @@
   },
   "providerCard.deprecatedReplacement": {
     "defaultMessage": "已棄用 — 請改用 {replacement}。"
+  },
+  "providerCard.lastRefreshError": {
+    "defaultMessage": "上次檢查失敗：{error}"
   },
   "providerCard.noMetadata": {
     "defaultMessage": "ProviderCard 錯誤：未提供中繼資料"

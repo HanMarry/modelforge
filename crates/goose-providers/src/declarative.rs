@@ -243,7 +243,32 @@ impl DeclarativeProviderConfig {
         }
         Ok(())
     }
+
+    /// Errors if a header value still holds a `${secret:...}` reference. The caller must
+    /// resolve references from the credential store before building a provider; sending one
+    /// would put the reference text where the credential belongs (requirement 1.5).
+    pub fn ensure_headers_resolved(&self) -> Result<(), crate::errors::ProviderError> {
+        let unresolved = self
+            .headers
+            .iter()
+            .flatten()
+            .filter(|(_, value)| value.starts_with(SECRET_REF_PREFIX))
+            .map(|(name, _)| name)
+            .min();
+        match unresolved {
+            Some(header) => Err(crate::errors::ProviderError::UnresolvedSecret {
+                provider: self.display_name.clone(),
+                header: header.clone(),
+                reason: "the secret reference was not resolved".to_string(),
+            }),
+            None => Ok(()),
+        }
+    }
 }
+
+/// Start of a header value that refers to the credential store instead of holding the
+/// credential. Kept in sync with `REF_PREFIX` in goose's `config::secret_headers`.
+const SECRET_REF_PREFIX: &str = "${secret:";
 
 pub trait KeyResolver {
     type Error: std::error::Error + Send + Sync + 'static;
@@ -679,5 +704,59 @@ mod tests {
         assert!(err
             .to_string()
             .contains("Required environment variable TEST_PROVIDER_REQUIRED_HOST is not set"));
+    }
+
+    #[test]
+    fn unresolved_secret_references_block_every_engine() {
+        for (engine, base_url) in [
+            ("openai", "http://localhost:1234/v1/chat/completions"),
+            ("anthropic", "http://localhost:1234"),
+            ("ollama", "http://localhost:11434"),
+        ] {
+            let json = json!({
+                "name": "test-provider",
+                "engine": engine,
+                "display_name": "Test Provider",
+                "base_url": base_url,
+                "models": [model_json()],
+                "requires_auth": false,
+                "dynamic_models": false,
+                "headers": {
+                    "X-Team": "alpha",
+                    "Authorization": "${secret:provider_test__header__authorization}"
+                }
+            })
+            .to_string();
+
+            let err = match from_json(&json, None, EnvKeyResolver) {
+                Ok(_) => panic!("{engine}: a reference must not reach the request headers"),
+                Err(err) => err,
+            };
+
+            assert_eq!(
+                err.downcast_ref::<crate::errors::ProviderError>(),
+                Some(&crate::errors::ProviderError::UnresolvedSecret {
+                    provider: "Test Provider".to_string(),
+                    header: "Authorization".to_string(),
+                    reason: "the secret reference was not resolved".to_string(),
+                }),
+                "{engine}"
+            );
+        }
+    }
+
+    #[test]
+    fn resolved_headers_pass_the_reference_check() {
+        let config: DeclarativeProviderConfig = serde_json::from_value(json!({
+            "name": "test-provider",
+            "engine": "openai",
+            "display_name": "Test Provider",
+            "base_url": "http://localhost:1234",
+            "models": [],
+            "headers": { "Authorization": "Bearer sk-1", "X-Team": "alpha" }
+        }))
+        .unwrap();
+
+        assert_eq!(config.ensure_headers_resolved(), Ok(()));
     }
 }

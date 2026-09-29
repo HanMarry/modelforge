@@ -1067,6 +1067,9 @@
   "customProviderForm.clear": {
     "defaultMessage": "स्पष्ट"
   },
+  "customProviderForm.configWriteFailed": {
+    "defaultMessage": "{provider} का कॉन्फ़िगरेशन लिखा नहीं जा सका: {reason}. आपकी प्रविष्टियाँ सुरक्षित हैं, आप फिर से प्रयास कर सकते हैं।"
+  },
   "customProviderForm.configureManually": {
     "defaultMessage": "मैन्युअल रूप से कॉन्फ़िगर करें"
   },
@@ -1078,6 +1081,9 @@
   },
   "customProviderForm.createProvider": {
     "defaultMessage": "प्रदाता बनाएँ"
+  },
+  "customProviderForm.credentialWriteFailed": {
+    "defaultMessage": "{provider} के क्रेडेंशियल सहेजे नहीं जा सके: {reason}. आपकी प्रविष्टियाँ सुरक्षित हैं, आप फिर से प्रयास कर सकते हैं।"
   },
   "customProviderForm.customHeaders": {
     "defaultMessage": "कस्टम हेडर"
@@ -1115,6 +1121,15 @@
   "customProviderForm.headerNoSpaces": {
     "defaultMessage": "हेडर नाम में रिक्त स्थान नहीं हो सकते"
   },
+  "customProviderForm.invalidHeader": {
+    "defaultMessage": "{provider} का हेडर {header} सहेजा नहीं जा सकता: {reason}."
+  },
+  "customProviderForm.markNewSensitive": {
+    "defaultMessage": "नए हेडर को संवेदनशील के रूप में चिह्नित करें"
+  },
+  "customProviderForm.markSensitive": {
+    "defaultMessage": "{name} को संवेदनशील के रूप में चिह्नित करें"
+  },
   "customProviderForm.modelsPlaceholder": {
     "defaultMessage": "मॉडल-ए, मॉडल-बी, मॉडल-सी"
   },
@@ -1135,6 +1150,15 @@
   },
   "customProviderForm.requiresApiKey": {
     "defaultMessage": "इस प्रदाता को API कुंजी की आवश्यकता है"
+  },
+  "customProviderForm.savedValueLabel": {
+    "defaultMessage": "{name} का सहेजा गया मान छिपा हुआ है। इसे बदलने के लिए नया मान टाइप करें।"
+  },
+  "customProviderForm.sensitive": {
+    "defaultMessage": "संवेदनशील"
+  },
+  "customProviderForm.sensitiveHint": {
+    "defaultMessage": "संवेदनशील मान सिस्टम क्रेडेंशियल स्टोर में रखे जाते हैं और दोबारा नहीं दिखाए जाते। Authorization, Proxy-Authorization, X-API-Key और api-key हमेशा संवेदनशील होते हैं।"
   },
   "customProviderForm.startFromTemplate": {
     "defaultMessage": "प्रदाता टेम्पलेट से प्रारंभ करें"
@@ -3631,6 +3655,9 @@
   },
   "providerCard.deprecatedReplacement": {
     "defaultMessage": "अप्रचलित — इसके बजाय {replacement} का उपयोग करें।"
+  },
+  "providerCard.lastRefreshError": {
+    "defaultMessage": "पिछली जाँच विफल रही: {error}"
   },
   "providerCard.noMetadata": {
     "defaultMessage": "प्रदाता कार्ड त्रुटि: कोई मेटाडेटा प्रदान नहीं किया गया"

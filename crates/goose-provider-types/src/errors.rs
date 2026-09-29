@@ -58,6 +58,15 @@ pub enum ProviderError {
         details: String,
         category: Option<String>,
     },
+
+    /// A header's credential reference could not be resolved, so no request was sent
+    /// (requirement 1.5). `provider` is the provider's display name.
+    #[error("{provider}: credential for header {header} unresolved: {reason}")]
+    UnresolvedSecret {
+        provider: String,
+        header: String,
+        reason: String,
+    },
 }
 
 impl ProviderError {
@@ -81,6 +90,7 @@ impl ProviderError {
             ProviderError::EndpointNotFound(_) => "endpoint_not_found",
             ProviderError::CreditsExhausted { .. } => "credits_exhausted",
             ProviderError::Refusal { .. } => "refusal",
+            ProviderError::UnresolvedSecret { .. } => "unresolved_secret",
         }
     }
 
@@ -213,6 +223,23 @@ mod tests {
     use super::*;
     use std::io::{Read, Write};
     use std::net::TcpListener;
+
+    #[test]
+    fn unresolved_secret_survives_anyhow_context() {
+        let unresolved = ProviderError::UnresolvedSecret {
+            provider: "My Gateway".to_string(),
+            header: "Authorization".to_string(),
+            reason: "no credential is stored for it".to_string(),
+        };
+        let error = anyhow::Error::new(unresolved.clone());
+        let wrapped = error.context("Could not create provider");
+
+        assert_eq!(ProviderError::from(wrapped), unresolved);
+        assert_eq!(unresolved.telemetry_type(), "unresolved_secret");
+        let message = unresolved.to_string();
+        assert!(message.contains("My Gateway"), "{message}");
+        assert!(message.contains("Authorization"), "{message}");
+    }
 
     #[tokio::test]
     async fn direct_reqwest_error_redacts_unsupported_scheme_url() {

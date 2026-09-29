@@ -93,6 +93,7 @@ function updateRequestToCreate(
     basePath: request.base_path ?? null,
     toolshim: request.toolshim,
     preservesThinking: request.preserves_thinking ?? null,
+    sensitiveHeaders: request.sensitive_headers ?? null,
   };
 }
 

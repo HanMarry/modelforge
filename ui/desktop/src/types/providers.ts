@@ -61,6 +61,13 @@ export type UpdateCustomProviderRequest = {
   models: string[];
   preserves_thinking?: boolean | null;
   requires_auth?: boolean;
+  /** Header names the user marked as sensitive, besides the well-known auth headers. */
+  sensitive_headers?: string[];
+  /**
+   * Read side only: headers whose values are in the credential store. Their `headers` value is
+   * a secret reference, sent back unchanged to keep the stored value.
+   */
+  stored_secret_headers?: string[];
   supports_streaming?: boolean | null;
   toolshim: boolean;
 };

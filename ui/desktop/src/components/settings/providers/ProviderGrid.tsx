@@ -290,19 +290,28 @@ function ProviderCards({
     providerCards.length === 1 &&
     (Array.isArray(providers) ? providers.length : 0) > 0;
 
-  const initialData = editingProvider && {
-    engine: editingProvider.config.engine,
-    display_name: editingProvider.config.displayName,
-    api_url: editingProvider.config.apiUrl,
-    base_path: editingProvider.config.basePath ?? undefined,
-    api_key: '',
-    models: editingProvider.config.models ?? [],
-    supports_streaming: editingProvider.config.supportsStreaming ?? true,
-    requires_auth: editingProvider.config.requiresAuth ?? true,
-    headers: editingProvider.config.headers ?? undefined,
-    catalog_provider_id: editingProvider.config.catalogProviderId ?? undefined,
-    toolshim: editingProvider.config.toolshim,
-  };
+  // Memoized so that a re-render of the grid does not reset what the user typed into the form,
+  // for example after a failed save that the user wants to retry.
+  const initialData = useMemo<UpdateCustomProviderRequest | null>(
+    () =>
+      editingProvider && {
+        engine: editingProvider.config.engine,
+        display_name: editingProvider.config.displayName,
+        api_url: editingProvider.config.apiUrl,
+        base_path: editingProvider.config.basePath ?? undefined,
+        api_key: '',
+        models: editingProvider.config.models ?? [],
+        supports_streaming: editingProvider.config.supportsStreaming ?? true,
+        requires_auth: editingProvider.config.requiresAuth ?? true,
+        headers: editingProvider.config.headers ?? undefined,
+        // Saved sensitive values come back as secret references; the form shows them masked.
+        sensitive_headers: editingProvider.config.sensitiveHeaders ?? [],
+        stored_secret_headers: editingProvider.config.storedSecretHeaders ?? [],
+        catalog_provider_id: editingProvider.config.catalogProviderId ?? undefined,
+        toolshim: editingProvider.config.toolshim,
+      },
+    [editingProvider]
+  );
 
   const editable = editingProvider ? editingProvider.isEditable : true;
   const title = editingProvider

@@ -748,6 +748,7 @@ export const zCustomProviderCreateRequest_unstable = z.object({
     catalogProviderId: z.string().nullish(),
     basePath: z.string().nullish(),
     preservesThinking: z.boolean().nullish(),
+    sensitiveHeaders: z.array(z.string()).nullish(),
     toolshim: z.boolean()
 });
 
@@ -803,7 +804,9 @@ export const zCustomProviderConfigDto = z.object({
     toolshim: z.boolean(),
     apiKeyEnv: z.string().nullish(),
     apiKeySet: z.boolean(),
-    preservesThinking: z.boolean()
+    preservesThinking: z.boolean(),
+    sensitiveHeaders: z.array(z.string()).optional().default([]),
+    storedSecretHeaders: z.array(z.string()).optional().default([])
 });
 
 export const zCustomProviderReadResponse_unstable = z.object({
@@ -828,6 +831,7 @@ export const zCustomProviderUpdateRequest_unstable = z.object({
     catalogProviderId: z.string().nullish(),
     basePath: z.string().nullish(),
     preservesThinking: z.boolean().nullish(),
+    sensitiveHeaders: z.array(z.string()).nullish(),
     toolshim: z.boolean()
 });
 

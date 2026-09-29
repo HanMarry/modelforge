@@ -1067,6 +1067,9 @@
   "customProviderForm.clear": {
     "defaultMessage": "Cancella"
   },
+  "customProviderForm.configWriteFailed": {
+    "defaultMessage": "Impossibile scrivere la configurazione di {provider}: {reason}. I dati inseriti sono stati mantenuti, puoi riprovare."
+  },
   "customProviderForm.configureManually": {
     "defaultMessage": "Configura manualmente"
   },
@@ -1078,6 +1081,9 @@
   },
   "customProviderForm.createProvider": {
     "defaultMessage": "Crea provider"
+  },
+  "customProviderForm.credentialWriteFailed": {
+    "defaultMessage": "Impossibile salvare le credenziali di {provider}: {reason}. I dati inseriti sono stati mantenuti, puoi riprovare."
   },
   "customProviderForm.customHeaders": {
     "defaultMessage": "Intestazioni personalizzate"
@@ -1115,6 +1121,15 @@
   "customProviderForm.headerNoSpaces": {
     "defaultMessage": "Il nome dell'intestazione non può contenere spazi"
   },
+  "customProviderForm.invalidHeader": {
+    "defaultMessage": "Impossibile salvare l’intestazione {header} di {provider}: {reason}."
+  },
+  "customProviderForm.markNewSensitive": {
+    "defaultMessage": "Contrassegna la nuova intestazione come sensibile"
+  },
+  "customProviderForm.markSensitive": {
+    "defaultMessage": "Contrassegna {name} come sensibile"
+  },
   "customProviderForm.modelsPlaceholder": {
     "defaultMessage": "model-a, model-b, model-c"
   },
@@ -1135,6 +1150,15 @@
   },
   "customProviderForm.requiresApiKey": {
     "defaultMessage": "Questo provider richiede una chiave API"
+  },
+  "customProviderForm.savedValueLabel": {
+    "defaultMessage": "Il valore salvato di {name} è nascosto. Digita un nuovo valore per sostituirlo."
+  },
+  "customProviderForm.sensitive": {
+    "defaultMessage": "Sensibile"
+  },
+  "customProviderForm.sensitiveHint": {
+    "defaultMessage": "I valori sensibili vengono conservati nell’archivio credenziali di sistema e non vengono più mostrati. Authorization, Proxy-Authorization, X-API-Key e api-key sono sempre sensibili."
   },
   "customProviderForm.startFromTemplate": {
     "defaultMessage": "Inizia da un modello di provider"
@@ -3631,6 +3655,9 @@
   },
   "providerCard.deprecatedReplacement": {
     "defaultMessage": "Deprecato — usa invece {replacement}."
+  },
+  "providerCard.lastRefreshError": {
+    "defaultMessage": "Ultimo controllo non riuscito: {error}"
   },
   "providerCard.noMetadata": {
     "defaultMessage": "Errore ProviderCard: nessun metadato fornito"

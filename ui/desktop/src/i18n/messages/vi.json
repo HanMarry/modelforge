@@ -1067,6 +1067,9 @@
   "customProviderForm.clear": {
     "defaultMessage": "Xóa"
   },
+  "customProviderForm.configWriteFailed": {
+    "defaultMessage": "Không thể ghi cấu hình của {provider}: {reason}. Nội dung bạn đã nhập vẫn được giữ lại, bạn có thể thử lại."
+  },
   "customProviderForm.configureManually": {
     "defaultMessage": "Cấu hình thủ công"
   },
@@ -1078,6 +1081,9 @@
   },
   "customProviderForm.createProvider": {
     "defaultMessage": "Tạo nhà cung cấp"
+  },
+  "customProviderForm.credentialWriteFailed": {
+    "defaultMessage": "Không thể lưu thông tin xác thực của {provider}: {reason}. Nội dung bạn đã nhập vẫn được giữ lại, bạn có thể thử lại."
   },
   "customProviderForm.customHeaders": {
     "defaultMessage": "Tiêu đề tùy chỉnh"
@@ -1115,6 +1121,15 @@
   "customProviderForm.headerNoSpaces": {
     "defaultMessage": "Tên tiêu đề không được chứa khoảng trắng"
   },
+  "customProviderForm.invalidHeader": {
+    "defaultMessage": "Không thể lưu tiêu đề {header} của {provider}: {reason}."
+  },
+  "customProviderForm.markNewSensitive": {
+    "defaultMessage": "Đánh dấu tiêu đề mới là nhạy cảm"
+  },
+  "customProviderForm.markSensitive": {
+    "defaultMessage": "Đánh dấu {name} là nhạy cảm"
+  },
   "customProviderForm.modelsPlaceholder": {
     "defaultMessage": "model-a, model-b, model-c"
   },
@@ -1135,6 +1150,15 @@
   },
   "customProviderForm.requiresApiKey": {
     "defaultMessage": "Nhà cung cấp này yêu cầu khóa API"
+  },
+  "customProviderForm.savedValueLabel": {
+    "defaultMessage": "Giá trị đã lưu của {name} được ẩn. Nhập giá trị mới để thay thế."
+  },
+  "customProviderForm.sensitive": {
+    "defaultMessage": "Nhạy cảm"
+  },
+  "customProviderForm.sensitiveHint": {
+    "defaultMessage": "Giá trị nhạy cảm được lưu trong kho thông tin xác thực của hệ thống và sẽ không hiển thị lại. Authorization, Proxy-Authorization, X-API-Key và api-key luôn được coi là nhạy cảm."
   },
   "customProviderForm.startFromTemplate": {
     "defaultMessage": "Bắt đầu từ mẫu nhà cung cấp"
@@ -3631,6 +3655,9 @@
   },
   "providerCard.deprecatedReplacement": {
     "defaultMessage": "Không còn được dùng — hãy sử dụng {replacement}."
+  },
+  "providerCard.lastRefreshError": {
+    "defaultMessage": "Lần kiểm tra gần nhất thất bại: {error}"
   },
   "providerCard.noMetadata": {
     "defaultMessage": "Lỗi ProviderCard: Không có metadata được cung cấp"

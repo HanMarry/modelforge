@@ -913,6 +913,7 @@ pub fn from_declarative_config(
     }
 
     config.validate_auth()?;
+    config.ensure_headers_resolved()?;
 
     let api_key = if config.api_key_env.is_empty() {
         None

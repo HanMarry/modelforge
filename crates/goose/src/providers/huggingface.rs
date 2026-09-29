@@ -89,6 +89,7 @@ impl HuggingFaceProvider {
         }
 
         config.validate_auth()?;
+        config.ensure_headers_resolved()?;
         let auth_method = match config.auth.as_ref() {
             Some(auth_config) => AuthMethod::Custom(Box::new(CommandAuthProvider::new(
                 auth_config,

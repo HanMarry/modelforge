@@ -1067,6 +1067,9 @@
   "customProviderForm.clear": {
     "defaultMessage": "クリア"
   },
+  "customProviderForm.configWriteFailed": {
+    "defaultMessage": "{provider} の設定を書き込めませんでした: {reason}。入力内容は保持されているので、そのまま再試行できます。"
+  },
   "customProviderForm.configureManually": {
     "defaultMessage": "手動で設定"
   },
@@ -1078,6 +1081,9 @@
   },
   "customProviderForm.createProvider": {
     "defaultMessage": "プロバイダーを作成"
+  },
+  "customProviderForm.credentialWriteFailed": {
+    "defaultMessage": "{provider} の認証情報を保存できませんでした: {reason}。入力内容は保持されているので、そのまま再試行できます。"
   },
   "customProviderForm.customHeaders": {
     "defaultMessage": "カスタムヘッダー"
@@ -1115,6 +1121,15 @@
   "customProviderForm.headerNoSpaces": {
     "defaultMessage": "ヘッダー名にスペースは使用できません"
   },
+  "customProviderForm.invalidHeader": {
+    "defaultMessage": "{provider} のヘッダー {header} を保存できません: {reason}。"
+  },
+  "customProviderForm.markNewSensitive": {
+    "defaultMessage": "新しいヘッダーを機密としてマーク"
+  },
+  "customProviderForm.markSensitive": {
+    "defaultMessage": "{name} を機密としてマーク"
+  },
   "customProviderForm.modelsPlaceholder": {
     "defaultMessage": "model-a, model-b, model-c"
   },
@@ -1135,6 +1150,15 @@
   },
   "customProviderForm.requiresApiKey": {
     "defaultMessage": "このプロバイダーにはAPIキーが必要です"
+  },
+  "customProviderForm.savedValueLabel": {
+    "defaultMessage": "{name} の保存済みの値は非表示です。新しい値を入力すると置き換えられます。"
+  },
+  "customProviderForm.sensitive": {
+    "defaultMessage": "機密"
+  },
+  "customProviderForm.sensitiveHint": {
+    "defaultMessage": "機密の値はシステムの認証情報ストアに保存され、再表示されません。Authorization、Proxy-Authorization、X-API-Key、api-key は常に機密として扱われます。"
   },
   "customProviderForm.startFromTemplate": {
     "defaultMessage": "プロバイダーテンプレートから始める"
@@ -3631,6 +3655,9 @@
   },
   "providerCard.deprecatedReplacement": {
     "defaultMessage": "非推奨です。代わりに {replacement} を使用してください。"
+  },
+  "providerCard.lastRefreshError": {
+    "defaultMessage": "前回の確認に失敗しました: {error}"
   },
   "providerCard.noMetadata": {
     "defaultMessage": "ProviderCardエラー: メタデータが提供されていません"
