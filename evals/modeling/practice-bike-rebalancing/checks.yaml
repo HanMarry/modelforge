@@ -1,0 +1,59 @@
+# Checks for evals/modeling/practice-bike-rebalancing (requirement 23.1). Each check is judged
+# 通过 or 未通过; a task's `passed` counts the checks judged 通过 and `total` counts all of them.
+#
+# method:
+#   file      通过 when `path` exists in the working directory after the run and is not empty
+#             (a directory must contain at least one file).
+#   baseline  通过 when every key in `keys` is present in results.json and within the tolerance
+#             recorded for it in baseline.json. Only keys with a reference value may be listed.
+#   manual    judged by a person reading paper.pdf (and the code when needed) against `criterion`.
+id: practice-bike-rebalancing
+checks:
+  - id: C01
+    question: 全题
+    method: file
+    path: code
+    criterion: code/ 目录存在且包含求解代码，论文中的数值可以由这些代码重新算出。
+
+  - id: C02
+    question: 问题一
+    method: baseline
+    keys: [total_net_demand, top_gap_station]
+    criterion: 附件数据读取正确，全天净需求总和与缺口最大站点与基线一致。
+
+  - id: C03
+    question: 问题一
+    method: baseline
+    keys: [min_initial_bikes, min_initial_bikes_total]
+    criterion: 各站点零缺车所需的最少初始车辆数及其合计与基线一致。
+
+  - id: C04
+    question: 问题一
+    method: manual
+    criterion: 论文给出供需缺口的量化定义（公式），说明只计正值还是直接求和的口径，并给出缺口最大的 3 个站点及其缺口量；建议的初始车辆数不低于零缺车所需的最少值且不超过站点容量。
+
+  - id: C05
+    question: 问题二
+    method: baseline
+    keys: [min_rebalance_bikes]
+    criterion: 以最少初始车辆数为目标值时，凌晨至少需要搬入的车辆总数与基线一致。
+
+  - id: C06
+    question: 问题二
+    method: manual
+    criterion: 写出完整的调度路径模型：决策变量、以总行驶距离为目标的目标函数、载重 30 辆的容量约束、各站车辆数非负且不超过容量、最终回到出发站点；并说明目标值的定义与求解算法。
+
+  - id: C07
+    question: 问题二
+    method: manual
+    criterion: 给出调度方案表（每段路线的起点、终点、搬运量），方案可行：任一时刻车上不超过 30 辆，搬出总量等于搬入总量，调度后各站车辆数达到所定目标值；同时给出总行驶距离与满足率提升幅度。
+
+  - id: C08
+    question: 问题三
+    method: manual
+    criterion: 给出 2 辆调度车的协同方案与相对单车节省的行驶距离，完成目标车辆数上浮与下调 10% 的灵敏度分析，并对 24 个站点的规模给出计算时间评估。
+
+  - id: C09
+    question: 全题
+    method: manual
+    criterion: 论文结构完整（摘要、问题重述、模型假设、模型建立与求解、模型检验、评价与推广），摘要写明各问的关键数值结论，且与 results.json 一致。

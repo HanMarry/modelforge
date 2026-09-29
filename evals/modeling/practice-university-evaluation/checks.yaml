@@ -1,0 +1,59 @@
+# Checks for evals/modeling/practice-university-evaluation (requirement 23.1). Each check is
+# judged 通过 or 未通过; a task's `passed` counts the checks judged 通过 and `total` counts all of them.
+#
+# method:
+#   file      通过 when `path` exists in the working directory after the run and is not empty
+#             (a directory must contain at least one file).
+#   baseline  通过 when every key in `keys` is present in results.json and within the tolerance
+#             recorded for it in baseline.json. Only keys with a reference value may be listed.
+#   manual    judged by a person reading paper.pdf (and the code when needed) against `criterion`.
+id: practice-university-evaluation
+checks:
+  - id: C01
+    question: 全题
+    method: file
+    path: code
+    criterion: code/ 目录存在且包含求解代码，论文中的数值可以由这些代码重新算出。
+
+  - id: C02
+    question: 问题一
+    method: baseline
+    keys: [pearson_papers_citations, pearson_papers_h_index]
+    criterion: 论文数与总被引次数、论文数与 H 指数的 Pearson 相关系数与基线一致。
+
+  - id: C03
+    question: 问题一
+    method: manual
+    criterion: 相关性结论与数据一致：指出论文数与总被引次数高度相关、存在信息重叠，并据此处理（如降维或调整权重）；不把论文数与 H 指数判断为高度相关。
+
+  - id: C04
+    question: 问题一
+    method: baseline
+    keys: [entropy_weights_minmax, top_weight_indicator]
+    criterion: 固定口径下的熵权法权重以及权重最大的指标与基线一致。
+
+  - id: C05
+    question: 问题一
+    method: manual
+    criterion: 说明无量纲化方法及理由，至少使用两种赋权方法（如熵权法与层次分析法、主成分分析）并比较权重差异；使用层次分析法时给出判断矩阵与一致性比率，且 CR < 0.1。
+
+  - id: C06
+    question: 问题二
+    method: baseline
+    keys: [topsis_entropy_top3, rank_first, rank_last]
+    criterion: 熵权 TOPSIS 前 3 名，以及最终综合排序的第 1 名与最后 1 名与基线一致。
+
+  - id: C07
+    question: 问题二
+    method: manual
+    criterion: 说明评价模型及选择理由，给出 20 所高校的综合得分表与完整排序，并用 Spearman 秩相关系数等方法比较不同赋权方法下排序的稳健性。
+
+  - id: C08
+    question: 问题三
+    method: manual
+    criterion: 用各指标的标准化得分或贡献解释排名靠前与靠后高校的主要驱动指标，分析不同赋权方法导致排序差异的原因并给出组合赋权等更稳健的策略，说明新增指标时模型如何调整。
+
+  - id: C09
+    question: 全题
+    method: manual
+    criterion: 论文结构完整（摘要、问题重述、模型假设、模型建立与求解、模型检验、评价与推广），摘要写明各问的关键数值结论，且与 results.json 一致。

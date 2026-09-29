@@ -1,0 +1,60 @@
+# Modeling evaluation task (spec mathmodel-parity-and-beyond, requirement 23.1).
+#
+# `eval` is read by the runner (evals/modeling/run.mts). `recipe` is a goose recipe: goose reads a
+# nested `recipe:` key (Recipe::from_content in crates/goose/src/recipe/mod.rs) and ignores the
+# rest, so this file runs as is with `goose run --recipe <path to this file>`, started in a fresh
+# working directory that holds a copy of `eval.inputs`.
+#
+# goose renders the whole file with minijinja before parsing it, so no part of this file may
+# contain template delimiters (double braces, brace-percent or brace-hash).
+eval:
+  # Directory name under evals/modeling/ and example id under ui/desktop/resources/examples/.
+  id: practice-university-evaluation
+  title: 高校科研实力综合评价
+  # One of 优化类, 预测/统计类, 综合评价类.
+  category: 综合评价类
+  # Example directory, relative to the repository root.
+  example: ui/desktop/resources/examples/practice-university-evaluation
+  license: CC BY 4.0
+  # Copied from `example` into the empty working directory, keeping these relative paths.
+  # The reference solution (solution/) is deliberately not copied.
+  inputs: [problem.md, attachments/universities.csv]
+  # Requirement 23.7: a task running longer than this is stopped and recorded as 失败 / 超时.
+  timeoutMinutes: 60
+  outputs:
+    # `compiled` in the result is true when this PDF exists and is not empty after the run.
+    paper: paper.pdf
+    # JSON object with a single `values` field, keyed by the keys in baseline.json.
+    values: results.json
+  checks: checks.yaml
+  baseline: baseline.json
+
+recipe:
+  version: 1.0.0
+  title: 评测：高校科研实力综合评价
+  description: ModelForge 建模评测集（综合评价类）。无人值守完成原创示例题并输出论文与关键数值。
+  instructions: |
+    这是一次无人值守的建模评测运行，没有人会回答你的问题。
+    - 不要向用户提问或等待确认。题目没有说明的地方自行做出合理假设，并在论文的"模型假设"一节写明。
+    - 只在当前工作目录内读写文件。题面是 problem.md，附件在 attachments/ 目录。
+    - 开始前先加载 math-modeling 技能，并用 modeling 扩展的 check_env 确认 Python 与 LaTeX 环境。
+    - 用 Python 求解，代码放在 code/ 目录；固定随机种子，保证重新运行得到相同结果；打印所有写进论文的数值。
+    - 论文用中文 LaTeX 写在 paper.tex，结构为 摘要、问题重述、问题分析、模型假设、符号说明、模型建立与求解、模型检验、模型评价与推广、参考文献。
+    - 用 modeling 扩展的 compile_latex（engine 设为 xelatex）把 paper.tex 编译为 paper.pdf；编译失败时按报错修改后重试。
+    - 按 prompt 的要求写 results.json。其中的数值必须来自代码输出，并与论文一致。
+  prompt: |
+    请完成当前工作目录中的建模题「高校科研实力综合评价」：阅读 problem.md 以及附件 attachments/universities.csv，依次回答问题一、问题二、问题三，按 instructions 产出 code/、paper.tex 与 paper.pdf。
+
+    完成后在工作目录写 results.json：它是一个 JSON 对象，只有 values 一个字段，values 的键为下列键名，一个都不能省略；算不出的值写 null。下列口径只用于评测核对，论文可以采用你自己的方法。指标名一律用附件表头 papers、citations、h_index、research_funding、awards，高校编号用 university 列的值。
+    - pearson_papers_citations（数值）：papers 与 citations 的 Pearson 相关系数。
+    - pearson_papers_h_index（数值）：papers 与 h_index 的 Pearson 相关系数。
+    - entropy_weights_minmax（对象，指标名到权重）：熵权法权重，口径为先做 min-max 归一化 (x − min)/(max − min)，再按列求比重 p，信息熵 e = −k·Σ p·ln p，k = 1/ln 20，0·ln 0 记为 0，权重 w = (1 − e)/Σ(1 − e)。
+    - top_weight_indicator（字符串，指标名）：上述熵权法中权重最大的指标。
+    - topsis_entropy_top3（数组，3 个高校编号，按名次排列）：以 entropy_weights_minmax 为权重、对原始数据做向量归一化的 TOPSIS 得到的前 3 名。
+    - rank_first（字符串，高校编号）：你最终综合排序的第 1 名。
+    - rank_last（字符串，高校编号）：你最终综合排序的最后 1 名。
+  extensions:
+    - type: platform
+      name: developer
+    - type: builtin
+      name: modeling

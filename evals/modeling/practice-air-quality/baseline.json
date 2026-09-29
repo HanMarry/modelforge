@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "id": "practice-air-quality",
+  "conventions": "value 为参考值；tolerance.mode 为 exact 时须完全相等（对象、数组逐项相等），为 abs 时允许的绝对误差为 tolerance.value（对象按每个键分别比较），为 range 时须落在 [min, max] 内。value 为 null 的项待定，写明原因，不参与自动比较。",
+  "data": {
+    "generator": "ui/desktop/resources/examples/practice-air-quality/generate-data.js",
+    "seed": 20230515,
+    "files": [
+      {
+        "path": "attachments/air_quality.csv",
+        "sha256": "ecb3a6a9d84b584c0f404f212fbb9bc3a1bc8a605477730304240cfd52d020f3"
+      }
+    ]
+  },
+  "method": "参考值由一次性脚本（Node.js v22.14.0，未入库）直接从附件计算。计算前用示例题自带的生成脚本按固定种子重新生成附件，结果与仓库中的文件逐字节一致。训练/测试划分的影响用 5000 次随机 80/20 划分（mulberry32，种子 12345）以及按时间顺序的划分（前 160 天训练、后 40 天测试）评估。示例题的参考思路（solution/）没有给出具体数值。",
+  "values": [
+    {
+      "key": "row_count",
+      "question": "问题一",
+      "description": "数据行数",
+      "definition": "附件 air_quality.csv 的数据行数，不含表头。",
+      "value": 200,
+      "tolerance": { "mode": "exact" },
+      "toleranceBasis": "计数，没有舍入。",
+      "note": "日期从 2023-01-01 到 2023-07-19，逐日连续。"
+    },
+    {
+      "key": "missing_value_count",
+      "question": "问题一",
+      "description": "缺失值总数",
+      "definition": "附件全部 6 个字段的缺失值总数。",
+      "value": 0,
+      "tolerance": { "mode": "exact" },
+      "toleranceBasis": "计数，没有舍入。",
+      "note": "生成脚本不产生缺失值。pm2_5 取值 38–95，生成脚本中 max(10, …) 的下限没有生效。"
+    },
+    {
+      "key": "pearson_pm25",
+      "question": "问题一",
+      "description": "各变量与 PM2.5 的 Pearson 相关系数",
+      "definition": "temperature、humidity、wind_speed、traffic_index 各自与 pm2_5 的 Pearson 相关系数，基于全部 200 行原始数据。",
+      "value": {
+        "temperature": -0.1096,
+        "humidity": 0.3491,
+        "wind_speed": -0.3589,
+        "traffic_index": 0.651
+      },
+      "tolerance": { "mode": "abs", "value": 0.01 },
+      "toleranceBasis": "相关系数在原始数据上唯一确定，差异只来自舍入；0.01 覆盖保留 2 位小数的舍入误差（±0.005）并留有余量。"
+    },
+    {
+      "key": "top_feature",
+      "question": "问题二",
+      "description": "最重要的特征",
+      "definition": "对 pm2_5 影响最大的特征。",
+      "value": "traffic_index",
+      "tolerance": { "mode": "exact" },
+      "toleranceBasis": "两种线性度量都排第一且差距大：|Pearson r| 为 0.651，次高 wind_speed 为 0.359；全样本标准化回归系数为 0.632，次高 wind_speed 为 −0.346。树模型的特征重要性没有计算，若作答者的树模型给出不同的第一名，由人工检查项 C07 判断其解释是否合理。"
+    },
+    {
+      "key": "ols_coef_temperature",
+      "question": "问题二",
+      "description": "线性回归系数：temperature",
+      "definition": "pm2_5 对 temperature、humidity、wind_speed、traffic_index 含截距、不做标准化的最小二乘系数；参考值用全部 200 行拟合。",
+      "value": -0.0747,
+      "tolerance": { "mode": "abs", "value": 0.11 },
+      "toleranceBasis": "作答者只用训练集拟合。5000 次随机 80/20 划分下训练集系数的 0.5%–99.5% 分位数为 [−0.1645, 0.0110]，按时间顺序划分为 −0.1801；与参考值的最大偏差 0.105，向上取到 0.11。",
+      "note": "全样本标准误 0.068，系数与 0 无显著差异；生成脚本中 temperature 不进入 pm2_5。"
+    },
+    {
+      "key": "ols_coef_humidity",
+      "question": "问题二",
+      "description": "线性回归系数：humidity",
+      "definition": "同 ols_coef_temperature 的回归中 humidity 的系数；参考值用全部 200 行拟合。",
+      "value": 0.2231,
+      "tolerance": { "mode": "abs", "value": 0.07 },
+      "toleranceBasis": "5000 次随机 80/20 划分下训练集系数的 0.5%–99.5% 分位数为 [0.1747, 0.2722]，按时间顺序划分为 0.1627；与参考值的最大偏差 0.060，向上取到 0.07。",
+      "note": "全样本标准误 0.037。生成脚本中的真实系数为 0.3，基线采用数据估计值而不是真实系数。"
+    },
+    {
+      "key": "ols_coef_wind_speed",
+      "question": "问题二",
+      "description": "线性回归系数：wind_speed",
+      "definition": "同 ols_coef_temperature 的回归中 wind_speed 的系数；参考值用全部 200 行拟合。",
+      "value": -3.4948,
+      "tolerance": { "mode": "abs", "value": 0.55 },
+      "toleranceBasis": "5000 次随机 80/20 划分下训练集系数的 0.5%–99.5% 分位数为 [−4.0310, −2.9482]，按时间顺序划分为 −3.7229；与参考值的最大偏差 0.547，向上取到 0.55。",
+      "note": "全样本标准误 0.435。生成脚本中的真实系数为 −4。"
+    },
+    {
+      "key": "ols_coef_traffic_index",
+      "question": "问题二",
+      "description": "线性回归系数：traffic_index",
+      "definition": "同 ols_coef_temperature 的回归中 traffic_index 的系数；参考值用全部 200 行拟合。",
+      "value": 0.5086,
+      "tolerance": { "mode": "abs", "value": 0.05 },
+      "toleranceBasis": "5000 次随机 80/20 划分下训练集系数的 0.5%–99.5% 分位数为 [0.4617, 0.5533]，按时间顺序划分为 0.4834；与参考值的最大偏差 0.047，向上取到 0.05。",
+      "note": "全样本标准误 0.035。生成脚本中的真实系数为 0.5。"
+    },
+    {
+      "key": "ols_test_rmse",
+      "question": "问题二",
+      "description": "线性回归的测试集 RMSE",
+      "definition": "上述线性回归在作答者测试集上的均方根误差；参考值为 5000 次随机 80/20 划分的中位数。",
+      "value": 7.0292,
+      "tolerance": { "mode": "range", "min": 5.5, "max": 9 },
+      "toleranceBasis": "随机 80/20 划分的 0.5%–99.5% 分位数为 [5.69, 8.34]，按时间顺序划分为 8.70，区间取 [5.5, 9]。生成脚本的噪声为 U(−12, 13) 加取整，理论标准差 7.22，全样本已知真实模型的 RMSE 为 6.99；测试集 RMSE 低于 5.5 通常说明在训练集上评估或有数据泄漏。"
+    },
+    {
+      "key": "ols_test_r2",
+      "question": "问题二",
+      "description": "线性回归的测试集 R²",
+      "definition": "上述线性回归在作答者测试集上的决定系数；参考值为 5000 次随机 80/20 划分的中位数。",
+      "value": 0.6175,
+      "tolerance": { "mode": "range", "min": 0.3, "max": 0.8 },
+      "toleranceBasis": "随机 80/20 划分的 0.5%–99.5% 分位数为 [0.341, 0.761]，按时间顺序划分为 0.420，区间取 [0.3, 0.8]。全样本拟合的 R² 为 0.642。"
+    }
+  ]
+}

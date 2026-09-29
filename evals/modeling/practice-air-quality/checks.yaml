@@ -1,0 +1,60 @@
+# Checks for evals/modeling/practice-air-quality (requirement 23.1). Each check is judged
+# 通过 or 未通过; a task's `passed` counts the checks judged 通过 and `total` counts all of them.
+#
+# method:
+#   file      通过 when `path` exists in the working directory after the run and is not empty
+#             (a directory must contain at least one file).
+#   baseline  通过 when every key in `keys` is present in results.json and within the tolerance
+#             recorded for it in baseline.json. Only keys with a reference value may be listed.
+#   manual    judged by a person reading paper.pdf (and the code when needed) against `criterion`.
+id: practice-air-quality
+checks:
+  - id: C01
+    question: 全题
+    method: file
+    path: code
+    criterion: code/ 目录存在且包含求解代码，论文中的数值可以由这些代码重新算出。
+
+  - id: C02
+    question: 问题一
+    method: baseline
+    keys: [row_count, missing_value_count]
+    criterion: 数据概况正确：共 200 行、没有缺失值；论文不应声称存在缺失值并对其做填充。
+
+  - id: C03
+    question: 问题一
+    method: baseline
+    keys: [pearson_pm25]
+    criterion: 各变量与 PM2.5 的 Pearson 相关系数与基线一致。
+
+  - id: C04
+    question: 问题一
+    method: manual
+    criterion: 给出各变量的分布与异常值识别方法（如 IQR 或 3σ）及识别结果，说明预处理方法（标准化等）及理由，且结论与数据一致（交通拥堵指数、湿度与 PM2.5 正相关，风速负相关，气温相关性弱）。
+
+  - id: C05
+    question: 问题二
+    method: baseline
+    keys: [ols_coef_temperature, ols_coef_humidity, ols_coef_wind_speed, ols_coef_traffic_index, top_feature]
+    criterion: 多元线性回归的 4 个系数在基线允许误差内，重要性排第一的特征与基线一致。
+
+  - id: C06
+    question: 问题二
+    method: baseline
+    keys: [ols_test_rmse, ols_test_r2]
+    criterion: 线性回归在测试集上的 RMSE 与 R² 落在基线区间内；明显优于区间通常说明在训练集上评估或存在数据泄漏。
+
+  - id: C07
+    question: 问题二
+    method: manual
+    criterion: 至少建立两种预测模型，说明训练集与测试集的划分方式（随机划分固定种子，或按时间顺序划分），在同一测试集上用 RMSE、MAE、R² 比较，并给出变量重要性排序及解释。
+
+  - id: C08
+    question: 问题三
+    method: manual
+    criterion: 给出预测的置信区间或预测区间及其计算方法；写明高温、静风的筛选阈值，并单独评估这些样本上的误差；讨论新增"工业排放"等特征时模型如何扩展。
+
+  - id: C09
+    question: 全题
+    method: manual
+    criterion: 论文结构完整（摘要、问题重述、模型假设、模型建立与求解、模型检验、评价与推广），摘要写明各问的关键数值结论，且与 results.json 一致。
