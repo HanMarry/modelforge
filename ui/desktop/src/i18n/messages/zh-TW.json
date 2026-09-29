@@ -4781,6 +4781,180 @@
   "responseStyle.detailedLabel": {
     "defaultMessage": "詳細"
   },
+  "runCompare.artifactIndexInvalid": {
+    "defaultMessage": "無法讀取產物狀態檔案，因此不顯示「已過期」標記。"
+  },
+  "runCompare.busy": {
+    "defaultMessage": "目前對話仍在執行，完成後再試。"
+  },
+  "runCompare.compare": {
+    "defaultMessage": "對比"
+  },
+  "runCompare.compareFailed": {
+    "defaultMessage": "無法對比這兩次執行。"
+  },
+  "runCompare.comparing": {
+    "defaultMessage": "正在對比…"
+  },
+  "runCompare.composed": {
+    "defaultMessage": "寫作任務已填入輸入框，傳送後開始產生。"
+  },
+  "runCompare.differs": {
+    "defaultMessage": "取值不同"
+  },
+  "runCompare.duration": {
+    "defaultMessage": "耗時"
+  },
+  "runCompare.empty": {
+    "defaultMessage": "本專案還沒有執行記錄。執行計算程式碼後會顯示在這裡。"
+  },
+  "runCompare.ended": {
+    "defaultMessage": "結束時間"
+  },
+  "runCompare.errorDetail": {
+    "defaultMessage": "詳情：{detail}"
+  },
+  "runCompare.exitCode": {
+    "defaultMessage": "結束代碼"
+  },
+  "runCompare.exitCodeValue": {
+    "defaultMessage": "結束代碼 {code}"
+  },
+  "runCompare.failedKernelError": {
+    "defaultMessage": "對比段落產生失敗：內核傳回錯誤。"
+  },
+  "runCompare.failedKernelUnavailable": {
+    "defaultMessage": "對比段落產生失敗：內核不可用。"
+  },
+  "runCompare.failedTimeout": {
+    "defaultMessage": "對比段落產生失敗：內核在 {seconds} 秒內未傳回結果（逾時）。"
+  },
+  "runCompare.failureCancelled": {
+    "defaultMessage": "使用者取消"
+  },
+  "runCompare.failureNonZero": {
+    "defaultMessage": "非零結束代碼"
+  },
+  "runCompare.failureTimeout": {
+    "defaultMessage": "逾時"
+  },
+  "runCompare.field": {
+    "defaultMessage": "對比項"
+  },
+  "runCompare.flagFailed": {
+    "defaultMessage": "執行失敗"
+  },
+  "runCompare.flagFailedReason": {
+    "defaultMessage": "執行失敗：{reason}"
+  },
+  "runCompare.flagStale": {
+    "defaultMessage": "已過期"
+  },
+  "runCompare.generate": {
+    "defaultMessage": "產生對比段落"
+  },
+  "runCompare.generated": {
+    "defaultMessage": "對比段落已產生，見目前對話。"
+  },
+  "runCompare.generating": {
+    "defaultMessage": "正在目前對話中產生段落，最長等待 {seconds} 秒…"
+  },
+  "runCompare.inputMismatch": {
+    "defaultMessage": "輸入資料不一致，對比結論可能無效"
+  },
+  "runCompare.inputMismatchFiles": {
+    "defaultMessage": "不一致的輸入檔案："
+  },
+  "runCompare.inputsMatch": {
+    "defaultMessage": "兩次執行讀取的輸入檔案一致。"
+  },
+  "runCompare.inputsTruncated": {
+    "defaultMessage": "輸入檔案清單超過 1000 項已截斷，超出部分未比對。"
+  },
+  "runCompare.listFailed": {
+    "defaultMessage": "無法載入執行記錄。"
+  },
+  "runCompare.loading": {
+    "defaultMessage": "正在載入執行記錄…"
+  },
+  "runCompare.metaProblem": {
+    "defaultMessage": "{runId} 的 .meta.json 無法讀取，因此缺少其方法、參數與指標。"
+  },
+  "runCompare.method": {
+    "defaultMessage": "方法"
+  },
+  "runCompare.metrics": {
+    "defaultMessage": "關鍵指標"
+  },
+  "runCompare.noExitCode": {
+    "defaultMessage": "無結束代碼"
+  },
+  "runCompare.noRows": {
+    "defaultMessage": "兩次執行都沒有記錄參數與指標。腳本可以把它們寫入執行記錄旁的 .meta.json 檔案。"
+  },
+  "runCompare.params": {
+    "defaultMessage": "參數"
+  },
+  "runCompare.problemInvalid": {
+    "defaultMessage": "無效：{fields}"
+  },
+  "runCompare.problemItem": {
+    "defaultMessage": "{path}（{reason}）"
+  },
+  "runCompare.problemMissing": {
+    "defaultMessage": "缺少：{fields}"
+  },
+  "runCompare.problemSyntax": {
+    "defaultMessage": "第 {line} 行第 {column} 欄 JSON 語法錯誤"
+  },
+  "runCompare.problems": {
+    "defaultMessage": "無法讀取的執行記錄檔案：{count} 個"
+  },
+  "runCompare.refresh": {
+    "defaultMessage": "重新整理執行記錄"
+  },
+  "runCompare.retry": {
+    "defaultMessage": "重試"
+  },
+  "runCompare.runA": {
+    "defaultMessage": "執行 A"
+  },
+  "runCompare.runB": {
+    "defaultMessage": "執行 B"
+  },
+  "runCompare.runId": {
+    "defaultMessage": "執行 ID"
+  },
+  "runCompare.runsLegend": {
+    "defaultMessage": "執行記錄"
+  },
+  "runCompare.selectHint": {
+    "defaultMessage": "需在同一專案中恰好選擇兩筆執行記錄才能對比。"
+  },
+  "runCompare.selectedCount": {
+    "defaultMessage": "已選 {count} 筆"
+  },
+  "runCompare.started": {
+    "defaultMessage": "開始時間"
+  },
+  "runCompare.subtitle": {
+    "defaultMessage": "選擇本專案中的兩次執行，左右並列檢視。"
+  },
+  "runCompare.title": {
+    "defaultMessage": "方案對比"
+  },
+  "runCompare.unverified": {
+    "defaultMessage": "未驗證"
+  },
+  "runCompare.verification": {
+    "defaultMessage": "驗證結論"
+  },
+  "runCompare.verificationUnknown": {
+    "defaultMessage": "未知，尚無產物狀態記錄"
+  },
+  "runCompare.verifiedAt": {
+    "defaultMessage": "已驗證（{time}）"
+  },
   "scheduleDetailView.actions": {
     "defaultMessage": "動作"
   },

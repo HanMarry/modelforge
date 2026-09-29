@@ -7,4 +7,5 @@ import type { RunCompareApi } from '../types/runCompareApi';
 
 export const runCompareBridge: RunCompareApi = {
   runsCompare: (request) => ipcRenderer.invoke('runs-compare', request),
+  runsCompareList: (projectDir) => ipcRenderer.invoke('runs-compare-list', projectDir),
 };

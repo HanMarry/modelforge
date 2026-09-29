@@ -4781,6 +4781,180 @@
   "responseStyle.detailedLabel": {
     "defaultMessage": "详细"
   },
+  "runCompare.artifactIndexInvalid": {
+    "defaultMessage": "无法读取产物状态文件，因此不显示“已过期”标记。"
+  },
+  "runCompare.busy": {
+    "defaultMessage": "当前对话仍在执行，完成后再试。"
+  },
+  "runCompare.compare": {
+    "defaultMessage": "对比"
+  },
+  "runCompare.compareFailed": {
+    "defaultMessage": "无法对比这两次运行。"
+  },
+  "runCompare.comparing": {
+    "defaultMessage": "正在对比…"
+  },
+  "runCompare.composed": {
+    "defaultMessage": "写作任务已填入输入框，发送后开始生成。"
+  },
+  "runCompare.differs": {
+    "defaultMessage": "取值不同"
+  },
+  "runCompare.duration": {
+    "defaultMessage": "耗时"
+  },
+  "runCompare.empty": {
+    "defaultMessage": "本项目还没有运行记录。运行计算代码后会显示在这里。"
+  },
+  "runCompare.ended": {
+    "defaultMessage": "结束时间"
+  },
+  "runCompare.errorDetail": {
+    "defaultMessage": "详情：{detail}"
+  },
+  "runCompare.exitCode": {
+    "defaultMessage": "退出码"
+  },
+  "runCompare.exitCodeValue": {
+    "defaultMessage": "退出码 {code}"
+  },
+  "runCompare.failedKernelError": {
+    "defaultMessage": "对比段落生成失败：内核返回错误。"
+  },
+  "runCompare.failedKernelUnavailable": {
+    "defaultMessage": "对比段落生成失败：内核不可用。"
+  },
+  "runCompare.failedTimeout": {
+    "defaultMessage": "对比段落生成失败：内核在 {seconds} 秒内未返回结果（超时）。"
+  },
+  "runCompare.failureCancelled": {
+    "defaultMessage": "用户取消"
+  },
+  "runCompare.failureNonZero": {
+    "defaultMessage": "非零退出码"
+  },
+  "runCompare.failureTimeout": {
+    "defaultMessage": "超时"
+  },
+  "runCompare.field": {
+    "defaultMessage": "对比项"
+  },
+  "runCompare.flagFailed": {
+    "defaultMessage": "执行失败"
+  },
+  "runCompare.flagFailedReason": {
+    "defaultMessage": "执行失败：{reason}"
+  },
+  "runCompare.flagStale": {
+    "defaultMessage": "已过期"
+  },
+  "runCompare.generate": {
+    "defaultMessage": "生成对比段落"
+  },
+  "runCompare.generated": {
+    "defaultMessage": "对比段落已生成，见当前对话。"
+  },
+  "runCompare.generating": {
+    "defaultMessage": "正在当前对话中生成段落，最长等待 {seconds} 秒…"
+  },
+  "runCompare.inputMismatch": {
+    "defaultMessage": "输入数据不一致，对比结论可能无效"
+  },
+  "runCompare.inputMismatchFiles": {
+    "defaultMessage": "不一致的输入文件："
+  },
+  "runCompare.inputsMatch": {
+    "defaultMessage": "两次运行读取的输入文件一致。"
+  },
+  "runCompare.inputsTruncated": {
+    "defaultMessage": "输入文件清单超过 1000 项已截断，超出部分未比对。"
+  },
+  "runCompare.listFailed": {
+    "defaultMessage": "无法加载运行记录。"
+  },
+  "runCompare.loading": {
+    "defaultMessage": "正在加载运行记录…"
+  },
+  "runCompare.metaProblem": {
+    "defaultMessage": "{runId} 的 .meta.json 无法读取，因此缺少其方法、参数与指标。"
+  },
+  "runCompare.method": {
+    "defaultMessage": "方法"
+  },
+  "runCompare.metrics": {
+    "defaultMessage": "关键指标"
+  },
+  "runCompare.noExitCode": {
+    "defaultMessage": "无退出码"
+  },
+  "runCompare.noRows": {
+    "defaultMessage": "两次运行都没有记录参数与指标。脚本可以把它们写入运行记录旁的 .meta.json 文件。"
+  },
+  "runCompare.params": {
+    "defaultMessage": "参数"
+  },
+  "runCompare.problemInvalid": {
+    "defaultMessage": "无效：{fields}"
+  },
+  "runCompare.problemItem": {
+    "defaultMessage": "{path}（{reason}）"
+  },
+  "runCompare.problemMissing": {
+    "defaultMessage": "缺少：{fields}"
+  },
+  "runCompare.problemSyntax": {
+    "defaultMessage": "第 {line} 行第 {column} 列 JSON 语法错误"
+  },
+  "runCompare.problems": {
+    "defaultMessage": "无法读取的运行记录文件：{count} 个"
+  },
+  "runCompare.refresh": {
+    "defaultMessage": "刷新运行记录"
+  },
+  "runCompare.retry": {
+    "defaultMessage": "重试"
+  },
+  "runCompare.runA": {
+    "defaultMessage": "运行 A"
+  },
+  "runCompare.runB": {
+    "defaultMessage": "运行 B"
+  },
+  "runCompare.runId": {
+    "defaultMessage": "运行 ID"
+  },
+  "runCompare.runsLegend": {
+    "defaultMessage": "运行记录"
+  },
+  "runCompare.selectHint": {
+    "defaultMessage": "需在同一项目中恰好选择两条运行记录才能对比。"
+  },
+  "runCompare.selectedCount": {
+    "defaultMessage": "已选 {count} 条"
+  },
+  "runCompare.started": {
+    "defaultMessage": "开始时间"
+  },
+  "runCompare.subtitle": {
+    "defaultMessage": "选择本项目中的两次运行，左右并列查看。"
+  },
+  "runCompare.title": {
+    "defaultMessage": "方案对比"
+  },
+  "runCompare.unverified": {
+    "defaultMessage": "未验证"
+  },
+  "runCompare.verification": {
+    "defaultMessage": "验证结论"
+  },
+  "runCompare.verificationUnknown": {
+    "defaultMessage": "未知，尚无产物状态记录"
+  },
+  "runCompare.verifiedAt": {
+    "defaultMessage": "已验证（{time}）"
+  },
   "scheduleDetailView.actions": {
     "defaultMessage": "操作"
   },
