@@ -19,10 +19,6 @@ const i18n = defineMessages({
   localSource: { id: 'gallery.localSource', defaultMessage: 'Local' },
   importedSource: { id: 'gallery.importedSource', defaultMessage: 'Local import' },
   remoteSource: { id: 'gallery.remoteSource', defaultMessage: 'Remote' },
-  temporaryRule: {
-    id: 'gallery.temporaryRule',
-    defaultMessage: 'Temporary rule: a paper PDF marks a work',
-  },
   export: { id: 'gallery.export', defaultMessage: 'Export share package' },
   noPdf: { id: 'gallery.noPdf', defaultMessage: 'No exportable paper PDF' },
   exportSaved: { id: 'gallery.exportSaved', defaultMessage: 'Saved to {path}' },
@@ -319,9 +315,6 @@ export default function GalleryView() {
                     </div>
                     <div className="flex items-center justify-between pt-1">
                       <span className="text-[10px] text-text-tertiary">{sourceLabel(work, intl)}</span>
-                      {work.temporaryRule && (
-                        <span className="text-[10px] text-text-tertiary">{intl.formatMessage(i18n.temporaryRule)}</span>
-                      )}
                     </div>
                     {work.source === 'local' && (
                       <button

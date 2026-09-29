@@ -11,6 +11,10 @@ export const runsBridge: RunsApi = {
   artifactsVerify: (projectDir, artifactPath) =>
     ipcRenderer.invoke('artifacts-verify', projectDir, artifactPath),
   artifactsCheckStale: (projectDir) => ipcRenderer.invoke('artifacts-check-stale', projectDir),
+  artifactsInspect: (projectDir, artifactPath) =>
+    ipcRenderer.invoke('artifacts-inspect', projectDir, artifactPath),
+  artifactsRunStarted: (event) => ipcRenderer.invoke('artifacts-run-started', event),
+  artifactsRunFinished: (event) => ipcRenderer.invoke('artifacts-run-finished', event),
   onArtifactsChanged: (callback) => {
     const listener = (_event: IpcRendererEvent, payload: ArtifactsChangedEvent) =>
       callback(payload);

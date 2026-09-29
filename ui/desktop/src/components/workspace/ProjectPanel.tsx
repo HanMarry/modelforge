@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  AlertTriangle,
   ArrowRight,
   BookOpen,
   FileText,
@@ -7,13 +8,18 @@ import {
   RefreshCw,
   Search,
   Settings2,
+  ShieldCheck,
   X,
 } from 'lucide-react';
 import { defineMessages, useIntl } from '../../i18n';
+import type { ArtifactIndex } from '../../types/artifactStatus';
 import type { ProjectSnapshot, ProjectStage, WorkspaceEntry } from '../../types/workspaceApi';
+import { getArtifactEntry } from '../../utils/artifactStatus';
 import { buildProjectAction, PROJECT_STAGES, type ProjectAction } from '../../utils/projectActions';
 import { usePanelAutoRefresh } from '../../hooks/usePanelAutoRefresh';
 import CollabHostPanel from '../collab/CollabHostPanel';
+import ArtifactDetailsDialog, { isModifiedOutside } from './ArtifactDetailsDialog';
+import ArtifactStatusBadge from './ArtifactStatusBadge';
 
 const messages = defineMessages({
   title: { id: 'projectPanel.title', defaultMessage: 'Project materials' },
@@ -74,6 +80,20 @@ const messages = defineMessages({
   actionFigures: { id: 'projectPanel.actionFigures', defaultMessage: 'Prepare figures' },
   actionPaper: { id: 'projectPanel.actionPaper', defaultMessage: 'Improve the paper' },
   actionReview: { id: 'projectPanel.actionReview', defaultMessage: 'Review deliverables' },
+  checkStale: { id: 'runs.checkStale', defaultMessage: 'Check for outdated results' },
+  checkFailed: {
+    id: 'runs.checkFailed',
+    defaultMessage: 'Could not check the results. Try again.',
+  },
+  indexFailed: {
+    id: 'runs.indexFailed',
+    defaultMessage: 'Could not load the status of the results.',
+  },
+  modifiedOutsideHint: {
+    id: 'runs.modifiedOutsideHint',
+    defaultMessage: 'Changed outside ModelForge',
+  },
+  otherTitle: { id: 'runs.otherTitle', defaultMessage: 'Other tracked results' },
 });
 
 const ACTION_LABELS = {
@@ -119,6 +139,14 @@ export default function ProjectPanel({
   const [showCollab, setShowCollab] = useState(false);
   const [solution, setSolution] = useState<{ question: string; content: string }[] | null>(null);
   const [solutionError, setSolutionError] = useState(false);
+  const [artifacts, setArtifacts] = useState<{ directory: string; index: ArtifactIndex } | null>(
+    null
+  );
+  const [artifactsFailed, setArtifactsFailed] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const [checkFailed, setCheckFailed] = useState(false);
+  const [selectedArtifact, setSelectedArtifact] = useState<string | null>(null);
+  const currentDir = useRef(workingDir);
 
   // The reference approach is read-only content from the bundled example (requirement 9.8).
   const openSolution = async (exampleId: string) => {
@@ -137,6 +165,25 @@ export default function ProjectPanel({
   const sequence = useRef(0);
   const pending = useRef<{ id: number; directory: string } | null>(null);
   const snapshot = loaded?.directory === workingDir ? loaded.snapshot : null;
+  const artifactIndex = artifacts?.directory === workingDir ? artifacts.index : null;
+  const projectRoot = snapshot?.root ?? null;
+
+  // Artifact_Status (requirements 16, 17): opening the Project runs a detection pass in the main
+  // process; later changes arrive through `onArtifactsChanged`.
+  const loadArtifacts = useCallback(async (directory: string) => {
+    try {
+      const result = await window.electron.artifactsGet(directory);
+      if (currentDir.current !== directory) return;
+      if (result.ok) {
+        setArtifacts({ directory, index: result.data });
+        setArtifactsFailed(false);
+      } else {
+        setArtifactsFailed(true);
+      }
+    } catch {
+      if (currentDir.current === directory) setArtifactsFailed(true);
+    }
+  }, []);
 
   const refresh = useCallback(async () => {
     if (!active || !workingDir || pending.current?.directory === workingDir) return;
@@ -146,15 +193,21 @@ export default function ProjectPanel({
     setError(false);
     try {
       const next = await window.electron.workspaceScanProject(workingDir);
-      if (sequence.current === id) setLoaded({ directory: workingDir, snapshot: next });
+      if (sequence.current === id) {
+        setLoaded({ directory: workingDir, snapshot: next });
+        void loadArtifacts(workingDir);
+      }
     } catch {
       if (sequence.current === id) setError(true);
     } finally {
       if (pending.current?.id === id) pending.current = null;
       if (sequence.current === id) setLoading(false);
     }
-  }, [workingDir, active]);
+  }, [workingDir, active, loadArtifacts]);
 
+  useEffect(() => {
+    currentDir.current = workingDir;
+  }, [workingDir]);
   useEffect(() => {
     void refresh();
     return () => {
@@ -165,8 +218,57 @@ export default function ProjectPanel({
   useEffect(() => {
     setNotice(false);
     setExpanded([]);
+    setSelectedArtifact(null);
+    setArtifactsFailed(false);
+    setCheckFailed(false);
   }, [workingDir]);
+  useEffect(() => {
+    if (!workingDir) return undefined;
+    return window.electron.onArtifactsChanged((event) => {
+      if (event.projectDir === workingDir || event.projectDir === projectRoot) {
+        setArtifacts({ directory: workingDir, index: event.index });
+      }
+    });
+  }, [workingDir, projectRoot]);
   usePanelAutoRefresh(active && isAgentActive, () => void refresh(), 5000);
+
+  const checkStale = async () => {
+    if (!workingDir) return;
+    const directory = workingDir;
+    setChecking(true);
+    setCheckFailed(false);
+    try {
+      const result = await window.electron.artifactsCheckStale(directory);
+      if (currentDir.current !== directory) return;
+      if (result.ok) {
+        setArtifacts({ directory, index: result.data });
+        setArtifactsFailed(false);
+      } else {
+        setCheckFailed(true);
+      }
+    } catch {
+      if (currentDir.current === directory) setCheckFailed(true);
+    } finally {
+      setChecking(false);
+    }
+  };
+  const listedPaths = new Set(snapshot?.artifacts.map((file) => file.relativePath) ?? []);
+  const otherEntries = artifactIndex
+    ? Object.keys(artifactIndex.entries)
+        .filter((path) => !listedPaths.has(path))
+        .sort()
+        .map((path) => artifactIndex.entries[path])
+    : [];
+  const selectedEntry =
+    selectedArtifact && artifactIndex
+      ? (getArtifactEntry(artifactIndex, selectedArtifact) ?? null)
+      : null;
+  const modifiedHint = (
+    <p className="ml-7 mt-0.5 flex items-center gap-1 text-[11px] text-text-danger">
+      <AlertTriangle aria-hidden="true" className="h-3 w-3 shrink-0" />
+      {intl.formatMessage(messages.modifiedOutsideHint)}
+    </p>
+  );
 
   const chooseFolder = async () => {
     try {
@@ -288,6 +390,16 @@ export default function ProjectPanel({
                 {intl.formatMessage(messages.partial)}
               </p>
             )}
+            {artifactsFailed && !checkFailed && (
+              <p className="mb-4 text-xs leading-relaxed text-text-danger">
+                {intl.formatMessage(messages.indexFailed)}
+              </p>
+            )}
+            {checkFailed && (
+              <p role="alert" className="mb-4 text-xs leading-relaxed text-text-danger">
+                {intl.formatMessage(messages.checkFailed)}
+              </p>
+            )}
             <ol className="space-y-5">
               {PROJECT_STAGES.map((stage, index) => {
                 const files = snapshot.artifacts.filter((file) => file.stage === stage);
@@ -308,25 +420,46 @@ export default function ProjectPanel({
                     {files.length === 0 && (
                       <p className="py-2 text-xs">{intl.formatMessage(messages.missing)}</p>
                     )}
-                    {files.slice(0, isExpanded ? files.length : 3).map((file) => (
-                      <button
-                        key={file.path}
-                        type="button"
-                        className={`${control} mt-1 flex w-full items-start gap-2 px-2 py-2 text-left hover:bg-background-tertiary`}
-                        title={file.relativePath}
-                        onClick={() => onOpenFile(file)}
-                      >
-                        <FileText aria-hidden="true" className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                        <span className="min-w-0 break-all font-mono text-xs leading-relaxed">
-                          {file.relativePath}
-                          {file.size === 0 && (
-                            <span className="ml-2 font-sans">
-                              ({intl.formatMessage(messages.emptyFile)})
-                            </span>
-                          )}
-                        </span>
-                      </button>
-                    ))}
+                    {files.slice(0, isExpanded ? files.length : 3).map((file) => {
+                      const entry = artifactIndex
+                        ? getArtifactEntry(artifactIndex, file.relativePath)
+                        : undefined;
+                      return (
+                        <div key={file.path} className="mt-1">
+                          <div className="flex items-start gap-1">
+                            <button
+                              type="button"
+                              className={`${control} flex min-w-0 flex-1 items-start gap-2 px-2 py-2 text-left hover:bg-background-tertiary`}
+                              title={file.relativePath}
+                              onClick={() => onOpenFile(file)}
+                            >
+                              <FileText
+                                aria-hidden="true"
+                                className="mt-0.5 h-3.5 w-3.5 shrink-0"
+                              />
+                              <span className="min-w-0 break-all font-mono text-xs leading-relaxed">
+                                {file.relativePath}
+                                {file.size === 0 && (
+                                  <span className="ml-2 font-sans">
+                                    ({intl.formatMessage(messages.emptyFile)})
+                                  </span>
+                                )}
+                              </span>
+                            </button>
+                            {entry && (
+                              <span className="mt-1.5 shrink-0">
+                                <ArtifactStatusBadge
+                                  status={entry.status}
+                                  path={entry.path}
+                                  onSelect={setSelectedArtifact}
+                                />
+                              </span>
+                            )}
+                          </div>
+                          {isModifiedOutside(entry) && modifiedHint}
+                        </div>
+                      );
+                    })}
                     {files.length > 3 && (
                       <button
                         type="button"
@@ -357,6 +490,30 @@ export default function ProjectPanel({
                 );
               })}
             </ol>
+            {otherEntries.length > 0 && (
+              <section className="mt-5">
+                <h3 className="border-b border-border-primary pb-2 text-sm font-medium">
+                  {intl.formatMessage(messages.otherTitle)}
+                </h3>
+                <ul>
+                  {otherEntries.map((entry) => (
+                    <li key={entry.path} className="mt-1">
+                      <div className="flex items-start gap-2 px-2 py-1.5">
+                        <span className="min-w-0 flex-1 break-all font-mono text-xs leading-relaxed">
+                          {entry.path}
+                        </span>
+                        <ArtifactStatusBadge
+                          status={entry.status}
+                          path={entry.path}
+                          onSelect={setSelectedArtifact}
+                        />
+                      </div>
+                      {isModifiedOutside(entry) && modifiedHint}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
             <button
               type="button"
               className={`${control} mt-6 flex w-full items-center gap-2 border border-border-primary px-3 py-2.5 text-sm hover:bg-background-tertiary`}
@@ -384,6 +541,18 @@ export default function ProjectPanel({
           >
             <FolderOpen aria-hidden="true" className="h-3.5 w-3.5" />
             {intl.formatMessage(messages.openFolder)}
+          </button>
+          <button
+            type="button"
+            className={`${control} inline-flex items-center gap-1.5 px-2 py-2 text-xs hover:bg-background-tertiary`}
+            disabled={checking}
+            onClick={() => void checkStale()}
+          >
+            <ShieldCheck
+              aria-hidden="true"
+              className={`h-3.5 w-3.5 ${checking ? 'animate-pulse motion-reduce:animate-none' : ''}`}
+            />
+            {intl.formatMessage(messages.checkStale)}
           </button>
           {snapshot?.exampleId && (
             <button
@@ -417,6 +586,15 @@ export default function ProjectPanel({
       )}
       {showCollab && (
         <CollabHostPanel workingDir={workingDir} onClose={() => setShowCollab(false)} />
+      )}
+      {selectedArtifact && workingDir && (
+        <ArtifactDetailsDialog
+          workingDir={workingDir}
+          path={selectedArtifact}
+          entry={selectedEntry}
+          onClose={() => setSelectedArtifact(null)}
+          onIndexChange={(index) => setArtifacts({ directory: workingDir, index })}
+        />
       )}
       {(solution || solutionError) && (
         <div

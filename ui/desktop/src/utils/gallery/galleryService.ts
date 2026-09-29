@@ -1,8 +1,10 @@
 /**
- * Local works gallery and share-package service (requirement 13). Local works follow the
- * temporary rule "a paper PDF exists => it is a work"; phase 2 swaps this for Artifact_Status.
- * Share packages are written with `yazl` and read with `yauzl`, always through a temporary file
- * or directory that is only renamed into place after everything succeeded.
+ * Local works gallery and share-package service (requirement 13). A local Project is a work when
+ * its paper PDF Artifact has the Artifact_Status 已生成 or 已验证 (requirements 13.1, 13.8,
+ * task 22.10); the status comes from the Artifact store after a detection pass, so a PDF changed
+ * since its run no longer counts. Share packages are written with `yazl` and read with `yauzl`,
+ * always through a temporary file or directory that is only renamed into place after everything
+ * succeeded.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -12,8 +14,9 @@ import { openPromise, validateFileName } from 'yauzl';
 import { isAllowedUrl } from '../urlPolicy';
 import { selectShareFiles } from './shareFilter';
 import { validateShareManifest } from './shareManifest';
-import { scanProject } from '../projectInventory';
-import type { ProjectArtifact } from '../../types/workspaceApi';
+import { classifyProjectFile } from '../projectInventory';
+import { sharedArtifactStore } from '../runs/artifactStore';
+import type { ArtifactEntry, ArtifactIndex } from '../../types/artifactStatus';
 
 export type GallerySource = 'local' | 'imported' | 'remote';
 
@@ -29,8 +32,6 @@ export interface GalleryWork {
   /** Absolute path to the PDF for preview (local and imported works). */
   pdfPath?: string;
   projectDir?: string;
-  /** True while the temporary "paper PDF exists" rule is in effect (13.1). */
-  temporaryRule?: boolean;
 }
 
 export type GalleryErrorCode =
@@ -74,6 +75,11 @@ export interface GalleryServiceDeps {
   sensitiveValues: () => string[];
   modelforgeVersion: () => string;
   log?: (message: string) => void;
+  /**
+   * The Artifact_Status index of a Project after a detection pass; defaults to the main process
+   * Artifact store (`utils/runs/artifactStore.ts`).
+   */
+  artifactIndex?: (projectDir: string) => Promise<ArtifactIndex>;
 }
 
 const MAX_ARCHIVE_BYTES = 100 * 1024 * 1024;
@@ -97,12 +103,22 @@ export function formatExportStamp(now: Date): string {
   );
 }
 
-export function findPaperPdf(artifacts: ProjectArtifact[]): ProjectArtifact | null {
-  return (
-    artifacts.find(
-      (artifact) => artifact.stage === 'paper' && artifact.name.toLowerCase().endsWith('.pdf')
-    ) ?? null
-  );
+/**
+ * The paper PDF Artifact that makes the Project a work: a PDF the Project panel files under the
+ * paper stage whose Artifact_Status is 已验证 or 已生成 (requirements 13.1, 13.8). A verified one
+ * wins; otherwise the first by path.
+ */
+export function findExportablePaper(index: ArtifactIndex): ArtifactEntry | null {
+  const papers = Object.keys(index.entries)
+    .map((key) => index.entries[key])
+    .filter(
+      (entry) =>
+        (entry.status === '已验证' || entry.status === '已生成') &&
+        entry.path.toLowerCase().endsWith('.pdf') &&
+        classifyProjectFile(entry.path) === 'paper'
+    )
+    .sort((a, b) => a.path.localeCompare(b.path));
+  return papers.find((entry) => entry.status === '已验证') ?? papers[0] ?? null;
 }
 
 export function containsSensitive(content: string, secrets: readonly string[]): boolean {
@@ -142,21 +158,22 @@ export function createGalleryService(deps: GalleryServiceDeps) {
   const { userDataDir, recentDirs, sensitiveValues, modelforgeVersion, log } = deps;
   const debug = log ?? (() => {});
   const importsDir = path.join(userDataDir, 'gallery', 'imports');
+  const artifactIndex =
+    deps.artifactIndex ?? ((projectDir: string) => sharedArtifactStore().getIndex(projectDir));
 
   const listLocal = async (): Promise<GalleryWork[]> => {
     const works: GalleryWork[] = [];
 
     for (const dir of recentDirs()) {
       try {
-        const snapshot = await scanProject(dir, { maxEntries: 2000, maxDepth: 6 });
-        const pdf = findPaperPdf(snapshot.artifacts);
-        if (pdf) {
+        const root = await fs.promises.realpath(dir);
+        const paper = findExportablePaper(await artifactIndex(root));
+        if (paper) {
           works.push({
             id: `local:${dir}`,
             source: 'local',
-            pdfPath: pdf.path,
+            pdfPath: path.join(root, ...paper.path.split('/')),
             projectDir: dir,
-            temporaryRule: true,
           });
         }
       } catch {
@@ -216,11 +233,11 @@ export function createGalleryService(deps: GalleryServiceDeps) {
   const exportShare = async (input: ExportShareInput): Promise<GalleryResult<ExportShareData>> => {
     try {
       const root = await fs.promises.realpath(input.projectDir);
-      const snapshot = await scanProject(root, { maxEntries: 4000, maxDepth: 8 });
-      const pdf = findPaperPdf(snapshot.artifacts);
-      if (!pdf) {
+      const paper = findExportablePaper(await artifactIndex(root));
+      if (!paper) {
         return { ok: false, code: 'NO_PDF' };
       }
+      const pdfPath = path.join(root, ...paper.path.split('/'));
 
       const candidates = await listShareCandidates(root);
       const secrets = sensitiveValues();
@@ -256,7 +273,7 @@ export function createGalleryService(deps: GalleryServiceDeps) {
       await fs.promises.mkdir(input.targetDir, { recursive: true });
 
       const zip = new ZipFile();
-      zip.addFile(pdf.path, 'paper.pdf');
+      zip.addFile(pdfPath, 'paper.pdf');
       zip.addBuffer(Buffer.from(input.abstract, 'utf8'), 'abstract.md');
       zip.addBuffer(Buffer.from(JSON.stringify(manifest, null, 2), 'utf8'), 'manifest.json');
       for (const relative of filtered.selected) {

@@ -2,6 +2,7 @@ import type {
   RunFinishedNotification_unstable,
   RunStartedNotification_unstable,
 } from '@aaif/goose-acp-client';
+import type { RunsApi } from '../types/runsApi';
 
 /**
  * Run notifications from the Kernel: `_goose/unstable/runs/started` and
@@ -9,13 +10,16 @@ import type {
  * The Kernel only sends them because `acpConnection.ts` declares `runNotifications`. Contract:
  * `.kiro/specs/mathmodel-parity-and-beyond/layer-c-contract-acp.md`.
  *
- * `runs/finished` arrives once the Run_Record is on disk; read the record at `recordPath`
- * (relative to `workingDir`) and apply it with `applyRunFinished`. `runs/started` carries the id
- * the finished record usually has, for `applyRunStarted`. Neither notification is guaranteed
- * (a run started from code mode or from a separate `goose mcp modeling` process sends none), so
- * listeners must not replace the rescan of `.modelforge/runs`.
+ * Every notification is first passed on to the main process, which keeps the Artifact_Status of
+ * the Project (`utils/runs/artifactStore.ts`): `runs/started` marks the declared outputs with
+ * `applyRunStarted`, and `runs/finished` reads the record at `recordPath` (relative to
+ * `workingDir`) and applies it with `applyRunFinished`. The main process then pushes the new
+ * index through `artifacts-changed`. Neither notification is guaranteed (a run started from code
+ * mode or from a separate `goose mcp modeling` process sends none), which is why the main process
+ * also rescans `.modelforge/runs` when files change.
  *
- * Branch `mp/s2-c1-runs` subscribes here, for example to forward the events to the main process.
+ * Other renderer code can listen as well, with `subscribeToRunStarted` and
+ * `subscribeToRunFinished`.
  */
 
 export type RunStartedListener = (notification: RunStartedNotification_unstable) => void;
@@ -51,16 +55,69 @@ function dispatch<T>(listeners: ReadonlySet<(value: T) => void>, value: T, metho
   }
 }
 
-export function handleAcpRunStartedNotification(
-  notification: RunStartedNotification_unstable
-): Promise<void> {
-  dispatch(runStartedListeners, notification, 'runs/started');
-  return Promise.resolve();
+type RunEventChannels = Pick<RunsApi, 'artifactsRunStarted' | 'artifactsRunFinished'>;
+
+/** The main process API, when this renderer runs inside the desktop app. */
+function mainProcess(): Partial<RunEventChannels> | undefined {
+  return typeof window === 'undefined'
+    ? undefined
+    : (window.electron as Partial<RunEventChannels> | undefined);
 }
 
-export function handleAcpRunFinishedNotification(
+/**
+ * Passes a notification on to the main process. Best effort: a failure is logged, and the main
+ * process catches up when it rescans the Project.
+ */
+async function forwardToMainProcess(
+  send: () => Promise<{ ok: boolean }>,
+  method: string
+): Promise<void> {
+  try {
+    const outcome = await send();
+    if (!outcome.ok) {
+      console.warn(`The main process did not apply ${method}:`, outcome);
+    }
+  } catch (error) {
+    console.warn(`Could not pass ${method} on to the main process:`, error);
+  }
+}
+
+export async function handleAcpRunStartedNotification(
+  notification: RunStartedNotification_unstable
+): Promise<void> {
+  const forward = mainProcess()?.artifactsRunStarted;
+  const forwarded =
+    typeof forward === 'function'
+      ? forwardToMainProcess(
+          () =>
+            forward({
+              workingDir: notification.workingDir,
+              runId: notification.runId,
+              declaredOutputs: notification.declaredOutputs ?? [],
+            }),
+          'runs/started'
+        )
+      : Promise.resolve();
+  dispatch(runStartedListeners, notification, 'runs/started');
+  await forwarded;
+}
+
+export async function handleAcpRunFinishedNotification(
   notification: RunFinishedNotification_unstable
 ): Promise<void> {
+  const forward = mainProcess()?.artifactsRunFinished;
+  const forwarded =
+    typeof forward === 'function'
+      ? forwardToMainProcess(
+          () =>
+            forward({
+              workingDir: notification.workingDir,
+              runId: notification.runId,
+              recordPath: notification.recordPath,
+            }),
+          'runs/finished'
+        )
+      : Promise.resolve();
   dispatch(runFinishedListeners, notification, 'runs/finished');
-  return Promise.resolve();
+  await forwarded;
 }

@@ -2267,9 +2267,6 @@
   "gallery.remoteUnreachable": {
     "defaultMessage": "远程服务不可达"
   },
-  "gallery.temporaryRule": {
-    "defaultMessage": "临时规则：有论文 PDF 即视为作品"
-  },
   "gallery.title": {
     "defaultMessage": "作品广场"
   },
@@ -5521,6 +5518,171 @@
   },
   "runCompare.verifiedAt": {
     "defaultMessage": "已验证（{time}）"
+  },
+  "runs.badgeLabel": {
+    "defaultMessage": "{status}：查看 {path} 的详情"
+  },
+  "runs.checkFailed": {
+    "defaultMessage": "无法检查结果，请重试。"
+  },
+  "runs.checkStale": {
+    "defaultMessage": "检查过期结果"
+  },
+  "runs.close": {
+    "defaultMessage": "关闭"
+  },
+  "runs.code": {
+    "defaultMessage": "代码"
+  },
+  "runs.command": {
+    "defaultMessage": "命令"
+  },
+  "runs.detailsTitle": {
+    "defaultMessage": "产物详情"
+  },
+  "runs.endedAt": {
+    "defaultMessage": "结束时间"
+  },
+  "runs.exitCode": {
+    "defaultMessage": "退出码"
+  },
+  "runs.exitCodeNone": {
+    "defaultMessage": "无"
+  },
+  "runs.failure": {
+    "defaultMessage": "失败类型"
+  },
+  "runs.failureCancelled": {
+    "defaultMessage": "用户取消"
+  },
+  "runs.failureNonZero": {
+    "defaultMessage": "非零退出码"
+  },
+  "runs.failureTimeout": {
+    "defaultMessage": "超时"
+  },
+  "runs.fileChanged": {
+    "defaultMessage": "运行后已更改"
+  },
+  "runs.fileMatch": {
+    "defaultMessage": "与记录一致"
+  },
+  "runs.fileMissing": {
+    "defaultMessage": "缺失"
+  },
+  "runs.fileUnreadable": {
+    "defaultMessage": "无法读取"
+  },
+  "runs.fileUnrecorded": {
+    "defaultMessage": "记录中没有哈希"
+  },
+  "runs.indexFailed": {
+    "defaultMessage": "无法加载产物状态。"
+  },
+  "runs.inputs": {
+    "defaultMessage": "输入文件"
+  },
+  "runs.loadFailed": {
+    "defaultMessage": "无法加载运行记录，请关闭后重试。"
+  },
+  "runs.loading": {
+    "defaultMessage": "正在加载运行记录…"
+  },
+  "runs.markVerified": {
+    "defaultMessage": "标记已验证"
+  },
+  "runs.modifiedOutside": {
+    "defaultMessage": "该文件在生成它的运行之后，在 ModelForge 之外被修改。"
+  },
+  "runs.modifiedOutsideHint": {
+    "defaultMessage": "在 ModelForge 之外被修改"
+  },
+  "runs.noInputs": {
+    "defaultMessage": "没有记录输入文件"
+  },
+  "runs.noRecord": {
+    "defaultMessage": "无运行记录"
+  },
+  "runs.otherTitle": {
+    "defaultMessage": "其他已跟踪的产物"
+  },
+  "runs.reasonCodeChanged": {
+    "defaultMessage": "代码已更改：{path}"
+  },
+  "runs.reasonInputChanged": {
+    "defaultMessage": "输入已更改：{path}"
+  },
+  "runs.reasonMissing": {
+    "defaultMessage": "文件缺失：{path}"
+  },
+  "runs.reasonOutputModified": {
+    "defaultMessage": "在 ModelForge 之外被修改：{path}"
+  },
+  "runs.reasonUnreadable": {
+    "defaultMessage": "无法读取：{path}"
+  },
+  "runs.reasonsTitle": {
+    "defaultMessage": "过期原因"
+  },
+  "runs.recordedHash": {
+    "defaultMessage": "记录的 SHA-256：{hash}"
+  },
+  "runs.rejectNotGenerated": {
+    "defaultMessage": "未标记：只有状态为“已生成”的产物才能标记为已验证，当前状态为{status}。"
+  },
+  "runs.rejectNotTracked": {
+    "defaultMessage": "未标记：该文件尚未作为产物跟踪。"
+  },
+  "runs.rejectRecordMissing": {
+    "defaultMessage": "未标记：该产物的运行记录缺失或无法读取。"
+  },
+  "runs.rejectRunFailed": {
+    "defaultMessage": "未标记：生成该产物的运行退出码不是 0。"
+  },
+  "runs.runId": {
+    "defaultMessage": "运行 ID"
+  },
+  "runs.seed": {
+    "defaultMessage": "随机种子"
+  },
+  "runs.seedUnset": {
+    "defaultMessage": "未设置"
+  },
+  "runs.startedAt": {
+    "defaultMessage": "开始时间"
+  },
+  "runs.status": {
+    "defaultMessage": "状态"
+  },
+  "runs.statusFailed": {
+    "defaultMessage": "执行失败"
+  },
+  "runs.statusFileFound": {
+    "defaultMessage": "已发现文件"
+  },
+  "runs.statusGenerated": {
+    "defaultMessage": "已生成"
+  },
+  "runs.statusNotStarted": {
+    "defaultMessage": "未开始"
+  },
+  "runs.statusRunning": {
+    "defaultMessage": "执行中"
+  },
+  "runs.statusStale": {
+    "defaultMessage": "已过期"
+  },
+  "runs.statusVerified": {
+    "defaultMessage": "已验证"
+  },
+  "runs.thisFile": {
+    "defaultMessage": "本文件"
+  },
+  "runs.verifiedAt": {
+    "defaultMessage": "已于 {time} 验证（运行 {runId}）"
+  },
+  "runs.verifyFailed": {
+    "defaultMessage": "无法保存验证记录，请重试。"
   },
   "scheduleDetailView.actions": {
     "defaultMessage": "操作"

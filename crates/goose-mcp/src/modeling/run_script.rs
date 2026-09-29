@@ -8,16 +8,27 @@
 //! While the code runs, the interpreter version and the installed packages are probed on the
 //! side; a probe that is still busy shortly after the run ended is dropped rather than holding
 //! the result back.
+//!
+//! Once the process has started, the call tells its client the run id with the MCP custom
+//! notification [`RUN_STARTED_NOTIFICATION`]; goose turns it into the ACP notification
+//! `_goose/unstable/runs/started`, so the desktop can mark the declared outputs as running
+//! (layer-c-contract-acp.md, section 3.2).
 
+use std::fmt;
 use std::future::Future;
 use std::io;
 use std::path::{Path, PathBuf};
+use std::pin::Pin;
 use std::process::{ExitStatus, Stdio};
 use std::sync::{Arc, Mutex, PoisonError};
 use std::time::Duration;
 
-use rmcp::model::{CallToolResult, ContentBlock, ErrorCode, ErrorData, MetaObject};
+use rmcp::model::{
+    CallToolResult, ContentBlock, CustomNotification, ErrorCode, ErrorData, MetaObject,
+    ServerNotification,
+};
 use rmcp::schemars::JsonSchema;
+use rmcp::{Peer, RoleServer};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tokio::io::{AsyncRead, AsyncReadExt};
@@ -25,7 +36,7 @@ use tokio::process::{Child, Command};
 use tokio::task::JoinHandle;
 use tokio::time::Instant;
 
-use super::run_record::Dependency;
+use super::run_record::{is_project_relative_path, Dependency};
 use super::run_recorder::{
     FinishedRun, NoRunObserver, NoSecretValues, ProbedEnvironment, RunObserver, RunOutcome,
     RunRecorder, RunSpec, SecretValues, CONFIG_UNKNOWN,
@@ -42,6 +53,14 @@ pub const MODEL_META_KEY: &str = "modelforge-model";
 /// Tool result `_meta` key carrying the run id, record path and outcome, for whoever forwards
 /// `runs/finished` to the desktop.
 pub const RUN_META_KEY: &str = "modelforge/run";
+/// MCP custom notification sent once the process of a run has started. Params:
+/// `{ "runId", "toolCallId"?, "declaredOutputs" }`. goose's MCP client forwards only
+/// `modelforge/` notifications to the tool call, and the ACP server turns this one into
+/// `_goose/unstable/runs/started` (`RUN_STARTED_TOOL_NOTIFICATION` in `goose::acp::server::runs`).
+pub const RUN_STARTED_NOTIFICATION: &str = "modelforge/run_started";
+/// Request `_meta` key goose uses for the id of the tool call. The start notice echoes it, so
+/// goose can tell it apart from the notices of other calls to this server.
+pub const TOOL_CALL_ID_META_KEY: &str = "agent-tool-call-request-id";
 
 const RUNTIME_PROBE_TIMEOUT: Duration = Duration::from_secs(5);
 const DEPENDENCY_PROBE_TIMEOUT: Duration = Duration::from_secs(10);
@@ -50,6 +69,8 @@ const DEPENDENCY_PROBE_TIMEOUT: Duration = Duration::from_secs(10);
 const PROBE_GRACE_AFTER_RUN: Duration = Duration::from_secs(3);
 /// After the process exited, a grandchild may still hold its pipes open.
 const PIPE_DRAIN_TIMEOUT: Duration = Duration::from_secs(2);
+/// The start notice is best effort; a client that does not take it within this time is skipped.
+const RUN_STARTED_SEND_TIMEOUT: Duration = Duration::from_secs(2);
 const OUTPUT_TAIL_BYTES: usize = 64 * 1024;
 const OUTPUT_TAIL_LINES: usize = 100;
 const LISTED_PATHS: usize = 20;
@@ -106,11 +127,46 @@ impl Default for RunIntegration {
 }
 
 /// Where and for whom one call runs.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct RunContext {
     pub project_root: PathBuf,
     pub provider: Option<String>,
     pub model: Option<String>,
+    /// [`TOOL_CALL_ID_META_KEY`] of the request, echoed in the start notice.
+    pub tool_call_id: Option<String>,
+    /// Where the start notice goes, normally the client of the request; `None` sends none.
+    pub notifier: Option<Arc<dyn CallNotifier>>,
+}
+
+impl fmt::Debug for RunContext {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("RunContext")
+            .field("project_root", &self.project_root)
+            .field("provider", &self.provider)
+            .field("model", &self.model)
+            .field("tool_call_id", &self.tool_call_id)
+            .field("notifier", &self.notifier.is_some())
+            .finish()
+    }
+}
+
+/// What [`CallNotifier::notify`] returns.
+pub type NotifyFuture<'a> = Pin<Box<dyn Future<Output = Result<(), String>> + Send + 'a>>;
+
+/// Sends MCP notifications to the client of one call. rmcp's `Peer<RoleServer>` (the request
+/// context's `peer`) is the real one; tests keep what would be sent.
+pub trait CallNotifier: Send + Sync {
+    fn notify(&self, notification: ServerNotification) -> NotifyFuture<'_>;
+}
+
+impl CallNotifier for Peer<RoleServer> {
+    fn notify(&self, notification: ServerNotification) -> NotifyFuture<'_> {
+        Box::pin(async move {
+            self.send_notification(notification)
+                .await
+                .map_err(|error| error.to_string())
+        })
+    }
 }
 
 /// Why the caller stopped waiting for a run.
@@ -187,9 +243,19 @@ pub async fn execute(
             .unwrap_or_else(|| CONFIG_UNKNOWN.to_string()),
     };
     let begin_recorder = recorder.clone();
-    let handle = blocking(move || begin_recorder.begin(spec))
-        .await
-        .map_err(|error| internal_error(format!("{error:#}")))?;
+    let declared = params.outputs.clone();
+    let (handle, declared_outputs) = blocking(move || {
+        // Named before the process starts, while most of them do not exist yet.
+        let declared_outputs = declared
+            .as_deref()
+            .map(|paths| declared_output_paths(&begin_recorder, paths))
+            .unwrap_or_default();
+        begin_recorder
+            .begin(spec)
+            .map(|handle| (handle, declared_outputs))
+    })
+    .await
+    .map_err(|error| internal_error(format!("{error:#}")))?;
 
     let child = match plan
         .command(&root, handle.run_id(), seed.as_deref())
@@ -203,8 +269,16 @@ pub async fn execute(
             ))]));
         }
     };
-    integration.observer.run_started(&root, &handle);
     let started = Instant::now();
+    integration.observer.run_started(&root, &handle);
+    if let Some(notifier) = &context.notifier {
+        let notice = run_started_notice(
+            handle.run_id(),
+            context.tool_call_id.as_deref(),
+            &declared_outputs,
+        );
+        send_run_started(notifier.as_ref(), notice).await;
+    }
     let supervised = supervise(child, Duration::from_secs(timeout_secs), stop).await;
     let ended = Instant::now();
     let elapsed = ended - started;
@@ -265,6 +339,87 @@ async fn blocking<T: Send + 'static>(
     match tokio::task::spawn_blocking(work).await {
         Ok(result) => result,
         Err(error) => Err(anyhow::anyhow!("the recorder task failed: {error}")),
+    }
+}
+
+/// The declared outputs as Project-relative `/` paths for the start notice, in the order given,
+/// at most [`super::run_record::MAX_RECORDED_FILES`]. A declared directory is left out (which of
+/// its files the run writes is only known when it ends, and the record lists them then), and so
+/// is anything outside the Project or under `.modelforge/`.
+fn declared_output_paths(recorder: &RunRecorder, declared: &[String]) -> Vec<String> {
+    let mut paths: Vec<String> = Vec::new();
+    for path in declared {
+        if paths.len() == super::run_record::MAX_RECORDED_FILES {
+            break;
+        }
+        if let Some(relative) = declared_output_path(recorder, Path::new(path)) {
+            if !paths.contains(&relative) {
+                paths.push(relative);
+            }
+        }
+    }
+    paths
+}
+
+/// One declared output that may not exist yet: its deepest existing ancestor must resolve inside
+/// the Project, and the missing rest is appended as written.
+fn declared_output_path(recorder: &RunRecorder, path: &Path) -> Option<String> {
+    let absolute = if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        recorder.project_root().join(path)
+    };
+    let mut missing: Vec<String> = Vec::new();
+    let mut current = absolute.as_path();
+    let base = loop {
+        if current.exists() {
+            if missing.is_empty() && current.is_dir() {
+                return None;
+            }
+            break recorder.relative_path(current)?;
+        }
+        // `None` for a path ending in `..` or at the root: nothing to name.
+        missing.push(current.file_name()?.to_str()?.to_string());
+        current = current.parent()?;
+    };
+    missing.reverse();
+    let relative = if base.is_empty() {
+        missing.join("/")
+    } else if missing.is_empty() {
+        base
+    } else {
+        format!("{base}/{}", missing.join("/"))
+    };
+    (is_project_relative_path(&relative) && !relative.starts_with(".modelforge/"))
+        .then_some(relative)
+}
+
+/// The [`RUN_STARTED_NOTIFICATION`] of the run `run_id`.
+fn run_started_notice(
+    run_id: &str,
+    tool_call_id: Option<&str>,
+    declared_outputs: &[String],
+) -> ServerNotification {
+    let mut params = serde_json::Map::new();
+    params.insert("runId".to_string(), json!(run_id));
+    if let Some(tool_call_id) = tool_call_id {
+        params.insert("toolCallId".to_string(), json!(tool_call_id));
+    }
+    params.insert("declaredOutputs".to_string(), json!(declared_outputs));
+    ServerNotification::CustomNotification(CustomNotification::new(
+        RUN_STARTED_NOTIFICATION,
+        Some(serde_json::Value::Object(params)),
+    ))
+}
+
+/// Best effort: the desktop also learns about the run from its result and from rescanning
+/// `.modelforge/runs`. Awaited before the run is supervised, so the notice reaches the client
+/// before the tool result does.
+async fn send_run_started(notifier: &dyn CallNotifier, notice: ServerNotification) {
+    match tokio::time::timeout(RUN_STARTED_SEND_TIMEOUT, notifier.notify(notice)).await {
+        Ok(Ok(())) => {}
+        Ok(Err(error)) => tracing::debug!(%error, "the run start notice was not delivered"),
+        Err(_) => tracing::debug!("the run start notice timed out"),
     }
 }
 
@@ -1012,6 +1167,31 @@ mod tests {
             project_root: job.project.path().to_path_buf(),
             provider: None,
             model: None,
+            tool_call_id: None,
+            notifier: None,
+        }
+    }
+
+    /// Keeps the notifications a call would send to its client.
+    #[derive(Default)]
+    struct Notices(Mutex<Vec<ServerNotification>>);
+
+    impl CallNotifier for Notices {
+        fn notify(&self, notification: ServerNotification) -> NotifyFuture<'_> {
+            self.0
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner)
+                .push(notification);
+            Box::pin(async { Ok::<(), String>(()) })
+        }
+    }
+
+    /// A client that never takes the notice.
+    struct Unresponsive;
+
+    impl CallNotifier for Unresponsive {
+        fn notify(&self, _notification: ServerNotification) -> NotifyFuture<'_> {
+            Box::pin(std::future::pending::<Result<(), String>>())
         }
     }
 
@@ -1149,6 +1329,130 @@ mod tests {
             assert_eq!(error.code, ErrorCode::INVALID_PARAMS, "{}", error.message);
         }
         assert!(!job.project.path().join(".modelforge").exists());
+    }
+
+    #[tokio::test]
+    async fn a_started_run_is_announced_to_the_client() {
+        let job = job(
+            "cat data/in.csv > results/out.csv",
+            "type data\\in.csv > results\\out.csv",
+        );
+        let notices = Arc::new(Notices::default());
+        let notifier: Arc<dyn CallNotifier> = notices.clone();
+        let mut context = context(&job);
+        context.tool_call_id = Some("call_7".to_string());
+        context.notifier = Some(notifier);
+        let mut params = params(&job, None);
+        params.outputs = Some(vec![
+            "results/out.csv".to_string(),
+            "results".to_string(),
+            "../outside.csv".to_string(),
+        ]);
+
+        let result = execute(
+            params,
+            context,
+            &RunIntegration::default(),
+            std::future::pending(),
+        )
+        .await
+        .unwrap();
+        assert_ne!(result.is_error, Some(true), "{}", text(&result));
+        let run_id = result.meta.as_ref().unwrap().0[RUN_META_KEY]["runId"].clone();
+
+        let sent = notices.0.lock().unwrap_or_else(PoisonError::into_inner);
+        assert_eq!(sent.len(), 1, "{sent:?}");
+        let ServerNotification::CustomNotification(notice) = &sent[0] else {
+            panic!("not a custom notification: {:?}", sent[0]);
+        };
+        assert_eq!(notice.method, RUN_STARTED_NOTIFICATION);
+        assert_eq!(
+            notice.params,
+            Some(json!({
+                "runId": run_id,
+                "toolCallId": "call_7",
+                "declaredOutputs": ["results/out.csv"]
+            }))
+        );
+    }
+
+    #[tokio::test]
+    async fn a_client_that_does_not_take_the_notice_does_not_stop_the_run() {
+        let job = job("echo hi", "echo hi");
+        let notifier: Arc<dyn CallNotifier> = Arc::new(Unresponsive);
+        let mut context = context(&job);
+        context.notifier = Some(notifier);
+
+        let result = execute(
+            params(&job, None),
+            context,
+            &RunIntegration::default(),
+            std::future::pending(),
+        )
+        .await
+        .unwrap();
+        assert_ne!(result.is_error, Some(true), "{}", text(&result));
+        assert!(text(&result).contains("hi"), "{}", text(&result));
+        let files: Vec<PathBuf> = fs::read_dir(runs_dir(job.project.path()))
+            .unwrap()
+            .map(|entry| entry.unwrap().path())
+            .collect();
+        assert_eq!(files.len(), 1, "{files:?}");
+        let record = RunRecord::from_json(&fs::read_to_string(&files[0]).unwrap()).unwrap();
+        assert_eq!(record.exit_code, Some(0));
+    }
+
+    #[test]
+    fn declared_outputs_are_named_relative_to_the_project() {
+        let project = tempfile::tempdir().unwrap();
+        fs::create_dir_all(project.path().join("results")).unwrap();
+        fs::write(project.path().join("results/old.csv"), "a\n").unwrap();
+        let recorder = RunRecorder::new(project.path(), Arc::new(NoSecretValues)).unwrap();
+        let mut declared: Vec<String> = [
+            "results/old.csv",
+            "results/new/deep.csv",
+            "./figures/f1.png",
+            "results",
+            "results/old.csv",
+            "../escape.csv",
+            "results/../../escape.csv",
+            ".modelforge/runs/x.json",
+        ]
+        .iter()
+        .map(|path| path.to_string())
+        .collect();
+        declared.push(
+            project
+                .path()
+                .join("results")
+                .join("absolute.csv")
+                .to_string_lossy()
+                .into_owned(),
+        );
+
+        assert_eq!(
+            declared_output_paths(&recorder, &declared),
+            vec![
+                "results/old.csv",
+                "results/new/deep.csv",
+                "figures/f1.png",
+                "results/absolute.csv"
+            ]
+        );
+    }
+
+    #[test]
+    fn the_start_notice_leaves_out_an_unknown_tool_call() {
+        let ServerNotification::CustomNotification(notice) =
+            run_started_notice("20260920T101530123-a1b2c3", None, &[])
+        else {
+            panic!("not a custom notification");
+        };
+        assert_eq!(notice.method, RUN_STARTED_NOTIFICATION);
+        assert_eq!(
+            notice.params,
+            Some(json!({ "runId": "20260920T101530123-a1b2c3", "declaredOutputs": [] }))
+        );
     }
 
     #[test]

@@ -9,13 +9,14 @@
 //! reaches the ACP stream.
 //!
 //! The run id is allocated inside the extension, so the Kernel only learns it at the start if the
-//! tool says so while it runs. A tool does that with the MCP custom notification
-//! [`RUN_STARTED_TOOL_NOTIFICATION`], which goose hands to the ACP stream as
+//! tool says so while it runs. `run_script` does that once its process has started, with the MCP
+//! custom notification [`RUN_STARTED_TOOL_NOTIFICATION`] sent through the request's peer. goose's
+//! MCP client forwards `modelforge/` custom notifications (and no others) to the running tool
+//! calls, and the agent hands them to the ACP stream as
 //! `AgentEvent::McpNotification((tool_call_id, notification))`;
-//! `GooseAcpAgent::notify_run_started` turns it into `runs/started`. Nothing sends that
-//! notification yet: `run_script` and the MCP client forwarding it come with branch
-//! `mp/s2-c1-runs`, the developer shell with `mp/s2-c1-devshell`. Until then no `runs/started`
-//! goes out, and no run id is ever made up. Contract:
+//! `GooseAcpAgent::notify_run_started` turns it into `runs/started`. The developer shell sends the
+//! same notification once task 21.7 lands (branch `mp/s2-c1-devshell`). Without a start notice no
+//! `runs/started` goes out, and no run id is ever made up. Contract:
 //! `.kiro/specs/mathmodel-parity-and-beyond/layer-c-contract-acp.md`.
 
 use agent_client_protocol::{Client, ConnectionTo};
@@ -626,6 +627,15 @@ mod tests {
     #[test]
     fn names_match_the_modeling_extension() {
         assert_eq!(RUN_META_KEY, goose_mcp::modeling::run_script::RUN_META_KEY);
+        assert_eq!(
+            RUN_STARTED_TOOL_NOTIFICATION,
+            goose_mcp::modeling::run_script::RUN_STARTED_NOTIFICATION
+        );
+        // The start notice echoes the tool call id goose puts in the request `_meta`.
+        assert_eq!(
+            crate::session_context::TOOL_CALL_REQUEST_ID_HEADER,
+            goose_mcp::modeling::run_script::TOOL_CALL_ID_META_KEY
+        );
 
         let failures = [
             RunFailure::NonZeroExit,
