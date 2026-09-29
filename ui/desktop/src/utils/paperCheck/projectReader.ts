@@ -169,7 +169,7 @@ export async function createProjectReader(
   const withContent = async <T>(
     relativePath: string,
     maxBytes: number,
-    use: (bytes: Uint8Array) => T
+    consume: (bytes: Uint8Array) => T
   ): Promise<T | null> => {
     const file = (await ensureListed()).get(relativePath);
     if (file === undefined || file.size > maxBytes) {
@@ -184,7 +184,7 @@ export async function createProjectReader(
       if (!sameFile || stat.size > maxBytes) {
         return null;
       }
-      return use(await handle.readFile());
+      return consume(await handle.readFile());
     } catch {
       return null;
     } finally {
