@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ModelForge mock review output",
+  "description": "The object the mathmodel-mock-review skill returns (spec mathmodel-parity-and-beyond, requirements 19.1 and 19.2). The desktop app also requires every dimension name exactly once, non-blank reasons and lines[0] <= lines[1]; a result that fails validation is not saved.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["dimensions", "suggestions"],
+  "properties": {
+    "dimensions": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": { "$ref": "#/$defs/dimension" }
+    },
+    "suggestions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/suggestion" }
+    }
+  },
+  "$defs": {
+    "dimensionName": {
+      "enum": ["问题分析", "模型假设", "模型建立", "求解与结果", "灵敏度分析", "写作表达"]
+    },
+    "dimension": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "score", "reasons"],
+      "properties": {
+        "name": { "$ref": "#/$defs/dimensionName" },
+        "score": { "type": "integer", "minimum": 0, "maximum": 10 },
+        "reasons": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "suggestion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text", "location"],
+      "properties": {
+        "text": { "type": "string", "minLength": 1 },
+        "location": { "$ref": "#/$defs/location" }
+      }
+    },
+    "location": {
+      "description": "Section title as written in the paper, plus a 1-based inclusive line range for LaTeX or Markdown sources, or a 1-based page number for PDF.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["section"],
+      "properties": {
+        "section": { "type": "string", "minLength": 1 },
+        "lines": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": { "type": "integer", "minimum": 1 }
+        },
+        "page": { "type": "integer", "minimum": 1 }
+      },
+      "anyOf": [{ "required": ["lines"] }, { "required": ["page"] }]
+    }
+  }
+}

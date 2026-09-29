@@ -740,7 +740,7 @@ cargo build -p goose-cli --bin goose --no-default-features \
 |---|---|
 | `pnpm run lint:check`（typecheck + eslint + i18n:check） | ✅ 退出码 0 |
 | `i18n:validate-locale` | ✅ 15 语言 / 1916 条（zh-CN/zh-TW 已翻译，其余回退英文） |
-| `check-skills` | ✅ **47/47**（`math_paper` +233、`math_figure` +149、`nature_figure` +99 支撑文件；含 agentskills 规范校验：名称模式、描述 ≤1024 字符） |
+| `check-skills` | ✅ **48/48**（`math_paper` +233、`math_figure` +149、`nature_figure` +99 支撑文件；含 agentskills 规范校验：名称模式、描述 ≤1024 字符） |
 | `docs:check` | ✅ 四个文档的声称数字与文件系统一致，**并新增"引用的资产必须存在"校验**（技能正文/目录文件/主页预设指向的模板、脚本、入口文件逐个核对） |
 | `connectors:check` | ✅ **8/8 连接器真实 MCP 握手**：arxiv 19 工具、crossref 18、drawio 5、zotero 3、context7 2、web-fetch 1；fred/github 正确要求凭据 |
 | `brand:check` | ✅ |
