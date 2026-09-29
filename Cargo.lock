@@ -5476,6 +5476,8 @@ dependencies = [
  "lopdf",
  "once_cell",
  "process-wrap",
+ "proptest",
+ "rand 0.10.2",
  "rmcp 3.2.0",
  "schemars 1.2.2",
  "serde",
