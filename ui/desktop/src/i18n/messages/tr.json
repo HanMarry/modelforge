@@ -1811,6 +1811,18 @@
   "environmentPanel.refresh": {
     "defaultMessage": "Re-check"
   },
+  "environmentPanel.runtimeFeatures": {
+    "defaultMessage": "Needed by: {features}."
+  },
+  "environmentPanel.runtimeInstallGuide": {
+    "defaultMessage": "Install guide"
+  },
+  "environmentPanel.runtimeMissing": {
+    "defaultMessage": "{name} not found."
+  },
+  "environmentPanel.runtimePurpose": {
+    "defaultMessage": "Used for {purpose}."
+  },
   "environmentPanel.terminal": {
     "defaultMessage": "Terminal"
   },

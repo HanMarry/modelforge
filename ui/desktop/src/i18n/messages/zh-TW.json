@@ -1811,6 +1811,18 @@
   "environmentPanel.refresh": {
     "defaultMessage": "重新偵測"
   },
+  "environmentPanel.runtimeFeatures": {
+    "defaultMessage": "依賴它的功能：{features}。"
+  },
+  "environmentPanel.runtimeInstallGuide": {
+    "defaultMessage": "安裝指引"
+  },
+  "environmentPanel.runtimeMissing": {
+    "defaultMessage": "找不到 {name}。"
+  },
+  "environmentPanel.runtimePurpose": {
+    "defaultMessage": "用途：{purpose}。"
+  },
   "environmentPanel.terminal": {
     "defaultMessage": "終端機"
   },

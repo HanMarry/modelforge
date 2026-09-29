@@ -3,6 +3,11 @@ import { RefreshCw, Terminal as TerminalIcon } from 'lucide-react';
 import type { EnvironmentProbe } from '../../types/workspaceApi';
 import { cn } from '../../utils';
 import { defineMessages, useIntl } from '../../i18n';
+import {
+  OPTIONAL_RUNTIMES,
+  type OptionalRuntime,
+  type OptionalRuntimeId,
+} from '../../utils/diagnostics/optionalRuntimes';
 import { Button } from '../ui/button';
 import TerminalView from './TerminalView';
 
@@ -31,7 +36,45 @@ const i18n = defineMessages({
     id: 'environmentPanel.probeFailed',
     defaultMessage: 'Could not probe the environment',
   },
+  runtimeMissing: {
+    id: 'environmentPanel.runtimeMissing',
+    defaultMessage: '{name} not found.',
+  },
+  runtimePurpose: {
+    id: 'environmentPanel.runtimePurpose',
+    defaultMessage: 'Used for {purpose}.',
+  },
+  runtimeFeatures: {
+    id: 'environmentPanel.runtimeFeatures',
+    defaultMessage: 'Needed by: {features}.',
+  },
+  runtimeInstallGuide: {
+    id: 'environmentPanel.runtimeInstallGuide',
+    defaultMessage: 'Install guide',
+  },
 });
+
+/**
+ * Probe ids that satisfy a capability. A capability is missing only when none of its probes
+ * reported a runtime, so an installed alternative (Typst instead of LaTeX) is not flagged.
+ */
+const CAPABILITY_PROBES: ReadonlyArray<{ runtimes: OptionalRuntimeId[]; probeIds: string[] }> = [
+  { runtimes: ['python'], probeIds: ['python'] },
+  { runtimes: ['latex', 'typst'], probeIds: ['latexmk', 'xelatex', 'typst'] },
+];
+
+function missingOptionalRuntimes(probes: readonly EnvironmentProbe[]): OptionalRuntime[] {
+  const missing: OptionalRuntime[] = [];
+  for (const capability of CAPABILITY_PROBES) {
+    const known = probes.filter((probe) => capability.probeIds.includes(probe.id));
+    if (known.length === 0 || known.some((probe) => probe.available)) continue;
+    for (const id of capability.runtimes) {
+      const runtime = OPTIONAL_RUNTIMES.find((candidate) => candidate.id === id);
+      if (runtime) missing.push(runtime);
+    }
+  }
+  return missing;
+}
 
 interface EnvironmentPanelProps {
   workingDir: string;
@@ -60,6 +103,8 @@ export default function EnvironmentPanel({ workingDir }: EnvironmentPanelProps) 
   }, [refresh]);
 
   const availableCount = probes.filter((probe) => probe.available).length;
+
+  const missingRuntimes = probes.length ? missingOptionalRuntimes(probes) : [];
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -112,6 +157,35 @@ export default function EnvironmentPanel({ workingDir }: EnvironmentPanelProps) 
             {availableCount}/{probes.length}
           </p>
         )}
+
+        {/* Requirement 7.7: a missing optional runtime names itself, what it is for, which
+            features need it and where to install it; everything else keeps working. */}
+        {!loading &&
+          missingRuntimes.map((runtime) => (
+            <div
+              key={runtime.id}
+              className="mt-1.5 rounded-md border border-border-secondary px-2 py-1.5 text-[10px] leading-relaxed text-text-tertiary"
+            >
+              <span className="text-text-primary">
+                {intl.formatMessage(i18n.runtimeMissing, { name: runtime.name })}
+              </span>
+              <span className="ml-1">
+                {intl.formatMessage(i18n.runtimePurpose, { purpose: runtime.purpose })}
+              </span>
+              <span className="ml-1">
+                {intl.formatMessage(i18n.runtimeFeatures, {
+                  features: runtime.dependentFeatures.join('、'),
+                })}
+              </span>
+              <button
+                type="button"
+                className="ml-1 rounded text-text-info hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring-info"
+                onClick={() => void window.electron.openExternal(runtime.installGuideUrl)}
+              >
+                {intl.formatMessage(i18n.runtimeInstallGuide)}
+              </button>
+            </div>
+          ))}
       </div>
 
       <div className="flex items-center gap-1.5 border-b border-border-primary px-2 py-1">

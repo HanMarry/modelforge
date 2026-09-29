@@ -97,6 +97,7 @@ module.exports = {
       // installer supports a custom install directory, and user data lives in
       // %APPDATA%\ModelForge / ~/.config/goose which the installer never touches, so
       // a failed or cancelled install leaves the previous version and its data intact.
+      // `build/installer.nsh` adds the uninstall-time prompt about keeping that data.
       name: '@felixrieseberg/electron-forge-maker-nsis',
       platforms: ['win32'],
       config: {
@@ -112,8 +113,10 @@ module.exports = {
           oneClick: false,
           allowToChangeInstallationDirectory: true,
           perMachine: false,
-          // Never delete %APPDATA% on uninstall: config, sessions and projects survive.
+          // Keep %APPDATA% by default; `customUnInstall` in build/installer.nsh asks the
+          // user and removes it only when they decline to keep it (requirement 7.10).
           deleteAppDataOnUninstall: false,
+          include: 'build/installer.nsh',
           installerIcon: 'src/images/icon.ico',
           uninstallerIcon: 'src/images/icon.ico',
           shortcutName: 'ModelForge',
