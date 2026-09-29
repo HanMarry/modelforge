@@ -57,7 +57,14 @@ const pathArb = fc
   .filter(isProjectRelativePath);
 
 const sha256Arb = fc.string({ unit: fc.constantFrom(...HEX_CHARS), minLength: 64, maxLength: 64 });
-const fileHashArb: fc.Arbitrary<RunFileHash> = fc.record({ path: pathArb, sha256: sha256Arb });
+// fc.record may build objects with a null prototype, which toStrictEqual tells apart from the
+// plain objects the parser returns; every record below asks for Object.prototype.
+const plain = { noNullPrototype: true } as const;
+
+const fileHashArb: fc.Arbitrary<RunFileHash> = fc.record(
+  { path: pathArb, sha256: sha256Arb },
+  plain
+);
 
 type FileList = { files: RunFileHash[]; truncated: boolean };
 
@@ -134,9 +141,11 @@ const recordArb = (files: fc.Arbitrary<FileList>): fc.Arbitrary<RunRecord> =>
       runId: runIdArb,
       inputs: files,
       code: fileHashArb,
-      config: fc.record({ provider: textArb, model: textArb, runtime: textArb }),
+      config: fc.record({ provider: textArb, model: textArb, runtime: textArb }, plain),
       command: textArb,
-      dependencies: fc.array(fc.record({ name: textArb, version: textArb }), { maxLength: 8 }),
+      dependencies: fc.array(fc.record({ name: textArb, version: textArb }, plain), {
+        maxLength: 8,
+      }),
       seed: fc.oneof(fc.constant('未设置'), textArb),
       outcome: outcomeArb,
       startedAt: timestampArb,

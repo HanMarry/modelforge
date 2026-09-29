@@ -334,6 +334,9 @@ jobs:
           source ./bin/activate-hermit
           cd ui/desktop && pnpm install --frozen-lockfile
 
+      - name: Repair stale v8 prebuilt marker
+        run: .github/scripts/repair-v8-prebuilt.sh
+
       - name: Check ACP Artifacts are Up-to-Date
         run: |
           source ./bin/activate-hermit
