@@ -4781,6 +4781,192 @@
   "responseStyle.detailedLabel": {
     "defaultMessage": "詳細"
   },
+  "review.cancel": {
+    "defaultMessage": "停止評審"
+  },
+  "review.checking": {
+    "defaultMessage": "正在檢查論文檔案…"
+  },
+  "review.columnCurrent": {
+    "defaultMessage": "本次"
+  },
+  "review.columnDelta": {
+    "defaultMessage": "差值"
+  },
+  "review.columnDimension": {
+    "defaultMessage": "評分維度"
+  },
+  "review.columnPrevious": {
+    "defaultMessage": "上次"
+  },
+  "review.comparedWith": {
+    "defaultMessage": "對比的是 {time} 完成的評審"
+  },
+  "review.comparisonTitle": {
+    "defaultMessage": "與上次評審的逐維對比"
+  },
+  "review.competition": {
+    "defaultMessage": "賽事"
+  },
+  "review.competitionPlaceholder": {
+    "defaultMessage": "選擇賽事"
+  },
+  "review.completedAt": {
+    "defaultMessage": "完成於 {time} · {competition}"
+  },
+  "review.details": {
+    "defaultMessage": "詳細資訊"
+  },
+  "review.dimensionAssumptions": {
+    "defaultMessage": "模型假設"
+  },
+  "review.dimensionModelBuilding": {
+    "defaultMessage": "模型建立"
+  },
+  "review.dimensionProblemAnalysis": {
+    "defaultMessage": "問題分析"
+  },
+  "review.dimensionSensitivity": {
+    "defaultMessage": "靈敏度分析"
+  },
+  "review.dimensionSolution": {
+    "defaultMessage": "求解與結果"
+  },
+  "review.dimensionWriting": {
+    "defaultMessage": "寫作表達"
+  },
+  "review.disclaimer": {
+    "defaultMessage": "評審結果由模型生成，僅供參考"
+  },
+  "review.errorCheckFailed": {
+    "defaultMessage": "無法檢查論文檔案：{detail}"
+  },
+  "review.errorNoCompetition": {
+    "defaultMessage": "未選擇賽事。請選擇本次評審依據的賽事。"
+  },
+  "review.errorNoPaper": {
+    "defaultMessage": "未選擇論文。請選擇要評審的論文檔案。"
+  },
+  "review.errorOutsideProject": {
+    "defaultMessage": "論文必須是目前專案內的檔案。"
+  },
+  "review.errorPaperEmpty": {
+    "defaultMessage": "論文檔案為空：{paper}"
+  },
+  "review.errorPaperNotFound": {
+    "defaultMessage": "論文檔案不存在：{paper}"
+  },
+  "review.errorPaperUnreadable": {
+    "defaultMessage": "論文檔案無法讀取：{paper}"
+  },
+  "review.errorUnsupported": {
+    "defaultMessage": "只能評審 LaTeX（.tex）、Markdown（.md）和 PDF 檔案。"
+  },
+  "review.failureApproval": {
+    "defaultMessage": "核心要求工具授權，評審面板無法代為授權。請將權限模式改為自動或智慧核准後重試。"
+  },
+  "review.failureCancelled": {
+    "defaultMessage": "評審已中斷。"
+  },
+  "review.failureInvalid": {
+    "defaultMessage": "模型回覆不符合評審結果格式（發現 {count} 處問題）。"
+  },
+  "review.failureKernelUnavailable": {
+    "defaultMessage": "核心無法使用：{detail}"
+  },
+  "review.failureModelCall": {
+    "defaultMessage": "模型呼叫失敗：{detail}"
+  },
+  "review.failureNoJson": {
+    "defaultMessage": "模型回覆中沒有評審結果。"
+  },
+  "review.failureRefused": {
+    "defaultMessage": "模型拒絕評審這篇論文。"
+  },
+  "review.failureSessionFailed": {
+    "defaultMessage": "無法在核心中建立評審工作階段：{detail}"
+  },
+  "review.failureTimeout": {
+    "defaultMessage": "評審未在 {minutes} 分鐘內完成。"
+  },
+  "review.failureTruncated": {
+    "defaultMessage": "模型在回覆完成前停止輸出。"
+  },
+  "review.firstReview": {
+    "defaultMessage": "這是該論文的首次評審，不顯示評分對比。"
+  },
+  "review.historyFailed": {
+    "defaultMessage": "無法讀取該論文先前的評審紀錄：{detail}"
+  },
+  "review.incompleteNote": {
+    "defaultMessage": "本次結果未儲存，該論文先前的評審紀錄維持不變。"
+  },
+  "review.incompleteTitle": {
+    "defaultMessage": "評審未完成"
+  },
+  "review.latestSaved": {
+    "defaultMessage": "最近一次已儲存的評審"
+  },
+  "review.locationLines": {
+    "defaultMessage": "{section} · 第 {start}–{end} 行"
+  },
+  "review.locationPage": {
+    "defaultMessage": "{section} · 第 {page} 頁"
+  },
+  "review.noPapers": {
+    "defaultMessage": "目前專案中沒有找到 LaTeX、Markdown 或 PDF 論文。"
+  },
+  "review.noSuggestions": {
+    "defaultMessage": "模型沒有提出修改意見。"
+  },
+  "review.notStarted": {
+    "defaultMessage": "未啟動評審"
+  },
+  "review.openLocation": {
+    "defaultMessage": "在編輯器中開啟：{location}"
+  },
+  "review.paper": {
+    "defaultMessage": "論文"
+  },
+  "review.paperPlaceholder": {
+    "defaultMessage": "選擇論文"
+  },
+  "review.papersFailed": {
+    "defaultMessage": "無法列出目前專案中的論文：{detail}"
+  },
+  "review.refreshPapers": {
+    "defaultMessage": "重新整理論文清單"
+  },
+  "review.running": {
+    "defaultMessage": "正在評審 {paper}，可能需要幾分鐘，期間可以切換到其他頁籤。"
+  },
+  "review.saveFailed": {
+    "defaultMessage": "評審已完成，但儲存失敗：{detail}"
+  },
+  "review.saving": {
+    "defaultMessage": "正在儲存評審紀錄…"
+  },
+  "review.score": {
+    "defaultMessage": "{score} / 10"
+  },
+  "review.scores": {
+    "defaultMessage": "各維評分與理由"
+  },
+  "review.sessionTitle": {
+    "defaultMessage": "模擬評審：{paper}"
+  },
+  "review.start": {
+    "defaultMessage": "開始評審"
+  },
+  "review.suggestions": {
+    "defaultMessage": "修改意見"
+  },
+  "review.thisReview": {
+    "defaultMessage": "本次評審"
+  },
+  "review.title": {
+    "defaultMessage": "模擬評審"
+  },
   "scheduleDetailView.actions": {
     "defaultMessage": "動作"
   },
