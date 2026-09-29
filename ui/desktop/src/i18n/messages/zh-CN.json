@@ -2267,9 +2267,6 @@
   "gallery.remoteUnreachable": {
     "defaultMessage": "远程服务不可达"
   },
-  "gallery.temporaryRule": {
-    "defaultMessage": "临时规则：有论文 PDF 即视为作品"
-  },
   "gallery.title": {
     "defaultMessage": "作品广场"
   },

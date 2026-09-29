@@ -2267,9 +2267,6 @@
   "gallery.remoteUnreachable": {
     "defaultMessage": "Remote service unreachable"
   },
-  "gallery.temporaryRule": {
-    "defaultMessage": "Temporary rule: a paper PDF marks a work"
-  },
   "gallery.title": {
     "defaultMessage": "Gallery"
   },

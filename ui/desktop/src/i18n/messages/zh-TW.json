@@ -2267,9 +2267,6 @@
   "gallery.remoteUnreachable": {
     "defaultMessage": "遠端服務無法連線"
   },
-  "gallery.temporaryRule": {
-    "defaultMessage": "暫行規則：有論文 PDF 即視為作品"
-  },
   "gallery.title": {
     "defaultMessage": "作品廣場"
   },
