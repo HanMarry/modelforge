@@ -15,8 +15,13 @@ import {
   type GooseAcpClient,
 } from './gooseAcpClient';
 import { requestAcpCheckpointEnsure } from './checkpointRequests';
+import { requestAcpOverwriteConfirm } from './overwriteConfirm';
 import { requestAcpPermission } from './permissionRequests';
 import { requestAcpRecipeParams } from './recipeParamRequests';
+import {
+  handleAcpRunFinishedNotification,
+  handleAcpRunStartedNotification,
+} from './runNotifications';
 
 type AcpConnection = {
   client: GooseAcpClient;
@@ -154,6 +159,11 @@ async function openConnection(generation: number): Promise<AcpConnection> {
               customNotifications: true,
               recipeParameterRequests: true,
               checkpointRequests: true,
+              // ModelForge layer C, see the spec's layer-c-contract-acp.md.
+              runNotifications: true,
+              overwriteConfirmRequests: true,
+              taskResumeRequests: true,
+              learningModeRequests: true,
             },
           },
         },
@@ -223,9 +233,12 @@ function createClientCallbacks(): GooseAcpCallbacks {
     unstable_createElicitation: requestAcpElicitation,
     unstable_sessionRecipeRequestParams: requestAcpRecipeParams,
     unstable_sessionCheckpointEnsure: requestAcpCheckpointEnsure,
+    unstable_tasksConfirmOverwrite: requestAcpOverwriteConfirm,
     sessionUpdate: handleAcpSessionNotification,
     unstable_sessionUpdate: handleAcpGooseSessionNotification,
     unstable_providerDeviceCode: handleAcpProviderDeviceCodeNotification,
+    unstable_runsStarted: handleAcpRunStartedNotification,
+    unstable_runsFinished: handleAcpRunFinishedNotification,
   };
 }
 

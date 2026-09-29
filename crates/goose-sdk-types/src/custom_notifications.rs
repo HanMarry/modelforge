@@ -132,6 +132,61 @@ pub enum StatusMessage {
     Progress { message: String },
 }
 
+// Run notifications (spec mathmodel-parity-and-beyond, tasks 21.6, 21.8 and 22.8), sent only to
+// clients that declare `runNotifications` in `clientCapabilities._meta.goose`. Contract:
+// `.kiro/specs/mathmodel-parity-and-beyond/layer-c-contract-acp.md`. Field comments stay plain
+// comments so the generated schema and TS types carry no per-field text.
+
+/// Kernel → client: a run of Project code has started.
+pub const RUN_STARTED_NOTIFICATION_METHOD: &str = "_goose/unstable/runs/started";
+
+/// Kernel → client: a run of Project code has ended and its Run_Record is on disk.
+pub const RUN_FINISHED_NOTIFICATION_METHOD: &str = "_goose/unstable/runs/finished";
+
+/// A run of Project code has started.
+#[derive(
+    Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, JsonRpcNotification,
+)]
+#[notification(method = "_goose/unstable/runs/started")]
+#[serde(rename_all = "camelCase")]
+pub struct RunStartedNotification {
+    pub session_id: String,
+    // The ACP tool call that runs the code.
+    pub tool_call_id: String,
+    // The id the recorder allocated before the process started. Only sent when this real id is
+    // known; nobody invents one (see the contract). The finished record usually carries the same
+    // id, but a write collision can draw a new suffix.
+    pub run_id: String,
+    // The Project root.
+    pub working_dir: String,
+    // Declared output paths, Project-relative and `/`-separated as in the Run_Record; empty when
+    // the outputs are detected when the run ends.
+    pub declared_outputs: Vec<String>,
+}
+
+/// A run of Project code has ended and its Run_Record is on disk.
+#[derive(
+    Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, JsonRpcNotification,
+)]
+#[notification(method = "_goose/unstable/runs/finished")]
+#[serde(rename_all = "camelCase")]
+pub struct RunFinishedNotification {
+    pub session_id: String,
+    // The ACP tool call that ran the code.
+    pub tool_call_id: String,
+    pub run_id: String,
+    // The Project root.
+    pub working_dir: String,
+    // `.modelforge/runs/<runId>.json`, relative to `workingDir`.
+    pub record_path: String,
+    // As in the Run_Record: null for a time-out (超时) or a cancellation (用户取消).
+    pub exit_code: Option<i32>,
+    // Null on success, otherwise the Run_Record failure kind: 非零退出码, 超时 or 用户取消.
+    pub failure: Option<String>,
+    // Project-relative output paths of the record (at most 1000).
+    pub outputs: Vec<String>,
+}
+
 fn notification_schema<T>(generator: &mut SchemaGenerator) -> CustomMethodSchema
 where
     T: Default + JsonRpcMessage + JsonSchema,
@@ -158,6 +213,8 @@ pub fn custom_notification_schemas(generator: &mut SchemaGenerator) -> Vec<Custo
     vec![
         notification_schema::<GooseSessionNotification>(generator),
         notification_schema::<ProviderDeviceCodeNotification>(generator),
+        notification_schema::<RunStartedNotification>(generator),
+        notification_schema::<RunFinishedNotification>(generator),
     ]
 }
 
@@ -237,6 +294,107 @@ mod tests {
                     }
                 }
             })
+        );
+    }
+
+    #[test]
+    fn run_notifications_use_the_declared_methods() {
+        assert_eq!(
+            RunStartedNotification::default().method(),
+            RUN_STARTED_NOTIFICATION_METHOD
+        );
+        assert_eq!(
+            RunFinishedNotification::default().method(),
+            RUN_FINISHED_NOTIFICATION_METHOD
+        );
+    }
+
+    #[test]
+    fn run_started_serializes_to_expected_wire_shape() {
+        let notification = RunStartedNotification {
+            session_id: "s1".to_string(),
+            tool_call_id: "call_1".to_string(),
+            run_id: "20260920T101530123-a1b2c3".to_string(),
+            working_dir: "/projects/q1".to_string(),
+            declared_outputs: vec!["results/out.csv".to_string()],
+        };
+        let value = serde_json::to_value(&notification).unwrap();
+
+        assert_eq!(
+            value,
+            json!({
+                "sessionId": "s1",
+                "toolCallId": "call_1",
+                "runId": "20260920T101530123-a1b2c3",
+                "workingDir": "/projects/q1",
+                "declaredOutputs": ["results/out.csv"]
+            })
+        );
+        assert_eq!(
+            serde_json::from_value::<RunStartedNotification>(value).unwrap(),
+            notification
+        );
+    }
+
+    #[test]
+    fn run_notifications_need_a_run_id() {
+        for params in [
+            json!({
+                "sessionId": "s1",
+                "toolCallId": "call_1",
+                "workingDir": "/projects/q1",
+                "declaredOutputs": []
+            }),
+            json!({
+                "sessionId": "s1",
+                "toolCallId": "call_1",
+                "runId": null,
+                "workingDir": "/projects/q1",
+                "declaredOutputs": []
+            }),
+        ] {
+            assert!(serde_json::from_value::<RunStartedNotification>(params).is_err());
+        }
+        assert!(serde_json::from_value::<RunFinishedNotification>(json!({
+            "sessionId": "s1",
+            "toolCallId": "call_1",
+            "workingDir": "/projects/q1",
+            "recordPath": ".modelforge/runs/x.json",
+            "outputs": []
+        }))
+        .is_err());
+    }
+
+    #[test]
+    fn run_finished_serializes_to_expected_wire_shape() {
+        let notification = RunFinishedNotification {
+            session_id: "s1".to_string(),
+            tool_call_id: "call_1".to_string(),
+            run_id: "20260920T101530123-a1b2c3".to_string(),
+            working_dir: "/projects/q1".to_string(),
+            record_path: ".modelforge/runs/20260920T101530123-a1b2c3.json".to_string(),
+            exit_code: None,
+            failure: Some("超时".to_string()),
+            outputs: vec![],
+        };
+        let value = serde_json::to_value(&notification).unwrap();
+
+        assert_eq!(
+            value,
+            json!({
+                "sessionId": "s1",
+                "toolCallId": "call_1",
+                "runId": "20260920T101530123-a1b2c3",
+                "workingDir": "/projects/q1",
+                "recordPath": ".modelforge/runs/20260920T101530123-a1b2c3.json",
+                "exitCode": null,
+                "failure": "超时",
+                "outputs": []
+            })
+        );
+        assert_eq!(
+            serde_json::from_value::<RunFinishedNotification>(value).unwrap(),
+            notification
         );
     }
 }
