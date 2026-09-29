@@ -38,6 +38,49 @@ const versionCommand = (command: string, args: string[]): Promise<string | null>
     });
   });
 
+export interface EnvironmentProbeCommand {
+  id: string;
+  label: string;
+  command: string;
+  args: string[];
+}
+
+/** The probes the workspace environment panel and the diagnostics centre both run. */
+export const ENVIRONMENT_PROBES: readonly EnvironmentProbeCommand[] = [
+  { id: 'uv', label: 'uv', command: 'uv', args: ['--version'] },
+  { id: 'python', label: 'Python', command: 'python', args: ['--version'] },
+  { id: 'git', label: 'Git', command: 'git', args: ['--version'] },
+  { id: 'node', label: 'Node.js', command: 'node', args: ['--version'] },
+  { id: 'pwsh', label: 'PowerShell', command: 'pwsh', args: ['--version'] },
+  { id: 'latexmk', label: 'latexmk', command: 'latexmk', args: ['--version'] },
+  { id: 'xelatex', label: 'XeLaTeX', command: 'xelatex', args: ['--version'] },
+  { id: 'typst', label: 'Typst', command: 'typst', args: ['--version'] },
+  { id: 'pandoc', label: 'Pandoc', command: 'pandoc', args: ['--version'] },
+];
+
+/** Runs a subset of the environment probes (or all of them), returning one result each. */
+export async function probeCommands(
+  probes: readonly EnvironmentProbeCommand[]
+): Promise<EnvironmentProbe[]> {
+  return Promise.all(
+    probes.map(async (probe) => {
+      const version = await versionCommand(probe.command, probe.args);
+      return {
+        id: probe.id,
+        label: probe.label,
+        command: probe.command,
+        version,
+        available: version !== null,
+      };
+    })
+  );
+}
+
+/** Runs every environment probe the desktop app knows about. */
+export function runEnvironmentProbes(): Promise<EnvironmentProbe[]> {
+  return probeCommands(ENVIRONMENT_PROBES);
+}
+
 async function listDirectory(dirPath: string, showHidden: boolean): Promise<WorkspaceEntry[]> {
   const entries = await fs.readdir(dirPath, { withFileTypes: true });
   const result: WorkspaceEntry[] = [];
@@ -361,31 +404,7 @@ export function registerWorkspaceIpc(): void {
   );
 
   ipcMain.handle('workspace-probe-environment', async (): Promise<EnvironmentProbe[]> => {
-    const probes: { id: string; label: string; command: string; args: string[] }[] = [
-      { id: 'uv', label: 'uv', command: 'uv', args: ['--version'] },
-      { id: 'python', label: 'Python', command: 'python', args: ['--version'] },
-      { id: 'git', label: 'Git', command: 'git', args: ['--version'] },
-      { id: 'node', label: 'Node.js', command: 'node', args: ['--version'] },
-      { id: 'pwsh', label: 'PowerShell', command: 'pwsh', args: ['--version'] },
-      { id: 'latexmk', label: 'latexmk', command: 'latexmk', args: ['--version'] },
-      { id: 'xelatex', label: 'XeLaTeX', command: 'xelatex', args: ['--version'] },
-      { id: 'pandoc', label: 'Pandoc', command: 'pandoc', args: ['--version'] },
-    ];
-
-    const results = await Promise.all(
-      probes.map(async (probe) => {
-        const version = await versionCommand(probe.command, probe.args);
-        return {
-          id: probe.id,
-          label: probe.label,
-          command: probe.command,
-          version,
-          available: version !== null,
-        };
-      })
-    );
-
-    return results;
+    return runEnvironmentProbes();
   });
 
   ipcMain.handle('workspace-list-diagrams', async (_event, rootDir: string) => {

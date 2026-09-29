@@ -1,4 +1,5 @@
 import {
+  Activity,
   AppWindow,
   ChartNoAxesCombined,
   Clock,
@@ -61,6 +62,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'apps', path: '/apps', label: '应用', icon: AppWindow },
   { id: 'scheduler', path: '/schedules', label: '自动化', icon: Clock },
   { id: 'sessions', path: '/sessions', label: '会话历史', icon: History },
+  { id: 'diagnostics', path: '/diagnostics', label: '诊断中心', icon: Activity },
 ];
 
 /** Settings is rendered separately, pinned to the bottom of the sidebar. */

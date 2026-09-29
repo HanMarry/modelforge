@@ -10,6 +10,8 @@ import { toast, ToastContainer } from 'react-toastify';
 import AnnouncementModal from './components/AnnouncementModal';
 import TelemetryConsentPrompt from './components/TelemetryConsentPrompt';
 import OnboardingGuard from './components/onboarding/OnboardingGuard';
+import OnboardingWizard from './components/onboarding/OnboardingWizard';
+import DiagnosticsView from './components/diagnostics/DiagnosticsView';
 import { createSession } from './sessions';
 import { acpListSessions, acpDeleteSession } from './acp/sessions';
 
@@ -283,6 +285,19 @@ const ConfigureProvidersRoute = () => {
       />
     </div>
   );
+};
+
+const ONBOARDING_STEP_IDS = ['provider', 'key', 'environment', 'example'] as const;
+
+/** Direct entry to the first-boot wizard, for the diagnostics centre's "补做" links. */
+const OnboardingWizardRoute = () => {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const stepParam = searchParams.get('step');
+  const initialStep = (ONBOARDING_STEP_IDS as readonly string[]).includes(stepParam ?? '')
+    ? (stepParam as (typeof ONBOARDING_STEP_IDS)[number])
+    : undefined;
+  return <OnboardingWizard initialStep={initialStep} onComplete={() => navigate('/')} />;
 };
 
 const ExtensionsRoute = () => {
@@ -652,6 +667,7 @@ export function AppInner() {
             <Route path="launcher" element={<LauncherView />} />
             <Route path="configure-providers" element={<ConfigureProvidersRoute />} />
             <Route path="standalone-app" element={<StandaloneAppView />} />
+            <Route path="onboarding" element={<OnboardingWizardRoute />} />
             <Route
               path="/"
               element={
@@ -691,6 +707,7 @@ export function AppInner() {
               <Route path="figures" element={<FigureTemplatesView />} />
               <Route path="paper" element={<PaperTemplatesView />} />
               <Route path="connectors" element={<ConnectorsView />} />
+              <Route path="diagnostics" element={<DiagnosticsView />} />
               <Route path="permission" element={<PermissionRoute />} />
             </Route>
           </Routes>
