@@ -25,7 +25,7 @@ use anyhow::{anyhow, bail, Context, Result};
 use chrono::{DateTime, Local};
 use sha2::{Digest, Sha256};
 
-use super::run_record::{
+use crate::run_record::{
     allocate_run_id, format_timestamp, is_project_relative_path, persist_run_record_with_faults,
     redact_run_record, remove_orphaned_temp_files, Dependency, FileHash, NoWriteFaults, RunConfig,
     RunFailure, RunRecord, SecretValue, WriteFaults, MAX_RECORDED_FILES, RUN_RECORD_SCHEMA_VERSION,
@@ -58,9 +58,10 @@ const ORPHANED_TEMP_AGE: Duration = Duration::from_secs(10 * 60);
 
 /// Source of the Credential_Store values that must not appear in a Run_Record (requirement 16.2).
 ///
-/// The modeling extension is an MCP server and cannot read the desktop's Credential_Store, so the
-/// default [`NoSecretValues`] supplies nothing. Supplying real values is left to the integration
-/// layer (tasks.md, layer C).
+/// The default [`NoSecretValues`] supplies nothing. Real values come from the integration layer
+/// (tasks.md, layer C): the modeling extension takes them from goose-mcp's `RunIntegration`
+/// (installed with `goose_mcp::modeling::set_builtin_run_integration`), the developer `shell`
+/// from whatever goose passes to [`RunRecorder::new`].
 pub trait SecretValues: Send + Sync {
     fn secret_values(&self) -> Vec<SecretValue>;
 }
@@ -76,8 +77,10 @@ impl SecretValues for NoSecretValues {
 
 /// Told when a run has started and after its Run_Record is on disk. The desktop marks artifacts
 /// "执行中" by run id when a run starts and applies the record when it finishes; forwarding
-/// these events over ACP (`runs/finished`) is left to the integration layer (tasks.md, layer C).
-/// The default [`NoRunObserver`] does nothing.
+/// these events over ACP is left to the integration layer (tasks.md, layer C). The recorder
+/// itself never calls an observer; the tool that runs the code does, right after the process
+/// started and right after [`RunRecorder::finish`] returned. The default [`NoRunObserver`] does
+/// nothing.
 pub trait RunObserver: Send + Sync {
     fn run_started(&self, _project_root: &Path, _run: &RunHandle) {}
     fn run_finished(&self, _project_root: &Path, _run: &FinishedRun) {}
@@ -653,7 +656,7 @@ fn to_hex(bytes: impl AsRef<[u8]>) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::modeling::run_record::{runs_dir, SimulatedCrash, WriteStage};
+    use crate::run_record::{runs_dir, SimulatedCrash, WriteStage};
     use proptest::prelude::*;
 
     const CODE: &str = "import pandas as pd\n\

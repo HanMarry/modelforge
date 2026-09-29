@@ -40,7 +40,7 @@ use crate::agents::mcp_client::{
     GooseMcpClientCapabilities, GooseMcpHostInfo, McpClient, McpClientTrait,
 };
 use crate::agents::reply_parts::is_tool_visible_to_app;
-use crate::builtin_extension::get_builtin_extension;
+use crate::builtin_extension::{builtin_extension_timeout, get_builtin_extension};
 use crate::config::extensions::name_to_key;
 use crate::config::search_path::SearchPaths;
 use crate::config::{get_all_extensions, Config};
@@ -1545,8 +1545,12 @@ impl ExtensionManager {
                     };
                     client
                 } else {
-                    // Builtin MCP server extension
-                    let timeout_secs = resolve_timeout(timeout);
+                    // Builtin MCP server extension. Configured timeouts (often the 300 s
+                    // default written into the config) are raised to the builtin's floor.
+                    let timeout_secs = builtin_extension_timeout(
+                        normalized_name.as_str(),
+                        resolve_timeout(timeout),
+                    );
                     let extension_fn =
                         get_builtin_extension(normalized_name.as_str()).ok_or_else(|| {
                             ExtensionError::ConfigError(format!("Unknown extension: {}", name))

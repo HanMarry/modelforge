@@ -1,4 +1,5 @@
 use indoc::formatdoc;
+use once_cell::sync::Lazy;
 use rmcp::{
     handler::server::{router::tool::ToolRouter, wrapper::Parameters},
     model::{
@@ -14,20 +15,54 @@ use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     path::PathBuf,
-    sync::{Arc, Mutex, PoisonError},
+    sync::{Arc, Mutex, PoisonError, RwLock},
     time::Duration,
 };
 
 use crate::subprocess::SubprocessExt;
 
-pub mod run_record;
-pub mod run_recorder;
+// The Run_Record type and the recorder live in goose-run-record so that goose's developer shell
+// can record runs without depending on this crate; re-exported under their old paths.
+pub use goose_run_record::{run_record, run_recorder};
 pub mod run_script;
 
-use run_script::{RunContext, RunIntegration, RunScriptParams, StopRequest};
+pub use run_script::RunIntegration;
+use run_script::{RunContext, RunScriptParams, StopRequest};
 
 /// Request `_meta` key goose uses for the session working directory, which is the Project.
 const WORKING_DIR_META_KEY: &str = "agent-working-dir";
+
+/// The run integration builtin modeling servers are created with; see
+/// [`set_builtin_run_integration`].
+static BUILTIN_RUN_INTEGRATION: Lazy<RwLock<RunIntegration>> =
+    Lazy::new(|| RwLock::new(RunIntegration::default()));
+
+/// Replaces the [`RunIntegration`] that builtin modeling servers are created with and returns the
+/// one it replaces.
+///
+/// Builtin servers are the ones [`crate::BUILTIN_EXTENSIONS`] spawns inside the goose process,
+/// one per session that loads the `modeling` extension. Each server takes the integration
+/// installed when it is created and keeps it, so install the real one at process start, before
+/// the first session loads its extensions (next to `register_builtin_extensions`). Until then the
+/// integration supplies no credential values and tells nobody about runs.
+///
+/// Not affected: servers made with [`ModelingServer::new`] or
+/// [`ModelingServer::with_run_integration`], and a modeling server in another process
+/// (`goose mcp modeling`, which the Docker path uses).
+pub fn set_builtin_run_integration(integration: RunIntegration) -> RunIntegration {
+    let mut installed = BUILTIN_RUN_INTEGRATION
+        .write()
+        .unwrap_or_else(PoisonError::into_inner);
+    std::mem::replace(&mut *installed, integration)
+}
+
+/// The integration a builtin modeling server created now would use.
+pub fn builtin_run_integration() -> RunIntegration {
+    BUILTIN_RUN_INTEGRATION
+        .read()
+        .unwrap_or_else(PoisonError::into_inner)
+        .clone()
+}
 
 /// Parameters for the compile_latex tool
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
@@ -142,6 +177,12 @@ impl Default for ModelingServer {
 impl ModelingServer {
     pub fn new() -> Self {
         Self::with_run_integration(RunIntegration::default())
+    }
+
+    /// A server with the integration installed by [`set_builtin_run_integration`] (by default
+    /// none). [`crate::BUILTIN_EXTENSIONS`] creates its modeling servers this way.
+    pub fn builtin() -> Self {
+        Self::with_run_integration(builtin_run_integration())
     }
 
     /// A server whose `run_script` takes credential values from `run_integration.secrets` and
@@ -718,6 +759,49 @@ mod tests {
         let server = ModelingServer::new();
         assert!(server.get_tool("run_script").is_some());
         assert!(server.instructions.contains("run_script"));
+    }
+
+    /// Same allocations, not merely equal values: every default integration holds new `Arc`s.
+    fn same_integration(a: &RunIntegration, b: &RunIntegration) -> bool {
+        std::ptr::addr_eq(Arc::as_ptr(&a.secrets), Arc::as_ptr(&b.secrets))
+            && std::ptr::addr_eq(Arc::as_ptr(&a.observer), Arc::as_ptr(&b.observer))
+    }
+
+    // The only test that touches the process-wide integration; it restores it at the end.
+    #[test]
+    fn builtin_servers_take_the_installed_run_integration() {
+        // By default nothing is supplied.
+        let installed = builtin_run_integration();
+        assert!(run_recorder::SecretValues::secret_values(&*installed.secrets).is_empty());
+
+        let first = RunIntegration::default();
+        let previous = set_builtin_run_integration(first.clone());
+        let early = ModelingServer::builtin();
+        assert!(same_integration(&early.run_integration, &first));
+
+        // A replacement reaches servers created afterwards; earlier ones keep theirs.
+        let second = RunIntegration::default();
+        let replaced = set_builtin_run_integration(second.clone());
+        assert!(same_integration(&replaced, &first));
+        assert!(same_integration(&early.run_integration, &first));
+        assert!(same_integration(
+            &ModelingServer::builtin().run_integration,
+            &second
+        ));
+        assert!(same_integration(&builtin_run_integration(), &second));
+
+        // Explicitly built servers ignore the installed integration.
+        assert!(!same_integration(
+            &ModelingServer::new().run_integration,
+            &second
+        ));
+
+        set_builtin_run_integration(previous);
+    }
+
+    #[test]
+    fn modeling_is_a_builtin_extension() {
+        assert!(crate::BUILTIN_EXTENSIONS.contains_key("modeling"));
     }
 
     #[test]

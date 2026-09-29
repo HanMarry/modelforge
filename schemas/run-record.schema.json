@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://modelforge.local/schemas/run-record.schema.json",
   "title": "Run_Record",
-  "description": "One execution of computation code inside a Project (spec mathmodel-parity-and-beyond, requirement 16). Stored as <project>/.modelforge/runs/<runId>.json. Written by the kernel (crates/goose-mcp/src/modeling/run_record.rs) and read by the desktop (ui/desktop/src/utils/runRecord.ts); both implement the checks below by hand and are tested against fixtures/run-record-vectors.json. Readers ignore unknown properties; writers of schemaVersion 1 emit exactly the properties listed here, in this order.",
+  "description": "One execution of computation code inside a Project (spec mathmodel-parity-and-beyond, requirement 16). Stored as <project>/.modelforge/runs/<runId>.json. Written by the kernel (crates/goose-run-record/src/run_record.rs) and read by the desktop (ui/desktop/src/utils/runRecord.ts); both implement the checks below by hand and are tested against fixtures/run-record-vectors.json. Readers ignore unknown properties; writers of schemaVersion 1 emit exactly the properties listed here, in this order.",
   "type": "object",
   "additionalProperties": false,
   "required": [
