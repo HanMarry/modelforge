@@ -84,6 +84,13 @@ import { registerCollabIpc } from './utils/collab/collabIpc';
 import { registerFeishuIpc } from './connectors/feishu/feishuIpc';
 import { createFeishuController } from './connectors/feishu/feishuSdkAdapter';
 import { writeFileAtomic } from './utils/atomicWrite';
+import type { FeatureIpcDeps } from './utils/featureIpc';
+import { registerRunsIpc } from './utils/runs/runsIpc';
+import { registerPaperCheckIpc } from './utils/paperCheck/paperCheckIpc';
+import { registerRunCompareIpc } from './utils/compare/runCompareIpc';
+import { registerTaskResumeIpc } from './utils/resume/taskResumeIpc';
+import { registerReviewIpc } from './utils/review/reviewIpc';
+import { registerLearningIpc } from './utils/learning/learningIpc';
 
 registerWorkspaceIpc();
 registerGitVersionIpc();
@@ -273,6 +280,24 @@ registerFeishuIpc(ipcMain, {
   controller: feishuController,
   log: (message) => log.info(`[feishu] ${message}`),
 });
+
+// Layer C features (spec mathmodel-parity-and-beyond, stage 2). Each feature owns its module;
+// the C1 branches fill in the handlers without touching this block.
+const featureIpcDeps: FeatureIpcDeps = {
+  sensitiveValues: () => credentialStore.sensitiveValues(),
+  userDataDir: app.getPath('userData'),
+  broadcast: (channel, payload) => {
+    for (const win of getRegularWindows()) {
+      win.webContents.send(channel, payload);
+    }
+  },
+};
+registerRunsIpc(ipcMain, featureIpcDeps);
+registerPaperCheckIpc(ipcMain, featureIpcDeps);
+registerRunCompareIpc(ipcMain, featureIpcDeps);
+registerTaskResumeIpc(ipcMain, featureIpcDeps);
+registerReviewIpc(ipcMain, featureIpcDeps);
+registerLearningIpc(ipcMain, featureIpcDeps);
 
 // Keys older versions stored as `raw:` Base64 are encrypted once secure storage is ready; an
 // entry that fails stays as it is and is retried on the next start (requirement 2.4, 2.5).

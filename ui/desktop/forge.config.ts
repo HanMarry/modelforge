@@ -228,6 +228,11 @@ module.exports = {
             entry: 'src/datasetParserMain.ts',
             config: 'vite.main.config.mts',
           },
+          {
+            // Paper-check `utilityProcess` (spec mathmodel-parity-and-beyond, task 23.8).
+            entry: 'src/paperCheckRunnerMain.ts',
+            config: 'vite.main.config.mts',
+          },
         ],
         renderer: [
           {

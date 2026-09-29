@@ -140,6 +140,11 @@ vi.mock('./components/AnnouncementModal', () => ({
   default: () => null,
 }));
 
+// The interrupted-task prompt scans Projects through its own IPC; it has its own tests.
+vi.mock('./components/resume/TaskResumePrompt', () => ({
+  default: () => null,
+}));
+
 // Create mocks that we can track and configure per test
 const mockNavigate = vi.fn();
 const mockSearchParams = new URLSearchParams();

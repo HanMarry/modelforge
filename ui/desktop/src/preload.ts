@@ -50,6 +50,9 @@ import type { CheckpointGitSource } from './utils/checkpoints/checkpointIpc';
 import type { CollabMember } from './utils/collab/collabService';
 import type { CollabGuestRole } from './utils/collab/collabPolicy';
 import type { FeishuConfig, FeishuSaveConfig } from './connectors/feishu/feishuIpc';
+// Layer C features keep their bridges in `bridges/` and their types in `types/<feature>Api.ts`.
+import { featureBridges } from './bridges';
+import type { FeatureApis } from './types/featureApis';
 
 // Mapping from settings keys to their old localStorage keys for lazy migration
 const localStorageKeyMap: Partial<Record<SettingKey, string>> = {
@@ -142,8 +145,8 @@ export interface CreateChatWindowOptions {
   recipeId?: string;
 }
 
-// Define the API types in a single place
-type ElectronAPI = {
+// Define the API types in a single place; layer C feature APIs come from `types/featureApis.ts`.
+type ElectronAPI = FeatureApis & {
   platform: string;
   arch: string;
   reactReady: () => void;
@@ -776,6 +779,7 @@ const electronAPI: ElectronAPI = {
   feishuGetConfig: () => ipcRenderer.invoke('feishu-get-config'),
   feishuSaveConfig: (patch: FeishuSaveConfig) => ipcRenderer.invoke('feishu-save-config', patch),
   feishuStatus: () => ipcRenderer.invoke('feishu-status'),
+  ...featureBridges,
 };
 
 function getAppLocale(): unknown {

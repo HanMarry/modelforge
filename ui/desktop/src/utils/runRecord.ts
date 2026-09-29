@@ -1,7 +1,7 @@
 /**
  * Run_Record serialization and validation (spec mathmodel-parity-and-beyond, requirement 16.4,
  * 16.5). The contract is `schemas/run-record.schema.json`; the kernel side is
- * `crates/goose-mcp/src/modeling/run_record.rs`. Both implement the same checks and are tested
+ * `crates/goose-run-record/src/run_record.rs`. Both implement the same checks and are tested
  * against `fixtures/run-record-vectors.json`.
  *
  * Pure functions without runtime imports and with erasable TypeScript syntax only, so Node scripts

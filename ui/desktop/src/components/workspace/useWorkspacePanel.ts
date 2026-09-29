@@ -6,6 +6,20 @@ import type { WorkspaceTab } from './WorkspacePanel';
 const OPEN_KEY = 'modelforge.workspacePanelOpen';
 const TAB_KEY = 'modelforge.workspacePanelTab';
 
+/** Every tab, in toolbar order; a stored tab outside this list falls back to `project`. */
+const RESTORABLE_TABS: readonly WorkspaceTab[] = [
+  'project',
+  'files',
+  'versions',
+  'environment',
+  'figures',
+  'diagrams',
+  'browser',
+  'paperCheck',
+  'review',
+  'compare',
+];
+
 export interface WorkspacePanelState {
   /** Right-hand panel (tree, versions, environment, figures, diagrams). */
   isOpen: boolean;
@@ -39,10 +53,7 @@ export function useWorkspacePanel(enabled = true): WorkspacePanelState {
   const [isOpen, setIsOpen] = useState(() => window.localStorage.getItem(OPEN_KEY) === 'true');
   const [tab, setTabState] = useState<WorkspaceTab>(() => {
     const stored = window.localStorage.getItem(TAB_KEY);
-    return stored &&
-      ['project', 'files', 'versions', 'environment', 'figures', 'diagrams', 'browser'].includes(
-        stored
-      )
+    return stored && (RESTORABLE_TABS as readonly string[]).includes(stored)
       ? (stored as WorkspaceTab)
       : 'project';
   });

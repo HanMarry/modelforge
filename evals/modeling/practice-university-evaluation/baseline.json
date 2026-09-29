@@ -31,7 +31,7 @@
       "value": 0.224,
       "tolerance": { "mode": "abs", "value": 0.01 },
       "toleranceBasis": "同 pearson_papers_citations。",
-      "note": "生成脚本中 h_index 与 papers 相互独立。参考思路 q1.md 说论文数与 H 指数高度相关，与数据不符，检查项以数据为准。"
+      "note": "生成脚本中 h_index 与 papers 相互独立，数据中两者只有弱相关。参考思路 q1.md 原先说两者高度相关，已按数据改正。"
     },
     {
       "key": "entropy_weights_minmax",

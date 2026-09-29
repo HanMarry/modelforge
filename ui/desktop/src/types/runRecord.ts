@@ -3,7 +3,7 @@
  * code inside a Project, stored as `<project>/.modelforge/runs/<runId>.json`.
  *
  * The contract is `schemas/run-record.schema.json`. The kernel writes records through
- * `crates/goose-mcp/src/modeling/run_record.rs` (same field names); the desktop reads them with
+ * `crates/goose-run-record/src/run_record.rs` (same field names); the desktop reads them with
  * `utils/runRecord.ts`.
  */
 
