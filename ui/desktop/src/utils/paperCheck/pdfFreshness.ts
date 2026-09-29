@@ -4,7 +4,8 @@
  * the figures they show. Reports `PDF 已过期` with the newer sources, or `PDF 缺失`.
  *
  * Pure functions: the caller lists the project files with their modification times and passes
- * the text of every LaTeX and Typst file; nothing here reads the file system.
+ * the text of every LaTeX (`.tex`, `.cls`, `.sty`) and Typst file; nothing here reads the file
+ * system.
  *
  * Dependencies are found in the text with comments removed (LaTeX `%`, Typst `//` and `/* *\/`):
  *
@@ -15,8 +16,14 @@
  * - `\includegraphics[…]{fig/plot}` (and `\includegraphics*`): a name ending in one of
  *   `LATEX_GRAPHICS_EXTENSIONS` is used as written; otherwise each extension in that order, then
  *   the name as written. For every candidate name the main file's directory is tried first, then
- *   each `\graphicspath` entry, as graphicx does.
+ *   each `\graphicspath` entry, as graphicx does. `\includesvg{fig/plot}` (svg package) tries
+ *   `fig/plot.svg`, then the name as written, in the same directories.
  * - `\bibliography{a,b}` (`a.bib`, `b.bib`) and `\addbibresource{a.bib}`.
+ * - Local templates: `\documentclass{x}` and `\LoadClass{x}` (`x.cls`), `\usepackage{a,b}` and
+ *   `\RequirePackage{a,b}` (`a.sty`, `b.sty`), `\bibliographystyle{x}` (`x.bst`). Only files that
+ *   exist in the project count; anything else is a TeX distribution package and is not reported
+ *   as unresolved. Local `.cls` and `.sty` files are followed like `\input` files, so what they
+ *   pull in (a logo, another local package) counts too.
  * - Quotes around names with spaces (`{"my file"}`) are removed. Targets containing `\` or `#`
  *   are macros or macro parameters and reported as `dynamic`; absolute paths (`/…`, `C:…`, `~…`)
  *   as `outside-project`.
@@ -25,6 +32,8 @@
  * project root, which is the main file's directory (Typst's default `--root`), and paths may not
  * leave it. No extension is added.
  * - `#include "…"`, and `include "…"` in code after `=`, `(`, `[`, `{`, `,`, `;` or `:`.
+ * - `#import "…"` (and `import "…"` in code, same positions), a local template or module that is
+ *   followed like an included file. Package imports (`"@preview/…"`) are not files and ignored.
  * - `image("…")`, `bibliography("…")`, with a string literal as first argument.
  *
  * Paths are compared after normalisation (`\` to `/`, `.` and `..` resolved). When no file has
@@ -50,11 +59,11 @@ export interface ProjectFile {
   path: string;
   /** Last modification time in milliseconds, as `fs.Stats.mtimeMs`. */
   mtimeMs: number;
-  /** Text of LaTeX and Typst files, needed to follow their references. */
+  /** Text of LaTeX (including `.cls`, `.sty`) and Typst files, to follow their references. */
   text?: string;
 }
 
-export type DependencyKind = 'input' | 'include' | 'graphics' | 'bibliography';
+export type DependencyKind = 'input' | 'include' | 'graphics' | 'bibliography' | 'template';
 
 export interface DependencyReference {
   kind: DependencyKind;
@@ -143,10 +152,34 @@ export const LATEX_GRAPHICS_EXTENSIONS: readonly string[] = [
 ];
 
 const LATEX_COMMAND =
-  /\\(input|include|includegraphics|bibliography|addbibresource|graphicspath)(?![A-Za-z@])\*?/g;
+  /\\(input|include|includegraphics|includesvg|bibliography|addbibresource|graphicspath|documentclass|usepackage|RequirePackage|RequirePackageWithOptions|LoadClass|LoadClassWithOptions|bibliographystyle)(?![A-Za-z@])\*?/g;
 const LATEX_BARE_NAME = /[^\s{}%\\]+/y;
+
+/** Extension LaTeX adds for each template command. */
+const LATEX_TEMPLATE_EXTENSIONS: Readonly<Record<string, string>> = {
+  documentclass: '.cls',
+  LoadClass: '.cls',
+  LoadClassWithOptions: '.cls',
+  usepackage: '.sty',
+  RequirePackage: '.sty',
+  RequirePackageWithOptions: '.sty',
+  bibliographystyle: '.bst',
+};
+/** Commands that take a comma-separated list of names. */
+const LATEX_LIST_COMMANDS = new Set([
+  'bibliography',
+  'usepackage',
+  'RequirePackage',
+  'RequirePackageWithOptions',
+]);
+/** Local templates whose own text is TeX and is followed for further dependencies. */
+const LATEX_FOLLOWED_TEMPLATES: readonly string[] = ['.cls', '.sty'];
+
 const TYPST_STRING = String.raw`"((?:[^"\\\n]|\\.)*)"`;
-const TYPST_INCLUDE = new RegExp(String.raw`(?:#|(?<=[=([{,;:]\s*))include\s*${TYPST_STRING}`, 'g');
+const TYPST_INCLUDE = new RegExp(
+  String.raw`(?:#|(?<=[=([{,;:]\s*))(include|import)\s*${TYPST_STRING}`,
+  'g'
+);
 const TYPST_CALL = new RegExp(String.raw`(?<![\w.-])(image|bibliography)\(\s*${TYPST_STRING}`, 'g');
 
 interface Group {
@@ -212,10 +245,14 @@ function graphicsPathEntries(content: string): string[] {
 }
 
 function latexKind(command: string): DependencyKind {
+  if (Object.hasOwn(LATEX_TEMPLATE_EXTENSIONS, command)) {
+    return 'template';
+  }
   switch (command) {
     case 'include':
       return 'include';
     case 'includegraphics':
+    case 'includesvg':
       return 'graphics';
     case 'bibliography':
     case 'addbibresource':
@@ -225,7 +262,20 @@ function latexKind(command: string): DependencyKind {
   }
 }
 
-/** `\input`, `\include`, `\includegraphics`, bibliography commands and `\graphicspath` of a file. */
+/** Commands whose name argument may follow `[…]` options. */
+function takesOptions(command: string): boolean {
+  return (
+    command === 'includegraphics' ||
+    command === 'includesvg' ||
+    command === 'addbibresource' ||
+    latexKind(command) === 'template'
+  );
+}
+
+/**
+ * `\input`, `\include`, `\includegraphics`, bibliography and template commands and
+ * `\graphicspath` of a file.
+ */
 export function extractLatexReferences(text: string): LatexReferences {
   const source = stripComments(text, 'latex');
   const starts = lineStarts(source);
@@ -242,10 +292,9 @@ export function extractLatexReferences(text: string): LatexReferences {
     const command = `\\${name}`;
     const line = lineAt(starts, offset);
     const afterName = offset + match[0].length;
-    const argumentStart =
-      name === 'includegraphics' || name === 'addbibresource'
-        ? skipOptionalArguments(source, afterName)
-        : skipWhitespace(source, afterName);
+    const argumentStart = takesOptions(name)
+      ? skipOptionalArguments(source, afterName)
+      : skipWhitespace(source, afterName);
     const group = readGroup(source, argumentStart, '{', '}');
 
     if (group === null) {
@@ -264,7 +313,7 @@ export function extractLatexReferences(text: string): LatexReferences {
       continue;
     }
     const kind = latexKind(name);
-    const targets = name === 'bibliography' ? group.content.split(',') : [group.content];
+    const targets = LATEX_LIST_COMMANDS.has(name) ? group.content.split(',') : [group.content];
     for (const raw of targets) {
       const target = cleanLatexTarget(raw);
       if (target !== '') {
@@ -294,7 +343,7 @@ function decodeTypstString(body: string): string {
   });
 }
 
-/** `include`, `image()` and `bibliography()` of a Typst file, in order of appearance. */
+/** `include`, local `import`, `image()` and `bibliography()` of a Typst file, in order. */
 export function extractTypstReferences(text: string): DependencyReference[] {
   const source = stripComments(text, 'typst');
   const starts = lineStarts(source);
@@ -307,13 +356,15 @@ export function extractTypstReferences(text: string): DependencyReference[] {
       // `\#include` is literal text in markup.
       continue;
     }
-    const target = decodeTypstString(match[1]);
-    if (target !== '') {
+    const keyword = match[1];
+    const target = decodeTypstString(match[2]);
+    // `@preview/…` and other package specs are not project files.
+    if (target !== '' && !(keyword === 'import' && target.startsWith('@'))) {
       found.push({
         offset,
         reference: {
-          kind: 'include',
-          command: hashed ? '#include' : 'include',
+          kind: keyword === 'import' ? 'template' : 'include',
+          command: hashed ? `#${keyword}` : keyword,
           target,
           line: lineAt(starts, offset),
         },
@@ -347,7 +398,14 @@ function hasExtension(name: string, extensions: readonly string[]): boolean {
 function latexCandidateNames(reference: DependencyReference): string[] {
   const { kind, target } = reference;
   switch (kind) {
+    case 'template': {
+      const extension = LATEX_TEMPLATE_EXTENSIONS[reference.command.slice(1)] ?? '.sty';
+      return hasExtension(target, [extension]) ? [target] : [`${target}${extension}`];
+    }
     case 'graphics':
+      if (reference.command === '\\includesvg') {
+        return hasExtension(target, ['.svg']) ? [target] : [`${target}.svg`, target];
+      }
       return hasExtension(target, LATEX_GRAPHICS_EXTENSIONS)
         ? [target]
         : [...LATEX_GRAPHICS_EXTENSIONS.map((extension) => `${target}${extension}`), target];
@@ -445,6 +503,15 @@ function lookup(index: FileIndex, path: string): IndexedFile | undefined {
   return same !== undefined && same.length === 1 ? index.exact.get(same[0]) : undefined;
 }
 
+function isFollowedTemplate(path: string): boolean {
+  return hasExtension(path, LATEX_FOLLOWED_TEMPLATES);
+}
+
+/** References whose target is itself a source whose own references count. */
+function isFollowedKind(kind: DependencyKind): boolean {
+  return kind === 'input' || kind === 'include' || kind === 'template';
+}
+
 interface CollectedSources {
   files: IndexedFile[];
   unresolved: UnresolvedReference[];
@@ -470,6 +537,19 @@ function collectFromIndex(main: IndexedFile, index: FileIndex): CollectedSources
     return true;
   };
 
+  const findFirst = (candidates: string[] | UnresolvedReason): IndexedFile | undefined => {
+    if (typeof candidates === 'string') {
+      return undefined;
+    }
+    for (const candidate of candidates) {
+      const file = lookup(index, candidate);
+      if (file !== undefined) {
+        return file;
+      }
+    }
+    return undefined;
+  };
+
   const resolve = (
     from: string,
     reference: DependencyReference,
@@ -479,14 +559,11 @@ function collectFromIndex(main: IndexedFile, index: FileIndex): CollectedSources
       unresolved.push({ from, reference, reason: candidates });
       return undefined;
     }
-    for (const candidate of candidates) {
-      const file = lookup(index, candidate);
-      if (file !== undefined) {
-        return file;
-      }
+    const file = findFirst(candidates);
+    if (file === undefined) {
+      unresolved.push({ from, reference, reason: 'not-found' });
     }
-    unresolved.push({ from, reference, reason: 'not-found' });
-    return undefined;
+    return file;
   };
 
   const mainLanguage = sourceLanguageOf(main.path);
@@ -525,12 +602,16 @@ function collectFromIndex(main: IndexedFile, index: FileIndex): CollectedSources
         language === 'latex'
           ? latexCandidates(reference, rootDir)
           : typstCandidates(reference, file.path, rootDir);
+      if (language === 'latex' && reference.kind === 'template') {
+        // A class or package that is not in the project comes from the TeX distribution.
+        const template = findFirst(candidates);
+        if (template !== undefined && add(template) && isFollowedTemplate(template.path)) {
+          queue.push({ file: template, language });
+        }
+        continue;
+      }
       const found = resolve(file.path, reference, candidates);
-      if (
-        found !== undefined &&
-        add(found) &&
-        (reference.kind === 'input' || reference.kind === 'include')
-      ) {
+      if (found !== undefined && add(found) && isFollowedKind(reference.kind)) {
         queue.push({ file: found, language });
       }
     }
@@ -547,7 +628,8 @@ function collectFromIndex(main: IndexedFile, index: FileIndex): CollectedSources
 
 /**
  * The main file and every file it depends on, followed transitively through `\input`,
- * `\include` and Typst `include`. `null` when the main file is not among `files`.
+ * `\include`, local `.cls`/`.sty` files and Typst `include`/`import`. `null` when the main file
+ * is not among `files`.
  */
 export function collectPaperSources(
   mainFile: string,

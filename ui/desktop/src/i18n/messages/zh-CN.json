@@ -3527,6 +3527,231 @@
   "onboardingSuccess.shareUsageData": {
     "defaultMessage": "分享匿名使用数据"
   },
+  "paperCheck.anonymous": {
+    "defaultMessage": "赛事要求论文匿名"
+  },
+  "paperCheck.anonymousHint": {
+    "defaultMessage": "在论文源文件和 PDF 中检索，只保存在本机。"
+  },
+  "paperCheck.description": {
+    "defaultMessage": "提交前检查论文的常见问题。只读取文件，不做任何修改。"
+  },
+  "paperCheck.empty": {
+    "defaultMessage": "选择论文源文件并开始检查，即可查看报告。"
+  },
+  "paperCheck.errorOutsideProject": {
+    "defaultMessage": "论文必须位于项目文件夹内。"
+  },
+  "paperCheck.errorProjectNotFound": {
+    "defaultMessage": "项目文件夹已不存在。"
+  },
+  "paperCheck.errorTimeout": {
+    "defaultMessage": "检查未能按时完成。"
+  },
+  "paperCheck.failed": {
+    "defaultMessage": "检查无法运行：{detail}"
+  },
+  "paperCheck.fieldName": {
+    "defaultMessage": "姓名"
+  },
+  "paperCheck.fieldSchool": {
+    "defaultMessage": "学校"
+  },
+  "paperCheck.fieldTeam": {
+    "defaultMessage": "队名"
+  },
+  "paperCheck.figureBitmap": {
+    "defaultMessage": "位图"
+  },
+  "paperCheck.figureNoAxes": {
+    "defaultMessage": "无法识别坐标轴"
+  },
+  "paperCheck.figureNoText": {
+    "defaultMessage": "没有文字层"
+  },
+  "paperCheck.figureParseError": {
+    "defaultMessage": "无法解析"
+  },
+  "paperCheck.figureUnsupported": {
+    "defaultMessage": "不支持的格式"
+  },
+  "paperCheck.finishedAt": {
+    "defaultMessage": "完成于 {time}"
+  },
+  "paperCheck.issueAnonymityHit": {
+    "defaultMessage": "此处出现{field}“{term}”"
+  },
+  "paperCheck.issueCount": {
+    "defaultMessage": "{count,plural,other{# 个问题}}"
+  },
+  "paperCheck.issueFigureMissing": {
+    "defaultMessage": "缺少{parts}"
+  },
+  "paperCheck.issueFigureUnreadable": {
+    "defaultMessage": "无法检查：{reason}"
+  },
+  "paperCheck.issueNumberMismatch": {
+    "defaultMessage": "{paperValue} 与 {table} 中的 {tableValue} 不一致（run {runId}）"
+  },
+  "paperCheck.issuePdfMissing": {
+    "defaultMessage": "PDF 缺失：{pdf}"
+  },
+  "paperCheck.issuePdfStale": {
+    "defaultMessage": "比 {pdf} 新"
+  },
+  "paperCheck.issuePdfUnreadable": {
+    "defaultMessage": "无法读取 PDF 的文字"
+  },
+  "paperCheck.issueQuestionUncovered": {
+    "defaultMessage": "论文中没有出现问题 {number}"
+  },
+  "paperCheck.issueReferenceNetwork": {
+    "defaultMessage": "[{index}] {title}：未核实（网络原因）"
+  },
+  "paperCheck.issueReferenceUnverified": {
+    "defaultMessage": "[{index}] {title}：无法核实（{reason}）"
+  },
+  "paperCheck.itemAnonymity": {
+    "defaultMessage": "匿名检查"
+  },
+  "paperCheck.itemFigureLabels": {
+    "defaultMessage": "图表标签与单位"
+  },
+  "paperCheck.itemNumberConsistency": {
+    "defaultMessage": "数值与结果一致"
+  },
+  "paperCheck.itemPdfFreshness": {
+    "defaultMessage": "PDF 是否最新"
+  },
+  "paperCheck.itemQuestionCoverage": {
+    "defaultMessage": "逐问覆盖"
+  },
+  "paperCheck.itemReferences": {
+    "defaultMessage": "参考文献核实"
+  },
+  "paperCheck.loadingPapers": {
+    "defaultMessage": "正在查找论文源文件…"
+  },
+  "paperCheck.locationLine": {
+    "defaultMessage": "{file}，第 {line} 行"
+  },
+  "paperCheck.locationPage": {
+    "defaultMessage": "{file}，第 {page} 页"
+  },
+  "paperCheck.names": {
+    "defaultMessage": "队员姓名"
+  },
+  "paperCheck.namesPlaceholder": {
+    "defaultMessage": "多个姓名用逗号或顿号分隔"
+  },
+  "paperCheck.noPaper": {
+    "defaultMessage": "此项目中没有找到 LaTeX、Typst 或 Markdown 论文源文件。"
+  },
+  "paperCheck.omitted": {
+    "defaultMessage": "{count,plural,other{另有 # 个问题未显示}}"
+  },
+  "paperCheck.online": {
+    "defaultMessage": "联网核实参考文献（Crossref）"
+  },
+  "paperCheck.onlineHint": {
+    "defaultMessage": "每条参考文献最多等待 10 秒，不计入 60 秒时限。"
+  },
+  "paperCheck.paperLabel": {
+    "defaultMessage": "论文源文件"
+  },
+  "paperCheck.partXLabel": {
+    "defaultMessage": "横轴标签"
+  },
+  "paperCheck.partXUnit": {
+    "defaultMessage": "横轴单位"
+  },
+  "paperCheck.partYLabel": {
+    "defaultMessage": "纵轴标签"
+  },
+  "paperCheck.partYUnit": {
+    "defaultMessage": "纵轴单位"
+  },
+  "paperCheck.reasonCheckFailed": {
+    "defaultMessage": "检查出错：{detail}"
+  },
+  "paperCheck.reasonFiguresUnreadable": {
+    "defaultMessage": "所有图表都无法读取。"
+  },
+  "paperCheck.reasonMissingPaperSource": {
+    "defaultMessage": "缺少论文源文件。"
+  },
+  "paperCheck.reasonMissingProblemStatement": {
+    "defaultMessage": "没有找到题面文件（文件名含“题目”“赛题”或 problem 等）。"
+  },
+  "paperCheck.reasonMissingProfile": {
+    "defaultMessage": "请填写要检索的姓名、学校或队名。"
+  },
+  "paperCheck.reasonMissingQuestionNumbers": {
+    "defaultMessage": "题面中没有识别出问题编号。"
+  },
+  "paperCheck.reasonMissingRunRecords": {
+    "defaultMessage": ".modelforge/runs 中没有 Run_Record。"
+  },
+  "paperCheck.reasonNetworkUnavailable": {
+    "defaultMessage": "无法连接 Crossref。"
+  },
+  "paperCheck.reasonNoFigures": {
+    "defaultMessage": "论文没有引用图表。"
+  },
+  "paperCheck.reasonNoLinkedValues": {
+    "defaultMessage": "论文中没有能与结果表对应的数值。"
+  },
+  "paperCheck.reasonNoReferences": {
+    "defaultMessage": "没有找到参考文献列表。"
+  },
+  "paperCheck.reasonNoResultTables": {
+    "defaultMessage": "没有当前有效的结果表（成功运行输出的 CSV、TSV 或 JSON）。"
+  },
+  "paperCheck.reasonOffline": {
+    "defaultMessage": "未开启联网核实。"
+  },
+  "paperCheck.reasonTimedOut": {
+    "defaultMessage": "已停止：达到 60 秒时限。"
+  },
+  "paperCheck.referenceDoiMismatch": {
+    "defaultMessage": "DOI 与标题不符"
+  },
+  "paperCheck.referenceDoiNotFound": {
+    "defaultMessage": "DOI 不存在"
+  },
+  "paperCheck.referenceNoIdentifier": {
+    "defaultMessage": "没有 DOI 和标题"
+  },
+  "paperCheck.referenceNoMatch": {
+    "defaultMessage": "没有找到匹配的记录"
+  },
+  "paperCheck.rescan": {
+    "defaultMessage": "重新查找论文源文件"
+  },
+  "paperCheck.run": {
+    "defaultMessage": "开始检查"
+  },
+  "paperCheck.running": {
+    "defaultMessage": "正在检查…"
+  },
+  "paperCheck.school": {
+    "defaultMessage": "学校"
+  },
+  "paperCheck.team": {
+    "defaultMessage": "队名"
+  },
+  "paperCheck.title": {
+    "defaultMessage": "论文检查"
+  },
+  "paperCheck.verdictCannotRun": {
+    "defaultMessage": "无法执行"
+  },
+  "paperCheck.verdictIssues": {
+    "defaultMessage": "发现问题"
+  },
+  "paperCheck.verdictPass": {
+    "defaultMessage": "通过"
+  },
   "paperView.all": {
     "defaultMessage": "全部"
   },

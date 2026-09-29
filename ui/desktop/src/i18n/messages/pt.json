@@ -3527,6 +3527,231 @@
   "onboardingSuccess.shareUsageData": {
     "defaultMessage": "Partilhar dados de utilização anónimos"
   },
+  "paperCheck.anonymous": {
+    "defaultMessage": "The competition requires anonymous papers"
+  },
+  "paperCheck.anonymousHint": {
+    "defaultMessage": "Searched for in the sources and the PDF. Kept on this computer only."
+  },
+  "paperCheck.description": {
+    "defaultMessage": "Checks the paper for common problems before you submit it. Files are only read, never changed."
+  },
+  "paperCheck.empty": {
+    "defaultMessage": "Pick the paper source and run the check to see the report."
+  },
+  "paperCheck.errorOutsideProject": {
+    "defaultMessage": "The paper must be inside the project folder."
+  },
+  "paperCheck.errorProjectNotFound": {
+    "defaultMessage": "The project folder no longer exists."
+  },
+  "paperCheck.errorTimeout": {
+    "defaultMessage": "The check did not finish in time."
+  },
+  "paperCheck.failed": {
+    "defaultMessage": "The check could not run: {detail}"
+  },
+  "paperCheck.fieldName": {
+    "defaultMessage": "Name"
+  },
+  "paperCheck.fieldSchool": {
+    "defaultMessage": "School"
+  },
+  "paperCheck.fieldTeam": {
+    "defaultMessage": "Team name"
+  },
+  "paperCheck.figureBitmap": {
+    "defaultMessage": "bitmap image"
+  },
+  "paperCheck.figureNoAxes": {
+    "defaultMessage": "no axis structure found"
+  },
+  "paperCheck.figureNoText": {
+    "defaultMessage": "no text layer"
+  },
+  "paperCheck.figureParseError": {
+    "defaultMessage": "could not be parsed"
+  },
+  "paperCheck.figureUnsupported": {
+    "defaultMessage": "unsupported format"
+  },
+  "paperCheck.finishedAt": {
+    "defaultMessage": "Finished {time}"
+  },
+  "paperCheck.issueAnonymityHit": {
+    "defaultMessage": "{field} “{term}” appears here"
+  },
+  "paperCheck.issueCount": {
+    "defaultMessage": "{count,plural,one{# issue} other{# issues}}"
+  },
+  "paperCheck.issueFigureMissing": {
+    "defaultMessage": "Missing {parts}"
+  },
+  "paperCheck.issueFigureUnreadable": {
+    "defaultMessage": "Cannot be checked: {reason}"
+  },
+  "paperCheck.issueNumberMismatch": {
+    "defaultMessage": "{paperValue} does not match {tableValue} in {table} (run {runId})"
+  },
+  "paperCheck.issuePdfMissing": {
+    "defaultMessage": "PDF missing: {pdf}"
+  },
+  "paperCheck.issuePdfStale": {
+    "defaultMessage": "Newer than {pdf}"
+  },
+  "paperCheck.issuePdfUnreadable": {
+    "defaultMessage": "The PDF text could not be read"
+  },
+  "paperCheck.issueQuestionUncovered": {
+    "defaultMessage": "Question {number} is never mentioned in the paper"
+  },
+  "paperCheck.issueReferenceNetwork": {
+    "defaultMessage": "[{index}] {title}: not verified (network)"
+  },
+  "paperCheck.issueReferenceUnverified": {
+    "defaultMessage": "[{index}] {title}: could not be verified ({reason})"
+  },
+  "paperCheck.itemAnonymity": {
+    "defaultMessage": "Anonymity"
+  },
+  "paperCheck.itemFigureLabels": {
+    "defaultMessage": "Figure labels and units"
+  },
+  "paperCheck.itemNumberConsistency": {
+    "defaultMessage": "Numbers match results"
+  },
+  "paperCheck.itemPdfFreshness": {
+    "defaultMessage": "PDF up to date"
+  },
+  "paperCheck.itemQuestionCoverage": {
+    "defaultMessage": "Question coverage"
+  },
+  "paperCheck.itemReferences": {
+    "defaultMessage": "References"
+  },
+  "paperCheck.loadingPapers": {
+    "defaultMessage": "Looking for paper sources…"
+  },
+  "paperCheck.locationLine": {
+    "defaultMessage": "{file}, line {line}"
+  },
+  "paperCheck.locationPage": {
+    "defaultMessage": "{file}, page {page}"
+  },
+  "paperCheck.names": {
+    "defaultMessage": "Member names"
+  },
+  "paperCheck.namesPlaceholder": {
+    "defaultMessage": "Separate names with commas"
+  },
+  "paperCheck.noPaper": {
+    "defaultMessage": "No LaTeX, Typst or Markdown paper source found in this project."
+  },
+  "paperCheck.omitted": {
+    "defaultMessage": "{count,plural,one{# more issue not shown} other{# more issues not shown}}"
+  },
+  "paperCheck.online": {
+    "defaultMessage": "Verify references online (Crossref)"
+  },
+  "paperCheck.onlineHint": {
+    "defaultMessage": "Up to 10 seconds per reference; not included in the 60-second limit."
+  },
+  "paperCheck.paperLabel": {
+    "defaultMessage": "Paper source"
+  },
+  "paperCheck.partXLabel": {
+    "defaultMessage": "x-axis label"
+  },
+  "paperCheck.partXUnit": {
+    "defaultMessage": "x-axis unit"
+  },
+  "paperCheck.partYLabel": {
+    "defaultMessage": "y-axis label"
+  },
+  "paperCheck.partYUnit": {
+    "defaultMessage": "y-axis unit"
+  },
+  "paperCheck.reasonCheckFailed": {
+    "defaultMessage": "The check failed: {detail}"
+  },
+  "paperCheck.reasonFiguresUnreadable": {
+    "defaultMessage": "None of the figures could be read."
+  },
+  "paperCheck.reasonMissingPaperSource": {
+    "defaultMessage": "The paper source file is missing."
+  },
+  "paperCheck.reasonMissingProblemStatement": {
+    "defaultMessage": "No problem statement found (a file named like 题目, 赛题 or problem)."
+  },
+  "paperCheck.reasonMissingProfile": {
+    "defaultMessage": "Enter the names, school or team name to search for."
+  },
+  "paperCheck.reasonMissingQuestionNumbers": {
+    "defaultMessage": "The problem statement names no question numbers."
+  },
+  "paperCheck.reasonMissingRunRecords": {
+    "defaultMessage": "No Run_Record found in .modelforge/runs."
+  },
+  "paperCheck.reasonNetworkUnavailable": {
+    "defaultMessage": "Crossref could not be reached."
+  },
+  "paperCheck.reasonNoFigures": {
+    "defaultMessage": "The paper shows no figures."
+  },
+  "paperCheck.reasonNoLinkedValues": {
+    "defaultMessage": "No number in the paper could be matched to a result table value."
+  },
+  "paperCheck.reasonNoReferences": {
+    "defaultMessage": "No reference list found."
+  },
+  "paperCheck.reasonNoResultTables": {
+    "defaultMessage": "No current result table (CSV, TSV or JSON output of a successful run)."
+  },
+  "paperCheck.reasonOffline": {
+    "defaultMessage": "Online verification is off."
+  },
+  "paperCheck.reasonTimedOut": {
+    "defaultMessage": "Stopped: the 60-second limit was reached."
+  },
+  "paperCheck.referenceDoiMismatch": {
+    "defaultMessage": "DOI belongs to another title"
+  },
+  "paperCheck.referenceDoiNotFound": {
+    "defaultMessage": "DOI not found"
+  },
+  "paperCheck.referenceNoIdentifier": {
+    "defaultMessage": "no DOI or title"
+  },
+  "paperCheck.referenceNoMatch": {
+    "defaultMessage": "no matching record"
+  },
+  "paperCheck.rescan": {
+    "defaultMessage": "Look for paper sources again"
+  },
+  "paperCheck.run": {
+    "defaultMessage": "Run check"
+  },
+  "paperCheck.running": {
+    "defaultMessage": "Checking…"
+  },
+  "paperCheck.school": {
+    "defaultMessage": "School"
+  },
+  "paperCheck.team": {
+    "defaultMessage": "Team name"
+  },
+  "paperCheck.title": {
+    "defaultMessage": "Paper check"
+  },
+  "paperCheck.verdictCannotRun": {
+    "defaultMessage": "Could not run"
+  },
+  "paperCheck.verdictIssues": {
+    "defaultMessage": "Issues found"
+  },
+  "paperCheck.verdictPass": {
+    "defaultMessage": "Passed"
+  },
   "paperView.all": {
     "defaultMessage": "All"
   },

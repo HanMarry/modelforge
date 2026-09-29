@@ -51,17 +51,44 @@ describe('extractLatexReferences', () => {
 
     expect(graphicsPaths).toEqual(['figures/', 'my img/']);
     expect(references).toEqual([
+      { kind: 'template', command: '\\documentclass', target: 'article', line: 1 },
       { kind: 'input', command: '\\input', target: 'sec/intro', line: 3 },
       { kind: 'input', command: '\\input', target: 'sec/plain', line: 4 },
       { kind: 'include', command: '\\include', target: 'chapters/第一章', line: 5 },
       { kind: 'graphics', command: '\\includegraphics', target: 'fig/结果 图', line: 6 },
       { kind: 'graphics', command: '\\includegraphics', target: 'plot two.png', line: 7 },
       { kind: 'input', command: '\\input', target: 'after-percent', line: 9 },
+      { kind: 'template', command: '\\bibliographystyle', target: 'plain', line: 10 },
       { kind: 'bibliography', command: '\\bibliography', target: 'refs', line: 11 },
       { kind: 'bibliography', command: '\\bibliography', target: 'extra', line: 11 },
       { kind: 'bibliography', command: '\\addbibresource', target: 'lib/参考文献.bib', line: 12 },
       { kind: 'input', command: '\\input', target: 'chapters/#1', line: 13 },
       { kind: 'graphics', command: '\\includegraphics', target: 'fig/split', line: 15 },
+    ]);
+  });
+
+  it('finds class, package and bibliography style commands with options and lists', () => {
+    const text = [
+      '\\documentclass[12pt, a4paper]{templates/cumcm}',
+      '\\usepackage[UTF8]{ctex, mfstyle}',
+      '\\usepackage{amsmath}[2020/01/01]',
+      '\\RequirePackage{local-pkg}',
+      '\\RequirePackageWithOptions{withopts}',
+      '\\LoadClass{article}',
+      '\\LoadClassWithOptions{book}',
+      '% \\usepackage{commented}',
+      '\\usepackageX{not-a-command}',
+    ].join('\n');
+
+    expect(extractLatexReferences(text).references).toEqual([
+      { kind: 'template', command: '\\documentclass', target: 'templates/cumcm', line: 1 },
+      { kind: 'template', command: '\\usepackage', target: 'ctex', line: 2 },
+      { kind: 'template', command: '\\usepackage', target: 'mfstyle', line: 2 },
+      { kind: 'template', command: '\\usepackage', target: 'amsmath', line: 3 },
+      { kind: 'template', command: '\\RequirePackage', target: 'local-pkg', line: 4 },
+      { kind: 'template', command: '\\RequirePackageWithOptions', target: 'withopts', line: 5 },
+      { kind: 'template', command: '\\LoadClass', target: 'article', line: 6 },
+      { kind: 'template', command: '\\LoadClassWithOptions', target: 'book', line: 7 },
     ]);
   });
 });
@@ -83,9 +110,12 @@ describe('extractTypstReferences', () => {
       'We include "prose" in markup.',
       '#bibliography("refs.bib")',
       '#myimage("no.png") \\#include "literal.typ"',
+      '#import "@preview/cetz:0.3.0": canvas',
+      '#let m = import "lib/模块.typ"',
     ].join('\n');
 
     expect(extractTypstReferences(text)).toEqual([
+      { kind: 'template', command: '#import', target: 'template.typ', line: 1 },
       { kind: 'include', command: '#include', target: 'chapters/引言.typ', line: 2 },
       { kind: 'include', command: 'include', target: 'chapters/模型 建立.typ', line: 3 },
       { kind: 'graphics', command: 'image()', target: 'fig/plot.png', line: 4 },
@@ -93,6 +123,7 @@ describe('extractTypstReferences', () => {
       { kind: 'include', command: '#include', target: 'after-link.typ', line: 10 },
       { kind: 'graphics', command: 'image()', target: 'esc"aped.png', line: 11 },
       { kind: 'bibliography', command: 'bibliography()', target: 'refs.bib', line: 13 },
+      { kind: 'template', command: 'import', target: 'lib/模块.typ', line: 16 },
     ]);
   });
 });
@@ -129,6 +160,19 @@ describe('path resolution', () => {
       'paper/figures/plot',
     ]);
     expect(latexCandidates(reference('graphics', 'fig/a.PNG'), '')).toEqual(['fig/a.PNG']);
+  });
+
+  it('adds .svg for \\includesvg', () => {
+    const svg = { kind: 'graphics' as const, command: '\\includesvg', target: 'fig/流程', line: 1 };
+    expect(latexCandidates(svg, 'paper', ['paper/figures'])).toEqual([
+      'paper/fig/流程.svg',
+      'paper/figures/fig/流程.svg',
+      'paper/fig/流程',
+      'paper/figures/fig/流程',
+    ]);
+    expect(extractLatexReferences('\\includesvg[width=5cm]{fig/流程}').references).toEqual([
+      { kind: 'graphics', command: '\\includesvg', target: 'fig/流程', line: 1 },
+    ]);
   });
 
   it('reports macros and paths outside the project', () => {
@@ -240,6 +284,70 @@ describe('collectPaperSources', () => {
     );
   });
 
+  it('counts local LaTeX classes, packages and styles, and follows .cls and .sty files', () => {
+    const files: ProjectFile[] = [
+      {
+        path: 'paper/main.tex',
+        mtimeMs: 1,
+        text: [
+          '\\documentclass[12pt]{cumcm}',
+          '\\usepackage{amsmath, mfstyle}',
+          '\\bibliographystyle{gbt7714}',
+          '\\usepackage{\\stylename}',
+        ].join('\n'),
+      },
+      {
+        path: 'paper/cumcm.cls',
+        mtimeMs: 1,
+        text: '\\LoadClass{article}\n\\RequirePackage{mflogo}\n\\includegraphics{logo}',
+      },
+      { path: 'paper/mfstyle.sty', mtimeMs: 1, text: '' },
+      { path: 'paper/mflogo.sty', mtimeMs: 1, text: '' },
+      { path: 'paper/gbt7714.bst', mtimeMs: 1 },
+      { path: 'paper/logo.png', mtimeMs: 1 },
+      { path: 'paper/unused.sty', mtimeMs: 1, text: '' },
+    ];
+
+    const collected = collectPaperSources('paper/main.tex', files);
+
+    expect(collected?.sources).toEqual([
+      'paper/main.tex',
+      'paper/cumcm.cls',
+      'paper/mfstyle.sty',
+      'paper/gbt7714.bst',
+      'paper/mflogo.sty',
+      'paper/logo.png',
+    ]);
+    // `amsmath`, `article` and the macro come from the TeX distribution or cannot be known.
+    expect(collected?.unresolved).toEqual([]);
+    expect(collected?.unparsed).toEqual([]);
+  });
+
+  it('follows local Typst imports and ignores package imports', () => {
+    const files: ProjectFile[] = [
+      {
+        path: 'main.typ',
+        mtimeMs: 1,
+        text: [
+          '#import "template.typ": conf',
+          '#import "@preview/cetz:0.3.0"',
+          '#import "missing.typ": x',
+          '#show: conf',
+        ].join('\n'),
+      },
+      { path: 'template.typ', mtimeMs: 1, text: '#import "lib/util.typ": *\n#image("logo.svg")' },
+      { path: 'lib/util.typ', mtimeMs: 1, text: '' },
+      { path: 'logo.svg', mtimeMs: 1 },
+    ];
+
+    const collected = collectPaperSources('main.typ', files);
+
+    expect(collected?.sources).toEqual(['main.typ', 'template.typ', 'lib/util.typ', 'logo.svg']);
+    expect(collected?.unresolved.map(({ reference: ref, reason }) => [ref.target, reason])).toEqual(
+      [['missing.typ', 'not-found']]
+    );
+  });
+
   it('returns null without the main file', () => {
     expect(collectPaperSources('main.tex', [{ path: 'other.tex', mtimeMs: 1, text: '' }])).toBeNull();
   });
@@ -318,6 +426,20 @@ describe('checkPdfFreshness', () => {
     ]);
   });
 
+  it('reports a PDF older than a local template as stale', () => {
+    const report = checkPdfFreshness({
+      mainFile: 'main.tex',
+      files: [
+        { path: 'main.tex', mtimeMs: 100, text: '\\documentclass{cumcm}\n\\usepackage{graphicx}' },
+        { path: 'cumcm.cls', mtimeMs: 500, text: '' },
+        { path: 'main.pdf', mtimeMs: 200 },
+      ],
+    });
+
+    expect(report.status).toBe('stale');
+    expect(report.newerSources).toEqual([{ path: 'cumcm.cls', mtimeMs: 500 }]);
+  });
+
   it('derives the PDF path from the main file', () => {
     expect(defaultPdfPath('paper/main.tex')).toBe('paper/main.pdf');
     expect(defaultPdfPath('paper.v2/main')).toBe('paper.v2/main.pdf');
@@ -358,6 +480,13 @@ const LATEX_POOL: readonly PoolEntry[] = [
   { line: '\\includegraphics{"图表/结果 图".pdf}', file: '图表/结果 图.pdf' },
   { line: '\\includegraphics{heat}', file: 'figures/heat.jpg' },
   { line: '\\bibliography{refs}', file: 'refs.bib' },
+  {
+    line: '\\usepackage[UTF8]{mfstyle}',
+    file: 'mfstyle.sty',
+    text: '\\RequirePackage{mfbase}\n',
+    nested: { file: 'mfbase.sty', text: '' },
+  },
+  { line: '\\bibliographystyle{gbt7714}', file: 'gbt7714.bst' },
 ];
 
 const TYPST_POOL: readonly PoolEntry[] = [
@@ -371,6 +500,12 @@ const TYPST_POOL: readonly PoolEntry[] = [
   { line: '#figure(image("fig/plot.png"), caption: [图])', file: 'fig/plot.png' },
   { line: '#image("/图表/结果 图.svg")', file: '图表/结果 图.svg' },
   { line: '#bibliography("refs.bib")', file: 'refs.bib' },
+  {
+    line: '#import "tpl/模板.typ": conf',
+    file: 'tpl/模板.typ',
+    text: '#image("logo.png")\n',
+    nested: { file: 'tpl/logo.png' },
+  },
 ];
 
 type Language = 'latex' | 'typst';
