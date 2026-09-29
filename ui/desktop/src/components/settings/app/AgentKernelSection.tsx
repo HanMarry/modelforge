@@ -10,6 +10,8 @@ import {
 import type { AgentKernelStatus } from '../../../utils/agentKernel';
 import type { BundledCodexRuntimeStatus } from '../../../utils/bundledCodexRuntime';
 import { AppEvents } from '../../../constants/events';
+import { announceCredentialSave } from '../../../utils/credentialSaveEvents';
+import { useCredentialMessages } from '../providers/CredentialStorageStatus';
 
 const i18n = defineMessages({
   title: {
@@ -127,10 +129,6 @@ const i18n = defineMessages({
     id: 'agentKernelSection.clearKey',
     defaultMessage: 'Forget saved key',
   },
-  keySaved: {
-    id: 'agentKernelSection.keySaved',
-    defaultMessage: 'Key saved.',
-  },
   restartNote: {
     id: 'agentKernelSection.restartNote',
     defaultMessage:
@@ -214,6 +212,7 @@ const KERNEL_OPTIONS: {
 
 export default function AgentKernelSection() {
   const intl = useIntl();
+  const credentialMessages = useCredentialMessages();
   const [kernel, setKernel] = useState<AgentKernelSettings>(defaultSettings.agentKernel);
   const [status, setStatus] = useState<AgentKernelStatus | null>(null);
   const [apiKey, setApiKey] = useState('');
@@ -299,9 +298,14 @@ export default function AgentKernelSection() {
     }
     setIsBusy(true);
     try {
-      await window.electron.setAgentKernelKey(status.providerId, apiKey.trim());
-      setApiKey('');
-      setNotice(intl.formatMessage(i18n.keySaved));
+      const result = await window.electron.setAgentKernelKey(status.providerId, apiKey.trim());
+      announceCredentialSave(result);
+      // "Encrypted and saved", "Not persisted" or why it failed (requirement 2.2, 2.3, 2.8).
+      setNotice(credentialMessages.saveOutcome(result));
+      if (result.ok) {
+        // A failed save keeps what the user typed, so it can be retried.
+        setApiKey('');
+      }
       setStatus(await window.electron.refreshAgentKernel());
     } catch (error) {
       console.error('Failed to save the agent kernel API key', error);
@@ -316,7 +320,8 @@ export default function AgentKernelSection() {
     }
     setIsBusy(true);
     try {
-      await window.electron.clearAgentKernelKey(status.providerId);
+      const result = await window.electron.clearAgentKernelKey(status.providerId);
+      setNotice(result.ok ? null : credentialMessages.removeFailed(result.error));
       setStatus(await window.electron.refreshAgentKernel());
     } catch (error) {
       console.error('Failed to clear the agent kernel API key', error);

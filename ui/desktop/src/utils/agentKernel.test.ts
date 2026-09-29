@@ -2,11 +2,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import {
-  createAgentKernelManager,
-  createAgentKernelSecretStore,
-  type AgentKernelSecretCodec,
-} from './agentKernel';
+import { createAgentKernelManager, createAgentKernelSecretStore } from './agentKernel';
+import type { CredentialCrypto } from './credentialStore';
 import {
   readGooseProviderState,
   resolveGooseConfigDir,
@@ -28,11 +25,15 @@ afterEach(() => {
   }
 });
 
-const codec: AgentKernelSecretCodec = {
-  encode: (plaintext) => `enc:${Buffer.from(plaintext, 'utf8').toString('base64')}`,
-  decode: (stored) =>
-    stored.startsWith('enc:') ? Buffer.from(stored.slice(4), 'base64').toString('utf8') : null,
+/** Stand-in for safeStorage: reversible, and the ciphertext never contains the plaintext. */
+const testCrypto: CredentialCrypto = {
+  available: () => true,
+  encrypt: (plaintext) => Buffer.from(plaintext, 'utf8').reverse(),
+  decrypt: (ciphertext) => Buffer.from(ciphertext).reverse().toString('utf8'),
 };
+
+const secretStore = (file = path.join(tempDir(), 'secrets.json')) =>
+  createAgentKernelSecretStore({ file, crypto: testCrypto });
 
 const kernelSettings = (overrides: Partial<AgentKernelSettings> = {}): AgentKernelSettings => ({
   runtime: 'claude-code',
@@ -164,18 +165,35 @@ describe('readGooseProviderState', () => {
 });
 
 describe('agent kernel secrets', () => {
-  it('stores values through the codec and never in plaintext', () => {
+  it('stores values encrypted in the credential store and never in plaintext', async () => {
     const file = path.join(tempDir(), 'nested', 'secrets.json');
-    const store = createAgentKernelSecretStore(file, codec);
+    const store = secretStore(file);
 
-    store.set('provider:custom_deepseek', 'sk-secret');
+    expect(await store.save('provider:custom_deepseek', 'sk-secret')).toEqual({
+      outcome: 'encrypted',
+    });
 
     expect(fs.readFileSync(file, 'utf8')).not.toContain('sk-secret');
     expect(store.get('provider:custom_deepseek')).toBe('sk-secret');
-    expect(store.has('provider:custom_deepseek')).toBe(true);
 
-    store.delete('provider:custom_deepseek');
+    expect(await store.delete('provider:custom_deepseek')).toEqual({ ok: true });
     expect(store.get('provider:custom_deepseek')).toBeNull();
+  });
+
+  it('keeps a key for the session only when secure storage is unavailable', async () => {
+    const file = path.join(tempDir(), 'secrets.json');
+    const unavailable: CredentialCrypto = { ...testCrypto, available: () => false };
+    const store = createAgentKernelSecretStore({ file, crypto: unavailable });
+
+    expect(await store.save('kernel:custom_deepseek', 'sk-session')).toEqual({
+      outcome: 'memory-only',
+    });
+
+    expect(store.get('kernel:custom_deepseek')).toBe('sk-session');
+    expect(fs.existsSync(file)).toBe(false);
+    expect(
+      createAgentKernelSecretStore({ file, crypto: unavailable }).get('kernel:custom_deepseek')
+    ).toBeNull();
   });
 });
 
@@ -204,8 +222,7 @@ describe('createAgentKernelManager', () => {
       setApiKey,
       manager: createAgentKernelManager({
         runtimeRoot: tempDir(),
-        secretsFile: path.join(tempDir(), 'secrets.json'),
-        codec,
+        secrets: secretStore(),
         gooseConfigDir: configDir,
         provision: provision as never,
         env: options.apiKeyEnv ?? {},
@@ -308,7 +325,9 @@ describe('createAgentKernelManager', () => {
 
   it('provisions the external kernel from the provider the user configured', async () => {
     const { manager, provision } = makeManager();
-    manager.rememberProviderKey('custom_deepseek', 'sk-captured');
+    expect(await manager.rememberProviderKey('custom_deepseek', 'sk-captured')).toEqual({
+      outcome: 'encrypted',
+    });
 
     const status = await manager.apply(kernelSettings());
 
@@ -331,8 +350,8 @@ describe('createAgentKernelManager', () => {
 
   it('prefers a key entered for the kernel over the captured provider key', async () => {
     const { manager } = makeManager();
-    manager.rememberProviderKey('custom_deepseek', 'sk-provider');
-    manager.setKernelKey('custom_deepseek', 'sk-kernel');
+    await manager.rememberProviderKey('custom_deepseek', 'sk-provider');
+    await manager.setKernelKey('custom_deepseek', 'sk-kernel');
 
     const status = await manager.apply(kernelSettings());
 
@@ -362,7 +381,7 @@ describe('createAgentKernelManager', () => {
     expect(failed.error).toContain('API Key');
     expect(provision).not.toHaveBeenCalled();
 
-    manager.setKernelKey('custom_deepseek', 'sk-saved-late');
+    await manager.setKernelKey('custom_deepseek', 'sk-saved-late');
     const healed = await manager.refresh(kernelSettings());
 
     expect(provision).toHaveBeenCalledTimes(1);
@@ -373,10 +392,10 @@ describe('createAgentKernelManager', () => {
 
   it('pushes a key that changed afterwards into the running kernel without re-provisioning', async () => {
     const { manager, provision, setApiKey } = makeManager();
-    manager.setKernelKey('custom_deepseek', 'sk-first');
+    await manager.setKernelKey('custom_deepseek', 'sk-first');
     await manager.apply(kernelSettings());
 
-    manager.setKernelKey('custom_deepseek', 'sk-rotated');
+    await manager.setKernelKey('custom_deepseek', 'sk-rotated');
     const status = await manager.refresh(kernelSettings());
 
     expect(provision).toHaveBeenCalledTimes(1);
@@ -410,8 +429,7 @@ describe('createAgentKernelManager', () => {
     writeGooseConfig(configDir);
     const manager = createAgentKernelManager({
       runtimeRoot: tempDir(),
-      secretsFile: path.join(tempDir(), 'secrets.json'),
-      codec,
+      secrets: secretStore(),
       gooseConfigDir: configDir,
       provision: (async () => {
         throw new Error('shim port busy');
@@ -432,20 +450,19 @@ describe('createAgentKernelManager', () => {
 
     const manager1 = createAgentKernelManager({
       runtimeRoot: tempDir(),
-      secretsFile,
-      codec,
+      secrets: secretStore(secretsFile),
       gooseConfigDir: configDir,
       provision: vi.fn().mockResolvedValue({ env: {}, shimUrl: 'http://127.0.0.1:9' }),
       env: {},
     });
 
-    manager1.setKernelKey('custom_deepseek', 'sk-test-key');
+    await manager1.setKernelKey('custom_deepseek', 'sk-test-key');
     await manager1.dispose();
 
+    // A fresh store over the same file, as after an app restart.
     const manager2 = createAgentKernelManager({
       runtimeRoot: tempDir(),
-      secretsFile,
-      codec,
+      secrets: secretStore(secretsFile),
       gooseConfigDir: configDir,
       provision: vi.fn().mockResolvedValue({ env: {}, shimUrl: 'http://127.0.0.1:9' }),
       env: {},
@@ -460,7 +477,7 @@ describe('createAgentKernelManager', () => {
   it('rejects setKernelKey when providerId is empty', async () => {
     const { manager } = makeManager();
 
-    manager.setKernelKey('', 'sk-test-key');
+    expect(await manager.setKernelKey('', 'sk-test-key')).toMatchObject({ outcome: 'failed' });
 
     const status = await manager.apply(kernelSettings());
 

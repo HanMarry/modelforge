@@ -1,7 +1,10 @@
+import { announceCredentialSave } from './credentialSaveEvents';
+
 /**
  * The external agent kernels (Claude Code / Codex) reuse the API the user configured in the
  * app. goose masks secrets over ACP, so when the user saves a provider key here the app keeps
- * its own encrypted copy in the main process.
+ * its own copy in the main process: encrypted, or in memory for this session when the OS
+ * offers no secure storage.
  */
 export function rememberProviderApiKey(providerId: string, apiKey?: string | null): void {
   if (!providerId) {
@@ -14,9 +17,13 @@ export function rememberProviderApiKey(providerId: string, apiKey?: string | nul
     return;
   }
   try {
-    void window.electron?.rememberProviderApiKey(providerId, apiKey)?.catch((error) => {
-      console.warn(`agent kernel: failed to capture the provider key for ${providerId}`, error);
-    });
+    void window.electron
+      ?.rememberProviderApiKey(providerId, apiKey)
+      // The providers settings show whether the copy was encrypted or kept for this session.
+      ?.then(announceCredentialSave)
+      .catch((error) => {
+        console.warn(`agent kernel: failed to capture the provider key for ${providerId}`, error);
+      });
   } catch (error) {
     // Best effort: the kernel settings let the user enter the key directly if capture fails.
     console.warn(`agent kernel: failed to capture the provider key for ${providerId}`, error);
