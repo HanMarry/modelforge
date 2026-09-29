@@ -2774,6 +2774,9 @@
   "launcher.placeholder": {
     "defaultMessage": "问 ModelForge 任何问题…"
   },
+  "learning.title": {
+    "defaultMessage": "学习路径"
+  },
   "loadingGoose.compacting": {
     "defaultMessage": "ModelForge 正在压缩对话…"
   },
@@ -3418,6 +3421,9 @@
   },
   "navigation.itemHome": {
     "defaultMessage": "新建会话"
+  },
+  "navigation.itemLearning": {
+    "defaultMessage": "学习路径"
   },
   "navigation.itemPaper": {
     "defaultMessage": "论文模板"
@@ -6455,6 +6461,9 @@
   "workspacePanel.close": {
     "defaultMessage": "关闭面板"
   },
+  "workspacePanel.compare": {
+    "defaultMessage": "方案对比"
+  },
   "workspacePanel.diagrams": {
     "defaultMessage": "流程图"
   },
@@ -6470,11 +6479,17 @@
   "workspacePanel.noWorkingDir": {
     "defaultMessage": "当前会话还没有工作目录，先选择或新建一个工作区，就能浏览文件、跑命令。"
   },
+  "workspacePanel.paperCheck": {
+    "defaultMessage": "论文检查"
+  },
   "workspacePanel.project": {
     "defaultMessage": "项目"
   },
   "workspacePanel.resize": {
     "defaultMessage": "拖动调整宽度"
+  },
+  "workspacePanel.review": {
+    "defaultMessage": "模拟评审"
   },
   "workspacePanel.versions": {
     "defaultMessage": "版本"
@@ -6484,6 +6499,9 @@
   },
   "workspaceToolbar.close": {
     "defaultMessage": "收起面板"
+  },
+  "workspaceToolbar.compare": {
+    "defaultMessage": "方案对比"
   },
   "workspaceToolbar.diagrams": {
     "defaultMessage": "流程图"
@@ -6503,8 +6521,14 @@
   "workspaceToolbar.open": {
     "defaultMessage": "打开面板"
   },
+  "workspaceToolbar.paperCheck": {
+    "defaultMessage": "论文检查"
+  },
   "workspaceToolbar.project": {
     "defaultMessage": "项目"
+  },
+  "workspaceToolbar.review": {
+    "defaultMessage": "模拟评审"
   },
   "workspaceToolbar.versions": {
     "defaultMessage": "版本"

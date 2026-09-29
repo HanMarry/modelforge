@@ -2774,6 +2774,9 @@
   "launcher.placeholder": {
     "defaultMessage": "Hỏi ModelForge bất cứ điều gì..."
   },
+  "learning.title": {
+    "defaultMessage": "Learning Path"
+  },
   "loadingGoose.compacting": {
     "defaultMessage": "ModelForge đang nén cuộc trò chuyện..."
   },
@@ -3418,6 +3421,9 @@
   },
   "navigation.itemHome": {
     "defaultMessage": "Trò chuyện mới"
+  },
+  "navigation.itemLearning": {
+    "defaultMessage": "Learning Path"
   },
   "navigation.itemPaper": {
     "defaultMessage": "Paper Templates"
@@ -6455,6 +6461,9 @@
   "workspacePanel.close": {
     "defaultMessage": "Close panel"
   },
+  "workspacePanel.compare": {
+    "defaultMessage": "Compare Runs"
+  },
   "workspacePanel.diagrams": {
     "defaultMessage": "Diagrams"
   },
@@ -6470,11 +6479,17 @@
   "workspacePanel.noWorkingDir": {
     "defaultMessage": "This session has no working directory yet. Pick one to browse files and run commands."
   },
+  "workspacePanel.paperCheck": {
+    "defaultMessage": "Paper Check"
+  },
   "workspacePanel.project": {
     "defaultMessage": "Project"
   },
   "workspacePanel.resize": {
     "defaultMessage": "Drag to resize"
+  },
+  "workspacePanel.review": {
+    "defaultMessage": "Mock Review"
   },
   "workspacePanel.versions": {
     "defaultMessage": "Versions"
@@ -6484,6 +6499,9 @@
   },
   "workspaceToolbar.close": {
     "defaultMessage": "Hide panel"
+  },
+  "workspaceToolbar.compare": {
+    "defaultMessage": "Compare Runs"
   },
   "workspaceToolbar.diagrams": {
     "defaultMessage": "Diagrams"
@@ -6503,8 +6521,14 @@
   "workspaceToolbar.open": {
     "defaultMessage": "Open panel"
   },
+  "workspaceToolbar.paperCheck": {
+    "defaultMessage": "Paper Check"
+  },
   "workspaceToolbar.project": {
     "defaultMessage": "Project"
+  },
+  "workspaceToolbar.review": {
+    "defaultMessage": "Mock Review"
   },
   "workspaceToolbar.versions": {
     "defaultMessage": "Versions"

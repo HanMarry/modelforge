@@ -2774,6 +2774,9 @@
   "launcher.placeholder": {
     "defaultMessage": "向 ModelForge 詢問任何問題…"
   },
+  "learning.title": {
+    "defaultMessage": "學習路徑"
+  },
   "loadingGoose.compacting": {
     "defaultMessage": "ModelForge 正在壓縮對話…"
   },
@@ -3418,6 +3421,9 @@
   },
   "navigation.itemHome": {
     "defaultMessage": "新建会话"
+  },
+  "navigation.itemLearning": {
+    "defaultMessage": "學習路徑"
   },
   "navigation.itemPaper": {
     "defaultMessage": "论文模板"
@@ -6455,6 +6461,9 @@
   "workspacePanel.close": {
     "defaultMessage": "關閉面板"
   },
+  "workspacePanel.compare": {
+    "defaultMessage": "方案對比"
+  },
   "workspacePanel.diagrams": {
     "defaultMessage": "流程圖"
   },
@@ -6470,11 +6479,17 @@
   "workspacePanel.noWorkingDir": {
     "defaultMessage": "目前工作階段還沒有工作目錄，請先選擇或新增一個工作區，就能瀏覽檔案、執行指令。"
   },
+  "workspacePanel.paperCheck": {
+    "defaultMessage": "論文檢查"
+  },
   "workspacePanel.project": {
     "defaultMessage": "專案"
   },
   "workspacePanel.resize": {
     "defaultMessage": "拖曳調整寬度"
+  },
+  "workspacePanel.review": {
+    "defaultMessage": "模擬評審"
   },
   "workspacePanel.versions": {
     "defaultMessage": "版本"
@@ -6484,6 +6499,9 @@
   },
   "workspaceToolbar.close": {
     "defaultMessage": "收合面板"
+  },
+  "workspaceToolbar.compare": {
+    "defaultMessage": "方案對比"
   },
   "workspaceToolbar.diagrams": {
     "defaultMessage": "流程圖"
@@ -6503,8 +6521,14 @@
   "workspaceToolbar.open": {
     "defaultMessage": "開啟面板"
   },
+  "workspaceToolbar.paperCheck": {
+    "defaultMessage": "論文檢查"
+  },
   "workspaceToolbar.project": {
     "defaultMessage": "專案"
+  },
+  "workspaceToolbar.review": {
+    "defaultMessage": "模擬評審"
   },
   "workspaceToolbar.versions": {
     "defaultMessage": "版本"

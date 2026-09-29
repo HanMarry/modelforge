@@ -1,10 +1,13 @@
 import {
   Columns2,
+  ClipboardCheck,
   ClipboardList,
+  FileDiff,
   FileText,
   Frame,
   Globe,
   History,
+  MessageSquareText,
   PanelRightClose,
   PanelRightOpen,
   Terminal,
@@ -23,6 +26,9 @@ const i18n = defineMessages({
   figures: { id: 'workspaceToolbar.figures', defaultMessage: 'Figures' },
   diagrams: { id: 'workspaceToolbar.diagrams', defaultMessage: 'Diagrams' },
   browser: { id: 'workspaceToolbar.browser', defaultMessage: 'Browser' },
+  paperCheck: { id: 'workspaceToolbar.paperCheck', defaultMessage: 'Paper Check' },
+  review: { id: 'workspaceToolbar.review', defaultMessage: 'Mock Review' },
+  compare: { id: 'workspaceToolbar.compare', defaultMessage: 'Compare Runs' },
   open: { id: 'workspaceToolbar.open', defaultMessage: 'Open panel' },
   close: { id: 'workspaceToolbar.close', defaultMessage: 'Hide panel' },
 });
@@ -44,6 +50,9 @@ const BUTTONS: { id: WorkspaceTab; icon: typeof FileText; labelKey: keyof typeof
   { id: 'figures', icon: Wand2, labelKey: 'figures' },
   { id: 'diagrams', icon: Frame, labelKey: 'diagrams' },
   { id: 'browser', icon: Globe, labelKey: 'browser' },
+  { id: 'paperCheck', icon: ClipboardCheck, labelKey: 'paperCheck' },
+  { id: 'review', icon: MessageSquareText, labelKey: 'review' },
+  { id: 'compare', icon: FileDiff, labelKey: 'compare' },
 ];
 
 export default function WorkspaceToolbar({

@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   FileText,
+  ClipboardCheck,
   ClipboardList,
+  FileDiff,
   FolderOpen,
   Frame,
   Globe,
   History,
+  MessageSquareText,
   Terminal as TerminalIcon,
   Wand2,
   X,
@@ -20,6 +23,10 @@ import FiguresPanel from './FiguresPanel';
 import DiagramsPanel from './DiagramsPanel';
 import ProjectPanel from './ProjectPanel';
 import BrowserPanel from './BrowserPanel';
+import PaperCheckPanel from './PaperCheckPanel';
+import ReviewPanel from './ReviewPanel';
+import RunComparePanel from './RunComparePanel';
+import type { WorkspaceFileLocation } from './featurePanelProps';
 
 export type WorkspaceTab =
   | 'project'
@@ -28,7 +35,10 @@ export type WorkspaceTab =
   | 'environment'
   | 'figures'
   | 'diagrams'
-  | 'browser';
+  | 'browser'
+  | 'paperCheck'
+  | 'review'
+  | 'compare';
 
 const i18n = defineMessages({
   project: { id: 'workspacePanel.project', defaultMessage: 'Project' },
@@ -38,6 +48,9 @@ const i18n = defineMessages({
   figures: { id: 'workspacePanel.figures', defaultMessage: 'Figures' },
   diagrams: { id: 'workspacePanel.diagrams', defaultMessage: 'Diagrams' },
   browser: { id: 'workspacePanel.browser', defaultMessage: 'Browser' },
+  paperCheck: { id: 'workspacePanel.paperCheck', defaultMessage: 'Paper Check' },
+  review: { id: 'workspacePanel.review', defaultMessage: 'Mock Review' },
+  compare: { id: 'workspacePanel.compare', defaultMessage: 'Compare Runs' },
   close: { id: 'workspacePanel.close', defaultMessage: 'Close panel' },
   resize: { id: 'workspacePanel.resize', defaultMessage: 'Drag to resize' },
   noWorkingDir: {
@@ -55,6 +68,9 @@ const TABS: { id: WorkspaceTab; icon: typeof FileText; labelKey: keyof typeof i1
   { id: 'figures', icon: Wand2, labelKey: 'figures' },
   { id: 'diagrams', icon: Frame, labelKey: 'diagrams' },
   { id: 'browser', icon: Globe, labelKey: 'browser' },
+  { id: 'paperCheck', icon: ClipboardCheck, labelKey: 'paperCheck' },
+  { id: 'review', icon: MessageSquareText, labelKey: 'review' },
+  { id: 'compare', icon: FileDiff, labelKey: 'compare' },
 ];
 
 const MIN_WIDTH = 320;
@@ -71,7 +87,8 @@ interface WorkspacePanelProps {
   /** The centre editor column is open, so the tree only picks files. */
   isEditorOpen?: boolean;
   onOpenFile?: (entry: WorkspaceEntry) => void;
-  onRevealFile: (entry: WorkspaceEntry) => void;
+  /** `location` comes from the paper check and review tabs; see `featurePanelProps.ts`. */
+  onRevealFile: (entry: WorkspaceEntry, location?: WorkspaceFileLocation) => void;
   onCompose: (text: string) => void;
   onWorkingDirChange?: (dir: string) => void | Promise<void>;
   onSelectTab: (tab: WorkspaceTab) => void;
@@ -244,6 +261,39 @@ export default function WorkspacePanel({
               {visitedTabs.has('diagrams') && (
                 <div className={cn('h-full min-h-0', tab !== 'diagrams' && 'hidden')}>
                   <DiagramsPanel workingDir={workingDir} isAgentActive={isAgentActive} />
+                </div>
+              )}
+              {visitedTabs.has('paperCheck') && (
+                <div className={cn('h-full min-h-0', tab !== 'paperCheck' && 'hidden')}>
+                  <PaperCheckPanel
+                    workingDir={workingDir}
+                    active={isOpen && tab === 'paperCheck'}
+                    isAgentActive={isAgentActive}
+                    onOpenFile={onRevealFile}
+                    onCompose={onCompose}
+                  />
+                </div>
+              )}
+              {visitedTabs.has('review') && (
+                <div className={cn('h-full min-h-0', tab !== 'review' && 'hidden')}>
+                  <ReviewPanel
+                    workingDir={workingDir}
+                    active={isOpen && tab === 'review'}
+                    isAgentActive={isAgentActive}
+                    onOpenFile={onRevealFile}
+                    onCompose={onCompose}
+                  />
+                </div>
+              )}
+              {visitedTabs.has('compare') && (
+                <div className={cn('h-full min-h-0', tab !== 'compare' && 'hidden')}>
+                  <RunComparePanel
+                    workingDir={workingDir}
+                    active={isOpen && tab === 'compare'}
+                    isAgentActive={isAgentActive}
+                    onOpenFile={onRevealFile}
+                    onCompose={onCompose}
+                  />
                 </div>
               )}
             </>

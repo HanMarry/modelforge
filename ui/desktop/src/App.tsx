@@ -54,6 +54,8 @@ import ExamplesView from './components/examples/ExamplesView';
 import DatasetsView from './components/datasets/DatasetsView';
 import GalleryView from './components/gallery/GalleryView';
 import BrowserApprovalDialog from './components/workspace/BrowserApprovalDialog';
+import LearningView from './components/learning/LearningView';
+import TaskResumePrompt from './components/resume/TaskResumePrompt';
 import { View, ViewOptions } from './utils/navigationUtils';
 
 import { useNavigation } from './hooks/useNavigation';
@@ -667,6 +669,8 @@ export function AppInner() {
       <ExtensionInstallModal addExtension={addExtension} setView={setView} />
       <RecipeParamsModalContainer />
       <BrowserApprovalDialog />
+      {/* Interrupted-task prompt (task 25.5); scans the open Projects after startup. */}
+      <TaskResumePrompt />
       <div className="relative w-screen h-screen overflow-hidden bg-background-secondary flex flex-col">
         <div className="titlebar-drag-region" />
         <div style={{ position: 'relative', width: '100%', height: '100%' }}>
@@ -721,6 +725,7 @@ export function AppInner() {
               <Route path="competitions" element={<CompetitionsView />} />
               <Route path="examples" element={<ExamplesView />} />
               <Route path="datasets" element={<DatasetsView />} />
+              <Route path="learning" element={<LearningView />} />
             </Route>
           </Routes>
         </div>
