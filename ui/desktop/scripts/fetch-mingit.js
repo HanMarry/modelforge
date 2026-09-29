@@ -4,7 +4,7 @@
  * (spec mathmodel-parity-and-beyond, requirement 11.2, packaged by requirement 7.1):
  *
  *   src/bin/mingit/cmd/git.exe        the launcher the checkpoint code resolves
- *   src/bin/mingit/mingw64/...        the git runtime it launches
+ *   src/bin/mingit/<mingw64|ucrt64>/  the git runtime it launches (MSYS2 environment dir)
  *   src/bin/mingit/LICENSE.txt        GPLv2 (git is GPLv2; shipped verbatim)
  *
  * MinGit is downloaded from the official git-for-windows release, checked against a
@@ -31,13 +31,30 @@ const defaultBinDir = path.join(desktopDir, 'src', 'bin');
 
 const RM_OPTIONS = { recursive: true, force: true, maxRetries: 5, retryDelay: 200 };
 
+/**
+ * MSYS2 environment directory holding the git runtime. Git for Windows shipped it under
+ * `mingw64/` for years; newer releases may use another MSYS2 environment (e.g. `ucrt64/`),
+ * so the staged tree is probed instead of assuming one name.
+ */
+const MINGIT_RUNTIME_DIRS = ['mingw64', 'ucrt64', 'clang64'];
+
+/** Returns the runtime `git.exe` inside an extracted MinGit tree, or null. */
+function findRuntimeGit(root) {
+  for (const dir of MINGIT_RUNTIME_DIRS) {
+    const candidate = path.join(root, dir, 'bin', 'git.exe');
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  return null;
+}
+
 function mingitLayout(binDir) {
+  const root = path.join(binDir, 'mingit');
   return {
     binDir,
-    root: path.join(binDir, 'mingit'),
-    launcher: path.join(binDir, 'mingit', 'cmd', 'git.exe'),
-    git: path.join(binDir, 'mingit', 'mingw64', 'bin', 'git.exe'),
-    license: path.join(binDir, 'mingit', 'LICENSE.txt'),
+    root,
+    launcher: path.join(root, 'cmd', 'git.exe'),
+    git: findRuntimeGit(root),
+    license: path.join(root, 'LICENSE.txt'),
   };
 }
 
@@ -104,7 +121,10 @@ function extractFromZip(zipPath, destination) {
 }
 
 function isStaged(layout) {
-  return [layout.launcher, layout.git, layout.license].every((file) => fs.existsSync(file));
+  return (
+    layout.git !== null &&
+    [layout.launcher, layout.git, layout.license].every((file) => fs.existsSync(file))
+  );
 }
 
 async function ensureMinGit(options = {}) {
@@ -143,9 +163,14 @@ async function ensureMinGit(options = {}) {
     if (!fs.existsSync(path.join(stagingRoot, 'cmd', 'git.exe'))) {
       throw new Error(`MinGit archive did not contain cmd/git.exe`);
     }
-    if (!fs.existsSync(path.join(stagingRoot, 'mingw64', 'bin', 'git.exe'))) {
-      throw new Error(`MinGit archive did not contain mingw64/bin/git.exe`);
+    const runtimeGit = findRuntimeGit(stagingRoot);
+    if (!runtimeGit) {
+      const topLevel = fs.readdirSync(stagingRoot).join(', ');
+      throw new Error(
+        `MinGit archive did not contain <${MINGIT_RUNTIME_DIRS.join('|')}>/bin/git.exe (top level: ${topLevel})`
+      );
     }
+    console.log(`MinGit runtime: ${path.relative(stagingRoot, runtimeGit)}`);
 
     fs.copyFileSync(
       path.join(licenseDir, 'LICENSE.GPLv2.txt'),
@@ -168,4 +193,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { ensureMinGit, mingitLayout, MINGIT_VERSION };
+module.exports = { ensureMinGit, mingitLayout, findRuntimeGit, MINGIT_VERSION };

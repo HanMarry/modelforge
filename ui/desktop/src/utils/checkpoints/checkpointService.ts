@@ -141,11 +141,13 @@ function bundledGitCandidates(): string[] {
     candidates.push(path.join(process.resourcesPath, 'bin', 'mingit', 'cmd', 'git.exe'));
   }
   // Development fallback: `ui/desktop/src/bin/mingit/` (populated by the
-  // packaging task's fetch-mingit script).
-  candidates.push(
-    path.resolve(__dirname, '..', '..', 'bin', 'mingit', 'cmd', 'git.exe'),
-    path.resolve(__dirname, '..', '..', 'bin', 'mingit', 'mingw64', 'bin', 'git.exe')
-  );
+  // packaging task's fetch-mingit script). The runtime lives in an MSYS2 environment
+  // directory whose name varies between Git for Windows releases.
+  const devRoot = path.resolve(__dirname, '..', '..', 'bin', 'mingit');
+  candidates.push(path.join(devRoot, 'cmd', 'git.exe'));
+  for (const runtimeDir of ['mingw64', 'ucrt64', 'clang64']) {
+    candidates.push(path.join(devRoot, runtimeDir, 'bin', 'git.exe'));
+  }
   return candidates;
 }
 
