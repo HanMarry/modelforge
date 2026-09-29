@@ -47,6 +47,7 @@ import AlgorithmsView from './components/AlgorithmsView';
 import FigureTemplatesView from './components/FigureTemplatesView';
 import PaperTemplatesView from './components/PaperTemplatesView';
 import ConnectorsView from './components/ConnectorsView';
+import CollabGuestView from './components/collab/CollabGuestView';
 import StandaloneAppView from './components/apps/StandaloneAppView';
 import CompetitionsView from './components/competitions/CompetitionsView';
 import ExamplesView from './components/examples/ExamplesView';
@@ -715,6 +716,7 @@ export function AppInner() {
               <Route path="connectors" element={<ConnectorsView />} />
               <Route path="diagnostics" element={<DiagnosticsView />} />
               <Route path="gallery" element={<GalleryView />} />
+              <Route path="collab" element={<CollabGuestView />} />
               <Route path="permission" element={<PermissionRoute />} />
               <Route path="competitions" element={<CompetitionsView />} />
               <Route path="examples" element={<ExamplesView />} />

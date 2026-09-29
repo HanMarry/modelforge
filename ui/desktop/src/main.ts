@@ -51,6 +51,7 @@ import { GooseServeLeaseRegistry, type GooseServeLease } from './gooseServeLease
 import { acpWebSocketUrlFromHttpBase, normalizeAcpHttpBaseUrl } from './acp/url';
 import { expandTilde, sanitizeGoosePathRoot } from './utils/pathUtils';
 import log, { registerLogSecrets } from './utils/logger';
+import { redactText } from './utils/secretMask';
 import { ensureWinShims } from './utils/winShims';
 import { addRecentDir, loadRecentDirs } from './utils/recentDirs';
 import { formatAppName, errorMessage, formatErrorForLogging } from './utils/conversionUtils';
@@ -79,6 +80,10 @@ import { registerCatalogIpc } from './utils/catalogIpc';
 import { registerDatasetIpc } from './utils/datasetIpc';
 import { registerBrowserIpc } from './utils/browser/browserIpc';
 import { registerGalleryIpc } from './utils/gallery/galleryIpc';
+import { registerCollabIpc } from './utils/collab/collabIpc';
+import { registerFeishuIpc } from './connectors/feishu/feishuIpc';
+import { createFeishuController } from './connectors/feishu/feishuSdkAdapter';
+import { writeFileAtomic } from './utils/atomicWrite';
 
 registerWorkspaceIpc();
 registerGitVersionIpc();
@@ -231,6 +236,45 @@ registerLogSecrets(() => credentialStore.sensitiveValues());
 registerCredentialIpc(ipcMain, credentialStore);
 registerBrowserIpc({ getMainWindow: () => getRegularWindows()[0] ?? null });
 registerGalleryIpc({ sensitiveValues: () => credentialStore.sensitiveValues() });
+
+// LAN collab (requirement 14): host and guest sessions run in the main process.
+registerCollabIpc(ipcMain, {
+  writeBack: async (relativePath, content) => {
+    const root = await resolveWorkingDir();
+    await writeFileAtomic(path.join(root, relativePath), content);
+  },
+  log: (message) => log.info(`[collab] ${message}`),
+  secretValues: () => credentialStore.sensitiveValues(),
+});
+
+// Feishu connector (requirement 15): config + enable/disable + status IPC.
+const feishuSessionFile = path.join(app.getPath('userData'), 'feishu-sessions.json');
+const feishuController = createFeishuController({
+  store: {
+    load: async () => {
+      try {
+        return JSON.parse(fsSync.readFileSync(feishuSessionFile, 'utf8')) as Record<string, string>;
+      } catch {
+        return {};
+      }
+    },
+    save: async (mapping) => {
+      await writeFileAtomic(feishuSessionFile, JSON.stringify(mapping, null, 2));
+    },
+  },
+  connectAcp: async () => {
+    // The dedicated ACP connection reuses the primary window's goose serve lease.
+    throw new Error('Feishu ACP connection is not wired to a goose serve lease yet');
+  },
+  log: (message) => log.info(`[feishu] ${message}`),
+  redact: (text) => redactText(text, credentialStore.sensitiveValues()),
+});
+registerFeishuIpc(ipcMain, {
+  store: credentialStore,
+  file: path.join(app.getPath('userData'), 'feishu.json'),
+  controller: feishuController,
+  log: (message) => log.info(`[feishu] ${message}`),
+});
 
 // Keys older versions stored as `raw:` Base64 are encrypted once secure storage is ready; an
 // entry that fails stays as it is and is retried on the next start (requirement 2.4, 2.5).

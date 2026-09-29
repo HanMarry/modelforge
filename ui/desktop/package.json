@@ -137,6 +137,12 @@
     "uuid": "^13.0.0",
     "yauzl": "3.4.0",
     "yazl": "3.3.1",
+    "@larksuiteoapi/node-sdk": "1.74.0",
+    "bonjour-service": "1.4.4",
+    "selfsigned": "5.5.0",
+    "ws": "8.22.0",
+    "y-protocols": "1.0.7",
+    "yjs": "13.6.33",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -171,6 +177,7 @@
     "@types/react-syntax-highlighter": "^15.5.13",
     "@types/turndown": "^5.0.6",
     "@types/yazl": "3.3.1",
+    "@types/ws": "8.18.1",
     "@types/yauzl": "^3.4.0",
     "@typescript-eslint/eslint-plugin": "^8.67.0",
     "@typescript-eslint/parser": "^8.67.0",
