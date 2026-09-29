@@ -72,12 +72,24 @@ jobs:
           restore-keys: |
             windows-pnpm-cache-v1-${{ runner.os }}-node24-
 
+      - name: Write build-manifest.json
+        shell: bash
+        run: |
+          # build.rs already embedded the commit/dirty from git during `cargo build`; dev-manifest
+          # re-reads them from the binary and records the content counts in the manifest (13.2).
+          commit="$(git rev-parse HEAD)"
+          if [ -z "$(git status --porcelain --untracked-files=normal)" ]; then dirty=false; else dirty=true; fi
+          node ui/desktop/scripts/release/dev-manifest.mts write \
+            --binary target/x86_64-pc-windows-msvc/release/goose.exe \
+            --commit "$commit" --dirty "$dirty" --source-root .
+
       - name: Prepare Windows binary
         shell: bash
         run: |
           rm -rf ./ui/desktop/src/bin
           mkdir -p ./ui/desktop/src/bin
           cp -f ./target/x86_64-pc-windows-msvc/release/goose.exe ./ui/desktop/src/bin/
+          cp -f ./target/x86_64-pc-windows-msvc/release/build-manifest.json ./ui/desktop/src/bin/
 
           if [ -d "./ui/desktop/src/platform/windows/bin" ]; then
             for file in ./ui/desktop/src/platform/windows/bin/*.{exe,dll,cmd}; do
@@ -121,10 +133,10 @@ jobs:
           git config --global url."https://github.com/".insteadOf "git+ssh://git@github.com/"
 
       # Expected outputs (relative to ui/desktop):
-      #   out/ModelForge-win32-x64/                              packaged app dir
-      #   out/make/squirrel.windows/x64/ModelForge-<ver> Setup.exe   installer
-      #   out/make/squirrel.windows/x64/ModelForge-<ver>-full.nupkg  update package
-      #   out/make/zip/win32/x64/ModelForge-win32-x64-<ver>.zip      portable zip
+      #   out/ModelForge-win32-x64/                            packaged app dir
+      #   out/make/nsis/x64/ModelForge Setup <ver>.exe         installer (NSIS, 13.1)
+      #   out/make/nsis/x64/latest*.yml                         update metadata (when updater config set)
+      #   out/make/zip/win32/x64/ModelForge-win32-x64-<ver>.zip  portable zip
       - name: Build desktop UI and installers
         shell: bash
         env:
@@ -167,14 +179,33 @@ jobs:
           node scripts/smoke/codex-runtime-smoke.mjs --entry $entry
           if ($LASTEXITCODE -ne 0) { throw 'Bundled Codex runtime smoke test failed' }
 
+      # Requirement 7.1 / 13.2, 13.5: the packaged kernel's builtin skill count must match the
+      # build-manifest.json shipped next to it, and MinGit must be present for checkpoints.
+      - name: Verify packaged content (skills + MinGit)
+        shell: pwsh
+        working-directory: ui/desktop
+        run: |
+          $appDir = Get-ChildItem out -Directory -Filter '*-win32-x64' | Select-Object -First 1
+          if (-not $appDir) { throw 'Packaged app directory not found under ui/desktop/out' }
+          $bin = Join-Path $appDir.FullName 'resources\bin'
+
+          node scripts/verify-packaged-content.js --bin $bin
+          if ($LASTEXITCODE -ne 0) { throw 'Packaged builtin skills do not match build-manifest.json' }
+
+          $gitLauncher = Join-Path $bin 'mingit\cmd\git.exe'
+          if (-not (Test-Path $gitLauncher)) { throw "MinGit launcher missing: $gitLauncher" }
+          $gitLicense = Join-Path $bin 'mingit\LICENSE.txt'
+          if (-not (Test-Path $gitLicense)) { throw "MinGit GPLv2 license missing: $gitLicense" }
+          Write-Host 'MinGit present with GPLv2 license'
+
       - name: Upload Windows installer
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: ModelForge-win32-x64-setup
           path: |
-            ui/desktop/out/make/squirrel.windows/x64/*Setup.exe
-            ui/desktop/out/make/squirrel.windows/x64/*.nupkg
-            ui/desktop/out/make/squirrel.windows/x64/RELEASES
+            ui/desktop/out/make/nsis/x64/*Setup*.exe
+            ui/desktop/out/make/nsis/x64/latest*.yml
+            ui/desktop/out/make/nsis/x64/*.blockmap
           if-no-files-found: error
 
       - name: Upload Windows zip

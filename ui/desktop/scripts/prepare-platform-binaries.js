@@ -5,6 +5,7 @@ const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
 const { prepareCodexRuntime } = require('./prepare-codex-runtime');
+const { ensureMinGit } = require('./fetch-mingit');
 
 // Paths
 const srcBinDir = path.join(__dirname, '..', 'src', 'bin');
@@ -22,7 +23,8 @@ const windowsFiles = [
     '*.dll',
     '*.cmd',
     'goose-npm/**/*',
-    'codex-runtime/**/*'
+    'codex-runtime/**/*',
+    'mingit/**/*'
 ];
 
 // Helper function to check if file matches patterns
@@ -242,6 +244,7 @@ async function copyPlatformFiles(targetPlatform) {
 
         await ensureWindowsUvBinaries();
         await prepareCodexRuntime({ binDir: srcBinDir });
+        await ensureMinGit({ binDir: srcBinDir });
     }
 }
 

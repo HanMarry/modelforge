@@ -1,0 +1,132 @@
+name: "ModelForge Windows smoke"
+
+# Clean-machine smoke test of the NSIS installer (spec requirement 7.2-7.4, 7.6, 7.10).
+# Runs after the packaging workflow publishes its installer artifact, and can also be
+# triggered by hand. The installed app must run without Rust, Node or a global ACP adapter:
+# the CI machine installs Node + Playwright only to drive the harness, and Python + Typst are
+# pre-installed because the app detects them as optional external runtimes (7.3).
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Package ModelForge (Windows)"]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  smoke:
+    name: Install and smoke (Windows)
+    runs-on: windows-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: Download installer artifact
+        uses: dawidd6/action-download-artifact@0e4a0b58eb254ab8e6f35d882e25936db69b163f  # v9.0.1
+        with:
+          workflow: package-windows.yml
+          name: ModelForge-win32-x64-setup
+          if_no_artifact_found: fail
+          allow_forks: false
+
+      - name: Locate installer
+        id: installer
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem -Recurse -Filter '*.exe' | Where-Object { $_.Name -like '*Setup*' } | Select-Object -First 1
+          if (-not $exe) { throw 'NSIS installer (*Setup*.exe) not found in the downloaded artifact' }
+          "path=$($exe.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Set up Node.js (Playwright harness only)
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020  # v7.0.0
+        with:
+          node-version: 24.10.0
+
+      - name: Set up Python (external runtime the app detects)
+        uses: actions/setup-python@95b5bdbe1a3a5f6d81a74de10a3c0d80b44a0c67  # v6.0.1
+        with:
+          python-version: '3.12'
+
+      - name: Install Typst (external paper compiler the app detects)
+        shell: pwsh
+        run: |
+          # Typst is distributed as a single static binary; install it to a PATH directory.
+          $dir = Join-Path $env:RUNNER_TOOL_CACHE 'typst'
+          New-Item -ItemType Directory -Path $dir -Force | Out-Null
+          Invoke-WebRequest -Uri 'https://github.com/typst/typst/releases/latest/download/typst-x86_64-pc-windows-msvc.zip' -OutFile "$dir\typst.zip"
+          Expand-Archive -LiteralPath "$dir\typst.zip" -DestinationPath $dir -Force
+          "PATH=$dir;$env:PATH" | Out-File -FilePath $env:GITHUB_ENV -Append
+          typst --version
+
+      # Requirement 7.4: the install path must contain Chinese characters and spaces.
+      - name: Install silently to a path with Chinese and spaces
+        shell: pwsh
+        run: |
+          $installDir = "C:\模 型 安装\ModelForge"
+          & "${{ steps.installer.outputs.path }}" /S "/D=$installDir"
+          # NSIS silent installs return before the process tree fully exits; wait for the exe.
+          $exe = Join-Path $installDir 'ModelForge.exe'
+          for ($i = 0; $i -lt 120 -and -not (Test-Path $exe); $i++) { Start-Sleep -Seconds 1 }
+          if (-not (Test-Path $exe)) { throw "installed executable not found at $exe" }
+          "MODELFORGE_EXE=$exe" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Install Playwright harness
+        shell: bash
+        run: |
+          cd ui/desktop
+          corepack enable
+          pnpm install --frozen-lockfile --filter modelforge-app
+          npx playwright install chromium
+
+      - name: Start local OpenAI-compatible stub
+        shell: pwsh
+        run: |
+          $stub = @'
+          const http = require('http');
+          const port = Number(process.env.MODELFORGE_STUB_PORT || 47372);
+          const server = http.createServer((req, res) => {
+            let body = '';
+            req.setEncoding('utf8');
+            req.on('data', (c) => (body += c));
+            req.on('end', () => {
+              const path = new URL(req.url ?? '/', `http://127.0.0.1:${port}`).pathname;
+              if (req.method === 'POST' && path.endsWith('/chat/completions')) {
+                res.writeHead(200, { 'content-type': 'application/json' });
+                res.end(JSON.stringify({
+                  id: 'chatcmpl-smoke', object: 'chat.completion', model: 'smoke-model',
+                  choices: [{ index: 0, message: { role: 'assistant', content: 'MODELFORGE_WINDOWS_SMOKE_OK' }, finish_reason: 'stop' }],
+                  usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+                }));
+                return;
+              }
+              res.writeHead(404, { 'content-type': 'application/json' });
+              res.end(JSON.stringify({ error: { message: 'no stub route' } }));
+            });
+          });
+          server.listen(port, '127.0.0.1');
+          '@
+          $stubPath = Join-Path $env:RUNNER_TEMP 'modelforge-stub.cjs'
+          Set-Content -Path $stubPath -Value $stub -Encoding UTF8
+          $job = Start-Process node -ArgumentList $stubPath -PassThru -NoNewWindow
+          Set-Content -Path $env:GITHUB_ENV -Value "MODELFORGE_STUB_PORT=47372" -Encoding UTF8
+
+      - name: Run installed-app smoke test
+        shell: bash
+        env:
+          MODELFORGE_STUB_PORT: '47372'
+        run: |
+          cd ui/desktop
+          npx playwright test tests/e2e/windows-installed-smoke.spec.ts --reporter=list
+
+      - name: Upload smoke artifacts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: modelforge-windows-smoke
+          path: |
+            ui/desktop/test-results/
+            ui/desktop/playwright-report/
+          if-no-files-found: ignore
