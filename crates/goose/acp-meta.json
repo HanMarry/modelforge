@@ -539,6 +539,16 @@
       "method": "_goose/unstable/local-inference/chat-templates/builtin/list",
       "requestType": "LocalInferenceBuiltinChatTemplatesListRequest_unstable",
       "responseType": "LocalInferenceBuiltinChatTemplatesListResponse_unstable"
+    },
+    {
+      "method": "_goose/unstable/tasks/resume",
+      "requestType": "ResumeTaskRequest_unstable",
+      "responseType": "ResumeTaskResponse_unstable"
+    },
+    {
+      "method": "_goose/unstable/session/learning-mode/set",
+      "requestType": "SetLearningModeRequest_unstable",
+      "responseType": "EmptyResponse"
     }
   ],
   "notifications": [
@@ -549,6 +559,14 @@
     {
       "method": "_goose/unstable/providers/authentication/device-code",
       "paramsType": "ProviderDeviceCodeNotification_unstable"
+    },
+    {
+      "method": "_goose/unstable/runs/started",
+      "paramsType": "RunStartedNotification_unstable"
+    },
+    {
+      "method": "_goose/unstable/runs/finished",
+      "paramsType": "RunFinishedNotification_unstable"
     }
   ],
   "agentRequests": [
@@ -561,6 +579,11 @@
       "method": "_goose/unstable/session/checkpoint/ensure",
       "requestType": "EnsureCheckpointRequest_unstable",
       "responseType": "EnsureCheckpointResponse_unstable"
+    },
+    {
+      "method": "_goose/unstable/tasks/confirm-overwrite",
+      "requestType": "ConfirmOverwriteRequest_unstable",
+      "responseType": "ConfirmOverwriteResponse_unstable"
     }
   ]
 }

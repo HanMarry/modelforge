@@ -2175,6 +2175,40 @@ export const zLocalInferenceBuiltinChatTemplatesListResponse_unstable = z.object
 });
 
 /**
+ * Resume an interrupted task from the step the desktop planned.
+ */
+export const zResumeTaskRequest_unstable = z.object({
+    sessionId: z.string(),
+    taskId: z.string(),
+    skip: z.array(z.string()),
+    resumeFrom: z.string().nullish(),
+    staleReasons: z.array(z.unknown()).optional().default([])
+});
+
+export const zResumeTaskOutcome = z.enum([
+    'resumed',
+    'paused',
+    'completed'
+]);
+
+export const zResumeTaskResponse_unstable = z.object({
+    outcome: zResumeTaskOutcome
+});
+
+export const zLearningModeDto = z.object({
+    exerciseId: z.string(),
+    solutionUnlocked: z.boolean()
+});
+
+/**
+ * Set or clear the learning mode of a session.
+ */
+export const zSetLearningModeRequest_unstable = z.object({
+    sessionId: z.string(),
+    learningMode: zLearningModeDto.nullish()
+});
+
+/**
  * Streaming context-window usage update for a session.
  */
 export const zSessionUsageUpdate = z.object({
@@ -2274,6 +2308,31 @@ export const zProviderDeviceCodeNotification_unstable = z.object({
 });
 
 /**
+ * A run of Project code has started.
+ */
+export const zRunStartedNotification_unstable = z.object({
+    sessionId: z.string(),
+    toolCallId: z.string(),
+    runId: z.string(),
+    workingDir: z.string(),
+    declaredOutputs: z.array(z.string())
+});
+
+/**
+ * A run of Project code has ended and its Run_Record is on disk.
+ */
+export const zRunFinishedNotification_unstable = z.object({
+    sessionId: z.string(),
+    toolCallId: z.string(),
+    runId: z.string(),
+    workingDir: z.string(),
+    recordPath: z.string(),
+    exitCode: z.int().nullish(),
+    failure: z.string().nullish(),
+    outputs: z.array(z.string())
+});
+
+/**
  * Ask the client to provide values for a recipe's parameters.
  */
 export const zRequestRecipeParams_unstable = z.object({
@@ -2297,6 +2356,29 @@ export const zEnsureCheckpointRequest_unstable = z.object({
 
 export const zEnsureCheckpointResponse_unstable = z.object({
     checkpointId: z.string().nullish()
+});
+
+export const zOverwriteFileInfo = z.object({
+    path: z.string(),
+    size: z.int().gte(0),
+    modifiedAt: z.string()
+});
+
+/**
+ * Ask the client whether a resumed step may overwrite output files that already exist.
+ */
+export const zConfirmOverwriteRequest_unstable = z.object({
+    sessionId: z.string(),
+    taskId: z.string(),
+    stepId: z.string(),
+    workingDir: z.string(),
+    files: z.array(zOverwriteFileInfo)
+});
+
+export const zConfirmOverwriteAction = z.enum(['confirm', 'cancel']);
+
+export const zConfirmOverwriteResponse_unstable = z.object({
+    action: zConfirmOverwriteAction
 });
 
 export const zExtRequest = z.object({
@@ -2411,7 +2493,9 @@ export const zExtRequest = z.object({
             zLocalInferenceModelSettingsUpdateRequest_unstable,
             zLocalInferenceHuggingFaceSearchRequest_unstable,
             zLocalInferenceHuggingFaceRepoVariantsRequest_unstable,
-            zLocalInferenceBuiltinChatTemplatesListRequest_unstable
+            zLocalInferenceBuiltinChatTemplatesListRequest_unstable,
+            zResumeTaskRequest_unstable,
+            zSetLearningModeRequest_unstable
         ]),
         z.record(z.string(), z.unknown())
     ]).nullish()
@@ -2496,7 +2580,8 @@ export const zExtResponse = z.union([
                 zLocalInferenceModelSettingsUpdateResponse_unstable,
                 zLocalInferenceHuggingFaceSearchResponse_unstable,
                 zLocalInferenceHuggingFaceRepoVariantsResponse_unstable,
-                zLocalInferenceBuiltinChatTemplatesListResponse_unstable
+                zLocalInferenceBuiltinChatTemplatesListResponse_unstable,
+                zResumeTaskResponse_unstable
             ]),
             z.unknown()
         ]).optional()
@@ -2516,7 +2601,9 @@ export const zExtNotification = z.object({
     params: z.union([
         z.union([
             zGooseSessionNotification_unstable,
-            zProviderDeviceCodeNotification_unstable
+            zProviderDeviceCodeNotification_unstable,
+            zRunStartedNotification_unstable,
+            zRunFinishedNotification_unstable
         ]),
         z.record(z.string(), z.unknown())
     ]).nullish()
@@ -2528,7 +2615,8 @@ export const zExtAgentRequest = z.object({
     params: z.union([
         z.union([
             zRequestRecipeParams_unstable,
-            zEnsureCheckpointRequest_unstable
+            zEnsureCheckpointRequest_unstable,
+            zConfirmOverwriteRequest_unstable
         ]),
         z.record(z.string(), z.unknown())
     ]).nullish()
@@ -2540,7 +2628,8 @@ export const zExtAgentResponse = z.union([
         result: z.union([
             z.union([
                 zRecipeParamsResponse_unstable,
-                zEnsureCheckpointResponse_unstable
+                zEnsureCheckpointResponse_unstable,
+                zConfirmOverwriteResponse_unstable
             ]),
             z.unknown()
         ]).optional()

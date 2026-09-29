@@ -892,4 +892,20 @@ impl GooseAcpAgent {
         self.on_local_inference_builtin_chat_templates_list(req)
             .await
     }
+
+    #[custom_method(ResumeTaskRequest)]
+    async fn dispatch_resume_task(
+        &self,
+        req: ResumeTaskRequest,
+    ) -> Result<ResumeTaskResponse, agent_client_protocol::Error> {
+        self.on_resume_task(req).await
+    }
+
+    #[custom_method(SetLearningModeRequest)]
+    async fn dispatch_set_learning_mode(
+        &self,
+        req: SetLearningModeRequest,
+    ) -> Result<EmptyResponse, agent_client_protocol::Error> {
+        self.on_set_learning_mode(req).await
+    }
 }
