@@ -51,9 +51,13 @@ async function kernelProblem(): Promise<string | null> {
 }
 
 /** A credits notice the controller adds instead of rejecting counts as a Kernel error. */
-function outcomeAfter(sessionId: string, messageId: string): CompareTaskOutcome {
+function outcomeAfter(
+  sessionId: string,
+  messageId: string | null | undefined
+): CompareTaskOutcome {
   const messages = acpChatSessionStore.getSnapshot(sessionId)?.messages ?? [];
-  const start = messages.findIndex((message) => message.id === messageId);
+  const start =
+    messageId == null ? -1 : messages.findIndex((message) => message.id === messageId);
   if (start < 0) {
     return { ok: true };
   }
