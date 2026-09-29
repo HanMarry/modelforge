@@ -81,7 +81,7 @@ fn parse_extensions_map(raw: &Mapping) -> IndexMap<String, ExtensionEntry> {
     extensions_map
 }
 
-fn get_extensions_map_with_config(config: &Config) -> IndexMap<String, ExtensionEntry> {
+pub(crate) fn get_extensions_map_with_config(config: &Config) -> IndexMap<String, ExtensionEntry> {
     let raw: Mapping = config
         .get_param(EXTENSIONS_CONFIG_KEY)
         .unwrap_or_else(|err| {
@@ -109,6 +109,15 @@ fn with_raw_extensions_mapping<F>(config: &Config, mutate: F)
 where
     F: FnOnce(&mut IndexMap<String, ExtensionEntry>) -> ExtensionMutation,
 {
+    if let Err(error) = try_with_raw_extensions_mapping(config, mutate) {
+        warn!("{error}");
+    }
+}
+
+fn try_with_raw_extensions_mapping<F>(config: &Config, mutate: F) -> anyhow::Result<()>
+where
+    F: FnOnce(&mut IndexMap<String, ExtensionEntry>) -> ExtensionMutation,
+{
     let mut serialize_error = None;
     let result = config.update_param::<Mapping, Mapping, _>(EXTENSIONS_CONFIG_KEY, |mut raw| {
         let mut extensions = parse_extensions_map(&raw);
@@ -132,10 +141,9 @@ where
     });
 
     if let Some(e) = serialize_error {
-        warn!("Failed to serialize extensions config entry: {}", e);
-    } else if let Err(e) = result {
-        warn!("Failed to save extensions config: {}", e);
+        anyhow::bail!("Failed to serialize extensions config entry: {e}");
     }
+    result.map_err(|e| anyhow::anyhow!("Failed to save extensions config: {e}"))
 }
 
 pub fn get_extension_by_name(name: &str) -> Option<ExtensionConfig> {
@@ -174,6 +182,20 @@ pub fn remove_extension(key: &str) {
 
 fn remove_extension_with_config(config: &Config, key: &str) {
     with_raw_extensions_mapping(config, |_| ExtensionMutation::Remove(key.to_string()));
+}
+
+/// Like [`set_extension`], but reports a failed write instead of only logging it.
+pub(crate) fn try_set_extension_with_config(
+    config: &Config,
+    entry: ExtensionEntry,
+) -> anyhow::Result<()> {
+    let key = entry.config.key();
+    try_with_raw_extensions_mapping(config, |_| ExtensionMutation::Upsert(key, Box::new(entry)))
+}
+
+/// Like [`remove_extension`], but reports a failed write instead of only logging it.
+pub(crate) fn try_remove_extension_with_config(config: &Config, key: &str) -> anyhow::Result<()> {
+    try_with_raw_extensions_mapping(config, |_| ExtensionMutation::Remove(key.to_string()))
 }
 
 /// Returns true when an existing extension was updated, false when the key was missing.

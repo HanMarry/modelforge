@@ -1,4 +1,5 @@
 use crate::config::paths::Paths;
+use crate::logging::redact::RedactingMakeWriter;
 use anyhow::{Context, Result};
 use std::fs;
 use std::path::PathBuf;
@@ -9,6 +10,7 @@ use tracing_subscriber::{
     Registry,
 };
 
+pub mod redact;
 pub mod secret_mask;
 
 /// Configuration for the shared logging setup.
@@ -66,11 +68,14 @@ pub fn build_logging_subscriber(
 
     let env_filter = build_env_filter(config.extra_directives);
 
+    // Credential values registered by the secret store are masked in every log line
+    // (requirement 1.10).
+    let file_writer = RedactingMakeWriter::new(file_appender);
     let mut layers: Vec<Box<dyn Layer<Registry> + Send + Sync>> = if config.json {
         let file_layer = fmt::layer()
             .with_target(true)
             .with_level(true)
-            .with_writer(file_appender)
+            .with_writer(file_writer)
             .with_ansi(false)
             .json();
         vec![file_layer.with_filter(env_filter.clone()).boxed()]
@@ -78,7 +83,7 @@ pub fn build_logging_subscriber(
         let file_layer = fmt::layer()
             .with_target(true)
             .with_level(true)
-            .with_writer(file_appender)
+            .with_writer(file_writer)
             .with_ansi(false)
             .with_file(true);
         vec![file_layer.with_filter(env_filter.clone()).boxed()]
@@ -86,7 +91,7 @@ pub fn build_logging_subscriber(
 
     if config.console {
         let console_layer = fmt::layer()
-            .with_writer(std::io::stderr)
+            .with_writer(RedactingMakeWriter::new(std::io::stderr))
             .with_target(true)
             .with_level(true)
             .with_file(true)

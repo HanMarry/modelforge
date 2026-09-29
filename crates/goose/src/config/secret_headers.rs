@@ -16,6 +16,7 @@ use std::fmt;
 use sha2::{Digest, Sha256};
 
 use crate::config::{Config, ConfigError};
+use crate::logging::redact::register_secret;
 
 /// Header names that always carry credentials, compared case-insensitively (requirement 1.1).
 pub const AUTH_HEADER_NAMES: &[&str] = &[
@@ -197,14 +198,21 @@ fn store_error(error: ConfigError) -> SecretStoreError {
     SecretStoreError(error.to_string())
 }
 
+/// Every value written or read here is registered for masking in logs and client-facing errors
+/// (requirement 1.10); a value is registered before it is written, so a failed write cannot
+/// leak it either.
 impl SecretStore for ConfigSecretStore<'_> {
     fn set(&self, key: &str, value: &str) -> Result<(), SecretStoreError> {
+        register_secret(value);
         self.config.set_secret(key, &value).map_err(store_error)
     }
 
     fn get(&self, key: &str) -> Result<Option<String>, SecretStoreError> {
         match self.config.get_secret::<String>(key) {
-            Ok(value) => Ok(Some(value)),
+            Ok(value) => {
+                register_secret(&value);
+                Ok(Some(value))
+            }
             Err(ConfigError::NotFound(_)) => Ok(None),
             Err(error) => Err(store_error(error)),
         }
@@ -301,6 +309,7 @@ pub(crate) mod testing {
         entries: BTreeMap<String, String>,
         calls: usize,
         fail_on_call: Option<usize>,
+        mismatch_on_call: Option<usize>,
         unavailable: bool,
     }
 
@@ -335,6 +344,12 @@ pub(crate) mod testing {
 
         pub(crate) fn set_unavailable(&self, unavailable: bool) {
             self.lock().unavailable = unavailable;
+        }
+
+        /// When the k-th call is a `get`, it reads back something other than what is stored,
+        /// like a store that does not keep what it was given.
+        pub(crate) fn mismatch_on_call(&self, call: usize) {
+            self.lock().mismatch_on_call = Some(call);
         }
 
         /// The stored entries; reading them is not counted as a call.
@@ -372,7 +387,12 @@ pub(crate) mod testing {
         }
 
         fn get(&self, key: &str) -> Result<Option<String>, SecretStoreError> {
-            Ok(self.begin()?.entries.get(key).cloned())
+            let state = self.begin()?;
+            let value = state.entries.get(key).cloned();
+            if state.mismatch_on_call == Some(state.calls) {
+                return Ok(value.map(|value| format!("{value}~")));
+            }
+            Ok(value)
         }
 
         fn delete(&self, key: &str) -> Result<(), SecretStoreError> {
@@ -517,6 +537,9 @@ mod tests {
         assert_eq!(store.get(key), Ok(None));
         store.set(key, "Bearer 密钥 🔑").unwrap();
         assert_eq!(store.get(key), Ok(Some("Bearer 密钥 🔑".to_string())));
+        // Stored values are masked in logs and errors from now on.
+        let logged = crate::logging::redact::redact_registered("sent Bearer 密钥 🔑");
+        assert_eq!(logged, "sent ********密钥 🔑");
         store.delete(key).unwrap();
         assert_eq!(store.get(key), Ok(None));
         store.delete(key).unwrap();

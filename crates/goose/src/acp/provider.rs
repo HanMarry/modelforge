@@ -34,6 +34,8 @@ use tokio_util::compat::{TokioAsyncReadCompatExt as _, TokioAsyncWriteCompatExt 
 
 use crate::acp::handoff::{build_handoff_context_memo, memo_token_budget, prompt_token_cost};
 use crate::acp::{map_permission_response, PermissionDecision};
+use crate::config::extension_credentials::resolve_extension_headers;
+use crate::config::secret_headers::{looks_like_secret_ref, ConfigSecretStore};
 use crate::config::{Config, ExtensionConfig, GooseMode};
 use crate::conversation::message::{Message, MessageContent, TOOL_META_EXTERNAL_DISPATCH_KEY};
 use crate::permission::permission_confirmation::PrincipalType;
@@ -1880,6 +1882,28 @@ fn select_mode_id(candidates: &[String], modes: Option<&SessionModeState>) -> Op
     }
 }
 
+/// Headers to hand to the agent for an HTTP MCP server. Secret references are resolved from the
+/// credential store, as when goose connects the server itself; a server whose credential cannot
+/// be resolved is left out, so neither the reference text nor an empty value is sent
+/// (requirements 1.5, 1.11).
+fn resolve_mcp_server_headers(
+    name: &str,
+    headers: &HashMap<String, String>,
+) -> Option<HashMap<String, String>> {
+    if !headers.values().any(|value| looks_like_secret_ref(value)) {
+        return Some(headers.clone());
+    }
+    let store = ConfigSecretStore::global();
+    let no_variables = HashMap::new();
+    match resolve_extension_headers(name, headers.clone(), &no_variables, &store) {
+        Ok(resolved) => Some(resolved),
+        Err(error) => {
+            tracing::warn!("leaving out MCP server: {error}");
+            None
+        }
+    }
+}
+
 pub fn extension_configs_to_mcp_servers(configs: &[ExtensionConfig]) -> Vec<McpServer> {
     let mut servers = Vec::new();
 
@@ -1888,6 +1912,9 @@ pub fn extension_configs_to_mcp_servers(configs: &[ExtensionConfig]) -> Vec<McpS
             ExtensionConfig::StreamableHttp {
                 name, uri, headers, ..
             } => {
+                let Some(headers) = resolve_mcp_server_headers(name, headers) else {
+                    continue;
+                };
                 let http_headers = headers
                     .iter()
                     .map(|(key, value)| HttpHeader::new(key, value))

@@ -1385,6 +1385,18 @@ pub struct InputConfig {
     pub additional_system_prompt: Option<String>,
 }
 
+/// Whether a command may build a provider or connect an extension, and so first moves plaintext
+/// auth headers into the credential store. Shell completion, version output, the MCP server
+/// mode and the terminal hooks never do.
+fn migrates_credentials(command: &Option<Command>) -> bool {
+    let Some(command) = command else {
+        return true;
+    };
+    let local_only = matches!(command, Command::Completion { .. } | Command::Term { .. });
+    let no_provider = matches!(command, Command::Version { .. } | Command::Mcp { .. });
+    !(local_only || no_provider)
+}
+
 fn get_command_name(command: &Option<Command>) -> &'static str {
     match command {
         Some(Command::Configure {}) => "configure",
@@ -2794,6 +2806,15 @@ pub async fn cli() -> anyhow::Result<()> {
     register_builtin_extensions(goose_mcp::BUILTIN_EXTENSIONS.clone());
 
     let cli = Cli::parse();
+
+    if migrates_credentials(&cli.command) {
+        // Before any provider is built or extension connected (requirements 1.8, 1.9, 1.11).
+        // Failures leave the configs unchanged and are tried again at the next start; `goose
+        // serve` also reports them to clients in the ACP `initialize` response.
+        for failure in goose::config::credential_migration::run_startup_migration() {
+            eprintln!("Warning: {failure}");
+        }
+    }
 
     let command_name = get_command_name(&cli.command);
     tracing::info!(

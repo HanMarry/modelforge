@@ -68,7 +68,7 @@ impl HandleDispatchFrom<Client> for GooseAcpHandler {
                                     }
                                 }
                                 Err(error) => {
-                                    responder.respond_with_error(error)?;
+                                    responder.respond_with_error(redact_acp_error(error))?;
                                 }
                             }
                             Ok(())
@@ -112,7 +112,7 @@ impl HandleDispatchFrom<Client> for GooseAcpHandler {
                                         error = ?e,
                                         "ACP load_session failed"
                                     );
-                                    responder.respond_with_error(e)?;
+                                    responder.respond_with_error(redact_acp_error(e))?;
                                 }
                             }
                             Ok(())
@@ -131,7 +131,7 @@ impl HandleDispatchFrom<Client> for GooseAcpHandler {
                                     responder.respond(response)?;
                                 }
                                 Err(e) => {
-                                    responder.respond_with_error(e)?;
+                                    responder.respond_with_error(redact_acp_error(e))?;
                                 }
                             }
                             Ok(())
@@ -170,25 +170,25 @@ impl HandleDispatchFrom<Client> for GooseAcpHandler {
                                     Config::global().invalidate_secrets_cache();
                                     match agent.update_provider(&session_id.0, &value_id.0, None, None, None).await {
                                         Ok(_) => {}
-                                        Err(e) => { responder.respond_with_error(e)?; return Ok(()); }
+                                        Err(e) => { responder.respond_with_error(redact_acp_error(e))?; return Ok(()); }
                                     }
                                 }
                                 "mode" => {
                                     match agent.on_set_mode(&session_id.0, &value_id.0).await {
                                         Ok(_) => {}
-                                        Err(e) => { responder.respond_with_error(e)?; return Ok(()); }
+                                        Err(e) => { responder.respond_with_error(redact_acp_error(e))?; return Ok(()); }
                                     }
                                 }
                                 "model" => {
                                     match agent.on_set_model(&session_id.0, &value_id.0).await {
                                         Ok(_) => {}
-                                        Err(e) => { responder.respond_with_error(e)?; return Ok(()); }
+                                        Err(e) => { responder.respond_with_error(redact_acp_error(e))?; return Ok(()); }
                                     }
                                 }
                                 "thinking_effort" => {
                                     match agent.on_set_thinking_effort(&session_id.0, &value_id.0).await {
                                         Ok(_) => {}
-                                        Err(e) => { responder.respond_with_error(e)?; return Ok(()); }
+                                        Err(e) => { responder.respond_with_error(redact_acp_error(e))?; return Ok(()); }
                                     }
                                 }
                                 other => {
@@ -208,7 +208,7 @@ impl HandleDispatchFrom<Client> for GooseAcpHandler {
                                         error = ?e,
                                         "failed to build config update after config change"
                                     );
-                                    responder.respond_with_error(e)?;
+                                    responder.respond_with_error(redact_acp_error(e))?;
                                     return Ok(());
                                 }
                             };
@@ -377,7 +377,7 @@ impl HandleDispatchFrom<Client> for GooseAcpHandler {
                                     responder.respond(resp)?;
                                 }
                                 Err(e) => {
-                                    responder.respond_with_error(e)?;
+                                    responder.respond_with_error(redact_acp_error(e))?;
                                 }
                             }
                             Ok(())
@@ -393,7 +393,7 @@ impl HandleDispatchFrom<Client> for GooseAcpHandler {
                         cx.spawn(async move {
                             match agent.on_list_sessions(req).await {
                                 Ok(response) => responder.respond(response)?,
-                                Err(e) => responder.respond_with_error(e)?,
+                                Err(e) => responder.respond_with_error(redact_acp_error(e))?,
                             }
                             Ok(())
                         })?;
@@ -408,7 +408,7 @@ impl HandleDispatchFrom<Client> for GooseAcpHandler {
                         cx.spawn(async move {
                             match agent.on_delete_session(req).await {
                                 Ok(response) => responder.respond(response)?,
-                                Err(e) => responder.respond_with_error(e)?,
+                                Err(e) => responder.respond_with_error(redact_acp_error(e))?,
                             }
                             Ok(())
                         })?;
@@ -423,7 +423,7 @@ impl HandleDispatchFrom<Client> for GooseAcpHandler {
                         cx.spawn(async move {
                             match agent.on_close_session(&req.session_id.0).await {
                                 Ok(response) => responder.respond(response)?,
-                                Err(e) => responder.respond_with_error(e)?,
+                                Err(e) => responder.respond_with_error(redact_acp_error(e))?,
                             }
                             Ok(())
                         })?;
@@ -460,7 +460,7 @@ impl HandleDispatchFrom<Client> for GooseAcpHandler {
                                     }
                                 }
                                 Err(error) => {
-                                    responder.respond_with_error(error)?;
+                                    responder.respond_with_error(redact_acp_error(error))?;
                                 }
                             }
                             Ok(())
@@ -478,7 +478,7 @@ impl HandleDispatchFrom<Client> for GooseAcpHandler {
                                 cx.spawn(async move {
                                     match agent.dispatch_custom_request(&req.method, req.params).await {
                                         Ok(json) => responder.respond(json)?,
-                                        Err(e) => responder.respond_with_error(e)?,
+                                        Err(e) => responder.respond_with_error(redact_acp_error(e))?,
                                     }
                                     Ok(())
                                 })?;

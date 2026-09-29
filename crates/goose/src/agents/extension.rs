@@ -1,8 +1,10 @@
 use std::collections::HashMap;
 
 use crate::config;
+use crate::config::extension_credentials::resolve_extension_headers;
 use crate::config::extensions::name_to_key;
 use crate::config::permission::PermissionLevel;
+use crate::config::secret_headers::ConfigSecretStore;
 use crate::config::Config;
 use rmcp::service::ClientInitializeError;
 use rmcp::ServiceError as ClientError;
@@ -446,13 +448,11 @@ impl ExtensionConfig {
                     }
                 }
                 let merged = merge_environments(&envs, &secret_keys, &name, config).await?;
-                let headers = headers
-                    .into_iter()
-                    .map(|(k, v)| {
-                        let v = substitute_env_vars(&v, &merged);
-                        (k, v)
-                    })
-                    .collect();
+                // Secret references resolve from the credential store and stop the connection
+                // when they cannot be resolved (requirements 1.5, 1.11).
+                let store = ConfigSecretStore::new(config);
+                let headers = resolve_extension_headers(&name, headers, &merged, &store)
+                    .map_err(|error| ExtensionError::ConfigError(error.to_string()))?;
                 let socket = socket.map(|s| substitute_env_vars(&s, &merged));
                 let client_id = client_id.map(|c| substitute_env_vars(&c, &merged));
                 Ok(Self::StreamableHttp {
@@ -1114,5 +1114,33 @@ timeout: 300",
             config.to_string(),
             "StreamableHttp(test: http://localhost:8080/mcp)"
         );
+    }
+
+    #[tokio::test]
+    async fn test_resolve_header_secret_references() {
+        use crate::config::secret_headers::{secret_ref_for, SecretOwner};
+
+        let dir = tempfile::tempdir().unwrap();
+        let cfg = config::Config::new_with_file_secrets(
+            dir.path().join("config.yaml"),
+            dir.path().join("secrets.yaml"),
+        )
+        .unwrap();
+        let reference = secret_ref_for(SecretOwner::Extension("test"), "Authorization");
+        let mut config = ExtensionConfig::streamable_http("test", "https://example.com", "", 30u64);
+        if let ExtensionConfig::StreamableHttp { headers, .. } = &mut config {
+            headers.insert("Authorization".to_string(), reference.to_string());
+        }
+
+        // Without the stored credential the extension does not connect.
+        let error = config.clone().resolve(&cfg).await.unwrap_err();
+        assert!(error.to_string().contains("Authorization"), "{error}");
+
+        cfg.set_secret(reference.key(), &"Bearer stored").unwrap();
+        let resolved = config.resolve(&cfg).await.unwrap();
+        let ExtensionConfig::StreamableHttp { headers, .. } = resolved else {
+            panic!("expected streamable_http");
+        };
+        assert_eq!(headers["Authorization"], "Bearer stored");
     }
 }

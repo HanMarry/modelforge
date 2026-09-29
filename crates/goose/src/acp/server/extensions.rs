@@ -1,8 +1,12 @@
 use super::*;
 use crate::agents::extension::Envs;
+use crate::config::extension_credentials::{
+    plan_extension_header_secrets, remove_extension_and_secrets, save_extension_in,
+    ExtensionSaveError,
+};
 use crate::config::extensions::ExtensionEntry;
+use crate::config::secret_headers::ConfigSecretStore;
 use agent_client_protocol::schema::v1::{HttpHeader, McpServer, McpServerHttp, McpServerStdio};
-use sha2::{Digest, Sha256};
 use std::collections::HashSet;
 
 impl GooseAcpAgent {
@@ -65,15 +69,16 @@ impl GooseAcpAgent {
         req: AddConfigExtensionRequest,
     ) -> Result<EmptyResponse, agent_client_protocol::Error> {
         let conversion = goose_extension_to_config(req.extension)?;
-
-        Config::global()
-            .set_secret_values(&conversion.secret_updates)
-            .internal_err_ctx("Failed to save extension env secrets")?;
-
-        crate::config::extensions::set_extension(ExtensionEntry {
+        let entry = ExtensionEntry {
             enabled: req.enabled,
             config: conversion.config,
-        });
+        };
+        // Credentials and the entry are saved in one transaction; credentials the previous
+        // version referred to and this one does not are deleted (requirements 1.3, 1.6, 1.11).
+        let store = ConfigSecretStore::global();
+        let writes = conversion.secret_updates;
+        save_extension_in(Config::global(), &store, entry, &[], writes)
+            .map_err(extension_save_error)?;
         Ok(EmptyResponse {})
     }
 
@@ -81,7 +86,8 @@ impl GooseAcpAgent {
         &self,
         req: RemoveConfigExtensionRequest,
     ) -> Result<EmptyResponse, agent_client_protocol::Error> {
-        crate::config::extensions::remove_extension(&req.config_key);
+        // Removes the credentials only this extension refers to as well (requirement 1.7).
+        remove_extension_and_secrets(&req.config_key).map_err(extension_save_error)?;
         Ok(EmptyResponse {})
     }
 
@@ -236,9 +242,12 @@ fn config_to_goose_extension(
     Ok(Some(extension))
 }
 
+/// Deliberately not `Debug`: `secret_updates` carries credential values.
 struct ConfigExtensionConversion {
     config: ExtensionConfig,
-    secret_updates: Vec<(String, serde_json::Value)>,
+    /// `(key, value)` pairs to store with the extension: inline stdio environment values and
+    /// sensitive header values.
+    secret_updates: Vec<(String, String)>,
 }
 
 fn goose_extension_to_config(
@@ -301,7 +310,7 @@ fn goose_extension_to_config(
                     if !env_keys.contains(&env.name) {
                         env_keys.push(env.name.clone());
                     }
-                    secret_updates.push((env.name, serde_json::Value::String(env.value)));
+                    secret_updates.push((env.name, env.value));
                 }
                 ExtensionConfig::Stdio {
                     name: stdio.name,
@@ -316,45 +325,8 @@ fn goose_extension_to_config(
                     available_tools: available_tools.unwrap_or_default(),
                 }
             }
-            McpServer::Http(mut http) => {
-                let mut env_keys = env_keys;
-                static ENV_REFERENCE: std::sync::OnceLock<regex::Regex> =
-                    std::sync::OnceLock::new();
-                let reference = ENV_REFERENCE.get_or_init(|| {
-                    regex::Regex::new(
-                        r"\$\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*\}|\$([A-Za-z_][A-Za-z0-9_]*)",
-                    )
-                    .expect("valid environment reference pattern")
-                });
-                for header in &mut http.headers {
-                    let sensitive = env_keys
-                        .iter()
-                        .any(|key| key.eq_ignore_ascii_case(&header.name))
-                        || crate::utils::is_sensitive_header_name(&header.name);
-                    let has_reference = reference.captures_iter(&header.value).any(|capture| {
-                        let key = capture.get(1).or_else(|| capture.get(2)).unwrap().as_str();
-                        env_keys.iter().any(|stored| stored == key)
-                    });
-                    if !sensitive || has_reference || header.value.is_empty() {
-                        continue;
-                    }
-                    // Header names such as Authorization are shared by unrelated connectors.
-                    let digest = Sha256::digest(format!(
-                        "{}\0{}\0{}",
-                        http.name,
-                        http.url,
-                        header.name.to_ascii_lowercase()
-                    ));
-                    let suffix: String = digest.iter().map(|byte| format!("{byte:02x}")).collect();
-                    let key = format!("MODELFORGE_MCP_HEADER_{suffix}");
-                    let value = std::mem::replace(&mut header.value, format!("${{{key}}}"));
-                    secret_updates.push((key.clone(), serde_json::Value::String(value)));
-                    env_keys.retain(|old| !old.eq_ignore_ascii_case(&header.name));
-                    if !env_keys.contains(&key) {
-                        env_keys.push(key);
-                    }
-                }
-                ExtensionConfig::StreamableHttp {
+            McpServer::Http(http) => {
+                let mut config = ExtensionConfig::StreamableHttp {
                     name: http.name,
                     description: description.unwrap_or_default(),
                     uri: http.url,
@@ -372,7 +344,15 @@ fn goose_extension_to_config(
                     scopes,
                     bundled,
                     available_tools: available_tools.unwrap_or_default(),
+                };
+                // Sensitive header values move to the credential store under the extension's
+                // own references; a header named in `envKeys` counts as marked sensitive
+                // (requirements 1.1, 1.2 via 1.11).
+                let secrets = plan_extension_header_secrets(&mut config, &[]);
+                for secret in secrets.invalid_params_err()? {
+                    secret_updates.push((secret.key, secret.value));
                 }
+                config
             }
             McpServer::Sse(_) => {
                 return Err(agent_client_protocol::Error::invalid_params()
@@ -389,6 +369,14 @@ fn goose_extension_to_config(
         config,
         secret_updates,
     })
+}
+
+fn extension_save_error(error: ExtensionSaveError) -> agent_client_protocol::Error {
+    let base = match error {
+        ExtensionSaveError::InvalidHeader { .. } => agent_client_protocol::Error::invalid_params(),
+        _ => agent_client_protocol::Error::internal_error(),
+    };
+    base.data(error.to_string())
 }
 
 fn goose_extension_to_config_without_secrets(
@@ -446,6 +434,9 @@ fn available_tools_to_wire(available_tools: &[String]) -> Option<Vec<String>> {
 mod tests {
     use super::*;
     use crate::agents::extension::Envs;
+    use crate::config::extension_credentials::resolve_extension_headers;
+    use crate::config::secret_headers::testing::MemorySecretStore;
+    use crate::config::secret_headers::{secret_ref_for, SecretOwner};
     use agent_client_protocol::schema::v1::{McpServer, McpServerSse};
     use std::collections::HashMap;
 
@@ -749,14 +740,8 @@ mod tests {
         assert_eq!(
             conversion.secret_updates,
             vec![
-                (
-                    "SECRET_TOKEN".to_string(),
-                    serde_json::Value::String("literal-secret".to_string())
-                ),
-                (
-                    "OTHER_TOKEN".to_string(),
-                    serde_json::Value::String("other-secret".to_string())
-                )
+                ("SECRET_TOKEN".to_string(), "literal-secret".to_string()),
+                ("OTHER_TOKEN".to_string(), "other-secret".to_string())
             ]
         );
 
@@ -947,16 +932,24 @@ mod tests {
 
     #[test]
     fn http_credentials_are_stored_separately_and_resolve_after_roundtrip() {
+        // A header named in envKeys is marked sensitive by the client.
         let conversion = goose_extension_to_config(http_with_header(
             "github",
-            "Authorization",
+            "X-Tenant",
             "Bearer test-only-token",
-            vec!["Authorization".into()],
+            vec!["X-Tenant".into()],
         ))
         .unwrap();
         let serialized = serde_json::to_string(&conversion.config).unwrap();
         assert!(!serialized.contains("test-only-token"));
-        assert_eq!(conversion.secret_updates.len(), 1);
+        let reference = secret_ref_for(SecretOwner::Extension("github"), "X-Tenant");
+        assert_eq!(
+            conversion.secret_updates,
+            vec![(
+                reference.key().to_string(),
+                "Bearer test-only-token".to_string()
+            )]
+        );
         let ExtensionConfig::StreamableHttp {
             ref headers,
             ref env_keys,
@@ -965,19 +958,51 @@ mod tests {
         else {
             panic!()
         };
-        let (key, value) = &conversion.secret_updates[0];
-        assert_eq!(env_keys, &vec![key.clone()]);
-        let envs = HashMap::from([(key.clone(), value.as_str().unwrap().to_string())]);
-        assert_eq!(
-            crate::agents::extension_manager::substitute_env_vars(&headers["Authorization"], &envs),
-            "Bearer test-only-token"
+        assert!(
+            env_keys.is_empty(),
+            "the mark is dropped once the header is stored"
         );
+        assert_eq!(headers["X-Tenant"], reference.to_string());
+        let store = MemorySecretStore::with_entries(conversion.secret_updates.clone());
+        let variables = HashMap::new();
+        let resolved = resolve_extension_headers("github", headers.clone(), &variables, &store);
+        assert_eq!(resolved.unwrap()["X-Tenant"], "Bearer test-only-token");
         let wire = config_to_goose_extension(&conversion.config)
             .unwrap()
             .unwrap();
         let saved_again = goose_extension_to_config(wire).unwrap();
         assert!(saved_again.secret_updates.is_empty());
         assert_eq!(saved_again.config, conversion.config);
+    }
+
+    #[test]
+    fn legacy_header_references_stay_readable() {
+        let key = "MODELFORGE_MCP_HEADER_0123";
+        let value = format!("${{{key}}}");
+        let conversion = goose_extension_to_config(http_with_header(
+            "legacy",
+            "Authorization",
+            &value,
+            vec![key.to_string()],
+        ))
+        .unwrap();
+        assert!(conversion.secret_updates.is_empty());
+        let ExtensionConfig::StreamableHttp {
+            headers, env_keys, ..
+        } = conversion.config
+        else {
+            panic!()
+        };
+        assert_eq!(headers["Authorization"], value);
+        assert_eq!(env_keys, vec![key.to_string()]);
+    }
+
+    #[test]
+    fn http_references_to_other_credentials_are_rejected() {
+        let other = secret_ref_for(SecretOwner::Provider("custom_gw"), "Authorization");
+        let other = other.to_string();
+        let extension = http_with_header("github", "Authorization", &other, vec![]);
+        assert!(goose_extension_to_config(extension).is_err());
     }
 
     #[test]

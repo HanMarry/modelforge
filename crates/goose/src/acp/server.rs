@@ -175,6 +175,17 @@ impl<T, E: std::fmt::Display> ResultExt<T> for Result<T, E> {
     }
 }
 
+/// Masks registered credential values in an error right before it is sent to the client
+/// (requirement 1.10). Every error response of the dispatcher goes through here.
+fn redact_acp_error(mut error: agent_client_protocol::Error) -> agent_client_protocol::Error {
+    let message = crate::logging::redact::redact_registered(&error.message).into_owned();
+    error.message = message;
+    if let Some(data) = error.data.as_mut() {
+        crate::logging::redact::redact_json_value(data);
+    }
+    error
+}
+
 fn agent_creation_error(error: anyhow::Error, context: &str) -> agent_client_protocol::Error {
     if crate::acp::is_auth_required(&error) {
         agent_client_protocol::Error::auth_required()
@@ -390,6 +401,13 @@ fn agent_capabilities_meta() -> Option<Meta> {
     goose.insert("recipeParameterScopes".to_string(), serde_json::json!({}));
     if cfg!(feature = "local-inference") {
         goose.insert("localInference".to_string(), serde_json::json!({}));
+    }
+    // Plaintext credential migrations that failed at startup (requirement 1.9); they are tried
+    // again at the next start.
+    let failures = crate::config::credential_migration::startup_failures();
+    if !failures.is_empty() {
+        let migration = crate::config::credential_migration::failures_meta(&failures);
+        goose.insert("credentialMigration".to_string(), migration);
     }
 
     let mut meta = serde_json::Map::new();
@@ -3529,6 +3547,17 @@ print(\"hello, world\")
                 .and_then(|goose| goose.get("recipeParameterScopes").cloned()),
             Some(serde_json::json!({}))
         );
+    }
+
+    #[test]
+    fn test_error_responses_mask_registered_credentials() {
+        crate::logging::redact::register_secret("sk-acp-error-7788");
+        let data = "provider rejected sk-acp-error-7788";
+        let error = redact_acp_error(agent_client_protocol::Error::internal_error().data(data));
+
+        let data = error.data.unwrap().to_string();
+        assert!(!data.contains("sk-acp-error-7788"), "{data}");
+        assert!(data.contains("********7788"), "{data}");
     }
 
     #[test]
