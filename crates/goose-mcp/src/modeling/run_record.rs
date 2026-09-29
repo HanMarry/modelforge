@@ -14,6 +14,7 @@ use std::fmt::Display;
 use std::fs;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
+use std::time::{Duration, SystemTime};
 
 use anyhow::{anyhow, bail, Context, Result};
 use chrono::{DateTime, SecondsFormat, TimeZone};
@@ -361,13 +362,80 @@ where
 /// Readers only ever see complete files, so a crash at any point leaves either no record or a
 /// whole one (requirement 22.4). Temporary files start with `.run-` and end in `.tmp`.
 pub fn persist_run_record(project_root: &Path, record: RunRecord) -> Result<(RunRecord, PathBuf)> {
-    persist_with_suffixes(project_root, record, random_suffix)
+    persist_with(project_root, record, random_suffix, &mut NoWriteFaults)
 }
 
+/// Points inside the atomic write of [`persist_run_record`]. Tests stop the writer at one of them
+/// to see what a process killed at that moment leaves on disk (Property 51).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum WriteStage {
+    /// The temporary file exists and is empty.
+    TempCreated,
+    /// Half of the record is in the temporary file.
+    HalfWritten,
+    /// The whole record is in the temporary file, not yet flushed.
+    Written,
+    /// The temporary file is on disk but still has its temporary name.
+    Synced,
+    /// The record has its final name; the writer has not returned yet.
+    Renamed,
+}
+
+/// Decides where the writer stops. Production code never stops ([`NoWriteFaults`]).
+pub(crate) trait WriteFaults {
+    /// True stops the writer at `stage` as if the process died there: nothing is cleaned up.
+    fn stop_at(&mut self, stage: WriteStage) -> bool;
+}
+
+pub(crate) struct NoWriteFaults;
+
+impl WriteFaults for NoWriteFaults {
+    fn stop_at(&mut self, _stage: WriteStage) -> bool {
+        false
+    }
+}
+
+/// Returned by a writer that [`WriteFaults`] stopped.
+#[derive(Debug)]
+pub(crate) struct SimulatedCrash(pub WriteStage);
+
+impl Display for SimulatedCrash {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "writer stopped at {:?}", self.0)
+    }
+}
+
+impl std::error::Error for SimulatedCrash {}
+
+/// [`persist_run_record`] with injectable stops, for crash tests.
+pub(crate) fn persist_run_record_with_faults(
+    project_root: &Path,
+    record: RunRecord,
+    faults: &mut dyn WriteFaults,
+) -> Result<(RunRecord, PathBuf)> {
+    persist_with(project_root, record, random_suffix, faults)
+}
+
+/// Leaves the temporary file where it is, the way a killed process would, and reports the stop.
+fn abandon(temp: tempfile::NamedTempFile, stage: WriteStage) -> anyhow::Error {
+    let _ = temp.keep();
+    anyhow::Error::new(SimulatedCrash(stage))
+}
+
+#[cfg(test)]
 fn persist_with_suffixes(
+    project_root: &Path,
+    record: RunRecord,
+    next_suffix: impl FnMut() -> String,
+) -> Result<(RunRecord, PathBuf)> {
+    persist_with(project_root, record, next_suffix, &mut NoWriteFaults)
+}
+
+fn persist_with(
     project_root: &Path,
     mut record: RunRecord,
     mut next_suffix: impl FnMut() -> String,
+    faults: &mut dyn WriteFaults,
 ) -> Result<(RunRecord, PathBuf)> {
     let problems = record.problems();
     if !problems.is_empty() {
@@ -396,17 +464,38 @@ fn persist_with_suffixes(
             continue;
         }
         let body = record.to_json()?;
+        // Written in two halves only so a crash test can stop in between.
+        let (head, rest) = body.as_bytes().split_at(body.len() / 2);
         let mut temp = tempfile::Builder::new()
             .prefix(".run-")
             .suffix(".tmp")
             .tempfile_in(&dir)
             .with_context(|| format!("creating a temporary file in {}", dir.display()))?;
-        temp.write_all(body.as_bytes())
-            .and_then(|()| temp.as_file().sync_all())
+        if faults.stop_at(WriteStage::TempCreated) {
+            return Err(abandon(temp, WriteStage::TempCreated));
+        }
+        temp.write_all(head)
             .with_context(|| format!("writing {}", temp.path().display()))?;
+        if faults.stop_at(WriteStage::HalfWritten) {
+            return Err(abandon(temp, WriteStage::HalfWritten));
+        }
+        temp.write_all(rest)
+            .with_context(|| format!("writing {}", temp.path().display()))?;
+        if faults.stop_at(WriteStage::Written) {
+            return Err(abandon(temp, WriteStage::Written));
+        }
+        temp.as_file()
+            .sync_all()
+            .with_context(|| format!("flushing {}", temp.path().display()))?;
+        if faults.stop_at(WriteStage::Synced) {
+            return Err(abandon(temp, WriteStage::Synced));
+        }
         match temp.persist_noclobber(&target) {
             Ok(_) => {
                 sync_dir(&dir);
+                if faults.stop_at(WriteStage::Renamed) {
+                    return Err(anyhow::Error::new(SimulatedCrash(WriteStage::Renamed)));
+                }
                 return Ok((record, target));
             }
             // Someone else took the name between the check and the move; the temporary file
@@ -434,6 +523,42 @@ fn sync_dir(dir: &Path) {
 
 #[cfg(not(unix))]
 fn sync_dir(_dir: &Path) {}
+
+/// Deletes the temporary files a writer killed mid-write left in `<project>/.modelforge/runs`,
+/// once they are at least `older_than` old; younger ones may belong to a write in progress.
+/// Readers never take these files for records, this only keeps the directory clean. Returns how
+/// many were removed.
+pub fn remove_orphaned_temp_files(project_root: &Path, older_than: Duration) -> usize {
+    let Ok(entries) = fs::read_dir(runs_dir(project_root)) else {
+        return 0;
+    };
+    let now = SystemTime::now();
+    let mut removed = 0;
+    for entry in entries.flatten() {
+        let name = entry.file_name();
+        let is_temp = name
+            .to_str()
+            .is_some_and(|name| name.starts_with(".run-") && name.ends_with(".tmp"));
+        if !is_temp {
+            continue;
+        }
+        let Ok(metadata) = entry.metadata() else {
+            continue;
+        };
+        if !metadata.is_file() {
+            continue;
+        }
+        let age = metadata
+            .modified()
+            .ok()
+            .and_then(|modified| now.duration_since(modified).ok())
+            .unwrap_or_default();
+        if age >= older_than && fs::remove_file(entry.path()).is_ok() {
+            removed += 1;
+        }
+    }
+    removed
+}
 
 /// A Credential_Store entry: the credential value and the Secret_Reference (`${secret:<key>}`)
 /// written in its place.

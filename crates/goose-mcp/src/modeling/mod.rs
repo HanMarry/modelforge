@@ -2,18 +2,32 @@ use indoc::formatdoc;
 use rmcp::{
     handler::server::{router::tool::ToolRouter, wrapper::Parameters},
     model::{
-        CallToolResult, ContentBlock, ErrorCode, ErrorData, Implementation, InitializeResult,
-        ServerCapabilities, ServerInfo, TextContent,
+        CallToolResult, CancelledNotificationParam, ContentBlock, ErrorCode, ErrorData,
+        Implementation, InitializeResult, MetaObject, RequestId, ServerCapabilities, ServerInfo,
+        TextContent,
     },
     schemars::JsonSchema,
-    tool, tool_handler, tool_router, ServerHandler,
+    service::{NotificationContext, RequestContext},
+    tool, tool_handler, tool_router, RoleServer, ServerHandler,
 };
 use serde::{Deserialize, Serialize};
-use std::{path::PathBuf, time::Duration};
+use std::{
+    collections::HashMap,
+    path::PathBuf,
+    sync::{Arc, Mutex, PoisonError},
+    time::Duration,
+};
 
 use crate::subprocess::SubprocessExt;
 
 pub mod run_record;
+pub mod run_recorder;
+pub mod run_script;
+
+use run_script::{RunContext, RunIntegration, RunScriptParams, StopRequest};
+
+/// Request `_meta` key goose uses for the session working directory, which is the Project.
+const WORKING_DIR_META_KEY: &str = "agent-working-dir";
 
 /// Parameters for the compile_latex tool
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
@@ -34,11 +48,88 @@ pub struct CheckEnvParams {
     pub install_uv: bool,
 }
 
-/// Modeling tools MCP server providing LaTeX compilation and toolchain detection.
+/// Modeling tools MCP server providing LaTeX compilation, toolchain detection and recorded
+/// script runs.
 #[derive(Clone)]
 pub struct ModelingServer {
     tool_router: ToolRouter<Self>,
     instructions: String,
+    run_integration: RunIntegration,
+    active_runs: Arc<ActiveRuns>,
+}
+
+/// The `run_script` calls in flight and why each was cancelled, keyed by request id. rmcp cancels
+/// a request's token without saying why; the reason arrives separately, in the
+/// `notifications/cancelled` that [`ServerHandler::on_cancelled`] receives right after.
+#[derive(Default)]
+struct ActiveRuns {
+    reasons: Mutex<HashMap<RequestId, Option<String>>>,
+}
+
+impl ActiveRuns {
+    fn register(self: &Arc<Self>, id: RequestId) -> ActiveRun {
+        self.reasons
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .insert(id.clone(), None);
+        ActiveRun {
+            runs: self.clone(),
+            id,
+        }
+    }
+
+    fn note_cancelled(&self, id: &RequestId, reason: Option<String>) {
+        let mut reasons = self.reasons.lock().unwrap_or_else(PoisonError::into_inner);
+        if let Some(slot) = reasons.get_mut(id) {
+            *slot = Some(reason.unwrap_or_default());
+        }
+    }
+
+    fn reason(&self, id: &RequestId) -> Option<String> {
+        self.reasons
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .get(id)
+            .cloned()
+            .flatten()
+    }
+}
+
+/// One registered call; unregisters itself when dropped.
+struct ActiveRun {
+    runs: Arc<ActiveRuns>,
+    id: RequestId,
+}
+
+impl ActiveRun {
+    /// Called once the request token is cancelled: waits briefly for the reason to arrive.
+    async fn stop_request(&self) -> StopRequest {
+        for _ in 0..10 {
+            if let Some(reason) = self.runs.reason(&self.id) {
+                return StopRequest::from_reason(Some(&reason));
+            }
+            tokio::time::sleep(Duration::from_millis(25)).await;
+        }
+        StopRequest::Cancelled
+    }
+}
+
+impl Drop for ActiveRun {
+    fn drop(&mut self) {
+        self.runs
+            .reasons
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .remove(&self.id);
+    }
+}
+
+fn meta_string(meta: &MetaObject, key: &str) -> Option<String> {
+    meta.0
+        .get(key)
+        .and_then(|value| value.as_str())
+        .filter(|value| !value.is_empty())
+        .map(str::to_string)
 }
 
 impl Default for ModelingServer {
@@ -50,19 +141,67 @@ impl Default for ModelingServer {
 #[tool_router(router = tool_router)]
 impl ModelingServer {
     pub fn new() -> Self {
+        Self::with_run_integration(RunIntegration::default())
+    }
+
+    /// A server whose `run_script` takes credential values from `run_integration.secrets` and
+    /// reports runs to `run_integration.observer`.
+    pub fn with_run_integration(run_integration: RunIntegration) -> Self {
         let instructions = formatdoc! {r#"
             Tools for the mathematical-modeling pipeline:
             - check_env: detect Python, uv, and LaTeX/Typst toolchains; provide installation instructions.
             - compile_latex: compile a LaTeX/Typst document and surface error lines.
+            - run_script: run computation code (a script file or a command) in the Project and
+              write its Run_Record to .modelforge/runs/<run_id>.json before returning.
 
             Run check_env before a modeling session so compilation failures are actionable,
-            then use compile_latex to build the paper.
+            use run_script for every computation whose results go into the paper, so each
+            number and figure can be traced to its code and data, then use compile_latex to
+            build the paper.
         "#};
 
         Self {
             tool_router: Self::tool_router(),
             instructions,
+            run_integration,
+            active_runs: Arc::new(ActiveRuns::default()),
         }
+    }
+
+    /// Run computation code in the Project and record it (spec requirement 16).
+    #[tool(
+        name = "run_script",
+        description = "Run computation code in the Project (the session working directory) and record it. Give a script file (`script`, with `args`; the interpreter follows the extension: .py, .R, .m, .jl, .js, .sh, .ps1) or a shell command line (`command`, with `code` when the command does not name its code file). Before returning, writes .modelforge/runs/<run_id>.json with the SHA-256 of the code, inputs and outputs, the command, dependencies, seed, exit code and start/end times. Inputs and outputs are detected unless declared. timeout_secs defaults to 600 (1 to 86400); a timed-out or cancelled run is killed and still recorded."
+    )]
+    pub async fn run_script(
+        &self,
+        params: Parameters<RunScriptParams>,
+        context: RequestContext<RoleServer>,
+    ) -> Result<CallToolResult, ErrorData> {
+        let project_root = meta_string(&context.meta, WORKING_DIR_META_KEY)
+            .map(PathBuf::from)
+            .or_else(|| std::env::current_dir().ok())
+            .ok_or_else(|| {
+                ErrorData::new(
+                    ErrorCode::INVALID_PARAMS,
+                    "no Project directory: the request names no working directory and the \
+                     current directory is unavailable"
+                        .to_string(),
+                    None,
+                )
+            })?;
+        let run_context = RunContext {
+            project_root,
+            provider: meta_string(&context.meta, run_script::PROVIDER_META_KEY),
+            model: meta_string(&context.meta, run_script::MODEL_META_KEY),
+        };
+        let active = self.active_runs.register(context.id.clone());
+        let cancelled = context.ct.clone();
+        let stop = async {
+            cancelled.cancelled().await;
+            active.stop_request().await
+        };
+        run_script::execute(params.0, run_context, &self.run_integration, stop).await
     }
 
     async fn run_command(
@@ -542,11 +681,44 @@ impl ServerHandler for ModelingServer {
             ))
             .with_instructions(self.instructions.clone())
     }
+
+    async fn on_cancelled(
+        &self,
+        notification: CancelledNotificationParam,
+        _context: NotificationContext<RoleServer>,
+    ) {
+        if let Some(id) = notification.request_id {
+            self.active_runs.note_cancelled(&id, notification.reason);
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn cancellation_reasons_reach_the_run_they_belong_to() {
+        let runs = Arc::new(ActiveRuns::default());
+        let timed_out = runs.register(RequestId::Number(1));
+        let cancelled = runs.register(RequestId::Number(2));
+        runs.note_cancelled(&RequestId::Number(1), Some("timed out".to_string()));
+        runs.note_cancelled(&RequestId::Number(2), None);
+        // Unknown ids are ignored rather than remembered forever.
+        runs.note_cancelled(&RequestId::Number(3), Some("timed out".to_string()));
+        assert_eq!(timed_out.stop_request().await, StopRequest::TimedOut);
+        assert_eq!(cancelled.stop_request().await, StopRequest::Cancelled);
+        drop(timed_out);
+        drop(cancelled);
+        assert!(runs.reasons.lock().unwrap().is_empty());
+    }
+
+    #[test]
+    fn run_script_is_listed() {
+        let server = ModelingServer::new();
+        assert!(server.get_tool("run_script").is_some());
+        assert!(server.instructions.contains("run_script"));
+    }
 
     #[test]
     fn compilers_keep_source_directory_and_use_requested_output_directory() {
