@@ -393,7 +393,7 @@ async function freePort(): Promise<number> {
   });
 }
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+export const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function powershell(script: string, timeoutMs = 60_000): string {
   // EncodedCommand sidesteps quoting of the non-ASCII install path.
@@ -702,6 +702,8 @@ export interface StubRequest {
   at: string;
   method: string;
   path: string;
+  /** Whether an Authorization header was sent (its value is never logged). */
+  auth?: boolean;
   nonces?: string[];
   offeredTools?: number;
   offeredToolNames?: string[];
