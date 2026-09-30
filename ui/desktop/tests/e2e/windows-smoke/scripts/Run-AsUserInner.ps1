@@ -156,7 +156,11 @@ try {
         $scenarioDir = $(if ($isFirst) { $resultsDir } else { Join-Path $scenarioRoot ('cn-user-' + ($name -replace '^windows-installed-', '')) })
         New-Item -ItemType Directory -Force -Path $scenarioDir | Out-Null
         Set-ProcessEnv 'MODELFORGE_SMOKE_RESULTS_DIR' $scenarioDir
-        $argumentLine = ('"{0}" test -c "tests\e2e\windows-smoke\playwright.config.ts" {1}' -f $cli, $name)
+        # A worker that dies from a fatal error writes a diagnostic report here; a native
+        # termination leaves nothing else on the runner (no WER event, no stderr).
+        $nodeReports = Join-Path $resultsDir 'node-reports'
+        New-Item -ItemType Directory -Force -Path $nodeReports | Out-Null
+        $argumentLine = ('--report-on-fatalerror --report-directory "{0}" "{1}" test -c "tests\e2e\windows-smoke\playwright.config.ts" {2}' -f $nodeReports, $cli, $name)
         $outLog = Join-Path $resultsDir ("playwright-{0}.out.log" -f $name)
         $errLog = Join-Path $resultsDir ("playwright-{0}.err.log" -f $name)
         Write-InnerLog ("{0} {1}" -f $spec.node, $argumentLine)

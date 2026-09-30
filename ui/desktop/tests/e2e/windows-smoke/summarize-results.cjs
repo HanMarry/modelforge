@@ -128,7 +128,9 @@ function collectTests(suite, out) {
       }
       out.push({
         title: spec.title,
-        status: last.status || (test.status === 'skipped' ? 'skipped' : 'unknown'),
+        // A test that only passed on its retry is `flaky` at the test level while its last result
+        // says `passed`; keep the test-level status so the summary can report the retry.
+        status: test.status === 'flaky' ? 'flaky' : last.status || (test.status === 'skipped' ? 'skipped' : 'unknown'),
         durationMs: results.reduce((sum, result) => sum + (result.duration || 0), 0),
         errors: (last.errors || []).map((error) => stripAnsi(error.message || error.value || '')).filter(Boolean),
         annotations,
