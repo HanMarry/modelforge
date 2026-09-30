@@ -279,8 +279,12 @@ export async function createCollabHost(options: CollabHostOptions): Promise<Coll
       return;
     }
 
-    socket.on('message', (raw) => {
-      if (typeof raw !== 'string' && Buffer.isBuffer(raw)) {
+    // ws 8 hands text frames over as Buffers too, so `isBinary` tells updates from JSON.
+    socket.on('message', (raw, isBinary) => {
+      if (isBinary) {
+        if (!Buffer.isBuffer(raw)) {
+          return;
+        }
         const bytes = new Uint8Array(raw);
         const channel = bytes[0];
         const update = bytes.slice(1);
@@ -551,8 +555,12 @@ export function connectCollabGuest(options: CollabGuestOptions): CollabGuest {
     });
   });
 
-  socket.on('message', (raw) => {
-    if (typeof raw !== 'string' && Buffer.isBuffer(raw)) {
+  // As on the host, text frames arrive as Buffers; only binary frames carry yjs updates.
+  socket.on('message', (raw, isBinary) => {
+    if (isBinary) {
+      if (!Buffer.isBuffer(raw)) {
+        return;
+      }
       const bytes = new Uint8Array(raw);
       const channel = bytes[0];
       const update = bytes.slice(1);
@@ -565,7 +573,12 @@ export function connectCollabGuest(options: CollabGuestOptions): CollabGuest {
       }
       return;
     }
-    const message = JSON.parse(raw.toString()) as { type: string } & Record<string, unknown>;
+    let message: { type: string } & Record<string, unknown>;
+    try {
+      message = JSON.parse(raw.toString());
+    } catch {
+      return;
+    }
     if (message.type === 'approved') {
       role = (message.role as CollabGuestRole) ?? 'read-only';
       events.emit('approved', { role, files: (message.files as string[]) ?? [] });
