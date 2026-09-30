@@ -564,7 +564,8 @@ export async function startAnthropicShim(options: AnthropicShimOptions) {
 if (process.argv[1] && process.argv[1].includes('anthropicShim')) {
   const baseUrl = process.env.SHIM_UPSTREAM_BASE_URL ?? '';
   const apiKey = process.env.SHIM_UPSTREAM_API_KEY ?? '';
-  const model = process.env.SHIM_UPSTREAM_MODEL ?? 'deepseek-chat';
+  // deepseek-chat was retired by DeepSeek on 2026-07-24; deepseek-flash is its successor.
+  const model = process.env.SHIM_UPSTREAM_MODEL ?? 'deepseek-flash';
   const port = Number(process.env.SHIM_PORT ?? 8787);
 
   if (!baseUrl || !apiKey) {

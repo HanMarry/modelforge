@@ -519,7 +519,8 @@ export async function startResponsesShim(options: ResponsesShimOptions) {
 if (process.argv[1] && process.argv[1].includes('responsesShim')) {
   const baseUrl = process.env.SHIM_UPSTREAM_BASE_URL ?? '';
   const apiKey = process.env.SHIM_UPSTREAM_API_KEY ?? '';
-  const model = process.env.SHIM_UPSTREAM_MODEL ?? 'deepseek-chat';
+  // deepseek-chat was retired by DeepSeek on 2026-07-24; deepseek-flash is its successor.
+  const model = process.env.SHIM_UPSTREAM_MODEL ?? 'deepseek-flash';
   const port = Number(process.env.SHIM_PORT ?? 8788);
   if (!baseUrl || !apiKey) {
     console.error('需要 SHIM_UPSTREAM_BASE_URL 与 SHIM_UPSTREAM_API_KEY');

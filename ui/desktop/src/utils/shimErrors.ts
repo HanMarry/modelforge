@@ -115,7 +115,7 @@ export function describeUpstreamError(status: number, body: string, model: strin
     return `prompt is too long: ${detail}\n提示：请求已超过模型「${model}」的上下文窗口。可以开始一个新会话；内核接近上限时也会自行压缩历史。`;
   }
   if (status === 400 && TOOL_UNSUPPORTED.test(detail)) {
-    return `${detail}\n提示：模型「${model}」可能不支持工具调用，换一个支持 function calling 的模型（例如 deepseek-chat / deepseek-v4-pro）即可。`;
+    return `${detail}\n提示：模型「${model}」可能不支持工具调用，换一个支持 function calling 的模型（例如 deepseek-flash / deepseek-v4-pro）即可。`;
   }
   if (status >= 500) {
     return withDetail(`上游服务异常（${status}）：通常是临时的，稍后重试即可。`, detail);
