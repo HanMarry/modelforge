@@ -458,15 +458,26 @@ export async function prepareUpdateInstall(options: {
 // The release feed stays off unless a build explicitly opts in by setting
 // GITHUB_OWNER. Comparing against DEFAULT_GITHUB_OWNER would stop working once
 // the default became the real repository, leaving no way to enable the feed.
+// vite.main.config.mts bakes GITHUB_OWNER into the bundle and must leave it
+// empty by default, otherwise every build would count as configured.
 export function isUpdateChannelConfigured(): boolean {
   return Boolean(process.env.GITHUB_OWNER);
 }
 
+// The single source of the release repository for both electron-updater and the
+// GitHub API fallback, so the two update paths can never point at different
+// repositories.
+export function getUpdateRepository(): { owner: string; repo: string } {
+  return {
+    owner: process.env.GITHUB_OWNER || DEFAULT_GITHUB_OWNER,
+    repo: process.env.GITHUB_REPO || DEFAULT_GITHUB_REPO,
+  };
+}
+
 export class GitHubUpdater {
-  private readonly owner = process.env.GITHUB_OWNER || DEFAULT_GITHUB_OWNER;
-  private readonly repo = process.env.GITHUB_REPO || DEFAULT_GITHUB_REPO;
+  private readonly repository = getUpdateRepository();
   private readonly bundleName = process.env.GOOSE_BUNDLE_NAME || 'ModelForge';
-  private readonly apiUrl = `https://api.github.com/repos/${this.owner}/${this.repo}/releases/latest`;
+  private readonly apiUrl = `https://api.github.com/repos/${this.repository.owner}/${this.repository.repo}/releases/latest`;
 
   async checkForUpdates(): Promise<UpdateCheckResult> {
     if (!isUpdateChannelConfigured()) {

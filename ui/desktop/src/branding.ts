@@ -18,10 +18,12 @@ export const DOCS_URLS = {
 } as const;
 
 /**
- * GitHub release feed defaults. `isUpdateChannelConfigured` treats this default
- * owner as "not configured", so the updater skips network requests unless
- * GITHUB_OWNER is overridden at build time. Keep in sync with src/app-update.yml
- * and forge.config.ts.
+ * GitHub release repository for ModelForge's own update feed. electron-updater and
+ * the GitHub API fallback both resolve it through `getUpdateRepository`
+ * (utils/githubUpdater.ts), where GITHUB_OWNER / GITHUB_REPO override these
+ * defaults. The update channel itself stays off, with no network requests, unless
+ * GITHUB_OWNER is set at build time (`isUpdateChannelConfigured`). Keep in sync
+ * with src/app-update.yml, forge.config.ts and vite.main.config.mts.
  */
 export const DEFAULT_GITHUB_OWNER = 'HanMarry';
 export const DEFAULT_GITHUB_REPO = 'modelforge';

@@ -1,6 +1,6 @@
 import { app } from 'electron';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { GitHubUpdater } from './githubUpdater';
+import { GitHubUpdater, getUpdateRepository, isUpdateChannelConfigured } from './githubUpdater';
 
 function stubAppVersion(version: string): void {
   (app as unknown as { getVersion: () => string }).getVersion = () => version;
@@ -20,6 +20,24 @@ function expectedAssetName(): string {
 afterEach(() => {
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
+});
+
+describe('update repository', () => {
+  it('defaults to the ModelForge repository with the channel off', () => {
+    vi.stubEnv('GITHUB_OWNER', '');
+    vi.stubEnv('GITHUB_REPO', '');
+
+    expect(getUpdateRepository()).toEqual({ owner: 'HanMarry', repo: 'modelforge' });
+    expect(isUpdateChannelConfigured()).toBe(false);
+  });
+
+  it('follows GITHUB_OWNER / GITHUB_REPO and turns the channel on', () => {
+    vi.stubEnv('GITHUB_OWNER', 'acme');
+    vi.stubEnv('GITHUB_REPO', 'forge-fork');
+
+    expect(getUpdateRepository()).toEqual({ owner: 'acme', repo: 'forge-fork' });
+    expect(isUpdateChannelConfigured()).toBe(true);
+  });
 });
 
 describe('GitHubUpdater.checkForUpdates', () => {

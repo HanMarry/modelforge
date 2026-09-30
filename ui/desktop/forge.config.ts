@@ -103,24 +103,33 @@ module.exports = {
       config: {
         updater: {
           // ModelForge's own update feed, generated next to the installer; keep in sync
-          // with src/app-update.yml and the @electron-forge/publisher-github below.
-          url: 'https://github.com/HanMarry/modelforge/releases/latest/download',
+          // with src/app-update.yml and the @electron-forge/publisher-github below. The
+          // owner/repo follow the same GITHUB_OWNER / GITHUB_REPO overrides as the
+          // publisher and the runtime feed (getUpdateRepository in src/utils/githubUpdater.ts).
+          url: `https://github.com/${process.env.GITHUB_OWNER || 'HanMarry'}/${process.env.GITHUB_REPO || 'modelforge'}/releases/latest/download`,
+          // build/installer.nsh deletes %LOCALAPPDATA%\modelforge-updater on uninstall.
           updaterCacheDirName: 'modelforge-updater',
           channel: 'latest',
           publisherName: 'ModelForge Team',
         },
-        getAdditionalConfig: () => ({
-          oneClick: false,
-          allowToChangeInstallationDirectory: true,
-          perMachine: false,
-          // Keep %APPDATA% by default; `customUnInstall` in build/installer.nsh asks the
-          // user and removes it only when they decline to keep it (requirement 7.10).
-          deleteAppDataOnUninstall: false,
-          include: 'build/installer.nsh',
-          installerIcon: 'src/images/icon.ico',
-          uninstallerIcon: 'src/images/icon.ico',
-          shortcutName: 'ModelForge',
-          artifactName: '${productName} Setup ${version}.${ext}',
+        // The maker passes what this returns to app-builder-lib as its configuration, so the
+        // NSIS options go under `nsis`. (It reads `getAppBuilderConfig` only: the former
+        // `getAdditionalConfig` was ignored, which built a one-click installer whose
+        // uninstaller never asked about the data; Windows smoke run 36686960299.)
+        getAppBuilderConfig: async () => ({
+          nsis: {
+            oneClick: false,
+            allowToChangeInstallationDirectory: true,
+            perMachine: false,
+            // Keep %APPDATA% by default; `customUnInstall` in build/installer.nsh asks the
+            // user and removes it only when they decline to keep it (requirement 7.10).
+            deleteAppDataOnUninstall: false,
+            include: 'build/installer.nsh',
+            installerIcon: 'src/images/icon.ico',
+            uninstallerIcon: 'src/images/icon.ico',
+            shortcutName: 'ModelForge',
+            artifactName: '${productName} Setup ${version}.${ext}',
+          },
         }),
       },
     },
