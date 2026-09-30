@@ -21,11 +21,14 @@
  * The scenario (`primary`, `cn-user`, `cn-profile-sim`) only changes which paths must contain
  * Chinese characters and spaces (7.4).
  *
- * Wizard step 2 (endpoint + key) has a known defect on a clean machine: saving the default
- * provider fails with "Provider is not configured" and the endpoint never reaches the kernel's
- * configuration. Its checks are written as they must hold once the fix is merged. By default
- * they are soft (the test is marked failed, the step is skipped as a user would and the later
- * steps still run); with MODELFORGE_SMOKE_WIZARD_STRICT=1 they are hard assertions.
+ * Wizard step 2 is where the product configures the built-in kernel: the test types the stub's
+ * address, a key and the stub's model, and after "连接成功" the kernel's config.yaml must hold
+ * that provider, address and model (`readWizardKernelConfig` in the harness). In strict mode
+ * (the default, see `WIZARD_STRICT`) these are hard assertions and tests 4-8 run on that
+ * configuration alone: the harness supplies no endpoint, model or key. With
+ * MODELFORGE_SMOKE_WIZARD_STRICT=0 they are soft, the step is skipped as a user would when it
+ * fails, and `ensureKernelSeeded` stands in for the missing configuration (reported), so the
+ * later flows are still covered when the product regresses.
  */
 import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test';
 import fs from 'node:fs';
@@ -38,16 +41,18 @@ import {
   dismissInterruptions,
   ensureKernelSeeded,
   ensureProject,
+  expectedWizardKernelConfig,
   hasCjkAndSpace,
   hashTree,
+  kernelChatUse,
   kernelEnv,
   listRecentDirs,
   newNonce,
   projectParentDir,
   readCredentialEntries,
-  readGooseConfigScalars,
   readOnboarding,
   readState,
+  readWizardKernelConfig,
   runRecords,
   sendChat,
   sleep,
@@ -57,8 +62,12 @@ import {
   waitForAssistant,
   waitForShell,
   withApp,
+  wizardAddress,
   writeProjectFile,
   writeState,
+  STUB_MODEL,
+  WIZARD_PROVIDER,
+  WIZARD_STRICT,
   type LaunchedApp,
   type SmokeConfig,
 } from './windows-smoke/harness';
@@ -68,8 +77,27 @@ const cfg = smokeConfig();
 /** Requirement 7.2: wizard or main window within 30 s of starting ModelForge.exe. */
 const FIRST_SHELL_BUDGET_MS = 30_000;
 
-/** Hard assertions for wizard step 2 (see the header); soft by default. */
-const WIZARD_STRICT = process.env.MODELFORGE_SMOKE_WIZARD_STRICT === '1';
+/**
+ * Wizard step 2 runs one connectivity request and then saves the key and the provider in the
+ * desktop store and the kernel (three calls); "连接成功" or an error shows only after all of it.
+ */
+const WIZARD_SAVE_BUDGET_MS = 90_000;
+
+/**
+ * Providers step 1 must not offer (requirement 5.1, wizardProviderSetup.ts
+ * `canConfigureInWizard`): ACP agents, sign-in only providers and providers that need more than a
+ * key and an address. Display names as the kernel lists them (crates/goose/src/providers and
+ * crates/goose-providers/src).
+ */
+const NOT_IN_WIZARD = [
+  'Azure OpenAI',
+  'Databricks',
+  'GCP Vertex AI',
+  'GitHub Copilot',
+  'Ollama',
+  'Claude Code ACP',
+  'Codex ACP',
+];
 
 /** `expect` for the wizard step 2 checks: hard in strict mode, soft otherwise. */
 function wizardExpect<T>(actual: T, message: string) {
@@ -143,42 +171,78 @@ test.describe('installed ModelForge (Windows smoke)', () => {
       expect(shell, 'the wizard is shown while no provider is configured').toBe('wizard');
       await dismissInterruptions(page);
 
-      // Step 1: provider.
+      // Step 1: provider. Only providers a key and an address configure are offered, and a
+      // clean machine has no local ACP runtime (Claude Code, Codex) to offer either.
       const openai = page.getByRole('button', { name: 'OpenAI', exact: true });
       await openai.waitFor({ state: 'visible', timeout: 60_000 });
+      // Local runtimes are detected separately from the provider list; give them time to show.
+      const seen = new Set<string>();
+      const settleUntil = Date.now() + 10_000;
+      while (Date.now() < settleUntil) {
+        for (const label of await page.locator('div.grid > button').allInnerTexts()) {
+          seen.add(label.trim());
+        }
+        await sleep(1_000);
+      }
+      const offered = [...seen];
+      annotate(testInfo, 'wizard-providers', offered.join(', '));
+      wizardExpect(
+        offered.filter((label) => NOT_IN_WIZARD.includes(label) || label.includes('通过 ACP 接入本机运行时')),
+        'step 1 offers only providers an API key and an address configure'
+      ).toEqual([]);
       await openai.click();
       await clickNext(page);
 
-      // Step 2: endpoint and key, connectivity test against the stub. After a successful test
-      // the wizard stores the key and saves the default provider; either can still turn the
-      // step into a failure, so wait until the test button is idle again before judging.
+      // Step 2: address, key and model, then "测试连接": one connectivity request to the stub,
+      // after which the wizard stores the key in the desktop credential store and saves the key,
+      // the address (ACP providers/config/save) and the provider and model (defaults/save) in
+      // the kernel. "连接成功" shows only once all of that is saved; any failure shows an error
+      // and keeps the input on this step.
       await expect(page.getByText(/第 2 步\/共 4 步/)).toBeVisible();
-      await page.locator('input[placeholder="https://api.example.com/v1"]').fill(`${c.stubUrl}/v1`);
-      await page.locator('input[type="password"]').fill(`sk-wizard-${newNonce()}`);
+      const address = page.locator('#onboarding-address');
+      const model = page.locator('#onboarding-model');
+      annotate(
+        testInfo,
+        'wizard-defaults',
+        `address ${await address.inputValue()}, model ${await model.inputValue()}`
+      );
+      await address.fill(wizardAddress(c));
+      await page.locator('#onboarding-key').fill(`sk-wizard-${newNonce()}`);
+      // goose may send known OpenAI models to the Responses API, which the stub does not serve.
+      await model.fill(STUB_MODEL);
       const testButton = page.getByRole('button', { name: '测试连接', exact: true });
       await testButton.click();
-      const first = await firstVisible(page, 30_000, {
+      const first = await firstVisible(page, WIZARD_SAVE_BUDGET_MS, {
         success: page.getByText('连接成功', { exact: true }),
         failure: page.locator('p.text-red-600'),
       });
       annotate(testInfo, 'wizard-connectivity', `first result: ${first}`);
-      await expect(testButton).toBeEnabled({ timeout: 30_000 });
-      // Saving the key and the default provider happens after "连接成功" is shown.
-      await sleep(3_000);
+      await expect(testButton, 'the test button is idle again').toBeEnabled({ timeout: WIZARD_SAVE_BUDGET_MS });
       const succeeded = await page.getByText('连接成功', { exact: true }).isVisible().catch(() => false);
       const errors = (await page.locator('p.text-red-600').allInnerTexts().catch(() => [])).map((t) => t.trim());
       const nextEnabled = await page.getByRole('button', { name: '下一步', exact: true }).isEnabled();
+      // "连接成功" means the kernel already has the provider: read config.yaml at that moment.
+      const atSuccess = readWizardKernelConfig(c);
       await app.snap('wizard-key');
-      annotate(testInfo, 'wizard-mode', WIZARD_STRICT ? 'strict (MODELFORGE_SMOKE_WIZARD_STRICT=1)' : 'soft');
+      annotate(
+        testInfo,
+        'wizard-mode',
+        WIZARD_STRICT ? 'strict (the later flows run on what the wizard saved)' : 'soft (MODELFORGE_SMOKE_WIZARD_STRICT=0)'
+      );
       const detail = `connectivity ${succeeded ? 'ok' : 'not ok'}, errors: ${errors.join(' / ') || '(none)'}`;
-      // What must hold once the fix is merged: the test succeeds, nothing fails while the key
-      // and the default provider are saved, and the user can go on.
       if (!(succeeded && nextEnabled && errors.length === 0)) {
         annotate(testInfo, 'product-defect', `wizard step 2 cannot be completed on a clean machine (${detail})`);
       }
-      wizardExpect(succeeded, `wizard step 2: the connectivity test succeeds (${detail})`).toBe(true);
-      wizardExpect(errors, `wizard step 2: no error after the connectivity test (${detail})`).toEqual([]);
+      wizardExpect(succeeded, `wizard step 2: "连接成功" after saving (${detail})`).toBe(true);
+      wizardExpect(errors, `wizard step 2: no error while testing and saving (${detail})`).toEqual([]);
       wizardExpect(nextEnabled, `wizard step 2 lets the user continue (${detail})`).toBe(true);
+      if (succeeded) {
+        annotate(testInfo, 'wizard-kernel-config', JSON.stringify(atSuccess));
+        wizardExpect(
+          atSuccess,
+          `kernel configuration ${paths.gooseConfigFile} when "连接成功" shows`
+        ).toEqual(expectedWizardKernelConfig(c));
+      }
       if (succeeded && nextEnabled) {
         await clickNext(page);
         writeState(c, { wizardProviderSaved: errors.length === 0 });
@@ -255,18 +319,13 @@ test.describe('installed ModelForge (Windows smoke)', () => {
     expect(onboarding?.steps?.provider).toBe('done');
     wizardExpect(onboarding?.steps?.key, 'wizard step 2 recorded as done').toBe('done');
     const credentials = readCredentialEntries(paths.credentialsFile);
-    const providerKey = credentials?.['provider:openai'] ?? '';
+    const providerKey = credentials?.[`provider:${WIZARD_PROVIDER}`] ?? '';
     expect(providerKey.startsWith('enc:'), 'desktop credential store holds the encrypted key').toBe(true);
-    // Read before ensureKernelSeeded below writes the harness values.
-    const gooseConfig = readGooseConfigScalars(paths.gooseConfigFile);
-    wizardExpect(gooseConfig.GOOSE_PROVIDER, 'goose default provider saved by the wizard').toBe('openai');
-    // The API address the user tested has to reach the kernel's configuration, or the built-in
-    // kernel cannot answer. The key name is up to the fix, so any value naming the stub counts.
-    const endpointKeys = Object.entries(gooseConfig)
-      .filter(([, value]) => value.includes(`127.0.0.1:${c.stubPort}`))
-      .map(([key]) => key);
-    annotate(testInfo, 'wizard-endpoint', endpointKeys.length > 0 ? endpointKeys.join(', ') : '(not in config.yaml)');
-    wizardExpect(endpointKeys, 'the wizard saved the API address into the kernel configuration').not.toEqual([]);
+    // The kernel's own configuration, as the wizard left it once the app has quit.
+    const kernelConfig = readWizardKernelConfig(c);
+    wizardExpect(kernelConfig, `kernel configuration ${paths.gooseConfigFile} after the wizard`).toEqual(
+      expectedWizardKernelConfig(c)
+    );
     const probes = (await stubRequests(c)).filter(
       (entry) => entry.method === 'GET' && entry.path.endsWith('/models') && entry.at >= wizardStartedAt
     );
@@ -275,8 +334,10 @@ test.describe('installed ModelForge (Windows smoke)', () => {
     writeState(c, { wizardCompleted: onboarding?.completed === true });
 
     // Requirement 7.3: the configuration survives a restart and the wizard does not come back.
-    ensureKernelSeeded(c, testInfo);
-    await withApp(c, testInfo, 'restart', { env: kernelEnv(), windowTimeoutMs: FIRST_SHELL_BUDGET_MS }, async (app) => {
+    if (!WIZARD_STRICT) {
+      ensureKernelSeeded(c, testInfo);
+    }
+    await withApp(c, testInfo, 'restart', { env: kernelEnv(c), windowTimeoutMs: FIRST_SHELL_BUDGET_MS }, async (app) => {
       const remaining = Math.max(1_000, FIRST_SHELL_BUDGET_MS - (Date.now() - app.spawnedAt));
       const shell = await waitForShell(app.page, remaining);
       annotate(testInfo, 'restart-shell', `${shell} after ${Date.now() - app.spawnedAt} ms`);
@@ -288,15 +349,19 @@ test.describe('installed ModelForge (Windows smoke)', () => {
       );
       expect((persisted as { completed?: boolean } | null)?.completed).toBe(true);
     });
-    expect(readCredentialEntries(paths.credentialsFile)?.['provider:openai'], 'stored key after a restart').toBe(
-      providerKey
-    );
+    expect(
+      readCredentialEntries(paths.credentialsFile)?.[`provider:${WIZARD_PROVIDER}`],
+      'stored key after a restart'
+    ).toBe(providerKey);
     expect(readOnboarding(c), 'onboarding record after a restart').toEqual(onboarding);
+    expect(readWizardKernelConfig(c), 'kernel configuration after a restart').toEqual(kernelConfig);
   });
 
   test('plain chat receives the model reply', async ({}, testInfo) => {
     const c = cfg as SmokeConfig;
-    ensureKernelSeeded(c, testInfo);
+    if (!WIZARD_STRICT) {
+      ensureKernelSeeded(c, testInfo);
+    }
     const projectDir = ensureProject(c, testInfo);
     const nonce = newNonce();
     await withProjectApp(c, testInfo, 'chat', projectDir, async (app) => {
@@ -305,13 +370,25 @@ test.describe('installed ModelForge (Windows smoke)', () => {
       annotate(testInfo, 'reply', reply.slice(0, 200));
       await app.snap('chat');
     });
-    const requests = (await stubRequests(c, nonce)).filter((entry) => entry.method === 'POST');
-    expect(requests.length, 'chat requests the stub saw for this message').toBeGreaterThan(0);
+    // In strict mode the app got no endpoint, model or key from the harness, so the kernel
+    // reached the stub with what the wizard saved.
+    const use = await kernelChatUse(c, nonce);
+    annotate(
+      testInfo,
+      'kernel-requests',
+      `${JSON.stringify(use)}; configuration from ${readState(c).providerSeeded ? 'the soft-mode harness fallback' : 'the wizard'}`
+    );
+    expect(use.requests, 'chat requests the stub saw for this message').toBeGreaterThan(0);
+    expect(use.paths, 'the kernel called the address saved in step 2').toEqual(['/v1/chat/completions']);
+    expect(use.models, 'the kernel asked for the model saved in step 2').toContain(STUB_MODEL);
+    expect(use.withoutKey, 'chat requests sent without the key saved in step 2').toBe(0);
   });
 
   test('Python code runs with exit code 0 and returns its output', async ({}, testInfo) => {
     const c = cfg as SmokeConfig;
-    ensureKernelSeeded(c, testInfo);
+    if (!WIZARD_STRICT) {
+      ensureKernelSeeded(c, testInfo);
+    }
     const projectDir = ensureProject(c, testInfo);
     // The expected output is computed by the script, so it appears nowhere in the prompt.
     writeProjectFile(
@@ -357,7 +434,9 @@ test.describe('installed ModelForge (Windows smoke)', () => {
 
   test('paper compilation writes a PDF inside the Project', async ({}, testInfo) => {
     const c = cfg as SmokeConfig;
-    ensureKernelSeeded(c, testInfo);
+    if (!WIZARD_STRICT) {
+      ensureKernelSeeded(c, testInfo);
+    }
     const projectDir = ensureProject(c, testInfo);
     const source = writeProjectFile(
       projectDir,
@@ -402,7 +481,9 @@ test.describe('installed ModelForge (Windows smoke)', () => {
 
   test('phase-2 entries open without errors', async ({}, testInfo) => {
     const c = cfg as SmokeConfig;
-    ensureKernelSeeded(c, testInfo);
+    if (!WIZARD_STRICT) {
+      ensureKernelSeeded(c, testInfo);
+    }
     const projectDir = ensureProject(c, testInfo);
     // An interrupted task plan, so the startup scan offers to resume it (task 25.5).
     const taskId = `mfsmoke${newNonce()}`;
@@ -514,7 +595,9 @@ test.describe('installed ModelForge (Windows smoke)', () => {
 
   test('paper check runs read-only in its utility process and reads the PDF with pdfjs', async ({}, testInfo) => {
     const c = cfg as SmokeConfig;
-    ensureKernelSeeded(c, testInfo);
+    if (!WIZARD_STRICT) {
+      ensureKernelSeeded(c, testInfo);
+    }
     const projectDir = ensureProject(c, testInfo);
     const pdf = readState(c).paperPdf ?? path.join(projectDir, 'paper', 'main.pdf');
     test.skip(!fs.existsSync(pdf), `no compiled paper at ${pdf} (the paper compilation test failed)`);
@@ -588,8 +671,9 @@ async function firstVisible(
 }
 
 /**
- * Launches the app with the kernel pointed at the stub and checks that the window opened on the
- * Project: the app reopens the most recent folder, which the wizard (or `ensureProject`) set.
+ * Launches the app (on the wizard's configuration; in soft mode on the harness fallback when
+ * `ensureKernelSeeded` needed it) and checks that the window opened on the Project: the app
+ * reopens the most recent folder, which the wizard (or `ensureProject`) set.
  */
 async function withProjectApp(
   c: SmokeConfig,
@@ -598,7 +682,7 @@ async function withProjectApp(
   projectDir: string,
   body: (app: LaunchedApp) => Promise<void>
 ): Promise<void> {
-  await withApp(c, testInfo, label, { env: kernelEnv() }, async (app) => {
+  await withApp(c, testInfo, label, { env: kernelEnv(c) }, async (app) => {
     const shell = await waitForShell(app.page, 90_000);
     expect(shell, 'main window').toBe('main');
     await dismissInterruptions(app.page);

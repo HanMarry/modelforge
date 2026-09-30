@@ -39,7 +39,14 @@ const NOTABLE_ANNOTATIONS = [
 ];
 
 /** Informational annotations shown as key facts. */
-const FACT_ANNOTATIONS = ['first-shell', 'restart-shell', 'wizard-mode', 'wizard-endpoint'];
+const FACT_ANNOTATIONS = [
+  'first-shell',
+  'restart-shell',
+  'wizard-mode',
+  'wizard-providers',
+  'wizard-kernel-config',
+  'kernel-requests',
+];
 
 const MAX_ERROR_CHARS = 300;
 const MAX_NOTE_CHARS = 240;
@@ -288,7 +295,12 @@ function buildSummary(resultsDir, env) {
   }
   if (env.SMOKE_PACKAGE_SHA) meta.push(`built from \`${env.SMOKE_PACKAGE_SHA.slice(0, 9)}\``);
   if (env.SMOKE_TEST_SHA) meta.push(`tests from \`${env.SMOKE_TEST_SHA.slice(0, 9)}\``);
-  meta.push(`wizard step 2: ${env.MODELFORGE_SMOKE_WIZARD_STRICT === '1' ? 'strict' : 'soft'}`);
+  // Same rule as WIZARD_STRICT in harness.ts: strict unless the variable is "0".
+  meta.push(
+    env.MODELFORGE_SMOKE_WIZARD_STRICT === '0'
+      ? 'wizard step 2: soft (harness fallback allowed)'
+      : 'wizard step 2: strict (flows run on what the wizard saved)'
+  );
   lines.push(meta.join(' · '));
   if (env.SMOKE_PACKAGE_SHA && env.SMOKE_TEST_SHA && env.SMOKE_PACKAGE_SHA !== env.SMOKE_TEST_SHA) {
     lines.push('');
