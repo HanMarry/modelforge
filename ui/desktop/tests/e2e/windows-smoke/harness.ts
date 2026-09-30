@@ -240,6 +240,9 @@ export function appEnv(
   env.GOOSE_TELEMETRY_OFF = '1';
   env.NO_PROXY = '127.0.0.1,localhost';
   env.no_proxy = env.NO_PROXY;
+  // Debug logs from the kernel (it inherits the app's environment), so a session that does not
+  // start shows which extension the kernel is still waiting for.
+  env.RUST_LOG = current.get('rust_log') || 'warn,goose=debug,mcp_client=debug';
   return { ...env, ...extra };
 }
 
@@ -410,6 +413,8 @@ export interface LaunchedApp {
   pageErrors: string[];
   consoleErrors: string[];
   snap: (name: string) => Promise<void>;
+  /** Writes what the app and its kernel are doing (process tree, Node shim state) to the log. */
+  diagnose: (reason: string) => Promise<void>;
   close: () => Promise<void>;
 }
 
@@ -449,6 +454,74 @@ export function sweepAppProcesses(cfg: SmokeConfig): string {
       '$procs | ForEach-Object { Write-Output ("stopping " + $_.Name + " " + $_.ProcessId); Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }',
       'if ($procs) { Start-Sleep -Seconds 2 }',
     ].join('; ')
+  );
+}
+
+/** A PowerShell single-quoted string literal. */
+function psQuote(value: string): string {
+  return `'${value.replace(/'/g, "''")}'`;
+}
+
+/**
+ * The process tree under `rootPid` with each process's age and command line, so a stuck step
+ * shows what the kernel was waiting for (for example an extension still being downloaded).
+ * Command lines carry no secrets here: the kernel gets its keys through the environment.
+ */
+export function describeProcessTree(rootPid: number): string {
+  return powershell(
+    [
+      `$root = ${Math.trunc(rootPid)}`,
+      '$all = @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue)',
+      '$children = @{}',
+      'foreach ($p in $all) {',
+      '  $parent = [int]$p.ParentProcessId',
+      '  if (-not $children.ContainsKey($parent)) { $children[$parent] = New-Object System.Collections.ArrayList }',
+      '  [void]$children[$parent].Add($p)',
+      '}',
+      '$now = Get-Date',
+      'function Show-Tree([int]$id, [int]$depth) {',
+      '  if ($depth -gt 12 -or -not $children.ContainsKey($id)) { return }',
+      '  foreach ($c in $children[$id]) {',
+      '    $cmd = [string]$c.CommandLine',
+      "    if ($cmd.Length -gt 500) { $cmd = $cmd.Substring(0, 500) + ' ...' }",
+      '    $age = -1',
+      '    if ($c.CreationDate) { $age = [int]($now - $c.CreationDate).TotalSeconds }',
+      "    Write-Output ('{0}{1} {2} ({3} s) {4}' -f ('  ' * $depth), $c.ProcessId, $c.Name, $age, $cmd)",
+      '    Show-Tree ([int]$c.ProcessId) ($depth + 1)',
+      '  }',
+      '}',
+      '$self = $all | Where-Object { [int]$_.ProcessId -eq $root } | Select-Object -First 1',
+      "if ($self) { Write-Output ('{0} {1}' -f $self.ProcessId, $self.Name) } else { Write-Output ('process {0} is gone' -f $root) }",
+      'Show-Tree $root 1',
+    ].join('\n')
+  );
+}
+
+/**
+ * State of the portable Node.js that the bundled `npx.cmd` shim downloads on first use
+ * (src/platform/windows/bin/npx.cmd) and of the npx package cache, for the app's own profile.
+ */
+export function describeNodeShim(localAppData: string, temp: string): string {
+  return powershell(
+    [
+      `$local = ${psQuote(localAppData)}`,
+      `$temp = ${psQuote(temp)}`,
+      "$nodeDir = Join-Path $local 'Goose\\node'",
+      "Write-Output ('portable Node {0}: {1}' -f $nodeDir, (Test-Path -LiteralPath $nodeDir))",
+      'if (Test-Path -LiteralPath $nodeDir) {',
+      "  Get-ChildItem -LiteralPath $nodeDir -Filter 'node-v*.installed' -ErrorAction SilentlyContinue | ForEach-Object { Write-Output ('  marker ' + $_.Name) }",
+      '}',
+      "Get-ChildItem -LiteralPath $temp -Filter 'goose-node-*' -ErrorAction SilentlyContinue | ForEach-Object {",
+      '  if ($_.PSIsContainer) {',
+      '    $n = @(Get-ChildItem -LiteralPath $_.FullName -Recurse -File -ErrorAction SilentlyContinue).Count',
+      "    Write-Output ('{0} (directory, {1} files)' -f $_.FullName, $n)",
+      '  } else {',
+      "    Write-Output ('{0} ({1} bytes, written {2:HH:mm:ss})' -f $_.FullName, $_.Length, $_.LastWriteTime)",
+      '  }',
+      '}',
+      "$npx = Join-Path $local 'npm-cache\\_npx'",
+      "if (Test-Path -LiteralPath $npx) { Write-Output ('npx cache entries: ' + @(Get-ChildItem -LiteralPath $npx -ErrorAction SilentlyContinue).Count) } else { Write-Output 'npx cache: none' }",
+    ].join('\n')
   );
 }
 
@@ -601,6 +674,22 @@ export async function launchApp(
     }
   };
 
+  const diagnose = async (reason: string) => {
+    const lines = [
+      `[diagnose] ${new Date().toISOString()} ${reason.split('\n')[0].slice(0, 300)}`,
+      `[diagnose] ${Math.round((Date.now() - spawnedAt) / 1000)} s after launch; processes under the app:`,
+      child.pid ? describeProcessTree(child.pid) : '(the app has no pid)',
+      '[diagnose] portable Node of the npx shim and the npx cache:',
+      describeNodeShim(env.LOCALAPPDATA || '', env.TEMP || ''),
+    ];
+    const text = `${lines.join('\n')}\n`;
+    log.write(text);
+    console.log(text);
+    await testInfo
+      .attach(`${label}-diagnose.txt`, { body: text, contentType: 'text/plain' })
+      .catch(() => {});
+  };
+
   const close = async () => {
     if (closed) {
       return;
@@ -624,7 +713,18 @@ export async function launchApp(
     await testInfo.attach(`${label}-app-output.log`, { path: logPath, contentType: 'text/plain' });
   };
 
-  return { page, browser, child, spawnedAt, windowAt, pageErrors, consoleErrors, snap, close };
+  return {
+    page,
+    browser,
+    child,
+    spawnedAt,
+    windowAt,
+    pageErrors,
+    consoleErrors,
+    snap,
+    diagnose,
+    close,
+  };
 }
 
 /** Runs `body` with a freshly launched app; screenshots on failure, always closes the app. */
@@ -639,6 +739,7 @@ export async function withApp<T>(
   try {
     return await body(app);
   } catch (error) {
+    await app.diagnose(String(error)).catch(() => {});
     await app.snap('failure');
     throw error;
   } finally {
@@ -750,8 +851,23 @@ export async function waitForAssistant(
     }
     await sleep(1_000);
   }
+  // Tells "the message never left the input because the session was still being created" apart
+  // from "the model was asked but its reply did not arrive".
+  const creatingSession = await page
+    .getByText(/正在加载对话|loading conversation/i)
+    .first()
+    .isVisible()
+    .catch(() => false);
+  const unsent = await page
+    .locator('[data-testid="chat-input"]')
+    .first()
+    .inputValue({ timeout: 5_000 })
+    .catch(() => '');
   throw new Error(
-    `no assistant message matched ${pattern} within ${timeoutMs} ms; assistant messages so far:\n` +
+    `no assistant message matched ${pattern} within ${timeoutMs} ms` +
+      `; session still being created ("正在加载对话…" shown): ${creatingSession ? 'yes' : 'no'}` +
+      `; message still in the chat input: ${unsent.trim() ? 'yes' : 'no'}` +
+      `; assistant messages so far:\n` +
       seen.join('\n---\n').slice(-4_000)
   );
 }
