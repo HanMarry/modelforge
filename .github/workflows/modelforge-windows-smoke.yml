@@ -440,6 +440,24 @@ jobs:
               Copy-Item -LiteralPath $source -Destination (Join-Path $target $item.Value) -Recurse -Force -ErrorAction Continue
             }
           }
+          # Crashes and hangs of node.exe (Playwright and its workers), ModelForge.exe, goose.exe or
+          # the uninstaller, with the faulting module and exception code. Run 36686960299 lost a
+          # Playwright worker with 0xC0000409 and no other trace.
+          try {
+            $filter = @{
+              LogName      = 'Application'
+              ProviderName = 'Application Error', 'Application Hang', 'Windows Error Reporting'
+              StartTime    = (Get-Date).AddHours(-6)
+            }
+            $events = @(Get-WinEvent -FilterHashtable $filter -MaxEvents 200 -ErrorAction Stop | Sort-Object TimeCreated)
+            New-Item -ItemType Directory -Force -Path $logs | Out-Null
+            $events | ForEach-Object { "[{0:o}] {1} {2}`n{3}`n" -f $_.TimeCreated, $_.ProviderName, $_.Id, $_.Message } |
+              Set-Content -LiteralPath (Join-Path $logs 'application-errors.txt') -Encoding utf8
+            Write-Host ("{0} crash/hang events saved to logs\application-errors.txt" -f $events.Count)
+          }
+          catch {
+            Write-Host "no crash/hang events in the Application log: $($_.Exception.Message)"
+          }
 
       - name: Summarize
         if: always()
