@@ -12,7 +12,7 @@ import {
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import log from './logger';
-import { githubUpdater, isUpdateChannelConfigured } from './githubUpdater';
+import { getUpdateRepository, githubUpdater, isUpdateChannelConfigured } from './githubUpdater';
 import { loadRecentDirs } from './recentDirs';
 import { errorMessage } from './conversionUtils';
 import {
@@ -48,7 +48,8 @@ let autoDownloadDisabled = false;
 
 export function setAutoDownloadDisabled(disabled: boolean) {
   autoDownloadDisabled = disabled;
-  autoUpdater.autoDownload = !disabled;
+  // Without an update channel nothing may be downloaded, whatever the user setting says.
+  autoUpdater.autoDownload = !disabled && isUpdateChannelConfigured();
   log.info(`Auto-download ${disabled ? 'disabled' : 'enabled'}`);
 }
 
@@ -220,6 +221,11 @@ export function registerUpdateIpcHandlers() {
   });
 
   ipcMain.handle('download-update', async () => {
+    if (!isUpdateChannelConfigured()) {
+      log.info('Update channel not configured; skipping update download');
+      return { success: false, error: 'Update channel not configured' };
+    }
+
     try {
       if (isUsingGitHubFallback && githubUpdateInfo.downloadUrl && githubUpdateInfo.latestVersion) {
         log.info('Using GitHub fallback for download...');
@@ -345,16 +351,27 @@ export function setupAutoUpdater(tray?: Tray) {
   log.info(`App path: ${app.getAppPath()}`);
   log.info(`Resources path: ${process.resourcesPath}`);
 
-  // Set the feed URL for GitHub releases
+  // Set the feed URL for GitHub releases. The owner/repo come from the same place as the
+  // GitHub API fallback so both update paths always read ModelForge's own releases.
+  const { owner, repo } = getUpdateRepository();
   const feedConfig = {
     provider: 'github' as const,
-    owner: 'aaif-goose',
-    repo: 'goose',
+    owner,
+    repo,
     releaseType: 'release' as const,
   };
 
   log.info('Setting feed URL with config:', feedConfig);
   autoUpdater.setFeedURL(feedConfig);
+
+  // Setting the feed makes no request; every check and download below is skipped
+  // while the channel is off, so an unconfigured build never contacts any release feed.
+  const channelConfigured = isUpdateChannelConfigured();
+  if (!channelConfigured) {
+    log.info(
+      'Update channel not configured (GITHUB_OWNER not set at build time); update checks and downloads are disabled'
+    );
+  }
 
   // Log the feed URL after setting it
   try {
@@ -374,7 +391,7 @@ export function setupAutoUpdater(tray?: Tray) {
   }
 
   // Configure auto-updater settings
-  autoUpdater.autoDownload = !autoDownloadDisabled;
+  autoUpdater.autoDownload = channelConfigured && !autoDownloadDisabled;
   autoUpdater.autoInstallOnAppQuit = true;
 
   // Enable updates in development mode for testing
@@ -585,6 +602,13 @@ export function setupAutoUpdater(tray?: Tray) {
       err.message.includes('ENOTFOUND') ||
       err.message.includes('No published versions')
     ) {
+      if (!isUpdateChannelConfigured()) {
+        log.info(
+          'Update channel not configured; skipping GitHub fallback after auto-updater error'
+        );
+        return;
+      }
+
       log.info('Falling back to GitHub API for update check...');
       log.info('Fallback triggered by error:', err.message);
       isUsingGitHubFallback = true;
@@ -687,6 +711,15 @@ async function githubAutoDownload(
   latestVersion: string,
   contextLabel = ''
 ): Promise<void> {
+  // Every fallback path auto-downloads through here, so this is the last stop before
+  // an unconfigured build would fetch a release archive.
+  if (!isUpdateChannelConfigured()) {
+    log.info(
+      `Update channel not configured; skipping GitHub auto-download${contextLabel ? ` (${contextLabel})` : ''}`
+    );
+    return;
+  }
+
   // Reset progress tracking for new download
   lastReportedProgress = 0;
   trackUpdateDownloadStarted(latestVersion, 'github-fallback');
