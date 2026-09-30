@@ -650,8 +650,11 @@ fn initial_session_extensions(
         {
             push_or_replace_extension(&mut extensions, extension);
         }
-        add_mcp_servers(&mut extensions, mcp_servers)?;
     }
+    // The servers passed with `session/new` are connected in every case, as ACP asks of an
+    // agent; a recipe or the client's `enabledExtensions` only decides the rest. The desktop
+    // sends both, so its built-in browser server used to be dropped from every new session.
+    add_mcp_servers(&mut extensions, mcp_servers)?;
 
     Ok(extensions)
 }
@@ -3075,6 +3078,47 @@ extensions:
         assert!(extensions
             .iter()
             .any(|extension| extension.name() == "zed-mcp"));
+    }
+
+    #[test]
+    fn new_session_mcp_is_kept_with_client_or_recipe_extensions() {
+        let (config, _c, _s) = config_with_yaml("");
+        let project_root = tempfile::tempdir().unwrap();
+        let browser = || {
+            vec![McpServer::Http(McpServerHttp::new(
+                "modelforge-browser",
+                "http://127.0.0.1:1/mcp",
+            ))]
+        };
+
+        // The desktop sends its own selection in `_meta.enabledExtensions` next to the server.
+        let selected = initial_session_extensions(
+            &config,
+            &AcpBuiltinSelection::default(),
+            project_root.path(),
+            browser(),
+            Some(Vec::new()),
+            None,
+        )
+        .unwrap();
+        assert!(selected
+            .iter()
+            .any(|extension| extension.name() == "modelforge-browser"));
+
+        // A recipe decides the extensions, and the client's servers still come along.
+        let recipe_extensions: Vec<ExtensionConfig> = Vec::new();
+        let from_recipe = initial_session_extensions(
+            &config,
+            &AcpBuiltinSelection::default(),
+            project_root.path(),
+            browser(),
+            None,
+            Some(recipe_extensions.as_slice()),
+        )
+        .unwrap();
+        assert!(from_recipe
+            .iter()
+            .any(|extension| extension.name() == "modelforge-browser"));
     }
 
     #[test]
