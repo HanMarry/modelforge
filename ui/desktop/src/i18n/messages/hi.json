@@ -1853,6 +1853,9 @@
   "environmentPanel.workingDir": {
     "defaultMessage": "Working directory"
   },
+  "environmentPanelProbe.timedOut": {
+    "defaultMessage": "समय समाप्त"
+  },
   "errorBoundary.errorGeneric": {
     "defaultMessage": "एक त्रुटि पाई गई।"
   },

@@ -292,13 +292,23 @@ export default function OnboardingWizard({ initialStep, onComplete }: Onboarding
       try {
         const probes = await window.electron.workspaceProbeEnvironment();
         const python = probes.find((probe) => probe.id === 'python');
-        const typesetting = probes.find(
-          (probe) => ['latexmk', 'xelatex', 'typst'].includes(probe.id) && probe.available
+        const typesettingProbes = probes.filter((probe) =>
+          ['latexmk', 'xelatex', 'typst'].includes(probe.id)
         );
+        const typesetting = typesettingProbes.find((probe) => probe.available);
+        // A tool that was found but answered too late is not reported as missing.
         setEnvironment({
-          python: python?.available ? 'available' : 'missing',
+          python: python?.available
+            ? 'available'
+            : python?.status === 'timeout'
+              ? 'timeout'
+              : 'missing',
           pythonVersion: python?.version ?? '',
-          typesetting: typesetting ? 'available' : 'missing',
+          typesetting: typesetting
+            ? 'available'
+            : typesettingProbes.some((probe) => probe.status === 'timeout')
+              ? 'timeout'
+              : 'missing',
           typesettingVersion: typesetting?.version ?? '',
         });
       } catch {

@@ -1853,6 +1853,9 @@
   "environmentPanel.workingDir": {
     "defaultMessage": "工作目錄"
   },
+  "environmentPanelProbe.timedOut": {
+    "defaultMessage": "偵測逾時"
+  },
   "errorBoundary.errorGeneric": {
     "defaultMessage": "發生錯誤。"
   },

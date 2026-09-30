@@ -1853,6 +1853,9 @@
   "environmentPanel.workingDir": {
     "defaultMessage": "Working directory"
   },
+  "environmentPanelProbe.timedOut": {
+    "defaultMessage": "Hết thời gian"
+  },
   "errorBoundary.errorGeneric": {
     "defaultMessage": "Đã xảy ra lỗi."
   },

@@ -32,12 +32,20 @@ export interface WorkspaceFileReadResult {
   error: string | null;
 }
 
+/**
+ * `timeout`: the tool was found but did not answer in time, so whether it works is unknown;
+ * it is neither available nor reported as missing.
+ */
+export type EnvironmentProbeStatus = 'available' | 'missing' | 'timeout';
+
 export interface EnvironmentProbe {
   id: string;
   label: string;
+  /** The file that was started, or the command name when none was found. */
   command: string;
   version: string | null;
   available: boolean;
+  status: EnvironmentProbeStatus;
 }
 
 export interface GitVersionStatus {

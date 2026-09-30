@@ -1853,6 +1853,9 @@
   "environmentPanel.workingDir": {
     "defaultMessage": "Working directory"
   },
+  "environmentPanelProbe.timedOut": {
+    "defaultMessage": "시간 초과"
+  },
   "errorBoundary.errorGeneric": {
     "defaultMessage": "오류가 발생했습니다."
   },
