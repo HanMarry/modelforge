@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ChatProvider } from '../../contexts/ChatContext';
@@ -126,6 +126,9 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  // Unmount while the stubs still exist: the view calls datasetsUnwatch on unmount, and the
+  // automatic cleanup of Testing Library would only run after the original API is restored.
+  cleanup();
   window.electron = originalElectron;
 });
 
