@@ -653,7 +653,11 @@ export async function withApp<T>(
 export type Shell = 'wizard' | 'main' | `error: ${string}`;
 
 /** Waits for the first meaningful screen: the onboarding wizard, the main window, or an error. */
-export async function waitForShell(page: Page, timeoutMs: number): Promise<Shell> {
+export async function waitForShell(
+  page: Page,
+  timeoutMs: number,
+  expected?: 'wizard' | 'main'
+): Promise<Shell> {
   const deadline = Date.now() + timeoutMs;
   const wizard = page.getByText(/第 \d 步\/共 4 步/).first();
   const main = page.locator('[data-testid="chat-input"]').first();
@@ -662,8 +666,17 @@ export async function waitForShell(page: Page, timeoutMs: number): Promise<Shell
     .first();
   const crash = page.getByRole('heading', { name: /^(嘎！|Honk!)$/ }).first();
   while (Date.now() < deadline) {
-    if (await wizard.isVisible().catch(() => false)) return 'wizard';
-    if (await main.isVisible().catch(() => false)) return 'main';
+    // During the wizard's final transition, its old text can remain mounted briefly after the
+    // main page is already visible. Callers that know the expected destination must wait for
+    // that destination instead of accepting the stale wizard as the shell.
+    if (expected === 'main') {
+      if (await main.isVisible().catch(() => false)) return 'main';
+    } else if (expected === 'wizard') {
+      if (await wizard.isVisible().catch(() => false)) return 'wizard';
+    } else {
+      if (await wizard.isVisible().catch(() => false)) return 'wizard';
+      if (await main.isVisible().catch(() => false)) return 'main';
+    }
     if (await guardError.isVisible().catch(() => false)) return 'error: guard could not reach the kernel';
     if (await crash.isVisible().catch(() => false)) return 'error: renderer crash screen';
     await sleep(200);
@@ -680,6 +693,23 @@ export async function dismissInterruptions(page: Page): Promise<string[]> {
       await button.click({ timeout: 5_000 }).catch(() => {});
       dismissed.push(String(name));
     }
+  }
+
+  // A previous interrupted task can open an app-level modal on startup. Do not inspect, start,
+  // or synthesize that task: dismiss each card through the product's own "Do not resume" action.
+  // The modal may contain more than one task, and it closes only after the last dismissal is
+  // persisted, so re-query the first button after every click.
+  const resumeDialog = page
+    .getByRole('dialog')
+    .filter({ hasText: /未完成的任务|Unfinished tasks/ })
+    .first();
+  const dismissResume = resumeDialog
+    .getByRole('button', { name: /^(放弃恢复|Do not resume)$/ })
+    .first();
+  while (await dismissResume.isVisible().catch(() => false)) {
+    await dismissResume.click({ timeout: 10_000 });
+    dismissed.push('unfinished task resume');
+    await sleep(200);
   }
   return dismissed;
 }

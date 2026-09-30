@@ -68,6 +68,42 @@ function Get-ChildrenByClass($element, [string] $className, [switch] $Deep) {
     return @($element.FindAll($scope, $condition))
 }
 
+# UI Automation exposes the customUnInstall Yes/No MessageBox as an owned #32770 dialog while
+# the NSIS wizard remains disabled behind it.  The message box is not necessarily a direct child
+# of the desktop root, so collect direct and descendant dialogs, de-duplicated by HWND.  The
+# caller still applies Test-UninstallerWindow before any dialog is inspected or pressed; this is
+# a bounded class query, not a walk that follows arbitrary desktop controls.
+function Get-DialogWindows($root) {
+    $seen = @{}
+    $topLevel = @{}
+    $windows = @()
+    foreach ($window in (Get-ChildrenByClass $root '#32770')) {
+        try {
+            $hwnd = [int]$window.Current.NativeWindowHandle
+            if ($hwnd -eq 0 -or $seen.ContainsKey($hwnd)) { continue }
+            $seen[$hwnd] = $true
+            $topLevel[$hwnd] = $true
+            $windows += $window
+        }
+        catch {
+            # A dialog can disappear between FindAll and Current; the next poll will retry.
+        }
+    }
+    foreach ($window in (Get-ChildrenByClass $root '#32770' -Deep)) {
+        try {
+            $hwnd = [int]$window.Current.NativeWindowHandle
+            if ($hwnd -eq 0 -or $seen.ContainsKey($hwnd)) { continue }
+            $seen[$hwnd] = $true
+            $windows += $window
+        }
+        catch {
+            # A dialog can disappear between FindAll and Current; the next poll will retry.
+        }
+    }
+    $script:TopLevelDialogHwnds = $topLevel
+    return @($windows)
+}
+
 function Get-Clipped([string] $text, [int] $max = 300) {
     $flat = ($text -replace '\s+', ' ').Trim()
     if ($flat.Length -le $max) { return $flat }
@@ -287,10 +323,18 @@ function Invoke-UninstallerDialogs {
         $elapsed = ((Get-Date) - $started).TotalSeconds
         $infos = @()
         try {
-            foreach ($window in (Get-ChildrenByClass $Root '#32770')) {
+            foreach ($window in (Get-DialogWindows $Root)) {
                 try {
                     $info = Get-DialogInfo $window
-                    if (& $IsOurWindow $info) { $infos += $info }
+                    if (& $IsOurWindow $info) {
+                        # Descendant #32770 controls include the NSIS page itself. Keep nested
+                        # MessageBoxes (the Yes/No prompt or a real error), but do not let a page
+                        # shadow the target wizard in the polling/ranking logic.
+                        $topLevel = $script:TopLevelDialogHwnds.ContainsKey([int]$info.hwnd)
+                        if ($topLevel -or $info.role -notin @('wizard', 'other')) {
+                            $infos += $info
+                        }
+                    }
                 }
                 catch {
                     # Typically the window closed while it was being read.

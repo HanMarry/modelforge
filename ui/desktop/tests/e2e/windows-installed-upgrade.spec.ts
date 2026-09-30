@@ -182,7 +182,7 @@ function diffKeys(before: Record<string, string>, after: Record<string, string>)
 
 /** What the app displays: the session history cards and the recent Project folders. */
 async function shownCounts(page: Page): Promise<Shown> {
-  const shell = await waitForShell(page, 90_000);
+  const shell = await waitForShell(page, 90_000, 'main');
   expect(shell, 'main window').toBe('main');
   await dismissInterruptions(page);
   const recentDirs = await listRecentDirs(page);
@@ -209,7 +209,7 @@ async function shownCounts(page: Page): Promise<Shown> {
 async function chatOnce(c: SmokeConfig, testInfo: TestInfo, label: string): Promise<void> {
   const nonce = newNonce();
   await withApp(c, testInfo, label, { env: kernelEnv(c) }, async (app) => {
-    const shell = await waitForShell(app.page, 90_000);
+    const shell = await waitForShell(app.page, 90_000, 'main');
     expect(shell, 'main window').toBe('main');
     await sendChat(app.page, `请回复冒烟口令。MFSMOKE_NONCE:${nonce}`);
     await waitForAssistant(app.page, testInfo, new RegExp(`MODELFORGE_WINDOWS_SMOKE_OK[^\\n]*${nonce}`), 180_000);

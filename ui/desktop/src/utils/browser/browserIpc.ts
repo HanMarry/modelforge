@@ -75,7 +75,10 @@ export function registerBrowserIpc({ getMainWindow }: BrowserIpcOptions): void {
     }
     return host.getState();
   });
-  ipcMain.handle('browser-mcp-endpoint', () => endpoint);
+  ipcMain.handle('browser-mcp-endpoint', async () => {
+    const value = await endpoint;
+    return value ? { url: value.url, token: value.token } : null;
+  });
   ipcMain.handle('browser-approval-respond', (_event, id: unknown, approved: unknown) => {
     if (typeof id !== 'string') return;
     const resolve = pendingApprovals.get(id);

@@ -172,7 +172,7 @@ test.describe('installed ModelForge (Windows smoke)', () => {
 
     await withApp(c, testInfo, 'wizard', {}, async (app) => {
       const { page } = app;
-      const shell = await waitForShell(page, 90_000);
+      const shell = await waitForShell(page, 90_000, 'wizard');
       expect(shell, 'the wizard is shown while no provider is configured').toBe('wizard');
       await dismissInterruptions(page);
 
@@ -312,7 +312,7 @@ test.describe('installed ModelForge (Windows smoke)', () => {
         await page.getByRole('button', { name: '完成', exact: true }).click();
       }
 
-      const after = await waitForShell(page, 60_000);
+      const after = await waitForShell(page, 60_000, 'main');
       await app.snap('wizard-done');
       expect(after, 'the main window follows the wizard').toBe('main');
     });
@@ -344,7 +344,7 @@ test.describe('installed ModelForge (Windows smoke)', () => {
     }
     await withApp(c, testInfo, 'restart', { env: kernelEnv(c), windowTimeoutMs: FIRST_SHELL_BUDGET_MS }, async (app) => {
       const remaining = Math.max(1_000, FIRST_SHELL_BUDGET_MS - (Date.now() - app.spawnedAt));
-      const shell = await waitForShell(app.page, remaining);
+      const shell = await waitForShell(app.page, remaining, 'main');
       annotate(testInfo, 'restart-shell', `${shell} after ${Date.now() - app.spawnedAt} ms`);
       expect(shell, 'after a restart the main window shows, not the wizard').toBe('main');
       const persisted = await app.page.evaluate(() =>
@@ -688,7 +688,7 @@ async function withProjectApp(
   body: (app: LaunchedApp) => Promise<void>
 ): Promise<void> {
   await withApp(c, testInfo, label, { env: kernelEnv(c) }, async (app) => {
-    const shell = await waitForShell(app.page, 90_000);
+    const shell = await waitForShell(app.page, 90_000, 'main');
     expect(shell, 'main window').toBe('main');
     await dismissInterruptions(app.page);
     const workingDir = await app.page.evaluate(() =>
