@@ -23,9 +23,15 @@
  * the stand-in profile (cn-profile-sim, passed through `profileEnv`). Each run checks that
  * Uninstall-ModelForge.ps1 saw the same folders as the harness.
  *
- * The dialogs are driven by scripts/Uninstall-ModelForge.ps1 (UI Automation by control id, so
- * the installer language does not matter). When UI Automation cannot reach them, the script
- * exits with code 3 and the test reports the prompt as unverified instead of passing.
+ * The dialogs are driven by scripts/Uninstall-ModelForge.ps1 with scripts/UninstallerDialogs.ps1:
+ * it presses the buttons of whatever window the uninstaller shows, in order. The one-click
+ * uninstaller first asks "Are you sure you want to uninstall ModelForge?" (OK, IDOK 1); the
+ * assisted one shows its wizard instead (Next / Uninstall / Finish, 1). Then the keep-data
+ * question of customUnInstall: Yes (IDYES 6) keeps the data, No (IDNO 7) removes it. Windows are
+ * recognised by their controls and buttons by their control id, so the installer language does
+ * not matter. Every press is in the result (`clicks`, `steps`); a timeout names the window the
+ * run was waiting at. When UI Automation cannot reach or press the windows, the script exits
+ * with code 3 and the test reports the prompt as unverified instead of passing.
  */
 import { expect, test, type TestInfo } from '@playwright/test';
 import fs from 'node:fs';
@@ -40,20 +46,62 @@ import {
   runHelper,
   smokeConfig,
   writeProjectFile,
+  type HelperResult,
   type SmokeConfig,
 } from './windows-smoke/harness';
 
 const cfg = smokeConfig();
 
+/** A window of the uninstaller as Uninstall-ModelForge.ps1 saw it. */
+interface UninstallWindow {
+  /**
+   * confirm (OK/Cancel box), keep-data-question (Yes/No box), wizard (NSIS page), unexpected
+   * (another box) or other (neither a box nor a wizard page).
+   */
+  role: string;
+  /** Window handle; a new window (or wizard page) has a new one. */
+  hwnd: number;
+  title: string;
+  process: string;
+  pid: number;
+  /** "<control id> '<label>'" for each button, comma-separated. */
+  buttons: string;
+  text: string;
+}
+
+/** One button press. */
+interface UninstallStep extends UninstallWindow {
+  /** Seconds since the uninstaller was started. */
+  at: number;
+  /** Control id of the pressed button (1 OK / Next, 6 Yes, 7 No). */
+  pressed: number;
+  label: string;
+  method: string;
+  /** 1 for the first press of this button in this window, more when it was pressed again. */
+  attempt: number;
+}
+
 interface UninstallResult {
   ok: boolean;
   mode: 'Silent' | 'Keep' | 'Remove';
   uiaAvailable: boolean;
+  /** finished | timeout | no-window | unexpected-dialog | no-reaction | cannot-click */
+  outcome: string;
+  /** one-click (OK/Cancel confirmation first) | assisted (NSIS wizard) | '' */
+  flow: string;
+  confirmSeen: boolean;
+  confirmText: string;
   promptSeen: boolean;
   promptText: string;
   answered: string;
   dialogs: string[];
   clicks: string[];
+  steps: UninstallStep[];
+  /** Uninstaller windows open when the run ended (the one it was stuck at, after a timeout). */
+  openWindows: UninstallWindow[];
+  uiaErrors: string[];
+  leftoverUninstallers: string[];
+  killedUninstallers: string[];
   screenshots: string[];
   installDirExists: boolean;
   exePresent: boolean;
@@ -99,7 +147,7 @@ test.describe('installed ModelForge: uninstall options (7.10)', () => {
     const before = prepareData(c, testInfo, projectDir, 'silent');
 
     const run = await uninstall(c, testInfo, 'Silent');
-    expect(run.exitCode, run.output.slice(-4_000)).toBe(0);
+    expectFinished(run);
     expectProgramRemoved(run.result);
     expectSameProfile(c, run.result);
     expect(run.result?.promptSeen, 'a silent uninstall asks nothing').toBe(false);
@@ -115,7 +163,7 @@ test.describe('installed ModelForge: uninstall options (7.10)', () => {
 
     const run = await uninstall(c, testInfo, 'Keep');
     skipIfUiaUnavailable(run.exitCode, testInfo);
-    expect(run.exitCode, run.output.slice(-4_000)).toBe(0);
+    expectFinished(run);
     expectPrompt(run.result, 'yes');
     expectProgramRemoved(run.result);
     expectSameProfile(c, run.result);
@@ -135,7 +183,7 @@ test.describe('installed ModelForge: uninstall options (7.10)', () => {
 
     const run = await uninstall(c, testInfo, 'Remove');
     skipIfUiaUnavailable(run.exitCode, testInfo);
-    expect(run.exitCode, run.output.slice(-4_000)).toBe(0);
+    expectFinished(run);
     expectPrompt(run.result, 'no');
     expectProgramRemoved(run.result);
     expectSameProfile(c, run.result);
@@ -303,17 +351,62 @@ function skipIfUiaUnavailable(exitCode: number | null, testInfo: TestInfo): void
     annotate(
       testInfo,
       'unverified',
-      'UI Automation could not reach the uninstaller dialogs; the keep/remove prompt is not verified on this runner'
+      'UI Automation could not reach or press the uninstaller dialogs; the keep/remove prompt is not verified on this runner'
     );
   }
   expect(exitCode, 'UI Automation reached the uninstaller dialogs').not.toBe(EXIT_UIA_UNAVAILABLE);
 }
 
+/** The run for messages: outcome, flow, the presses in order and the windows still open. */
+function describeRun(result: UninstallResult | null): string {
+  if (!result) {
+    return 'no result file';
+  }
+  const lines = [
+    `outcome ${result.outcome || '-'}, flow ${result.flow || '-'}, clicks: ${(result.clicks ?? []).join(' -> ') || 'none'}`,
+    ...(result.openWindows ?? []).map(
+      (window) => `still open: ${window.role} '${window.title}' (${window.process} ${window.pid}) [${window.buttons}] ${window.text}`
+    ),
+  ];
+  return lines.join('\n');
+}
+
+/** The script finished; otherwise its error (where it stopped, what it pressed) comes first. */
+function expectFinished(run: HelperResult<UninstallResult>): void {
+  const detail = [run.result?.error ? `error: ${run.result.error}` : '', describeRun(run.result), run.output.slice(-3_000)]
+    .filter(Boolean)
+    .join('\n');
+  expect(run.exitCode, detail).toBe(0);
+}
+
+/**
+ * The keep-data question of build/installer.nsh was asked once and answered with the right
+ * button: Yes (IDYES 6) keeps, No (IDNO 7) removes. A confirmation box before it (one-click
+ * uninstaller) was accepted with OK (IDOK 1).
+ */
 function expectPrompt(result: UninstallResult | null, answer: 'yes' | 'no'): void {
-  expect(result?.promptSeen, 'the uninstaller asked whether to keep the data').toBe(true);
+  const run = describeRun(result);
+  expect(result?.promptSeen, `the uninstaller asked whether to keep the data\n${run}`).toBe(true);
   expect(result?.promptText ?? '', 'the question is the one from build/installer.nsh').toContain('是否保留');
   expect(result?.promptText ?? '', 'the question says Projects are never deleted').toContain('项目文件夹');
   expect(result?.answered).toBe(answer);
+
+  const steps = result?.steps ?? [];
+  const answers = steps.filter((step) => step.role === 'keep-data-question');
+  const expected = answer === 'yes' ? 6 : 7;
+  expect(
+    [...new Set(answers.map((step) => step.pressed))],
+    `answered with ${answer === 'yes' ? 'Yes (6): keep' : 'No (7): remove'}\n${run}`
+  ).toEqual([expected]);
+  // Presses repeated on the same box share its window handle.
+  expect(new Set(answers.map((step) => step.hwnd)).size, `the question was asked once\n${run}`).toBe(1);
+  const firstAnswer = steps.indexOf(answers[0]);
+  for (const [index, step] of steps.entries()) {
+    if (step.role === 'confirm') {
+      expect(step.pressed, `the confirmation "${step.text}" was accepted with OK (1)`).toBe(1);
+      expect(index, `the confirmation came before the question\n${run}`).toBeLessThan(firstAnswer);
+    }
+  }
 }
 
 function expectProgramRemoved(result: UninstallResult | null): void {
