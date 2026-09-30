@@ -1,10 +1,20 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useModelAndProvider } from '../ModelAndProviderContext';
-import { acpListProviderDetails, acpReadDefaults } from '../../acp/providers';
+import { acpReadConfig } from '../../acp/config';
+import {
+  acpListProviderDetails,
+  acpListProviderSecrets,
+  acpReadDefaults,
+} from '../../acp/providers';
 import { ModelForgeMark } from '../icons/ModelForge';
 import { Button } from '../ui/button';
 import OnboardingWizard from './OnboardingWizard';
+import {
+  hasConfiguredProviderEntry,
+  hasStoredCredential,
+  isConfiguredByUser,
+} from './userConfiguredProviders';
 import { defineMessages, useIntl } from '../../i18n';
 import type { OnboardingState } from '../../utils/settings';
 
@@ -36,7 +46,21 @@ interface OnboardingGuardProps {
 }
 
 /**
- * First-boot gate (requirement 5.1): when no provider is configured and there is no
+ * Whether the kernel holds a provider key or sign-in token. Listing them reads the kernel's
+ * secret store; the other checks have reached the kernel by then, so a store that cannot be read
+ * counts as holding none rather than keeping the app on the connection error.
+ */
+async function hasStoredProviderCredential(): Promise<boolean> {
+  try {
+    return hasStoredCredential(await acpListProviderSecrets());
+  } catch (error) {
+    console.warn('Could not list provider credentials:', error);
+    return false;
+  }
+}
+
+/**
+ * First-boot gate (requirement 5.1): when the user has not set up a provider and there is no
  * "completed" record, the four-step wizard renders instead of the app. Skipped steps are
  * later offered as "补做" entries from the diagnostics centre.
  */
@@ -49,42 +73,40 @@ export default function OnboardingGuard({ children }: OnboardingGuardProps) {
   const [showWizard, setShowWizard] = useState(false);
   const [checkProviderError, setCheckProviderError] = useState(false);
 
+  /**
+   * Whether the user has set up a model provider. What a clean machine already reports does not
+   * count: the inventory marks several providers as configured before the user did anything
+   * (see userConfiguredProviders.ts).
+   */
+  const hasProviderSetUp = async (): Promise<boolean> => {
+    // The default provider: `active_provider` or `GOOSE_PROVIDER`, in config.yaml or the
+    // environment (the check the previous onboarding flow used).
+    const { providerId } = await acpReadDefaults();
+    if (providerId?.trim()) {
+      return true;
+    }
+    if (hasConfiguredProviderEntry(await acpReadConfig('providers'))) {
+      return true;
+    }
+    const providers = await acpListProviderDetails();
+    if (providers.some(isConfiguredByUser)) {
+      return true;
+    }
+    if (await hasStoredProviderCredential()) {
+      return true;
+    }
+    // A distribution may bundle a default provider (GOOSE_DEFAULT_PROVIDER).
+    const fallback = await getFallbackModelAndProvider();
+    return !!fallback.provider?.trim();
+  };
+
   const checkProvider = async () => {
     setIsCheckingProvider(true);
     setCheckProviderError(false);
     try {
       const onboarding = (await window.electron.getSetting('onboarding')) as OnboardingState | null;
-      if (onboarding?.completed) {
-        setShowWizard(false);
-        setIsCheckingProvider(false);
-        return;
-      }
-
-      const providers = await acpListProviderDetails();
-      const configured = providers.filter((provider) => provider.is_configured);
-      if (configured.length > 0) {
-        setShowWizard(false);
-        setIsCheckingProvider(false);
-        return;
-      }
-
-      // Fall back to the default provider, which covers providers configured outside the
-      // inventory (the same check the previous onboarding flow used).
-      const { providerId } = await acpReadDefaults();
-      if (providerId?.trim()) {
-        setShowWizard(false);
-        setIsCheckingProvider(false);
-        return;
-      }
-
-      const fallback = await getFallbackModelAndProvider();
-      if (fallback.provider?.trim()) {
-        setShowWizard(false);
-        setIsCheckingProvider(false);
-        return;
-      }
-
-      setShowWizard(true);
+      const setUp = onboarding?.completed || (await hasProviderSetUp());
+      setShowWizard(!setUp);
       setIsCheckingProvider(false);
     } catch (error) {
       console.error('Error checking provider:', error);

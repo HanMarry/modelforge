@@ -69,6 +69,13 @@ vi.mock('./acp/providers', () => ({
   acpReadDefaults: vi.fn().mockResolvedValue({ providerId: null, modelId: null }),
   acpSaveDefaults: vi.fn().mockResolvedValue(undefined),
   acpListProviderDetails: vi.fn().mockResolvedValue([]),
+  acpListProviderSecrets: vi.fn().mockResolvedValue([]),
+}));
+
+// OnboardingGuard also reads the `providers` block of config.yaml; there is none yet.
+vi.mock('./acp/config', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./acp/config')>()),
+  acpReadConfig: vi.fn().mockResolvedValue(null),
 }));
 
 // Mock the ConfigContext module
