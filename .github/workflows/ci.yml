@@ -111,9 +111,18 @@ jobs:
           sudo apt install -y libdbus-1-dev gnome-keyring libxcb1-dev
 
       - name: Build and Test
+        # A healthy run takes 15-20 minutes. Some runs used to end after about 50 with "The hosted
+        # runner lost communication with the server" and no log; the time limit and the watchdog
+        # (see its header) make such a run fail with a log that names the cause.
+        timeout-minutes: 40
         run: |
           gnome-keyring-daemon --components=secrets --daemonize --unlock <<< 'foobar'
           export CARGO_INCREMENTAL=0
+          bash ../.github/scripts/memory-watchdog.sh &
+          watchdog=$!
+          trap 'kill "$watchdog" 2>/dev/null || true' EXIT
+          free -m
+          df -h /
           cargo test --locked -- --skip scenario_tests::scenarios::tests
           cargo test --locked --jobs 1 scenario_tests::scenarios::tests
         working-directory: crates
