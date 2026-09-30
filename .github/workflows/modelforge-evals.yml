@@ -187,7 +187,11 @@ jobs:
           import os, sys
           key = os.environ.get("DEEPSEEK_API_KEY", "").encode()
           hits = []
-          if key:
+          if not key:
+              # Nothing to match against, so the artifact is not scanned. Never print the count
+              # line here: an unscanned artifact must not look like a clean one.
+              print("::warning::DEEPSEEK_API_KEY is empty, so the artifact was NOT scanned for it")
+          else:
               for root, _dirs, files in os.walk(sys.argv[1]):
                   for name in files:
                       path = os.path.join(root, name)
@@ -200,9 +204,9 @@ jobs:
                           with open(path, "wb") as f:
                               f.write(data.replace(key, b"*" * len(key)))
                           hits.append(os.path.relpath(path, sys.argv[1]))
-          for hit in hits:
-              print(f"::warning::the API key appeared in {hit}; overwritten")
-          print(f"{len(hits)} file(s) contained the API key")
+              for hit in hits:
+                  print(f"::warning::the API key appeared in {hit}; overwritten")
+              print(f"{len(hits)} file(s) contained the API key")
           PY
 
       - name: Summary
