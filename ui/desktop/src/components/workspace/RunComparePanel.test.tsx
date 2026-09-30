@@ -12,7 +12,7 @@ import type { RunRecord } from '../../types/runRecord';
 import RunComparePanel from './RunComparePanel';
 
 const mocks = vi.hoisted(() => ({ send: vi.fn() }));
-vi.mock('../../utils/compare/sendCompareTask', () => ({ sendCompareTask: mocks.send }));
+vi.mock('../../utils/sendSessionTask', () => ({ sendSessionTask: mocks.send }));
 
 const RUN_A = '20260920T101530123-aaaaaa';
 const RUN_B = '20260921T090000000-bbbbbb';
@@ -343,8 +343,9 @@ describe('RunComparePanel comparison paragraph (requirement 21.3, 21.6)', () => 
       await screen.findByText('The comparison paragraph is in the current chat.')
     ).toBeVisible();
     expect(mocks.send).toHaveBeenCalledTimes(1);
-    const [sessionId, task] = mocks.send.mock.calls[0];
+    const [sessionId, task, timeoutMs] = mocks.send.mock.calls[0];
     expect(sessionId).toBe('session-1');
+    expect(timeoutMs).toBe(120_000);
     expect(task).toContain(`"${RUN_A}"`);
     expect(task).toContain(`"${RUN_B}"`);
     expect(task).toContain('"population" = 200');

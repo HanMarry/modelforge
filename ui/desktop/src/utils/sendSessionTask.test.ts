@@ -1,7 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ChatState } from '../../types/chatState';
-import type { Message } from '../../types/message';
-import { sendCompareTask } from './sendCompareTask';
+import { ChatState } from '../types/chatState';
+import type { Message } from '../types/message';
+import {
+  isSameDirectory,
+  kernelUnavailableReason,
+  sendSessionTask,
+  sessionTaskTarget,
+} from './sendSessionTask';
 
 const mocks = vi.hoisted(() => ({
   recovering: vi.fn(() => false),
@@ -12,20 +17,21 @@ const mocks = vi.hoisted(() => ({
   kernelStatus: vi.fn(),
 }));
 
-vi.mock('../../acp/acpConnection', () => ({ isAcpRecovering: mocks.recovering }));
-vi.mock('../../acp/chatSessionController', () => ({
+vi.mock('../acp/acpConnection', () => ({ isAcpRecovering: mocks.recovering }));
+vi.mock('../acp/chatSessionController', () => ({
   acpChatSessionController: { submitMessage: mocks.submitMessage, stop: mocks.stop },
 }));
-vi.mock('../../acp/chatSessionStore', () => ({
+vi.mock('../acp/chatSessionStore', () => ({
   acpChatSessionStore: { getSnapshot: mocks.getSnapshot },
   acpChatSessionActions: { setMessages: mocks.setMessages },
 }));
 
 const originalElectron = window.electron;
+const TIMEOUT_MS = 120_000;
 
 function snapshot(overrides: Record<string, unknown> = {}) {
   return {
-    session: { id: 'session-1' },
+    session: { id: 'session-1', working_dir: '/project' },
     messages: [],
     chatState: ChatState.Idle,
     sessionLoadError: undefined,
@@ -52,7 +58,7 @@ afterEach(() => {
   window.electron = originalElectron;
 });
 
-describe('sendCompareTask', () => {
+describe('sendSessionTask', () => {
   it('appends the task to the session and resolves when the turn finishes', async () => {
     const earlier = { id: 'earlier', role: 'user', content: [] };
     mocks.getSnapshot.mockReturnValue(snapshot({ messages: [earlier] }));
@@ -60,9 +66,9 @@ describe('sendCompareTask', () => {
       async (_sessionId: string, _message: Message, options: SubmitOptions) => options.onFinish()
     );
 
-    await expect(sendCompareTask('session-1', 'write the paragraph')).resolves.toEqual({
-      ok: true,
-    });
+    await expect(sendSessionTask('session-1', 'write the paragraph', TIMEOUT_MS)).resolves.toEqual(
+      { ok: true }
+    );
 
     const [sessionId, message] = mocks.submitMessage.mock.calls[0];
     expect(sessionId).toBe('session-1');
@@ -75,7 +81,7 @@ describe('sendCompareTask', () => {
   it('reports the Kernel as unavailable without sending', async () => {
     mocks.kernelStatus.mockResolvedValue({ error: 'shim failed to start' });
 
-    await expect(sendCompareTask('session-1', 'task')).resolves.toEqual({
+    await expect(sendSessionTask('session-1', 'task', TIMEOUT_MS)).resolves.toEqual({
       ok: false,
       reason: 'kernelUnavailable',
       detail: 'shim failed to start',
@@ -86,7 +92,7 @@ describe('sendCompareTask', () => {
 
   it('reports the Kernel as unavailable while reconnecting or when the session is not loaded', async () => {
     mocks.recovering.mockReturnValueOnce(true);
-    await expect(sendCompareTask('session-1', 'task')).resolves.toMatchObject({
+    await expect(sendSessionTask('session-1', 'task', TIMEOUT_MS)).resolves.toMatchObject({
       ok: false,
       reason: 'kernelUnavailable',
     });
@@ -94,7 +100,7 @@ describe('sendCompareTask', () => {
     mocks.getSnapshot.mockReturnValue(
       snapshot({ session: undefined, sessionLoadError: 'connection refused' })
     );
-    await expect(sendCompareTask('session-1', 'task')).resolves.toEqual({
+    await expect(sendSessionTask('session-1', 'task', TIMEOUT_MS)).resolves.toEqual({
       ok: false,
       reason: 'kernelUnavailable',
       detail: 'connection refused',
@@ -105,7 +111,7 @@ describe('sendCompareTask', () => {
   it('does not send while the session is running a turn', async () => {
     mocks.getSnapshot.mockReturnValue(snapshot({ chatState: ChatState.Streaming }));
 
-    await expect(sendCompareTask('session-1', 'task')).resolves.toMatchObject({
+    await expect(sendSessionTask('session-1', 'task', TIMEOUT_MS)).resolves.toMatchObject({
       ok: false,
       reason: 'busy',
     });
@@ -118,21 +124,21 @@ describe('sendCompareTask', () => {
       async (_sessionId: string, _message: Message, options: SubmitOptions) =>
         options.onFinish('model overloaded')
     );
-    await expect(sendCompareTask('session-1', 'task')).resolves.toEqual({
+    await expect(sendSessionTask('session-1', 'task', TIMEOUT_MS)).resolves.toEqual({
       ok: false,
       reason: 'kernelError',
       detail: 'model overloaded',
     });
 
     mocks.submitMessage.mockRejectedValueOnce(new Error('socket closed'));
-    await expect(sendCompareTask('session-1', 'task')).resolves.toEqual({
+    await expect(sendSessionTask('session-1', 'task', TIMEOUT_MS)).resolves.toEqual({
       ok: false,
       reason: 'kernelError',
       detail: 'socket closed',
     });
 
     mocks.submitMessage.mockResolvedValueOnce(undefined);
-    await expect(sendCompareTask('session-1', 'task')).resolves.toMatchObject({
+    await expect(sendSessionTask('session-1', 'task', TIMEOUT_MS)).resolves.toMatchObject({
       ok: false,
       reason: 'kernelError',
     });
@@ -159,18 +165,18 @@ describe('sendCompareTask', () => {
       }
     );
 
-    await expect(sendCompareTask('session-1', 'task')).resolves.toEqual({
+    await expect(sendSessionTask('session-1', 'task', TIMEOUT_MS)).resolves.toEqual({
       ok: false,
       reason: 'kernelError',
       detail: 'Out of credits',
     });
   });
 
-  it('times out after 120 seconds and stops the turn', async () => {
+  it('times out after the given time and stops the turn', async () => {
     vi.useFakeTimers();
     mocks.submitMessage.mockReturnValueOnce(new Promise(() => {}));
     let outcome: unknown;
-    const pending = sendCompareTask('session-1', 'task').then((value) => {
+    const pending = sendSessionTask('session-1', 'task', TIMEOUT_MS).then((value) => {
       outcome = value;
     });
 
@@ -186,5 +192,57 @@ describe('sendCompareTask', () => {
       detail: 'no result within 120 seconds',
     });
     expect(mocks.stop).toHaveBeenCalledWith('session-1');
+  });
+});
+
+describe('kernelUnavailableReason', () => {
+  it('passes the status error on and treats a failing status query as available', async () => {
+    mocks.kernelStatus.mockResolvedValueOnce({ error: 'not started' });
+    await expect(kernelUnavailableReason()).resolves.toBe('not started');
+
+    mocks.kernelStatus.mockRejectedValueOnce(new Error('ipc closed'));
+    await expect(kernelUnavailableReason()).resolves.toBeNull();
+
+    mocks.recovering.mockReturnValueOnce(true);
+    await expect(kernelUnavailableReason()).resolves.toBe('reconnecting to the Kernel');
+  });
+});
+
+describe('sessionTaskTarget', () => {
+  it('returns the session when it is in the store and works in the directory', () => {
+    expect(sessionTaskTarget('session-1', '/project')).toBe('session-1');
+    expect(mocks.getSnapshot).toHaveBeenCalledWith('session-1');
+  });
+
+  it('returns null without a session id or when the store does not hold the session', () => {
+    expect(sessionTaskTarget('', '/project')).toBeNull();
+    expect(sessionTaskTarget(null, '/project')).toBeNull();
+    expect(mocks.getSnapshot).not.toHaveBeenCalled();
+
+    mocks.getSnapshot.mockReturnValue(undefined);
+    expect(sessionTaskTarget('session-1', '/project')).toBeNull();
+  });
+
+  it('returns null when the session works in another directory', () => {
+    expect(sessionTaskTarget('session-1', '/other-project')).toBeNull();
+  });
+
+  it('keeps a session whose metadata is not loaded yet, so sending reports why', () => {
+    mocks.getSnapshot.mockReturnValue(snapshot({ session: undefined }));
+    expect(sessionTaskTarget('session-1', '/project')).toBe('session-1');
+  });
+});
+
+describe('isSameDirectory', () => {
+  it('ignores separators, repeated and trailing slashes', () => {
+    expect(isSameDirectory('/home/me/project/', '/home/me//project')).toBe(true);
+    expect(isSameDirectory('C:\\Users\\me\\建模\\', 'C:/Users/me/建模')).toBe(true);
+    expect(isSameDirectory('/', '/')).toBe(true);
+  });
+
+  it('ignores case only for Windows drive paths', () => {
+    expect(isSameDirectory('c:\\Users\\Me\\Project', 'C:\\users\\me\\project')).toBe(true);
+    expect(isSameDirectory('/home/Me/project', '/home/me/project')).toBe(false);
+    expect(isSameDirectory('/home/me/project', '/home/me/project-2')).toBe(false);
   });
 });

@@ -1499,20 +1499,38 @@
   "customProviderForm.valuePlaceholder": {
     "defaultMessage": "值"
   },
+  "datasets.descriptionBusy": {
+    "defaultMessage": "当前对话仍在执行，{path} 的任务未发送，完成后再试。"
+  },
+  "datasets.descriptionDone": {
+    "defaultMessage": "{path} 的数据说明已生成，见当前对话。"
+  },
+  "datasets.descriptionKernelError": {
+    "defaultMessage": "{path} 的数据说明生成失败：发送失败或内核返回错误。"
+  },
+  "datasets.descriptionKernelUnavailable": {
+    "defaultMessage": "{path} 的任务未发送：内核不可用。"
+  },
+  "datasets.descriptionRunning": {
+    "defaultMessage": "正在当前对话中生成 {path} 的数据说明，最长等待 {minutes} 分钟…"
+  },
+  "datasets.descriptionTimeout": {
+    "defaultMessage": "{path} 的数据说明生成失败：内核在 {minutes} 分钟内未完成。"
+  },
   "datasets.empty": {
     "defaultMessage": "当前项目没有可预览的数据文件"
   },
   "datasets.emptyFormats": {
     "defaultMessage": "支持 .csv、.xlsx、.json、.parquet"
   },
+  "datasets.errorDetail": {
+    "defaultMessage": "详情：{detail}"
+  },
   "datasets.fields": {
     "defaultMessage": "字段"
   },
   "datasets.generateDescription": {
     "defaultMessage": "生成数据说明"
-  },
-  "datasets.kernelUnavailable": {
-    "defaultMessage": "内核未运行，请先启动内核"
   },
   "datasets.missing": {
     "defaultMessage": "缺失"
@@ -1523,6 +1541,9 @@
   "datasets.noFileSelected": {
     "defaultMessage": "选择数据文件后生成数据说明"
   },
+  "datasets.openChat": {
+    "defaultMessage": "打开对话"
+  },
   "datasets.openExternally": {
     "defaultMessage": "用外部程序打开"
   },
@@ -1531,6 +1552,9 @@
   },
   "datasets.preview": {
     "defaultMessage": "预览（前 {count} 行）"
+  },
+  "datasets.retry": {
+    "defaultMessage": "重试"
   },
   "datasets.rows": {
     "defaultMessage": "总行数"

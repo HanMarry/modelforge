@@ -19,7 +19,7 @@ import {
   formatRunTimestamp,
   runDurationSeconds,
 } from '../../utils/compare/compareTask';
-import type { CompareTaskReason } from '../../utils/compare/sendCompareTask';
+import type { SessionTaskReason } from '../../utils/sendSessionTask';
 import { COMPARE_MISSING } from '../../utils/runCompare';
 import type { WorkspaceFeaturePanelProps } from './featurePanelProps';
 
@@ -179,7 +179,7 @@ type GenerationState =
   | { status: 'running' }
   | { status: 'done' }
   | { status: 'composed' }
-  | { status: 'failed'; reason: CompareTaskReason; detail: string };
+  | { status: 'failed'; reason: SessionTaskReason; detail: string };
 
 interface Selection {
   projectDir: string;
@@ -320,8 +320,8 @@ export default function RunComparePanel({
     let next: GenerationState;
     try {
       // Loaded on demand so the workspace panel does not pull the ACP client into its imports.
-      const { sendCompareTask } = await import('../../utils/compare/sendCompareTask');
-      const outcome = await sendCompareTask(sessionId, task);
+      const { sendSessionTask } = await import('../../utils/sendSessionTask');
+      const outcome = await sendSessionTask(sessionId, task, COMPARE_TASK_TIMEOUT_SECONDS * 1000);
       next = outcome.ok
         ? { status: 'done' }
         : { status: 'failed', reason: outcome.reason, detail: outcome.detail };
