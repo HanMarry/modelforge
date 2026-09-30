@@ -135,7 +135,7 @@ const systemFs: CheckpointFs = {
 };
 
 /** Expected location of the MinGit binary shipped by the packaging task. */
-function bundledGitCandidates(): string[] {
+export function bundledGitCandidates(): string[] {
   const candidates: string[] = [];
   if (typeof process !== 'undefined' && process.resourcesPath) {
     candidates.push(path.join(process.resourcesPath, 'bin', 'mingit', 'cmd', 'git.exe'));

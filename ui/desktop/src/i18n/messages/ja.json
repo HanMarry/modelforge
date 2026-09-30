@@ -1853,6 +1853,9 @@
   "environmentPanel.workingDir": {
     "defaultMessage": "Working directory"
   },
+  "environmentPanelProbe.timedOut": {
+    "defaultMessage": "タイムアウト"
+  },
   "errorBoundary.errorGeneric": {
     "defaultMessage": "エラーが発生しました。"
   },

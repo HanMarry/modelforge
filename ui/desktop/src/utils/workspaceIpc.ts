@@ -2,6 +2,8 @@ import { execFile } from 'child_process';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { ipcMain, shell } from 'electron';
+import { bundledGitCandidates } from './checkpoints/checkpointService';
+import { environmentProbeSpecs, runProbes } from './environmentProbe';
 import { scanProject } from './projectInventory';
 import type {
   EnvironmentProbe,
@@ -26,59 +28,16 @@ const SKIPPED_TREE_ENTRIES = new Set([
 const MAX_PREVIEW_BYTES = 2 * 1024 * 1024;
 const BINARY_SAMPLE_BYTES = 4096;
 
-const versionCommand = (command: string, args: string[]): Promise<string | null> =>
-  new Promise((resolve) => {
-    execFile(command, args, { timeout: 8000, windowsHide: true }, (error, stdout) => {
-      if (error) {
-        resolve(null);
-        return;
-      }
-      const line = stdout.trim().split('\n')[0]?.trim() ?? '';
-      resolve(line || null);
-    });
-  });
-
-export interface EnvironmentProbeCommand {
-  id: string;
-  label: string;
-  command: string;
-  args: string[];
-}
-
-/** The probes the workspace environment panel and the diagnostics centre both run. */
-export const ENVIRONMENT_PROBES: readonly EnvironmentProbeCommand[] = [
-  { id: 'uv', label: 'uv', command: 'uv', args: ['--version'] },
-  { id: 'python', label: 'Python', command: 'python', args: ['--version'] },
-  { id: 'git', label: 'Git', command: 'git', args: ['--version'] },
-  { id: 'node', label: 'Node.js', command: 'node', args: ['--version'] },
-  { id: 'pwsh', label: 'PowerShell', command: 'pwsh', args: ['--version'] },
-  { id: 'latexmk', label: 'latexmk', command: 'latexmk', args: ['--version'] },
-  { id: 'xelatex', label: 'XeLaTeX', command: 'xelatex', args: ['--version'] },
-  { id: 'typst', label: 'Typst', command: 'typst', args: ['--version'] },
-  { id: 'pandoc', label: 'Pandoc', command: 'pandoc', args: ['--version'] },
-];
-
-/** Runs a subset of the environment probes (or all of them), returning one result each. */
-export async function probeCommands(
-  probes: readonly EnvironmentProbeCommand[]
-): Promise<EnvironmentProbe[]> {
-  return Promise.all(
-    probes.map(async (probe) => {
-      const version = await versionCommand(probe.command, probe.args);
-      return {
-        id: probe.id,
-        label: probe.label,
-        command: probe.command,
-        version,
-        available: version !== null,
-      };
-    })
-  );
-}
-
-/** Runs every environment probe the desktop app knows about. */
+/**
+ * Runs every environment probe the desktop app knows about (the workspace environment panel,
+ * the first-run wizard and the diagnostics centre), on the PATH the app process has, which
+ * includes the uv shims directory `ensureWinShims` prepends. Git also counts when only the
+ * bundled MinGit is there, since automatic snapshots use it.
+ */
 export function runEnvironmentProbes(): Promise<EnvironmentProbe[]> {
-  return probeCommands(ENVIRONMENT_PROBES);
+  const context = { env: process.env, platform: process.platform };
+  const bundledGit = process.platform === 'win32' ? bundledGitCandidates() : [];
+  return runProbes(environmentProbeSpecs({ ...context, bundledGit }), context);
 }
 
 async function listDirectory(dirPath: string, showHidden: boolean): Promise<WorkspaceEntry[]> {
