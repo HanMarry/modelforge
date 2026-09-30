@@ -1,132 +1,470 @@
 name: "ModelForge Windows smoke"
 
-# Clean-machine smoke test of the NSIS installer (spec requirement 7.2-7.4, 7.6, 7.10).
-# Runs after the packaging workflow publishes its installer artifact, and can also be
-# triggered by hand. The installed app must run without Rust, Node or a global ACP adapter:
-# the CI machine installs Node + Playwright only to drive the harness, and Python + Typst are
-# pre-installed because the app detects them as optional external runtimes (7.3).
+# Smoke test of the INSTALLED Windows build on a clean machine (spec mathmodel-parity-and-beyond,
+# task 13.6; requirements 7.2-7.5 and 7.10). Specs: ui/desktop/tests/e2e/windows-installed-*.spec.ts;
+# harness, model stub, PowerShell helpers and summary script: ui/desktop/tests/e2e/windows-smoke/.
+#
+# Where the installer comes from, and in which order things run
+#   This workflow does not build anything. It tests the `ModelForge-win32-x64-setup` artifact of a
+#   successful "Package ModelForge (Windows)" run (package-windows.yml), so packaging comes first:
+#     - automatically: package-windows.yml succeeds on `modelforge` (push) -> workflow_run starts
+#       this workflow. GitHub then uses the copy of this file on the default branch and the specs
+#       of the packaged commit.
+#     - by hand, on any branch:
+#         gh workflow run package-windows.yml --ref <branch>
+#         gh run watch <package run id>
+#         gh workflow run modelforge-windows-smoke.yml --ref <branch> [-f package_run_id=<id>] [-f wizard_strict=true]
+#       Without package_run_id the newest successful package run of <branch> is used. The specs
+#       come from <branch>, so they can be changed and rerun against an existing installer
+#       without packaging again (the summary warns when the two commits differ).
+#
+# Machine under test vs. test runner
+#   - Machine under test (what the installed app can reach): the app is started with a PATH of the
+#     Windows system directories plus Python (setup-python) and Typst (pinned zip) only. The runner
+#     image's Rust (rustup/cargo in the runner profile) and Node (Program Files\nodejs) are moved
+#     away first, and no ACP adapter (codex-acp, claude-code-acp, ...) may be installed globally.
+#     The first spec checks the app's PATH for all of these.
+#   - Test runner: Node from setup-node plus @playwright/test, installed in $RUNNER_TEMP\mf-harness
+#     outside the checkout. Only Playwright, the loopback model stub and the summary script use it;
+#     its directory is never on the app's PATH.
+#
+# Scenarios (one Playwright run each; results in $RUNNER_TEMP\mf-results\<scenario>)
+#   primary         install to a directory with Chinese characters and a space; main spec (7.2-7.4)
+#   upgrade         reinstall over it: configuration, sessions, Projects and keys are kept (7.5)
+#   uninstall       silent / keep / remove through the uninstaller and its dialogs (7.10)
+#   cn-user         new local user whose profile path has Chinese characters and a space,
+#                   per-user install at the default location; main spec (7.4)
+#   cn-profile-sim  only when no process can run as that user: stand-in profile directory
 on:
   workflow_dispatch:
+    inputs:
+      package_run_id:
+        description: 'Run id of a successful "Package ModelForge (Windows)" run (empty: newest successful run of this branch)'
+        required: false
+        default: ''
+        type: string
+      wizard_strict:
+        description: 'Hard assertions for onboarding wizard step 2 (MODELFORGE_SMOKE_WIZARD_STRICT=1); use once the fix is merged'
+        required: false
+        default: false
+        type: boolean
   workflow_run:
     workflows: ["Package ModelForge (Windows)"]
     types: [completed]
+    branches: [modelforge]
 
 permissions:
   contents: read
+  # Reading the packaging run and downloading its artifact.
   actions: read
+
+concurrency:
+  group: modelforge-windows-smoke-${{ github.event.workflow_run.head_branch || github.ref_name }}
+  cancel-in-progress: false
 
 jobs:
   smoke:
     name: Install and smoke (Windows)
     runs-on: windows-latest
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-
-      - name: Download installer artifact
-        uses: dawidd6/action-download-artifact@0e4a0b58eb254ab8e6f35d882e25936db69b163f  # v9.0.1
-        with:
-          workflow: package-windows.yml
-          name: ModelForge-win32-x64-setup
-          if_no_artifact_found: fail
-          allow_forks: false
-
-      - name: Locate installer
-        id: installer
+    if: >-
+      ${{ github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_repository.full_name == github.repository) }}
+    timeout-minutes: 210
+    defaults:
+      run:
         shell: pwsh
+    env:
+      TYPST_VERSION: '0.15.1'
+      TYPST_SHA256: '19ce3551153c2fe7ee9fa2f95208310c8f4d3209fedb699e0333faf8913f6736'
+      MODELFORGE_STUB_PORT: '47372'
+      MODELFORGE_SMOKE_LOCALE: zh-CN
+      MODELFORGE_SMOKE_WIZARD_STRICT: ${{ github.event_name == 'workflow_dispatch' && inputs.wizard_strict && '1' || '0' }}
+      # Requirement 7.4: Chinese characters and a space in the install and profile paths.
+      SMOKE_INSTALL_DIR: 'C:\模型 工具\ModelForge'
+      SMOKE_USER_NAME: '模型 测试'
+      SMOKE_SIM_PROFILE: 'C:\Users\模型 模拟'
+      SMOKE_TEST_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+      CI: '1'
+      FORCE_COLOR: '0'
+    steps:
+      # ------------------------------------------------------------------ installer and specs
+      - name: Resolve the packaging run to test
+        id: package
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
+          RUN_ID_INPUT: ${{ inputs.package_run_id }}
+          WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
+          WORKFLOW_RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+          BRANCH: ${{ github.ref_name }}
         run: |
-          $exe = Get-ChildItem -Recurse -Filter '*.exe' | Where-Object { $_.Name -like '*Setup*' } | Select-Object -First 1
-          if (-not $exe) { throw 'NSIS installer (*Setup*.exe) not found in the downloaded artifact' }
-          "path=$($exe.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          $repo = $env:GITHUB_REPOSITORY
+          if ($env:EVENT_NAME -eq 'workflow_run') {
+            $id = $env:WORKFLOW_RUN_ID
+            $sha = $env:WORKFLOW_RUN_SHA
+          }
+          else {
+            if ($env:RUN_ID_INPUT) {
+              $id = $env:RUN_ID_INPUT.Trim()
+              if ($id -notmatch '^\d+$') { throw "package_run_id must be a run id (digits): $id" }
+            }
+            else {
+              $list = gh run list -R $repo --workflow package-windows.yml --branch $env:BRANCH --status success --limit 1 --json databaseId | ConvertFrom-Json
+              if ($LASTEXITCODE -ne 0 -or -not $list) {
+                throw "no successful package-windows.yml run on $($env:BRANCH); start one with: gh workflow run package-windows.yml --ref $($env:BRANCH)"
+              }
+              $id = [string]$list[0].databaseId
+            }
+            $run = gh run view $id -R $repo --json conclusion,headSha,headBranch,workflowName | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0 -or -not $run) { throw "cannot read run $id" }
+            if ($run.workflowName -ne 'Package ModelForge (Windows)') { throw "run $id belongs to '$($run.workflowName)', not to package-windows.yml" }
+            if ($run.conclusion -ne 'success') { throw "package run $id concluded '$($run.conclusion)'" }
+            $sha = $run.headSha
+            Write-Host "package run $id built $($run.headBranch) at $sha"
+          }
+          $url = "$($env:GITHUB_SERVER_URL)/$repo/actions/runs/$id"
+          "run_id=$id", "sha=$sha", "url=$url" | Add-Content -LiteralPath $env:GITHUB_OUTPUT -Encoding utf8
 
-      - name: Set up Node.js (Playwright harness only)
+      - name: Checkout the specs
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: ${{ env.SMOKE_TEST_SHA }}
+          persist-credentials: false
+
+      - name: Download the installer of the packaging run
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+        with:
+          name: ModelForge-win32-x64-setup
+          path: ${{ runner.temp }}\installer
+          run-id: ${{ steps.package.outputs.run_id }}
+          repository: ${{ github.repository }}
+          github-token: ${{ github.token }}
+
+      - name: Locate the installer and prepare directories
+        run: |
+          $installer = Get-ChildItem -LiteralPath (Join-Path $env:RUNNER_TEMP 'installer') -Recurse -File -Filter '*Setup*.exe' | Select-Object -First 1
+          if (-not $installer) { throw 'NSIS installer (*Setup*.exe) not found in the artifact' }
+          $hash = (Get-FileHash -LiteralPath $installer.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          Write-Host ("installer {0}, {1:N0} bytes, sha256 {2}" -f $installer.FullName, $installer.Length, $hash)
+          $results = Join-Path $env:RUNNER_TEMP 'mf-results'
+          $harness = Join-Path $env:RUNNER_TEMP 'mf-harness'
+          $tools = Join-Path $env:RUNNER_TEMP 'mf-tools'
+          foreach ($dir in @($results, $harness, $tools)) { New-Item -ItemType Directory -Force -Path $dir | Out-Null }
+          @(
+            "MODELFORGE_INSTALLER=$($installer.FullName)"
+            "SMOKE_INSTALLER=$($installer.FullName)"
+            "SMOKE_INSTALLER_DIR=$($installer.DirectoryName)"
+            "SMOKE_RESULTS=$results"
+            "SMOKE_HARNESS=$harness"
+            "SMOKE_TOOLS=$tools"
+            "SMOKE_SCRIPTS=$(Join-Path $harness 'tests\e2e\windows-smoke\scripts')"
+            "SMOKE_PS51=$(Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe')"
+          ) | Add-Content -LiteralPath $env:GITHUB_ENV -Encoding utf8
+
+      # ------------------------------------------------------------------ test runner (not on the app's PATH)
+      - name: Set up Node.js (test runner only)
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020  # v7.0.0
         with:
           node-version: 24.10.0
 
-      - name: Set up Python (external runtime the app detects)
+      - name: Install the Playwright harness outside the checkout
+        run: |
+          # Same Playwright as the desktop package (ui/pnpm-lock.yaml), pinned exactly.
+          $lock = Get-Content -LiteralPath ui/pnpm-lock.yaml -Raw
+          $match = [regex]::Match($lock, "(?m)^  '@playwright/test@([0-9]+\.[0-9]+\.[0-9]+)':")
+          if (-not $match.Success) { throw 'cannot find @playwright/test in ui/pnpm-lock.yaml' }
+          $version = $match.Groups[1].Value
+          $e2e = Join-Path $env:SMOKE_HARNESS 'tests\e2e'
+          New-Item -ItemType Directory -Force -Path $e2e | Out-Null
+          Copy-Item -Path ui/desktop/tests/e2e/windows-installed-*.spec.ts -Destination $e2e
+          Copy-Item -Path ui/desktop/tests/e2e/windows-smoke -Destination $e2e -Recurse
+          New-Item -ItemType Directory -Force -Path (Join-Path $env:SMOKE_HARNESS 'run') | Out-Null
+          # A CommonJS package, so harness.ts can use __dirname.
+          [ordered]@{ name = 'modelforge-windows-smoke-harness'; private = $true; dependencies = [ordered]@{ '@playwright/test' = $version } } |
+            ConvertTo-Json | Set-Content -LiteralPath (Join-Path $env:SMOKE_HARNESS 'package.json') -Encoding utf8
+          Push-Location $env:SMOKE_HARNESS
+          try {
+            npm install --no-audit --no-fund --ignore-scripts
+            if ($LASTEXITCODE -ne 0) { throw 'npm install failed' }
+            node --check tests/e2e/windows-smoke/openai-stub.cjs
+            if ($LASTEXITCODE -ne 0) { throw 'openai-stub.cjs does not parse' }
+            # The specs must load; connectOverCDP needs no downloaded browser.
+            $env:MODELFORGE_SMOKE_RESULTS_DIR = Join-Path $env:RUNNER_TEMP 'mf-list'
+            node node_modules/@playwright/test/cli.js test -c tests/e2e/windows-smoke/playwright.config.ts --list --reporter=list
+            if ($LASTEXITCODE -ne 0) { throw 'the smoke specs do not load' }
+          }
+          finally { Pop-Location }
+          $node = (Get-Command node).Source
+          Write-Host "test runner: node $(node --version) at $node, @playwright/test $version"
+          "SMOKE_NODE=$node" | Add-Content -LiteralPath $env:GITHUB_ENV -Encoding utf8
+
+      # ------------------------------------------------------------------ machine under test
+      - name: Set up Python (optional runtime the app detects)
+        id: python
         uses: actions/setup-python@95b5bdbe1a3a5f6d81a74de10a3c0d80b44a0c67  # v6.0.1
         with:
           python-version: '3.12'
 
-      - name: Install Typst (external paper compiler the app detects)
-        shell: pwsh
+      - name: Install Typst ${{ env.TYPST_VERSION }} (optional paper compiler the app detects)
         run: |
-          # Typst is distributed as a single static binary; install it to a PATH directory.
-          $dir = Join-Path $env:RUNNER_TOOL_CACHE 'typst'
-          New-Item -ItemType Directory -Path $dir -Force | Out-Null
-          Invoke-WebRequest -Uri 'https://github.com/typst/typst/releases/latest/download/typst-x86_64-pc-windows-msvc.zip' -OutFile "$dir\typst.zip"
-          Expand-Archive -LiteralPath "$dir\typst.zip" -DestinationPath $dir -Force
-          "PATH=$dir;$env:PATH" | Out-File -FilePath $env:GITHUB_ENV -Append
-          typst --version
+          $zip = Join-Path $env:SMOKE_TOOLS 'typst.zip'
+          $url = "https://github.com/typst/typst/releases/download/v$($env:TYPST_VERSION)/typst-x86_64-pc-windows-msvc.zip"
+          Invoke-WebRequest -Uri $url -OutFile $zip
+          $hash = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($hash -ne $env:TYPST_SHA256) { throw "typst zip sha256 $hash does not match the pinned $($env:TYPST_SHA256)" }
+          $dir = Join-Path $env:SMOKE_TOOLS 'typst'
+          Expand-Archive -LiteralPath $zip -DestinationPath $dir -Force
+          $exe = Get-ChildItem -LiteralPath $dir -Recurse -File -Filter typst.exe | Select-Object -First 1
+          if (-not $exe) { throw 'typst.exe is not in the archive' }
+          & $exe.FullName --version
+          "SMOKE_TYPST_DIR=$($exe.DirectoryName)" | Add-Content -LiteralPath $env:GITHUB_ENV -Encoding utf8
 
-      # Requirement 7.4: the install path must contain Chinese characters and spaces.
-      - name: Install silently to a path with Chinese and spaces
-        shell: pwsh
-        run: |
-          $installDir = "C:\模 型 安装\ModelForge"
-          & "${{ steps.installer.outputs.path }}" /S "/D=$installDir"
-          # NSIS silent installs return before the process tree fully exits; wait for the exe.
-          $exe = Join-Path $installDir 'ModelForge.exe'
-          for ($i = 0; $i -lt 120 -and -not (Test-Path $exe); $i++) { Start-Sleep -Seconds 1 }
-          if (-not (Test-Path $exe)) { throw "installed executable not found at $exe" }
-          "MODELFORGE_EXE=$exe" | Out-File -FilePath $env:GITHUB_ENV -Append
-
-      - name: Install Playwright harness
-        shell: bash
-        run: |
-          cd ui/desktop
-          corepack enable
-          pnpm install --frozen-lockfile --filter modelforge-app
-          npx playwright install chromium
-
-      - name: Start local OpenAI-compatible stub
-        shell: pwsh
-        run: |
-          $stub = @'
-          const http = require('http');
-          const port = Number(process.env.MODELFORGE_STUB_PORT || 47372);
-          const server = http.createServer((req, res) => {
-            let body = '';
-            req.setEncoding('utf8');
-            req.on('data', (c) => (body += c));
-            req.on('end', () => {
-              const path = new URL(req.url ?? '/', `http://127.0.0.1:${port}`).pathname;
-              if (req.method === 'POST' && path.endsWith('/chat/completions')) {
-                res.writeHead(200, { 'content-type': 'application/json' });
-                res.end(JSON.stringify({
-                  id: 'chatcmpl-smoke', object: 'chat.completion', model: 'smoke-model',
-                  choices: [{ index: 0, message: { role: 'assistant', content: 'MODELFORGE_WINDOWS_SMOKE_OK' }, finish_reason: 'stop' }],
-                  usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
-                }));
-                return;
-              }
-              res.writeHead(404, { 'content-type': 'application/json' });
-              res.end(JSON.stringify({ error: { message: 'no stub route' } }));
-            });
-          });
-          server.listen(port, '127.0.0.1');
-          '@
-          $stubPath = Join-Path $env:RUNNER_TEMP 'modelforge-stub.cjs'
-          Set-Content -Path $stubPath -Value $stub -Encoding UTF8
-          $job = Start-Process node -ArgumentList $stubPath -PassThru -NoNewWindow
-          Set-Content -Path $env:GITHUB_ENV -Value "MODELFORGE_STUB_PORT=47372" -Encoding UTF8
-
-      - name: Run installed-app smoke test
-        shell: bash
+      - name: Remove developer tools from the machine under test and build the app's PATH
         env:
-          MODELFORGE_STUB_PORT: '47372'
+          PYTHON_EXE: ${{ steps.python.outputs.python-path }}
         run: |
-          cd ui/desktop
-          npx playwright test tests/e2e/windows-installed-smoke.spec.ts --reporter=list
+          # Rust of the runner image and the image's own Node. The test runner's Node lives in the
+          # tool cache and stays; it is never on the app's PATH.
+          $hide = @($env:CARGO_HOME, $env:RUSTUP_HOME, (Join-Path $env:USERPROFILE '.cargo'), (Join-Path $env:USERPROFILE '.rustup'),
+                    (Join-Path $env:ProgramFiles 'nodejs')) | Where-Object { $_ } | Select-Object -Unique
+          foreach ($dir in $hide) {
+            if (-not (Test-Path -LiteralPath $dir)) { continue }
+            try {
+              Rename-Item -LiteralPath $dir -NewName ((Split-Path -Leaf $dir) + '.hidden-by-smoke')
+              Write-Host "moved away: $dir"
+            }
+            catch { Write-Host "::warning::could not move $dir away: $($_.Exception.Message)" }
+          }
+          # No ACP adapter or agent CLI installed globally (npm prefixes of the image and the user).
+          $names = 'codex', 'codex-acp', 'claude', 'claude-code-acp', 'claude-agent-acp'
+          $prefixes = @('C:\npm\prefix', (Join-Path $env:APPDATA 'npm')) | Where-Object { Test-Path -LiteralPath $_ }
+          foreach ($prefix in $prefixes) {
+            foreach ($file in Get-ChildItem -LiteralPath $prefix -File -ErrorAction SilentlyContinue) {
+              if ($names -contains $file.BaseName) {
+                Remove-Item -LiteralPath $file.FullName -Force
+                Write-Host "::warning::removed global $($file.FullName)"
+              }
+            }
+          }
+          # What a student machine has: the Windows directories, Python and Typst.
+          $python = Split-Path -Parent $env:PYTHON_EXE
+          $system = Join-Path $env:SystemRoot 'System32'
+          $appPath = @($system, $env:SystemRoot, (Join-Path $system 'Wbem'), (Join-Path $system 'WindowsPowerShell\v1.0'),
+                       (Join-Path $system 'OpenSSH'), $python, (Join-Path $python 'Scripts'), $env:SMOKE_TYPST_DIR) -join ';'
+          Write-Host "app PATH: $appPath"
+          "MODELFORGE_SMOKE_APP_PATH=$appPath", "SMOKE_PYTHON_DIR=$python" | Add-Content -LiteralPath $env:GITHUB_ENV -Encoding utf8
 
-      - name: Upload smoke artifacts
+      - name: Start the loopback model stub
+        run: |
+          $dir = Join-Path $env:SMOKE_RESULTS 'stub'
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          $env:MODELFORGE_STUB_LOG = Join-Path $dir 'requests.jsonl'
+          $env:MODELFORGE_STUB_CONSOLE_LOG = Join-Path $dir 'stub.log'
+          $stub = Join-Path $env:SMOKE_HARNESS 'tests\e2e\windows-smoke\openai-stub.cjs'
+          # Detached; it keeps running for the later steps and is cleaned up with the job.
+          $process = Start-Process -FilePath $env:SMOKE_NODE -ArgumentList ('"{0}"' -f $stub) -WindowStyle Hidden -PassThru
+          $healthy = $false
+          for ($i = 0; $i -lt 60 -and -not $healthy; $i++) {
+            try {
+              $healthy = (Invoke-WebRequest -Uri "http://127.0.0.1:$($env:MODELFORGE_STUB_PORT)/__health" -UseBasicParsing -TimeoutSec 2).StatusCode -eq 200
+            }
+            catch { Start-Sleep -Milliseconds 500 }
+          }
+          if (-not $healthy) { throw "the stub (pid $($process.Id)) did not answer on port $($env:MODELFORGE_STUB_PORT)" }
+          Write-Host "stub up (pid $($process.Id)) on 127.0.0.1:$($env:MODELFORGE_STUB_PORT)"
+
+      # ------------------------------------------------------------------ scenario primary, upgrade, uninstall
+      - name: "Scenario primary: install to a path with Chinese characters and a space"
+        id: install_primary
+        continue-on-error: true
+        timeout-minutes: 20
+        run: |
+          $result = Join-Path $env:SMOKE_RESULTS 'primary\evidence\Install-ModelForge-primary.json'
+          & $env:SMOKE_PS51 -NoProfile -NonInteractive -ExecutionPolicy Bypass -File (Join-Path $env:SMOKE_SCRIPTS 'Install-ModelForge.ps1') `
+            -Installer $env:MODELFORGE_INSTALLER -InstallDir $env:SMOKE_INSTALL_DIR -ResultFile $result
+          if ($LASTEXITCODE -ne 0) { throw "Install-ModelForge.ps1 exited with $LASTEXITCODE" }
+
+      - name: "Scenario primary: installed-app smoke"
+        id: primary
+        if: steps.install_primary.outcome == 'success'
+        continue-on-error: true
+        timeout-minutes: 60
+        working-directory: ${{ env.SMOKE_HARNESS }}
+        env:
+          MODELFORGE_INSTALL_DIR: ${{ env.SMOKE_INSTALL_DIR }}
+          MODELFORGE_SMOKE_SCENARIO: primary
+        run: |
+          $out = Join-Path $env:SMOKE_RESULTS 'primary'
+          $env:MODELFORGE_SMOKE_RESULTS_DIR = $out
+          $env:MODELFORGE_SMOKE_EVIDENCE_DIR = Join-Path $out 'evidence'
+          $env:MODELFORGE_SMOKE_STATE_DIR = Join-Path $env:SMOKE_RESULTS 'state-primary'
+          node node_modules/@playwright/test/cli.js test -c tests/e2e/windows-smoke/playwright.config.ts windows-installed-smoke
+
+      - name: "Scenario upgrade: reinstall keeps the user's data"
+        id: upgrade
+        if: steps.install_primary.outcome == 'success'
+        continue-on-error: true
+        timeout-minutes: 40
+        working-directory: ${{ env.SMOKE_HARNESS }}
+        env:
+          MODELFORGE_INSTALL_DIR: ${{ env.SMOKE_INSTALL_DIR }}
+          MODELFORGE_SMOKE_SCENARIO: primary
+        run: |
+          $out = Join-Path $env:SMOKE_RESULTS 'upgrade'
+          $env:MODELFORGE_SMOKE_RESULTS_DIR = $out
+          $env:MODELFORGE_SMOKE_EVIDENCE_DIR = Join-Path $out 'evidence'
+          # Same profile and Project as the primary scenario.
+          $env:MODELFORGE_SMOKE_STATE_DIR = Join-Path $env:SMOKE_RESULTS 'state-primary'
+          node node_modules/@playwright/test/cli.js test -c tests/e2e/windows-smoke/playwright.config.ts windows-installed-upgrade
+
+      - name: "Scenario uninstall: silent, keep data, remove data"
+        id: uninstall
+        if: steps.install_primary.outcome == 'success'
+        continue-on-error: true
+        timeout-minutes: 45
+        working-directory: ${{ env.SMOKE_HARNESS }}
+        env:
+          MODELFORGE_INSTALL_DIR: ${{ env.SMOKE_INSTALL_DIR }}
+          MODELFORGE_SMOKE_SCENARIO: primary
+        run: |
+          $out = Join-Path $env:SMOKE_RESULTS 'uninstall'
+          $env:MODELFORGE_SMOKE_RESULTS_DIR = $out
+          $env:MODELFORGE_SMOKE_EVIDENCE_DIR = Join-Path $out 'evidence'
+          $env:MODELFORGE_SMOKE_STATE_DIR = Join-Path $env:SMOKE_RESULTS 'state-primary'
+          node node_modules/@playwright/test/cli.js test -c tests/e2e/windows-smoke/playwright.config.ts windows-installed-uninstall
+
+      # ------------------------------------------------------------------ scenario cn-user (fallback cn-profile-sim)
+      - name: "Scenario cn-user: new local user with Chinese characters and a space in the profile path"
+        id: cn_user
+        continue-on-error: true
+        timeout-minutes: 90
+        run: |
+          $out = Join-Path $env:SMOKE_RESULTS 'cn-user'
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          # Read by Run-AsUserInner.ps1 as the new user (see that script for the format).
+          $spec = [ordered]@{
+            installer  = $env:MODELFORGE_INSTALLER
+            harnessDir = $env:SMOKE_HARNESS
+            node       = $env:SMOKE_NODE
+            specs      = @('windows-installed-smoke')
+            resultsDir = $out
+            env        = [ordered]@{
+              MODELFORGE_SMOKE_APP_PATH      = $env:MODELFORGE_SMOKE_APP_PATH
+              MODELFORGE_STUB_PORT           = $env:MODELFORGE_STUB_PORT
+              MODELFORGE_SMOKE_LOCALE        = $env:MODELFORGE_SMOKE_LOCALE
+              MODELFORGE_SMOKE_WIZARD_STRICT = $env:MODELFORGE_SMOKE_WIZARD_STRICT
+            }
+          }
+          $envFile = Join-Path $env:SMOKE_HARNESS 'run\cn-user-env.json'
+          $spec | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $envFile -Encoding utf8
+          $read = @($env:SMOKE_HARNESS, (Split-Path -Parent $env:SMOKE_NODE), $env:SMOKE_INSTALLER_DIR, $env:SMOKE_PYTHON_DIR, $env:SMOKE_TYPST_DIR) -join ';'
+          & $env:SMOKE_PS51 -NoProfile -NonInteractive -ExecutionPolicy Bypass -File (Join-Path $env:SMOKE_SCRIPTS 'Invoke-AsLocalUser.ps1') `
+            -UserName $env:SMOKE_USER_NAME -EnvFile $envFile -GrantRead $read -GrantModify $out `
+            -ResultFile (Join-Path $out 'invoke-result.json') -TimeoutSeconds 4800
+          $code = $LASTEXITCODE
+          "code=$code" | Add-Content -LiteralPath $env:GITHUB_OUTPUT -Encoding utf8
+          # The run as the user has no console here; show what it wrote.
+          foreach ($name in 'inner.log', 'playwright.out.log', 'playwright.err.log') {
+            $file = Join-Path $out $name
+            if (Test-Path -LiteralPath $file) {
+              Write-Host "----- $name"
+              Get-Content -LiteralPath $file -Encoding utf8 -Tail 400
+            }
+          }
+          if ($code -eq 3) {
+            Write-Host '::warning::No process could run as the new local user; the cn-profile-sim fallback runs instead (requirement 7.4 is then only simulated).'
+            exit 0
+          }
+          exit $code
+
+      - name: "Scenario cn-profile-sim: fallback with a stand-in profile directory"
+        id: cn_profile_sim
+        if: steps.cn_user.outputs.code == '3'
+        continue-on-error: true
+        timeout-minutes: 60
+        working-directory: ${{ env.SMOKE_HARNESS }}
+        env:
+          MODELFORGE_SMOKE_SCENARIO: cn-profile-sim
+          MODELFORGE_SMOKE_PROFILE_ROOT: ${{ env.SMOKE_SIM_PROFILE }}
+        run: |
+          $out = Join-Path $env:SMOKE_RESULTS 'cn-profile-sim'
+          $installDir = Join-Path $env:SMOKE_SIM_PROFILE 'AppData\Local\Programs\ModelForge'
+          & $env:SMOKE_PS51 -NoProfile -NonInteractive -ExecutionPolicy Bypass -File (Join-Path $env:SMOKE_SCRIPTS 'Install-ModelForge.ps1') `
+            -Installer $env:MODELFORGE_INSTALLER -InstallDir $installDir -ResultFile (Join-Path $out 'evidence\Install-ModelForge-cn-profile-sim.json')
+          if ($LASTEXITCODE -ne 0) { throw "Install-ModelForge.ps1 exited with $LASTEXITCODE" }
+          $env:MODELFORGE_INSTALL_DIR = $installDir
+          $env:MODELFORGE_SMOKE_RESULTS_DIR = $out
+          $env:MODELFORGE_SMOKE_EVIDENCE_DIR = Join-Path $out 'evidence'
+          $env:MODELFORGE_SMOKE_STATE_DIR = Join-Path $env:SMOKE_RESULTS 'state-cn-profile-sim'
+          node node_modules/@playwright/test/cli.js test -c tests/e2e/windows-smoke/playwright.config.ts windows-installed-smoke
+
+      # ------------------------------------------------------------------ evidence, summary, verdict
+      - name: Collect app and kernel logs
+        if: always() && env.SMOKE_RESULTS != ''
+        run: |
+          $logs = Join-Path $env:SMOKE_RESULTS 'logs'
+          $cnProfile = Get-CimInstance Win32_UserProfile -ErrorAction SilentlyContinue |
+            Where-Object { (Split-Path -Leaf $_.LocalPath) -eq $env:SMOKE_USER_NAME } | Select-Object -First 1 -ExpandProperty LocalPath
+          $profiles = [ordered]@{ 'runner' = $env:USERPROFILE; 'cn-user' = $cnProfile; 'cn-profile-sim' = $env:SMOKE_SIM_PROFILE }
+          # Never the credential store (agent-kernel-secrets.json).
+          $items = [ordered]@{
+            'AppData\Roaming\ModelForge\logs'                 = 'desktop-logs'
+            'AppData\Roaming\ModelForge\settings.json'        = 'settings.json'
+            'AppData\Roaming\Block\goose\data\logs'           = 'kernel-logs'
+            'AppData\Roaming\Block\goose\config\config.yaml'  = 'config.yaml'
+          }
+          foreach ($entry in $profiles.GetEnumerator()) {
+            if (-not $entry.Value -or -not (Test-Path -LiteralPath $entry.Value)) { continue }
+            foreach ($item in $items.GetEnumerator()) {
+              $source = Join-Path $entry.Value $item.Key
+              if (-not (Test-Path -LiteralPath $source)) { continue }
+              $target = Join-Path $logs $entry.Key
+              New-Item -ItemType Directory -Force -Path $target | Out-Null
+              Copy-Item -LiteralPath $source -Destination (Join-Path $target $item.Value) -Recurse -Force -ErrorAction Continue
+            }
+          }
+
+      - name: Summarize
+        if: always()
+        env:
+          SMOKE_PACKAGE_RUN_ID: ${{ steps.package.outputs.run_id }}
+          SMOKE_PACKAGE_RUN_URL: ${{ steps.package.outputs.url }}
+          SMOKE_PACKAGE_SHA: ${{ steps.package.outputs.sha }}
+          SMOKE_STEP_OUTCOMES: >-
+            install primary=${{ steps.install_primary.outcome }};primary=${{ steps.primary.outcome }};upgrade=${{ steps.upgrade.outcome }};uninstall=${{ steps.uninstall.outcome }};cn-user=${{ steps.cn_user.outcome }};cn-profile-sim=${{ steps.cn_profile_sim.outcome }}
+        run: |
+          if (-not $env:SMOKE_RESULTS) {
+            "## ModelForge Windows smoke`n`nStopped before any scenario ran; see the job log." | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Encoding utf8
+            exit 0
+          }
+          $node = if ($env:SMOKE_NODE) { $env:SMOKE_NODE } else { 'node' }
+          & $node (Join-Path $env:GITHUB_WORKSPACE 'ui/desktop/tests/e2e/windows-smoke/summarize-results.cjs') --results $env:SMOKE_RESULTS
+
+      - name: Fail the job when a scenario failed
+        if: always()
+        env:
+          OUTCOMES: >-
+            install primary=${{ steps.install_primary.outcome }};primary=${{ steps.primary.outcome }};upgrade=${{ steps.upgrade.outcome }};uninstall=${{ steps.uninstall.outcome }};cn-user=${{ steps.cn_user.outcome }};cn-profile-sim=${{ steps.cn_profile_sim.outcome }}
+        run: |
+          $failed = @()
+          foreach ($pair in $env:OUTCOMES -split ';') {
+            $name, $outcome = $pair -split '=', 2
+            if ($outcome -eq 'failure') { $failed += $name.Trim() }
+          }
+          if ($failed.Count -gt 0) {
+            Write-Host "::error::failed scenario steps: $($failed -join ', ')"
+            exit 1
+          }
+          Write-Host 'all scenario steps that ran passed'
+
+      # Uploaded on success too (evidence for acceptance); on failure it holds the screenshots,
+      # app/kernel logs, Playwright reports, helper JSON results and the stub's request log.
+      - name: Upload screenshots, logs and results
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: modelforge-windows-smoke
-          path: |
-            ui/desktop/test-results/
-            ui/desktop/playwright-report/
-          if-no-files-found: ignore
+          path: ${{ env.SMOKE_RESULTS || format('{0}\mf-results', runner.temp) }}
+          if-no-files-found: warn
+          retention-days: 14
