@@ -3656,6 +3656,24 @@
   "onboardingGuard.welcomeTitle": {
     "defaultMessage": "Chào mừng đến với ModelForge"
   },
+  "onboardingGuard.wizardAddressTestOnly": {
+    "defaultMessage": "Chỉ dùng cho kiểm tra kết nối; nhân tích hợp vẫn dùng địa chỉ mặc định của nhà cung cấp này."
+  },
+  "onboardingGuard.wizardKeySaveFailed": {
+    "defaultMessage": "Không thể lưu khóa: {reason}"
+  },
+  "onboardingGuard.wizardModelHint": {
+    "defaultMessage": "Đã điền sẵn mô hình được nhà cung cấp đề xuất; hãy nhập tên mô hình khác nếu điểm cuối của bạn cung cấp mô hình khác."
+  },
+  "onboardingGuard.wizardModelLabel": {
+    "defaultMessage": "Mô hình"
+  },
+  "onboardingGuard.wizardProviderSaveFailed": {
+    "defaultMessage": "Kết nối hoạt động, nhưng nhân tích hợp không lưu được nhà cung cấp này: {reason}"
+  },
+  "onboardingGuard.wizardSaving": {
+    "defaultMessage": "Đang lưu…"
+  },
   "onboardingSuccess.allSet": {
     "defaultMessage": "Bạn đã sẵn sàng bắt đầu sử dụng ModelForge."
   },

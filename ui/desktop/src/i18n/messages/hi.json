@@ -3656,6 +3656,24 @@
   "onboardingGuard.welcomeTitle": {
     "defaultMessage": "ModelForge में आपका स्वागत है"
   },
+  "onboardingGuard.wizardAddressTestOnly": {
+    "defaultMessage": "केवल कनेक्शन परीक्षण के लिए उपयोग किया जाता है; बिल्ट-इन कर्नेल इस प्रदाता के साथ आने वाला पता ही उपयोग करता है।"
+  },
+  "onboardingGuard.wizardKeySaveFailed": {
+    "defaultMessage": "कुंजी सहेजी नहीं जा सकी: {reason}"
+  },
+  "onboardingGuard.wizardModelHint": {
+    "defaultMessage": "प्रदाता का अनुशंसित मॉडल पहले से भरा है; यदि आपका एंडपॉइंट कोई दूसरा मॉडल देता है तो उसका नाम दर्ज करें।"
+  },
+  "onboardingGuard.wizardModelLabel": {
+    "defaultMessage": "मॉडल"
+  },
+  "onboardingGuard.wizardProviderSaveFailed": {
+    "defaultMessage": "कनेक्शन काम कर रहा है, लेकिन बिल्ट-इन कर्नेल इस प्रदाता को सहेज नहीं सका: {reason}"
+  },
+  "onboardingGuard.wizardSaving": {
+    "defaultMessage": "सहेजा जा रहा है…"
+  },
   "onboardingSuccess.allSet": {
     "defaultMessage": "आप ModelForge का उपयोग शुरू करने के लिए पूरी तरह तैयार हैं।"
   },

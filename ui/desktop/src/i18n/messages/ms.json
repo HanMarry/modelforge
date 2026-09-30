@@ -3656,6 +3656,24 @@
   "onboardingGuard.welcomeTitle": {
     "defaultMessage": "Selamat datang ke ModelForge"
   },
+  "onboardingGuard.wizardAddressTestOnly": {
+    "defaultMessage": "Hanya digunakan untuk ujian sambungan; kernel terbina dalam menggunakan alamat asal pembekal ini."
+  },
+  "onboardingGuard.wizardKeySaveFailed": {
+    "defaultMessage": "Kunci tidak dapat disimpan: {reason}"
+  },
+  "onboardingGuard.wizardModelHint": {
+    "defaultMessage": "Diisi dengan model yang disyorkan oleh pembekal; masukkan nama model lain jika titik akhir anda menyediakan model yang berbeza."
+  },
+  "onboardingGuard.wizardModelLabel": {
+    "defaultMessage": "Model"
+  },
+  "onboardingGuard.wizardProviderSaveFailed": {
+    "defaultMessage": "Sambungan berfungsi, tetapi kernel terbina dalam tidak dapat menyimpan pembekal ini: {reason}"
+  },
+  "onboardingGuard.wizardSaving": {
+    "defaultMessage": "Menyimpan…"
+  },
   "onboardingSuccess.allSet": {
     "defaultMessage": "Anda sudah bersedia untuk mula menggunakan ModelForge."
   },

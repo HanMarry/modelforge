@@ -3656,6 +3656,24 @@
   "onboardingGuard.welcomeTitle": {
     "defaultMessage": "ModelForgeへようこそ"
   },
+  "onboardingGuard.wizardAddressTestOnly": {
+    "defaultMessage": "接続テストにのみ使用されます。内蔵カーネルはこのプロバイダー既定のアドレスを使用します。"
+  },
+  "onboardingGuard.wizardKeySaveFailed": {
+    "defaultMessage": "キーを保存できませんでした: {reason}"
+  },
+  "onboardingGuard.wizardModelHint": {
+    "defaultMessage": "プロバイダーの推奨モデルが入力されています。エンドポイントが別のモデルを提供している場合は、そのモデル名を入力してください。"
+  },
+  "onboardingGuard.wizardModelLabel": {
+    "defaultMessage": "モデル"
+  },
+  "onboardingGuard.wizardProviderSaveFailed": {
+    "defaultMessage": "接続は正常ですが、内蔵カーネルがこのプロバイダーを保存できませんでした: {reason}"
+  },
+  "onboardingGuard.wizardSaving": {
+    "defaultMessage": "保存中…"
+  },
   "onboardingSuccess.allSet": {
     "defaultMessage": "ModelForgeを使い始める準備ができました。"
   },

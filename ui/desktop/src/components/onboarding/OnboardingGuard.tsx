@@ -135,7 +135,14 @@ export default function OnboardingGuard({ children }: OnboardingGuardProps) {
             <p className="mb-8 text-base text-text-muted sm:text-lg">
               {intl.formatMessage(i18n.welcomeDescription)}
             </p>
-            <OnboardingWizard onComplete={() => navigate('/', { replace: true })} />
+            <OnboardingWizard
+              onComplete={() => {
+                // Navigating to "/" from "/" keeps this guard mounted, so leave the wizard
+                // explicitly; otherwise it stays on screen after the last step.
+                setShowWizard(false);
+                navigate('/', { replace: true });
+              }}
+            />
           </div>
         </div>
       </div>

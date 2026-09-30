@@ -3656,6 +3656,24 @@
   "onboardingGuard.welcomeTitle": {
     "defaultMessage": "歡迎使用 ModelForge"
   },
+  "onboardingGuard.wizardAddressTestOnly": {
+    "defaultMessage": "僅用於連線測試；內建核心使用該供應商內建的位址。"
+  },
+  "onboardingGuard.wizardKeySaveFailed": {
+    "defaultMessage": "金鑰儲存失敗：{reason}"
+  },
+  "onboardingGuard.wizardModelHint": {
+    "defaultMessage": "預設填入該供應商建議的模型；如果你的端點提供其他模型，請改為該模型的名稱。"
+  },
+  "onboardingGuard.wizardModelLabel": {
+    "defaultMessage": "模型"
+  },
+  "onboardingGuard.wizardProviderSaveFailed": {
+    "defaultMessage": "連線正常，但內建核心未能儲存該供應商：{reason}"
+  },
+  "onboardingGuard.wizardSaving": {
+    "defaultMessage": "正在儲存…"
+  },
   "onboardingSuccess.allSet": {
     "defaultMessage": "一切就緒，您可以開始使用 ModelForge 了。"
   },

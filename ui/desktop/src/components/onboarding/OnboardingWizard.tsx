@@ -12,22 +12,68 @@ import {
   type WizardState,
 } from './wizardMachine';
 import type { OnboardingState, OnboardingStepId } from '../../utils/settings';
-import { acpListProviderDetails, acpSaveDefaults } from '../../acp/providers';
+import {
+  acpListProviderDetails,
+  acpSaveDefaults,
+  acpSaveProviderConfig,
+} from '../../acp/providers';
 import type { ProviderDetails } from '../../types/providers';
 import {
   classifyProviderError,
   PROVIDER_ERROR_LABELS,
+  type ProviderConnectionResult,
   type ProviderErrorClass,
 } from '../../utils/providerConnectivity';
 import type { LocalRuntimeDetection } from '../../utils/runtimeDetection';
 import type { ExampleEntry } from '../../types/catalog';
 import { requestOpenProject } from '../../utils/pendingProject';
+import { useModelAndProvider } from '../ModelAndProviderContext';
+import { defineMessages, useIntl } from '../../i18n';
+import {
+  canConfigureInWizard,
+  endpointField,
+  initialProviderInput,
+  modelSuggestions,
+  normalizeAddress,
+  saveWizardProvider,
+  type WizardSaveResult,
+} from './wizardProviderSetup';
+
+const i18n = defineMessages({
+  wizardAddressTestOnly: {
+    id: 'onboardingGuard.wizardAddressTestOnly',
+    defaultMessage:
+      'Only used for the connection test; the built-in kernel keeps the address this provider comes with.',
+  },
+  wizardKeySaveFailed: {
+    id: 'onboardingGuard.wizardKeySaveFailed',
+    defaultMessage: 'Could not save the key: {reason}',
+  },
+  wizardModelHint: {
+    id: 'onboardingGuard.wizardModelHint',
+    defaultMessage:
+      "Starts with the provider's recommended model; enter another model name if your endpoint serves a different one.",
+  },
+  wizardModelLabel: {
+    id: 'onboardingGuard.wizardModelLabel',
+    defaultMessage: 'Model',
+  },
+  wizardProviderSaveFailed: {
+    id: 'onboardingGuard.wizardProviderSaveFailed',
+    defaultMessage:
+      'The connection works, but the built-in kernel could not save this provider: {reason}',
+  },
+  wizardSaving: {
+    id: 'onboardingGuard.wizardSaving',
+    defaultMessage: 'Saving…',
+  },
+});
 
 type ProviderChoice =
   | { kind: 'provider'; id: string; label: string }
   | { kind: 'acp'; id: 'claude-code' | 'codex'; label: string };
 
-type TestState = 'idle' | 'testing' | 'success' | 'failure';
+type TestState = 'idle' | 'testing' | 'saving' | 'success' | 'failure';
 
 interface EnvironmentResult {
   python: 'available' | 'missing' | 'timeout';
@@ -50,6 +96,8 @@ interface OnboardingWizardProps {
 }
 
 export default function OnboardingWizard({ initialStep, onComplete }: OnboardingWizardProps) {
+  const intl = useIntl();
+  const { refreshCurrentModelAndProvider } = useModelAndProvider();
   const [state, setState] = useState<WizardState>(() => initialWizardState());
   const [ready, setReady] = useState(false);
   const [providers, setProviders] = useState<ProviderDetails[]>([]);
@@ -57,6 +105,7 @@ export default function OnboardingWizard({ initialStep, onComplete }: Onboarding
   const [selected, setSelected] = useState<ProviderChoice | null>(null);
   const [baseUrl, setBaseUrl] = useState('');
   const [key, setKey] = useState('');
+  const [model, setModel] = useState('');
   const [testState, setTestState] = useState<TestState>('idle');
   const [testError, setTestError] = useState<ProviderErrorClass | null>(null);
   const [acpConfirmed, setAcpConfirmed] = useState(false);
@@ -83,7 +132,11 @@ export default function OnboardingWizard({ initialStep, onComplete }: Onboarding
     acpListProviderDetails()
       .then((list) => {
         if (!cancelled) {
-          setProviders(list.filter((provider) => provider.visible_in_setup));
+          // Step 2 configures a provider with an API key and an address only; the rest are
+          // set up from the settings page (their own sign-in, or more required settings).
+          setProviders(
+            list.filter((provider) => provider.visible_in_setup && canConfigureInWizard(provider))
+          );
         }
       })
       .catch(() => {
@@ -131,9 +184,17 @@ export default function OnboardingWizard({ initialStep, onComplete }: Onboarding
 
   const handlePrev = () => setState(prev(state));
 
+  const selectedProviderId = selected?.kind === 'provider' ? selected.id : null;
+  const selectedProvider =
+    providers.find((provider) => provider.name === selectedProviderId) ?? null;
+
   const selectProvider = (choice: ProviderChoice) => {
     setSelected(choice);
-    setBaseUrl('');
+    const details =
+      choice.kind === 'provider' ? providers.find((provider) => provider.name === choice.id) : null;
+    const initial = details ? initialProviderInput(details) : { address: '', model: '' };
+    setBaseUrl(initial.address);
+    setModel(initial.model);
     setKey('');
     setTestState('idle');
     setTestError(null);
@@ -141,38 +202,67 @@ export default function OnboardingWizard({ initialStep, onComplete }: Onboarding
     setStepError(null);
   };
 
+  const saveFailureMessage = (result: Exclude<WizardSaveResult, { ok: true }>): string => {
+    switch (result.failure) {
+      case 'secure-storage-unavailable':
+        return '安全存储不可用，密钥仅在本次会话内有效';
+      case 'credential-store':
+        return intl.formatMessage(i18n.wizardKeySaveFailed, { reason: result.reason });
+      case 'kernel':
+        return intl.formatMessage(i18n.wizardProviderSaveFailed, { reason: result.reason });
+    }
+  };
+
+  // One connectivity request (requirement 5.2), then the same save path as the settings page
+  // (see wizardProviderSetup.ts). Any failure keeps the provider and the inputs on this step so
+  // the user can retry or skip (requirement 5.3).
   const testConnection = async () => {
+    if (!selectedProvider) {
+      return;
+    }
+    const trimmedKey = key.trim();
     setTestState('testing');
     setTestError(null);
     setStepError(null);
+
+    let result: ProviderConnectionResult;
     try {
-      const result = await window.electron.testProviderConnection({ baseUrl }, key);
-      if (result.ok) {
-        setTestState('success');
-        if (selected?.kind === 'provider') {
-          const saved = await window.electron.rememberProviderApiKey(selected.id, key);
-          if (saved.ok && saved.data.outcome === 'encrypted') {
-            await acpSaveDefaults(selected.id);
-          } else if (saved.ok && saved.data.outcome === 'memory-only') {
-            setStepError('安全存储不可用，密钥仅在本次会话内有效');
-            setTestState('failure');
-            return;
-          } else {
-            setStepError('密钥保存失败');
-            setTestState('failure');
-            return;
-          }
-        }
-      } else {
-        setTestError(
-          classifyProviderError(result.failure.status, result.failure.body, result.failure.cause)
-        );
-        setTestState('failure');
-      }
+      result = await window.electron.testProviderConnection(
+        { baseUrl: normalizeAddress(baseUrl) },
+        trimmedKey
+      );
     } catch (error) {
       setTestError(classifyProviderError(null, '', error));
       setTestState('failure');
+      return;
     }
+    if (!result.ok) {
+      setTestError(
+        classifyProviderError(result.failure.status, result.failure.body, result.failure.cause)
+      );
+      setTestState('failure');
+      return;
+    }
+
+    setTestState('saving');
+    const saved = await saveWizardProvider(
+      selectedProvider,
+      { address: baseUrl, key: trimmedKey, model },
+      {
+        rememberKey: (providerId, value) =>
+          window.electron.rememberProviderApiKey(providerId, value),
+        saveProviderConfig: acpSaveProviderConfig,
+        saveDefaults: acpSaveDefaults,
+      }
+    );
+    if (!saved.ok) {
+      setStepError(saveFailureMessage(saved));
+      setTestState('failure');
+      return;
+    }
+    // The chat view reads the default provider and model from this context.
+    await refreshCurrentModelAndProvider();
+    setTestState('success');
   };
 
   const confirmAcp = () => {
@@ -352,38 +442,84 @@ export default function OnboardingWizard({ initialStep, onComplete }: Onboarding
           </div>
         )}
 
-        {state.current === 'key' && selected?.kind === 'provider' && (
+        {state.current === 'key' && selectedProvider && (
           <div className="space-y-3">
             <div>
-              <label className="mb-1 block text-sm">API 地址</label>
+              <label htmlFor="onboarding-address" className="mb-1 block text-sm">
+                API 地址
+              </label>
               <input
+                id="onboarding-address"
                 value={baseUrl}
                 onChange={(event) => setBaseUrl(event.target.value)}
                 className="w-full rounded border border-border-default bg-background-default p-2"
                 placeholder="https://api.example.com/v1"
               />
+              {!endpointField(selectedProvider) && (
+                <p className="mt-1 text-xs text-text-muted">
+                  {intl.formatMessage(i18n.wizardAddressTestOnly)}
+                </p>
+              )}
             </div>
             <div>
-              <label className="mb-1 block text-sm">API Key</label>
+              <label htmlFor="onboarding-key" className="mb-1 block text-sm">
+                API Key
+              </label>
               <input
+                id="onboarding-key"
                 type="password"
                 value={key}
                 onChange={(event) => setKey(event.target.value)}
                 className="w-full rounded border border-border-default bg-background-default p-2"
               />
             </div>
+            <div>
+              <label htmlFor="onboarding-model" className="mb-1 block text-sm">
+                {intl.formatMessage(i18n.wizardModelLabel)}
+              </label>
+              <input
+                id="onboarding-model"
+                list="onboarding-model-options"
+                value={model}
+                onChange={(event) => setModel(event.target.value)}
+                className="w-full rounded border border-border-default bg-background-default p-2"
+                aria-describedby="onboarding-model-hint"
+              />
+              <datalist id="onboarding-model-options">
+                {modelSuggestions(selectedProvider).map((name) => (
+                  <option key={name} value={name} />
+                ))}
+              </datalist>
+              <p id="onboarding-model-hint" className="mt-1 text-xs text-text-muted">
+                {intl.formatMessage(i18n.wizardModelHint)}
+              </p>
+            </div>
             {testState === 'success' && <p className="text-sm text-green-600">连接成功</p>}
-            {testState === 'failure' && (
+            {testState === 'failure' && !stepError && (
               <p className="text-sm text-red-600">
                 {testError ? PROVIDER_ERROR_LABELS[testError] : '连接失败'}
               </p>
             )}
-            {stepError && <p className="text-sm text-red-600">{stepError}</p>}
+            {stepError && (
+              <p className="text-sm text-red-600" role="alert">
+                {stepError}
+              </p>
+            )}
             <Button
-              onClick={testConnection}
-              disabled={testState === 'testing' || !isKeySubmittable(key) || !baseUrl.trim()}
+              onClick={() => void testConnection()}
+              disabled={
+                testState === 'testing' ||
+                testState === 'saving' ||
+                !isKeySubmittable(key) ||
+                !baseUrl.trim() ||
+                !model.trim()
+              }
             >
-              {testState === 'testing' ? '连接测试中…' : '测试连接'}
+              {testState === 'testing'
+                ? '连接测试中…'
+                : testState === 'saving'
+                  ? intl.formatMessage(i18n.wizardSaving)
+                  : '测试连接'}
             </Button>
           </div>
         )}
