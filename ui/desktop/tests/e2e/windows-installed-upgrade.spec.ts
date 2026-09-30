@@ -114,7 +114,16 @@ test.describe('installed ModelForge: upgrade keeps user data (7.5)', () => {
     expect(diffKeys(before.userData, after.userData), `desktop data under ${paths.userData}`).toEqual([]);
     expect(diffKeys(before.kernel, after.kernel), `kernel configuration and sessions under ${paths.gooseRoot}`).toEqual([]);
     expect(diffKeys(before.project, after.project), `Project ${projectDir}`).toEqual([]);
-    expect(Object.keys(before.userData)).toContain('agent-kernel-secrets.json');
+    // The stored key was among the files kept. In strict mode the wizard saved it; in soft mode
+    // the wizard may not have got that far (the harness then passes the key through the
+    // environment) and there is no key store to keep.
+    if (WIZARD_STRICT || fs.existsSync(paths.credentialsFile)) {
+      expect(Object.keys(before.userData), `the key store ${paths.credentialsFile} before the upgrade`).toContain(
+        'agent-kernel-secrets.json'
+      );
+    } else {
+      annotate(testInfo, 'unverified', `no key store at ${paths.credentialsFile} (soft mode): keeping keys not shown`);
+    }
 
     // The app shows the same sessions and Projects, and still reaches the model.
     const shownAfter = await withApp(c, testInfo, 'after-upgrade', { env: kernelEnv(c) }, async (app) => {
