@@ -1499,20 +1499,38 @@
   "customProviderForm.valuePlaceholder": {
     "defaultMessage": "Valor"
   },
+  "datasets.descriptionBusy": {
+    "defaultMessage": "The current chat is still working, so the task for {path} was not sent. Try again when it finishes."
+  },
+  "datasets.descriptionDone": {
+    "defaultMessage": "The description of {path} is in the current chat."
+  },
+  "datasets.descriptionKernelError": {
+    "defaultMessage": "No description for {path}: sending failed or the Kernel returned an error."
+  },
+  "datasets.descriptionKernelUnavailable": {
+    "defaultMessage": "The task for {path} was not sent: the Kernel is not available."
+  },
+  "datasets.descriptionRunning": {
+    "defaultMessage": "Describing {path} in the current chat, up to {minutes} minutes…"
+  },
+  "datasets.descriptionTimeout": {
+    "defaultMessage": "No description for {path}: the Kernel did not finish within {minutes} minutes."
+  },
   "datasets.empty": {
     "defaultMessage": "No data files to preview in this project"
   },
   "datasets.emptyFormats": {
     "defaultMessage": "Supports .csv, .xlsx, .json, .parquet"
   },
+  "datasets.errorDetail": {
+    "defaultMessage": "Details: {detail}"
+  },
   "datasets.fields": {
     "defaultMessage": "Fields"
   },
   "datasets.generateDescription": {
     "defaultMessage": "Generate data description"
-  },
-  "datasets.kernelUnavailable": {
-    "defaultMessage": "Kernel not running; start it first"
   },
   "datasets.missing": {
     "defaultMessage": "Missing"
@@ -1523,6 +1541,9 @@
   "datasets.noFileSelected": {
     "defaultMessage": "Select a file to generate a description"
   },
+  "datasets.openChat": {
+    "defaultMessage": "Open chat"
+  },
   "datasets.openExternally": {
     "defaultMessage": "Open with system program"
   },
@@ -1531,6 +1552,9 @@
   },
   "datasets.preview": {
     "defaultMessage": "Preview (first {count} rows)"
+  },
+  "datasets.retry": {
+    "defaultMessage": "Retry"
   },
   "datasets.rows": {
     "defaultMessage": "Rows"

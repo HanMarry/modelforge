@@ -48,11 +48,12 @@ const i18n = defineMessages({
   statusEnded: { id: 'competitions.statusEnded', defaultMessage: 'Ended' },
 });
 
-const STATUS_MESSAGES: Record<CompetitionStatus, { id: string }> = {
-  未开始: { id: 'competitions.statusNotStarted' },
-  报名中: { id: 'competitions.statusRegistering' },
-  进行中: { id: 'competitions.statusRunning' },
-  已结束: { id: 'competitions.statusEnded' },
+// Reuses the descriptors above, so the English default shows when a locale lacks a translation.
+const STATUS_MESSAGES: Record<CompetitionStatus, (typeof i18n)[keyof typeof i18n]> = {
+  未开始: i18n.statusNotStarted,
+  报名中: i18n.statusRegistering,
+  进行中: i18n.statusRunning,
+  已结束: i18n.statusEnded,
 };
 
 function localToday(): LocalDate {
