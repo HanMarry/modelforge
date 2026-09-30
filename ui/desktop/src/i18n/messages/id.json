@@ -3656,6 +3656,24 @@
   "onboardingGuard.welcomeTitle": {
     "defaultMessage": "Selamat datang di ModelForge"
   },
+  "onboardingGuard.wizardAddressTestOnly": {
+    "defaultMessage": "Hanya dipakai untuk uji koneksi; kernel bawaan tetap memakai alamat bawaan penyedia ini."
+  },
+  "onboardingGuard.wizardKeySaveFailed": {
+    "defaultMessage": "Kunci tidak dapat disimpan: {reason}"
+  },
+  "onboardingGuard.wizardModelHint": {
+    "defaultMessage": "Terisi model yang direkomendasikan penyedia; masukkan nama model lain jika endpoint Anda menyediakan model yang berbeda."
+  },
+  "onboardingGuard.wizardModelLabel": {
+    "defaultMessage": "Model"
+  },
+  "onboardingGuard.wizardProviderSaveFailed": {
+    "defaultMessage": "Koneksi berhasil, tetapi kernel bawaan tidak dapat menyimpan penyedia ini: {reason}"
+  },
+  "onboardingGuard.wizardSaving": {
+    "defaultMessage": "Menyimpan…"
+  },
   "onboardingSuccess.allSet": {
     "defaultMessage": "Anda siap untuk mulai menggunakan ModelForge."
   },

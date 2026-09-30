@@ -3656,6 +3656,24 @@
   "onboardingGuard.welcomeTitle": {
     "defaultMessage": "ModelForge'a hoş geldiniz"
   },
+  "onboardingGuard.wizardAddressTestOnly": {
+    "defaultMessage": "Yalnızca bağlantı testi için kullanılır; yerleşik çekirdek bu sağlayıcının kendi adresini kullanır."
+  },
+  "onboardingGuard.wizardKeySaveFailed": {
+    "defaultMessage": "Anahtar kaydedilemedi: {reason}"
+  },
+  "onboardingGuard.wizardModelHint": {
+    "defaultMessage": "Sağlayıcının önerdiği model önceden doldurulur; uç noktanız farklı bir model sunuyorsa o modelin adını girin."
+  },
+  "onboardingGuard.wizardModelLabel": {
+    "defaultMessage": "Model"
+  },
+  "onboardingGuard.wizardProviderSaveFailed": {
+    "defaultMessage": "Bağlantı çalışıyor, ancak yerleşik çekirdek bu sağlayıcıyı kaydedemedi: {reason}"
+  },
+  "onboardingGuard.wizardSaving": {
+    "defaultMessage": "Kaydediliyor…"
+  },
   "onboardingSuccess.allSet": {
     "defaultMessage": "ModelForge'yi kullanmaya başlamaya hazırsınız."
   },

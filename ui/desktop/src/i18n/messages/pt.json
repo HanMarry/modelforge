@@ -3656,6 +3656,24 @@
   "onboardingGuard.welcomeTitle": {
     "defaultMessage": "Bem-vindo ao ModelForge"
   },
+  "onboardingGuard.wizardAddressTestOnly": {
+    "defaultMessage": "Usado apenas no teste de conexão; o kernel integrado usa o endereço que vem com este provedor."
+  },
+  "onboardingGuard.wizardKeySaveFailed": {
+    "defaultMessage": "Não foi possível salvar a chave: {reason}"
+  },
+  "onboardingGuard.wizardModelHint": {
+    "defaultMessage": "Preenchido com o modelo recomendado pelo provedor; informe outro nome de modelo se o seu endpoint oferecer um diferente."
+  },
+  "onboardingGuard.wizardModelLabel": {
+    "defaultMessage": "Modelo"
+  },
+  "onboardingGuard.wizardProviderSaveFailed": {
+    "defaultMessage": "A conexão funciona, mas o kernel integrado não conseguiu salvar este provedor: {reason}"
+  },
+  "onboardingGuard.wizardSaving": {
+    "defaultMessage": "Salvando…"
+  },
   "onboardingSuccess.allSet": {
     "defaultMessage": "Está tudo pronto para começar a usar o ModelForge."
   },

@@ -3656,6 +3656,24 @@
   "onboardingGuard.welcomeTitle": {
     "defaultMessage": "Bienvenue dans ModelForge"
   },
+  "onboardingGuard.wizardAddressTestOnly": {
+    "defaultMessage": "Utilisée uniquement pour le test de connexion ; le noyau intégré conserve l'adresse fournie avec ce fournisseur."
+  },
+  "onboardingGuard.wizardKeySaveFailed": {
+    "defaultMessage": "Impossible d'enregistrer la clé : {reason}"
+  },
+  "onboardingGuard.wizardModelHint": {
+    "defaultMessage": "Prérempli avec le modèle recommandé par le fournisseur ; saisissez un autre nom de modèle si votre point de terminaison en propose un autre."
+  },
+  "onboardingGuard.wizardModelLabel": {
+    "defaultMessage": "Modèle"
+  },
+  "onboardingGuard.wizardProviderSaveFailed": {
+    "defaultMessage": "La connexion fonctionne, mais le noyau intégré n'a pas pu enregistrer ce fournisseur : {reason}"
+  },
+  "onboardingGuard.wizardSaving": {
+    "defaultMessage": "Enregistrement…"
+  },
   "onboardingSuccess.allSet": {
     "defaultMessage": "Vous êtes prêt à commencer à utiliser ModelForge."
   },
