@@ -96,6 +96,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: changes
     if: needs.changes.outputs.code == 'true' || github.event_name != 'pull_request'
+    permissions:
+      contents: read
+      # The watchdog reports through the "rust-watchdog" commit status (see its header).
+      statuses: write
     steps:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -111,14 +115,26 @@ jobs:
           sudo apt install -y libdbus-1-dev gnome-keyring libxcb1-dev
 
       - name: Build and Test
+        # A healthy run takes 15-20 minutes. Some runs end after about 50 with "The hosted runner
+        # lost communication with the server" and no log at all; the watchdog (see its header)
+        # records what the machine was doing in the "rust-watchdog" commit status.
+        timeout-minutes: 40
         run: |
           gnome-keyring-daemon --components=secrets --daemonize --unlock <<< 'foobar'
           export CARGO_INCREMENTAL=0
+          bash ../.github/scripts/memory-watchdog.sh &
+          watchdog=$!
+          trap 'kill "$watchdog" 2>/dev/null; wait "$watchdog" 2>/dev/null || true' EXIT
+          free -m
+          df -h /
           cargo test --locked -- --skip scenario_tests::scenarios::tests
           cargo test --locked --jobs 1 scenario_tests::scenarios::tests
         working-directory: crates
         env:
           RUST_MIN_STACK: 8388608
+          # Not GITHUB_TOKEN: tests must not see a token under a name code may look for.
+          WATCHDOG_TOKEN: ${{ github.token }}
+          WATCHDOG_STATUS_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
 
   goose-sdk-uniffi:
     name: Check goose-sdk UniFFI

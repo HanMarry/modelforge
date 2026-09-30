@@ -102,6 +102,11 @@ function replyWith(reply: ReviewOutput) {
 async function paperSelected() {
   const select = screen.getByRole('combobox', { name: 'Paper' });
   await waitFor(() => expect(select).toHaveValue('paper/main.tex'));
+  // Selecting a paper runs an effect that clears the start error and loads the saved reviews.
+  // Until it has run, a click can set an error that the effect then clears again.
+  await waitFor(() =>
+    expect(list).toHaveBeenCalledWith({ projectDir: '/project', paperPath: 'paper/main.tex' })
+  );
   return select;
 }
 
