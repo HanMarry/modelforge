@@ -36,6 +36,8 @@ const NOTABLE_ANNOTATIONS = [
   'left-behind',
   'tool-approval',
   'not-first-launch',
+  'setup',
+  'evidence',
 ];
 
 /** Informational annotations shown as key facts. */
@@ -237,6 +239,10 @@ function helperRow(kind, result) {
           `files left ${(result.remainingFiles || []).length}`,
           `Apps & features left ${yesNo(result.uninstallEntryPresent)}`,
           `shortcuts left ${yesNo(result.startMenuShortcutPresent || result.desktopShortcutPresent)}`,
+          Array.isArray(result.dataDirs)
+            ? `data folders left ${result.dataDirs.filter((dir) => dir && dir.exists).length}/${result.dataDirs.length}`
+            : '',
+          result.appData ? `APPDATA ${result.appData}` : '',
         ],
         error: result.error,
       };
@@ -251,7 +257,14 @@ function helperRow(kind, result) {
       return {
         what: 'Run-AsUserInner',
         ok,
-        details: [`stage ${result.stage}`, `as ${result.identity}`, `profile ${result.userProfile}`, `exit ${result.exitCode ?? '?'}`],
+        details: [
+          `stage ${result.stage}`,
+          `as ${result.identity}`,
+          `profile ${result.userProfile}`,
+          result.appData ? `APPDATA ${result.appData}` : '',
+          result.localAppData ? `LOCALAPPDATA ${result.localAppData}` : '',
+          `exit ${result.exitCode ?? '?'}`,
+        ],
         error: result.error,
       };
     default:

@@ -33,8 +33,10 @@ name: "ModelForge Windows smoke"
 #   upgrade         reinstall over it: configuration, sessions, Projects and keys are kept (7.5)
 #   uninstall       silent / keep / remove through the uninstaller and its dialogs (7.10)
 #   cn-user         new local user whose profile path has Chinese characters and a space,
-#                   per-user install at the default location; main spec (7.4)
-#   cn-profile-sim  only when no process can run as that user: stand-in profile directory
+#                   per-user install at the default location; main spec (7.4), then the
+#                   uninstall spec on that user's own %APPDATA% / %LOCALAPPDATA% (7.10)
+#   cn-profile-sim  only when no process can run as that user: stand-in profile directory,
+#                   same two specs; the uninstaller gets the stand-in profile variables
 on:
   workflow_dispatch:
     inputs:
@@ -70,7 +72,7 @@ jobs:
       ${{ github.event_name == 'workflow_dispatch' ||
       (github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.head_repository.full_name == github.repository) }}
-    timeout-minutes: 210
+    timeout-minutes: 240
     defaults:
       run:
         shell: pwsh
@@ -338,7 +340,7 @@ jobs:
       - name: "Scenario cn-user: new local user with Chinese characters and a space in the profile path"
         id: cn_user
         continue-on-error: true
-        timeout-minutes: 90
+        timeout-minutes: 120
         run: |
           $out = Join-Path $env:SMOKE_RESULTS 'cn-user'
           New-Item -ItemType Directory -Force -Path $out | Out-Null
@@ -347,7 +349,9 @@ jobs:
             installer  = $env:MODELFORGE_INSTALLER
             harnessDir = $env:SMOKE_HARNESS
             node       = $env:SMOKE_NODE
-            specs      = @('windows-installed-smoke')
+            # The uninstall spec runs last and on this user's data (Run-AsUserInner.ps1 sets the
+            # profile variables from the user's logon token; the uninstaller inherits them).
+            specs      = @('windows-installed-smoke', 'windows-installed-uninstall')
             resultsDir = $out
             env        = [ordered]@{
               MODELFORGE_SMOKE_APP_PATH      = $env:MODELFORGE_SMOKE_APP_PATH
@@ -361,7 +365,7 @@ jobs:
           $read = @($env:SMOKE_HARNESS, (Split-Path -Parent $env:SMOKE_NODE), $env:SMOKE_INSTALLER_DIR, $env:SMOKE_PYTHON_DIR, $env:SMOKE_TYPST_DIR) -join ';'
           & $env:SMOKE_PS51 -NoProfile -NonInteractive -ExecutionPolicy Bypass -File (Join-Path $env:SMOKE_SCRIPTS 'Invoke-AsLocalUser.ps1') `
             -UserName $env:SMOKE_USER_NAME -EnvFile $envFile -GrantRead $read -GrantModify $out `
-            -ResultFile (Join-Path $out 'invoke-result.json') -TimeoutSeconds 4800
+            -ResultFile (Join-Path $out 'invoke-result.json') -TimeoutSeconds 6600
           $code = $LASTEXITCODE
           "code=$code" | Add-Content -LiteralPath $env:GITHUB_OUTPUT -Encoding utf8
           # The run as the user has no console here; show what it wrote.
@@ -382,7 +386,7 @@ jobs:
         id: cn_profile_sim
         if: steps.cn_user.outputs.code == '3'
         continue-on-error: true
-        timeout-minutes: 60
+        timeout-minutes: 90
         working-directory: ${{ env.SMOKE_HARNESS }}
         env:
           MODELFORGE_SMOKE_SCENARIO: cn-profile-sim
@@ -397,7 +401,8 @@ jobs:
           $env:MODELFORGE_SMOKE_RESULTS_DIR = $out
           $env:MODELFORGE_SMOKE_EVIDENCE_DIR = Join-Path $out 'evidence'
           $env:MODELFORGE_SMOKE_STATE_DIR = Join-Path $env:SMOKE_RESULTS 'state-cn-profile-sim'
-          node node_modules/@playwright/test/cli.js test -c tests/e2e/windows-smoke/playwright.config.ts windows-installed-smoke
+          # The uninstall spec hands the stand-in profile variables to the uninstaller (profileEnv).
+          node node_modules/@playwright/test/cli.js test -c tests/e2e/windows-smoke/playwright.config.ts windows-installed-smoke windows-installed-uninstall
 
       # ------------------------------------------------------------------ evidence, summary, verdict
       - name: Collect app and kernel logs
@@ -407,6 +412,8 @@ jobs:
           $cnProfile = Get-CimInstance Win32_UserProfile -ErrorAction SilentlyContinue |
             Where-Object { (Split-Path -Leaf $_.LocalPath) -eq $env:SMOKE_USER_NAME } | Select-Object -First 1 -ExpandProperty LocalPath
           $profiles = [ordered]@{ 'runner' = $env:USERPROFILE; 'cn-user' = $cnProfile; 'cn-profile-sim' = $env:SMOKE_SIM_PROFILE }
+          # A profile whose uninstall spec answered "remove" has none of these left; that spec
+          # copies them to <scenario>\evidence\before-remove first.
           # Never the credential store (agent-kernel-secrets.json).
           $items = [ordered]@{
             'AppData\Roaming\ModelForge\logs'                 = 'desktop-logs'

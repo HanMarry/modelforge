@@ -317,9 +317,6 @@ export interface AppPaths {
   gooseConfigFile: string;
   sessionsDb: string;
   gooseLogsDir: string;
-  /** The XDG-style paths build/installer.nsh removes; goose does not use them on Windows. */
-  legacyGooseConfig: string;
-  legacyGooseData: string;
 }
 
 export function appPaths(cfg: SmokeConfig): AppPaths {
@@ -344,8 +341,6 @@ export function appPaths(cfg: SmokeConfig): AppPaths {
     gooseConfigFile: path.join(gooseRoot, 'config', 'config.yaml'),
     sessionsDb: path.join(gooseRoot, 'data', 'sessions', 'sessions.db'),
     gooseLogsDir: path.join(gooseRoot, 'data', 'logs'),
-    legacyGooseConfig: path.join(home, '.config', 'goose'),
-    legacyGooseData: path.join(home, '.local', 'share', 'goose'),
   };
 }
 
@@ -1288,15 +1283,48 @@ export interface HelperResult<T> {
   resultFile: string;
 }
 
+/** Profile variables of the user whose data the app and its uninstaller use. */
+const PROFILE_ENV_KEYS = ['USERPROFILE', 'HOMEDRIVE', 'HOMEPATH', 'APPDATA', 'LOCALAPPDATA', 'TEMP', 'TMP'];
+
+/**
+ * The profile variables the app is started with, for helpers that must act on the same user's
+ * data: the uninstaller removes %APPDATA% / %LOCALAPPDATA% folders read from its environment
+ * (build/installer.nsh). Empty unless a stand-in profile is used (cn-profile-sim). Otherwise the
+ * harness already runs with the profile of the user under test: the runner account in the
+ * primary scenario, the new local user in cn-user (Run-AsUserInner.ps1 sets the variables from
+ * that user's logon token before starting Playwright).
+ */
+export function profileEnv(cfg: SmokeConfig): Record<string, string> {
+  if (!cfg.profileRoot) {
+    return {};
+  }
+  const env = appEnv(cfg, 0);
+  return Object.fromEntries(
+    PROFILE_ENV_KEYS.filter((key) => env[key] !== undefined).map((key) => [key, env[key]])
+  );
+}
+
+/** `base` with `extra` on top; Windows variable names are case-insensitive. */
+function mergeEnv(
+  base: Record<string, string | undefined>,
+  extra: Record<string, string>
+): Record<string, string | undefined> {
+  const replaced = new Set(Object.keys(extra).map((key) => key.toLowerCase()));
+  const kept = Object.entries(base).filter(([key]) => !replaced.has(key.toLowerCase()));
+  return { ...Object.fromEntries(kept), ...extra };
+}
+
 /**
  * Runs `scripts/<name>` with Windows PowerShell 5.1 (UI Automation and the NSIS installer are
- * driven from there). `-ResultFile` is added; the script writes its JSON result to it.
+ * driven from there). `-ResultFile` is added; the script writes its JSON result to it. `env`
+ * goes on top of the harness's own environment; the script and what it starts inherit it.
  */
 export function runHelper<T>(
   cfg: SmokeConfig,
   name: string,
   params: Record<string, string>,
-  timeoutMs: number
+  timeoutMs: number,
+  env: Record<string, string> = {}
 ): HelperResult<T> {
   fs.mkdirSync(cfg.evidenceDir, { recursive: true });
   const resultFile = path.join(
@@ -1321,7 +1349,12 @@ export function runHelper<T>(
     'v1.0',
     'powershell.exe'
   );
-  const run = spawnSync(exe, args, { encoding: 'utf8', timeout: timeoutMs, windowsHide: false });
+  const run = spawnSync(exe, args, {
+    encoding: 'utf8',
+    timeout: timeoutMs,
+    windowsHide: false,
+    env: mergeEnv(process.env, env),
+  });
   const output = `${run.stdout ?? ''}${run.stderr ?? ''}${run.error ? `\n${String(run.error)}` : ''}`;
   console.log(`[helper ${name}] exit ${run.status}\n${output.trim()}`);
   return { exitCode: run.status, output, result: readJsonFile<T>(resultFile), resultFile };

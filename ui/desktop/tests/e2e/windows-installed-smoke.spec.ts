@@ -131,7 +131,12 @@ test.describe('installed ModelForge (Windows smoke)', () => {
       expect(hasCjkAndSpace(c.installDir), `install dir has Chinese and a space: ${c.installDir}`).toBe(true);
     } else {
       expect(hasCjkAndSpace(paths.home), `user profile has Chinese and a space: ${paths.home}`).toBe(true);
+      // The app, the kernel and the uninstaller use this user's own folders, not the runner's.
       expect(paths.appData.startsWith(paths.home), `APPDATA ${paths.appData} lives in the profile`).toBe(true);
+      expect(
+        paths.localAppData.startsWith(paths.home),
+        `LOCALAPPDATA ${paths.localAppData} lives in the profile`
+      ).toBe(true);
     }
     expect(hasCjkAndSpace(projectParentDir(c))).toBe(true);
   });

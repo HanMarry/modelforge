@@ -30,7 +30,8 @@ param(
     [string] $GrantModify = '',
     [string] $WorkingDirectory = '',
     [string] $ResultFile = '',
-    [int] $TimeoutSeconds = 5400
+    # Above the Playwright budget of Run-AsUserInner.ps1 (-TimeoutSeconds 6300 there).
+    [int] $TimeoutSeconds = 6600
 )
 
 $ErrorActionPreference = 'Stop'
