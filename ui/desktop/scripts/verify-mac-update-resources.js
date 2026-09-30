@@ -19,15 +19,19 @@ if (!fs.existsSync(updateConfigPath)) {
 }
 
 const updateConfig = fs.readFileSync(updateConfigPath, 'utf8');
+const lines = updateConfig.split(/\r?\n/);
+
+// The bundled feed must be ModelForge's own release repository (src/app-update.yml, kept in
+// sync with DEFAULT_GITHUB_OWNER / DEFAULT_GITHUB_REPO in src/branding.ts), never upstream goose.
 const requiredLines = [
   'provider: github',
-  'owner: aaif-goose',
-  'repo: goose',
-  'updaterCacheDirName: goose-updater',
+  'owner: HanMarry',
+  'repo: modelforge',
+  'updaterCacheDirName: modelforge-updater',
 ];
 
 for (const line of requiredLines) {
-  if (!updateConfig.split(/\r?\n/).includes(line)) {
+  if (!lines.includes(line)) {
     fail(`${updateConfigPath} is missing "${line}"`);
   }
 }

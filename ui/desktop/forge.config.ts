@@ -103,8 +103,11 @@ module.exports = {
       config: {
         updater: {
           // ModelForge's own update feed, generated next to the installer; keep in sync
-          // with src/app-update.yml and the @electron-forge/publisher-github below.
-          url: 'https://github.com/HanMarry/modelforge/releases/latest/download',
+          // with src/app-update.yml and the @electron-forge/publisher-github below. The
+          // owner/repo follow the same GITHUB_OWNER / GITHUB_REPO overrides as the
+          // publisher and the runtime feed (getUpdateRepository in src/utils/githubUpdater.ts).
+          url: `https://github.com/${process.env.GITHUB_OWNER || 'HanMarry'}/${process.env.GITHUB_REPO || 'modelforge'}/releases/latest/download`,
+          // build/installer.nsh deletes %LOCALAPPDATA%\modelforge-updater on uninstall.
           updaterCacheDirName: 'modelforge-updater',
           channel: 'latest',
           publisherName: 'ModelForge Team',

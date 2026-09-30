@@ -1,5 +1,9 @@
 provider: github
 # Keep owner/repo in sync with DEFAULT_GITHUB_OWNER / DEFAULT_GITHUB_REPO in src/branding.ts.
+# Shipped as-is on macOS (checked by scripts/verify-mac-update-resources.js); the Windows NSIS
+# maker writes its own copy from the updater block in forge.config.ts. At runtime
+# setupAutoUpdater() replaces the provider via setFeedURL, but electron-updater still reads
+# updaterCacheDirName from this file; build/installer.nsh removes that directory on uninstall.
 owner: HanMarry
 repo: modelforge
 updaterCacheDirName: modelforge-updater
