@@ -3656,6 +3656,24 @@
   "onboardingGuard.welcomeTitle": {
     "defaultMessage": "欢迎使用 ModelForge"
   },
+  "onboardingGuard.wizardAddressTestOnly": {
+    "defaultMessage": "仅用于连通性测试；内置内核使用该供应商自带的地址。"
+  },
+  "onboardingGuard.wizardKeySaveFailed": {
+    "defaultMessage": "密钥保存失败：{reason}"
+  },
+  "onboardingGuard.wizardModelHint": {
+    "defaultMessage": "默认填入该供应商推荐的模型；如果你的接口提供的是其他模型，请改为该模型的名称。"
+  },
+  "onboardingGuard.wizardModelLabel": {
+    "defaultMessage": "模型"
+  },
+  "onboardingGuard.wizardProviderSaveFailed": {
+    "defaultMessage": "连接正常，但内置内核未能保存该供应商：{reason}"
+  },
+  "onboardingGuard.wizardSaving": {
+    "defaultMessage": "正在保存…"
+  },
   "onboardingSuccess.allSet": {
     "defaultMessage": "一切就绪，可以开始使用 ModelForge 了。"
   },

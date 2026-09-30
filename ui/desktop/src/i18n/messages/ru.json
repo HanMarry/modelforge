@@ -3656,6 +3656,24 @@
   "onboardingGuard.welcomeTitle": {
     "defaultMessage": "Добро пожаловать в ModelForge"
   },
+  "onboardingGuard.wizardAddressTestOnly": {
+    "defaultMessage": "Используется только для проверки подключения; встроенное ядро использует адрес, заданный для этого провайдера."
+  },
+  "onboardingGuard.wizardKeySaveFailed": {
+    "defaultMessage": "Не удалось сохранить ключ: {reason}"
+  },
+  "onboardingGuard.wizardModelHint": {
+    "defaultMessage": "Подставлена рекомендуемая модель провайдера; укажите другое имя модели, если ваш эндпоинт предоставляет другую."
+  },
+  "onboardingGuard.wizardModelLabel": {
+    "defaultMessage": "Модель"
+  },
+  "onboardingGuard.wizardProviderSaveFailed": {
+    "defaultMessage": "Подключение работает, но встроенному ядру не удалось сохранить этого провайдера: {reason}"
+  },
+  "onboardingGuard.wizardSaving": {
+    "defaultMessage": "Сохранение…"
+  },
   "onboardingSuccess.allSet": {
     "defaultMessage": "Все готово для начала работы с ModelForge."
   },
