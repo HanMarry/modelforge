@@ -3,6 +3,14 @@
  * It binds only to loopback on a random port and requires a per-launch Bearer token, so the tools
  * cannot be reached from another process or machine. `browser_click` and `browser_type` always ask
  * the user through the approval channel, regardless of the Kernel's permission mode (12.3).
+ *
+ * The server is stateless and every POST gets its own `McpServer` and transport. A stateless
+ * transport serves exactly one request (the SDK throws on reuse since 1.26), and one instance
+ * shared by several Kernel sessions would mix up their JSON-RPC ids (GHSA-345p-7cg4-v4c7). A
+ * reused transport left every request after `initialize` without a response, so the Kernel
+ * waited for the extension until its timeout on each new session. Nothing is lost: the tools keep
+ * no state between requests and the server sends no notifications of its own, so GET (the
+ * optional SSE stream) and DELETE (session end) answer 405, as the MCP spec allows.
  */
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import http from 'node:http';
@@ -46,11 +54,21 @@ function isLoopbackHost(hostHeader: string | undefined): boolean {
   return host === '127.0.0.1' || host === 'localhost' || host === '::1';
 }
 
-export function startBrowserMcpServer(deps: BrowserMcpDeps): Promise<BrowserMcpEndpoint> {
-  const { host, requestApproval, onOpen, registerSecret } = deps;
-  const token = randomBytes(32).toString('base64url');
-  registerSecret(token);
+/** Answers a request that never reaches an MCP server with a JSON-RPC error body. */
+function reject(
+  res: http.ServerResponse,
+  status: number,
+  code: number,
+  message: string,
+  headers: Record<string, string> = {}
+): void {
+  res
+    .writeHead(status, { 'content-type': 'application/json', ...headers })
+    .end(JSON.stringify({ jsonrpc: '2.0', error: { code, message }, id: null }));
+}
 
+/** A fresh MCP server with the four browser tools; one is created per HTTP request. */
+function createBrowserMcpServer({ host, requestApproval, onOpen }: BrowserMcpDeps): McpServer {
   const server = new McpServer({ name: 'modelforge-browser', version: '1.0.0' });
 
   server.registerTool(
@@ -122,12 +140,40 @@ export function startBrowserMcpServer(deps: BrowserMcpDeps): Promise<BrowserMcpE
     }
   );
 
+  return server;
+}
+
+async function handlePost(
+  deps: BrowserMcpDeps,
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  body: unknown
+): Promise<void> {
+  const server = createBrowserMcpServer(deps);
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
     enableJsonResponse: true,
   });
+  res.on('close', () => {
+    void transport.close();
+    void server.close();
+  });
+  try {
+    await server.connect(transport);
+    await transport.handleRequest(req, res, body);
+  } catch (failure) {
+    console.error('[browser] MCP request failed', failure);
+    if (!res.headersSent) {
+      reject(res, 500, -32603, 'Internal error');
+    }
+  }
+}
 
-  return new Promise<BrowserMcpEndpoint>((resolve, reject) => {
+export function startBrowserMcpServer(deps: BrowserMcpDeps): Promise<BrowserMcpEndpoint> {
+  const token = randomBytes(32).toString('base64url');
+  deps.registerSecret(token);
+
+  return new Promise<BrowserMcpEndpoint>((resolve, rejectStart) => {
     const httpServer = http.createServer((req, res) => {
       const authorization = req.headers.authorization ?? '';
       const bearer = authorization.startsWith('Bearer ') ? authorization.slice(7) : '';
@@ -139,48 +185,43 @@ export function startBrowserMcpServer(deps: BrowserMcpDeps): Promise<BrowserMcpE
         res.writeHead(403, { 'content-type': 'application/json' }).end('{"error":"forbidden"}');
         return;
       }
+      if (req.method !== 'POST') {
+        reject(res, 405, -32000, 'Method not allowed.', { allow: 'POST' });
+        return;
+      }
 
-      if (req.method === 'GET' || req.method === 'DELETE') {
-        void transport.handleRequest(req, res);
-        return;
-      }
-      if (req.method === 'POST') {
-        let body = '';
-        req.on('data', (chunk) => {
-          body += chunk;
-        });
-        req.on('end', () => {
-          let parsed: unknown;
-          try {
-            parsed = JSON.parse(body);
-          } catch {
-            parsed = undefined;
-          }
-          void transport.handleRequest(req, res, parsed);
-        });
-        return;
-      }
-      res.writeHead(405).end();
+      // Decode as UTF-8 across chunk boundaries, so text typed into a page (browser_type) keeps
+      // multi-byte characters such as Chinese intact.
+      req.setEncoding('utf8');
+      let body = '';
+      req.on('data', (chunk: string) => {
+        body += chunk;
+      });
+      req.on('end', () => {
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(body);
+        } catch {
+          reject(res, 400, -32700, 'Parse error');
+          return;
+        }
+        void handlePost(deps, req, res, parsed);
+      });
     });
 
-    server
-      .connect(transport)
-      .then(() => {
-        httpServer.on('error', reject);
-        httpServer.listen(0, '127.0.0.1', () => {
-          const address = httpServer.address();
-          const port = typeof address === 'object' && address ? address.port : 0;
-          resolve({
-            url: `http://127.0.0.1:${port}/mcp`,
-            token,
-            close: async () => {
-              await transport.close();
-              await server.close();
-              await new Promise<void>((done) => httpServer.close(() => done()));
-            },
-          });
-        });
-      })
-      .catch(reject);
+    httpServer.on('error', rejectStart);
+    httpServer.listen(0, '127.0.0.1', () => {
+      const address = httpServer.address();
+      const port = typeof address === 'object' && address ? address.port : 0;
+      resolve({
+        url: `http://127.0.0.1:${port}/mcp`,
+        token,
+        close: () =>
+          new Promise<void>((done) => {
+            httpServer.closeAllConnections();
+            httpServer.close(() => done());
+          }),
+      });
+    });
   });
 }
