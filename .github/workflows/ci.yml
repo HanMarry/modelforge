@@ -98,8 +98,10 @@ jobs:
     if: needs.changes.outputs.code == 'true' || github.event_name != 'pull_request'
     permissions:
       contents: read
-      # The watchdog reports through the "rust-watchdog" commit status (see its header).
+      # The watchdog reports through the "rust-watchdog" commit status and the
+      # "rust-watchdog-log" check run (see its header).
       statuses: write
+      checks: write
     steps:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -122,19 +124,23 @@ jobs:
         run: |
           gnome-keyring-daemon --components=secrets --daemonize --unlock <<< 'foobar'
           export CARGO_INCREMENTAL=0
-          bash ../.github/scripts/memory-watchdog.sh &
+          set -o pipefail
+          : > "$WATCHDOG_TEST_LOG"
+          # Own session: a test that kills its process group must not take the watchdog along.
+          setsid bash ../.github/scripts/memory-watchdog.sh &
           watchdog=$!
           trap 'kill "$watchdog" 2>/dev/null; wait "$watchdog" 2>/dev/null || true' EXIT
           free -m
           df -h /
-          cargo test --locked -- --skip scenario_tests::scenarios::tests
-          cargo test --locked --jobs 1 scenario_tests::scenarios::tests
+          cargo test --locked -- --skip scenario_tests::scenarios::tests 2>&1 | tee -a "$WATCHDOG_TEST_LOG"
+          cargo test --locked --jobs 1 scenario_tests::scenarios::tests 2>&1 | tee -a "$WATCHDOG_TEST_LOG"
         working-directory: crates
         env:
           RUST_MIN_STACK: 8388608
           # Not GITHUB_TOKEN: tests must not see a token under a name code may look for.
           WATCHDOG_TOKEN: ${{ github.token }}
           WATCHDOG_STATUS_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          WATCHDOG_TEST_LOG: ${{ runner.temp }}/cargo-test.log
 
   goose-sdk-uniffi:
     name: Check goose-sdk UniFFI
