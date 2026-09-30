@@ -45,6 +45,10 @@ pub fn materialize_assets(dest: &Path) -> io::Result<()> {
 }
 
 fn extract(dest: &Path) -> io::Result<()> {
+    extract_tree(&BUILTIN_SKILLS_DIR, dest)
+}
+
+fn extract_tree(tree: &Dir<'_>, dest: &Path) -> io::Result<()> {
     let stamp = dest.join(".assets-version");
     if std::fs::read_to_string(&stamp).is_ok_and(|v| v.trim() == BUILTIN_ASSETS_VERSION) {
         return Ok(());
@@ -54,7 +58,12 @@ fn extract(dest: &Path) -> io::Result<()> {
     if dest.exists() {
         std::fs::remove_dir_all(dest)?;
     }
-    BUILTIN_SKILLS_DIR.extract(dest)?;
+    // `Dir::extract` creates the subdirectories it meets but not `dest` itself, and writes the
+    // files at the root of the tree straight into it. On Windows the build lists entries
+    // alphabetically, so the tree starts with `abstract_and_conclusion.md`: without this, every
+    // fresh profile failed with "path not found" and no skill had its scripts or templates.
+    std::fs::create_dir_all(dest)?;
+    tree.extract(dest)?;
     std::fs::write(stamp, BUILTIN_ASSETS_VERSION)
 }
 
@@ -106,7 +115,51 @@ fn collect_files(dir: &Path, files: &mut Vec<String>) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use include_dir::{DirEntry, File};
     use std::path::PathBuf;
+
+    /// Shaped like the bundled tree: a file at the root comes before any directory.
+    static FILE_FIRST_TREE: Dir<'static> = Dir::new(
+        "",
+        &[
+            DirEntry::File(File::new("abstract_and_conclusion.md", b"root skill")),
+            DirEntry::Dir(Dir::new(
+                "data_search",
+                &[DirEntry::Dir(Dir::new(
+                    "data_search/scripts",
+                    &[DirEntry::File(File::new(
+                        "data_search/scripts/search.py",
+                        b"print('ok')",
+                    ))],
+                ))],
+            )),
+        ],
+    );
+
+    #[test]
+    fn extracts_into_a_directory_that_does_not_exist_yet() {
+        let temp = tempfile::tempdir().unwrap();
+        // A fresh profile has neither the data directory nor `builtin-skills` under it.
+        let dest = temp.path().join("data").join("builtin-skills");
+
+        extract_tree(&FILE_FIRST_TREE, &dest).unwrap();
+
+        assert_eq!(
+            std::fs::read(dest.join("abstract_and_conclusion.md")).unwrap(),
+            b"root skill"
+        );
+        assert_eq!(
+            std::fs::read(dest.join("data_search").join("scripts").join("search.py")).unwrap(),
+            b"print('ok')"
+        );
+        assert_eq!(
+            std::fs::read_to_string(dest.join(".assets-version")).unwrap(),
+            BUILTIN_ASSETS_VERSION
+        );
+
+        // With the stamp in place a later start leaves the tree alone.
+        extract_tree(&FILE_FIRST_TREE, &dest).unwrap();
+    }
 
     fn collect_bundled(dir: &Dir<'_>, files: &mut Vec<PathBuf>) {
         for file in dir.files() {

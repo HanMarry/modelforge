@@ -54,8 +54,15 @@ recipe:
     - vrp_total_distance（数值，与站点坐标同单位）：问题二单车调度方案的总行驶距离（欧氏距离）。
     - satisfaction_gain（数值，百分点）：问题二调度后相对调度前的全天需求满足率提升。
     - two_vehicle_distance_saving（数值，与站点坐标同单位）：问题三 2 车协同相比单车节省的总行驶距离。
+  # Recipe extensions replace the configured ones, so everything the instructions rely on is
+  # listed: skills provides load_skill for the math-modeling skill, and todo the task list the
+  # desktop also enables by default.
   extensions:
     - type: platform
       name: developer
     - type: builtin
       name: modeling
+    - type: platform
+      name: skills
+    - type: platform
+      name: todo

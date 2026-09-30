@@ -1,0 +1,237 @@
+name: ModelForge Evals
+
+# Modeling evaluation suite (evals/modeling; requirement 23, spec task 29) against a real model.
+#
+# It spends tokens on the maintainer's account, so it never runs on pull requests or on ordinary
+# pushes. Start it by hand:
+#
+#   gh workflow run modelforge-evals.yml --ref <branch> [-f models="deepseek-v4-pro deepseek-flash"]
+#     workflow_dispatch; GitHub offers it once this file is on the default branch.
+#   git push origin <commit>:refs/heads/eval/run
+#     Until then: pushing the branch eval/run runs the suite with the defaults below on that
+#     commit.
+#
+# The kernel is built from the checked-out commit and gets a Build_Manifest (dev-manifest.mts,
+# as package-windows.yml does), so the result records the commit it measured (23.5). Linux is
+# used because the tasks compile a Chinese LaTeX paper with xelatex, which TeX Live provides from
+# apt in a few minutes.
+#
+# Secret: DEEPSEEK_API_KEY (repository secret). The result, the task working directories and the
+# kernel logs are uploaded as an artifact; this repository is public, so every file is scanned for
+# the key first and the key is overwritten wherever it appears.
+on:
+  workflow_dispatch:
+    inputs:
+      provider:
+        description: 'goose provider'
+        required: false
+        default: 'custom_deepseek'
+        type: string
+      models:
+        description: 'Models to evaluate, separated by spaces'
+        required: false
+        default: 'deepseek-v4-pro'
+        type: string
+      budget:
+        description: 'Token budget for the whole run (input plus output), e.g. 40m'
+        required: false
+        default: '40m'
+        type: string
+      tasks:
+        description: 'Task ids separated by spaces (empty: all tasks)'
+        required: false
+        default: ''
+        type: string
+      skip_learning:
+        description: 'Skip the learning-mode samples'
+        required: false
+        default: false
+        type: boolean
+  push:
+    branches:
+      - eval/run
+
+permissions:
+  contents: read
+
+concurrency:
+  group: modelforge-evals
+  cancel-in-progress: false
+
+jobs:
+  evals:
+    name: Modeling evaluation
+    runs-on: ubuntu-latest
+    # Kernel build (~30 min) plus up to 60 minutes per task and the learning samples.
+    timeout-minutes: 340
+    env:
+      EVAL_PROVIDER: ${{ inputs.provider || 'custom_deepseek' }}
+      EVAL_MODELS: ${{ inputs.models || 'deepseek-v4-pro' }}
+      EVAL_BUDGET: ${{ inputs.budget || '40m' }}
+      EVAL_TASKS: ${{ inputs.tasks || '' }}
+      EVAL_SKIP_LEARNING: ${{ inputs.skip_learning && '1' || '0' }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: Check the API key secret and prepare directories
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+        run: |
+          if [ "$EVAL_PROVIDER" = "custom_deepseek" ] && [ -z "$DEEPSEEK_API_KEY" ]; then
+            echo "::error::repository secret DEEPSEEK_API_KEY is not set"
+            exit 1
+          fi
+          {
+            echo "EVAL_WORK=$RUNNER_TEMP/evals-work"
+            echo "EVAL_RESULTS=$RUNNER_TEMP/evals-results"
+            echo "EVAL_ARTIFACT=$RUNNER_TEMP/evals-artifact"
+          } >> "$GITHUB_ENV"
+
+      - uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659 # v1.17.0
+        with:
+          cache-key: modelforge-evals
+
+      - name: Repair stale v8 prebuilt marker
+        run: .github/scripts/repair-v8-prebuilt.sh
+
+      - name: Install system packages (build dependencies, TeX Live for xelatex with Chinese)
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y --no-install-recommends \
+            libdbus-1-dev libxcb1-dev \
+            texlive-xetex texlive-lang-chinese texlive-latex-extra texlive-science \
+            texlive-fonts-recommended fonts-noto-cjk latexmk
+          xelatex --version | head -n 1
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: '3.12'
+
+      - name: Install Python packages the tasks commonly use
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install numpy pandas scipy scikit-learn statsmodels matplotlib seaborn openpyxl networkx pulp
+
+      - name: Build the kernel (goose)
+        run: |
+          commit="$(git rev-parse HEAD)"
+          if [ -z "$(git status --porcelain --untracked-files=normal)" ]; then dirty=false; else dirty=true; fi
+          export GOOSE_BUILD_COMMIT="$commit" GOOSE_BUILD_DIRTY="$dirty" CARGO_INCREMENTAL=0
+          cargo build --release --locked -p goose-cli --bin goose
+          ./target/release/goose version --json
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020  # v7.0.0
+        with:
+          node-version: 24.10.0
+
+      - name: Write build-manifest.json
+        run: |
+          commit="$(git rev-parse HEAD)"
+          if [ -z "$(git status --porcelain --untracked-files=normal)" ]; then dirty=false; else dirty=true; fi
+          node ui/desktop/scripts/release/dev-manifest.mts write \
+            --binary target/release/goose \
+            --commit "$commit" --dirty "$dirty" --source-root .
+          cat target/release/build-manifest.json
+
+      - name: Install the desktop package (the runner loads yaml and the eval utilities from it)
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+        run: |
+          npm install -g pnpm@10.30.3
+          pnpm install --frozen-lockfile
+        working-directory: ui/desktop
+
+      - name: Run the evaluation
+        id: run
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          GOOSE_DISABLE_KEYRING: '1'
+          GOOSE_TELEMETRY_OFF: '1'
+          RUST_MIN_STACK: '8388608'
+        run: |
+          mkdir -p "$EVAL_WORK" "$EVAL_RESULTS"
+          args=(--provider "$EVAL_PROVIDER" --budget "$EVAL_BUDGET"
+                --goose "$GITHUB_WORKSPACE/target/release/goose"
+                --work-dir "$EVAL_WORK" --results-dir "$EVAL_RESULTS")
+          for model in $EVAL_MODELS; do args+=(--model "$model"); done
+          for task in $EVAL_TASKS; do args+=(--task "$task"); done
+          if [ "$EVAL_SKIP_LEARNING" = "1" ]; then args+=(--skip-learning); fi
+          # The runner asks the maintainer to confirm the plan; starting this workflow is that
+          # confirmation.
+          set +e
+          printf 'y\n' | node evals/modeling/run.mts "${args[@]}"
+          code=$?
+          set -e
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          if [ "$code" -ne 0 ]; then
+            echo "::error::the evaluation runner exited with $code"
+            exit "$code"
+          fi
+
+      - name: Collect the result, working directories and kernel logs without the key
+        if: always()
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+        run: |
+          mkdir -p "$EVAL_ARTIFACT"
+          [ -d "$EVAL_RESULTS" ] && cp -a "$EVAL_RESULTS" "$EVAL_ARTIFACT/results"
+          [ -d "$EVAL_WORK" ] && cp -a "$EVAL_WORK" "$EVAL_ARTIFACT/work"
+          [ -d "$HOME/.local/state/goose/logs" ] && cp -a "$HOME/.local/state/goose/logs" "$EVAL_ARTIFACT/kernel-logs"
+          cp -f target/release/build-manifest.json "$EVAL_ARTIFACT/" 2>/dev/null || true
+          # The repository is public: overwrite the key wherever it appears, keeping each file's
+          # length so binary files (session databases) stay readable.
+          python3 - "$EVAL_ARTIFACT" <<'PY'
+          import os, sys
+          key = os.environ.get("DEEPSEEK_API_KEY", "").encode()
+          hits = []
+          if key:
+              for root, _dirs, files in os.walk(sys.argv[1]):
+                  for name in files:
+                      path = os.path.join(root, name)
+                      try:
+                          with open(path, "rb") as f:
+                              data = f.read()
+                      except OSError:
+                          continue
+                      if key in data:
+                          with open(path, "wb") as f:
+                              f.write(data.replace(key, b"*" * len(key)))
+                          hits.append(os.path.relpath(path, sys.argv[1]))
+          for hit in hits:
+              print(f"::warning::the API key appeared in {hit}; overwritten")
+          print(f"{len(hits)} file(s) contained the API key")
+          PY
+
+      - name: Summary
+        if: always()
+        run: |
+          file="$(ls -1 "$EVAL_RESULTS"/*.json 2>/dev/null | head -n 1 || true)"
+          {
+            echo "## ModelForge modeling evaluation"
+            echo
+            echo "provider \`$EVAL_PROVIDER\` · models \`$EVAL_MODELS\` · budget \`$EVAL_BUDGET\` · commit \`$(git rev-parse --short HEAD)\`"
+            echo
+            if [ -z "$file" ]; then
+              echo "No result file was written (runner exit code ${{ steps.run.outputs.code || 'none' }})."
+            else
+              echo "| Task | Model | Status | Checks passed | PDF | Minutes | Tokens in | Tokens out |"
+              echo "|---|---|---|---:|---|---:|---:|---:|"
+              jq -r '.tasks[] | "| \(.id) | \(.model) | \(.status)\(if .failure then " (" + .failure + ")" else "" end) | \(.passed)/\(.total) | \(if .compiled then "yes" else "no" end) | \((.seconds / 60) | floor) | \(.tokensIn) | \(.tokensOut) |"' "$file"
+              echo
+              jq -r '"Budget: \(.budget.used) of \(.budget.limit) tokens" + (if .budget.exhausted then " (exhausted)" else "" end) + " · traceable: \(.traceable) · commit \(.commit // "none") · dirty \(.dirty)"' "$file"
+              echo
+              echo "Learning-mode samples: $(jq -r '[.learningSamples[] | select(.suspectedFullSolution or .missingHintOrQuestion)] | length' "$file") of $(jq -r '.learningSamples | length' "$file") flagged for review."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the evaluation
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: modelforge-evals
+          path: ${{ env.EVAL_ARTIFACT }}
+          if-no-files-found: warn
+          retention-days: 30

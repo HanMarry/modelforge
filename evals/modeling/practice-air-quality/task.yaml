@@ -53,8 +53,15 @@ recipe:
     - ols_coef_temperature、ols_coef_humidity、ols_coef_wind_speed、ols_coef_traffic_index（数值）：以 pm2_5 为因变量、上述 4 个字段为自变量、含截距、不做标准化的多元线性回归在你的训练集上拟合得到的系数。
     - ols_test_rmse（数值）：该线性回归在你的测试集上的 RMSE。
     - ols_test_r2（数值）：该线性回归在你的测试集上的 R²。
+  # Recipe extensions replace the configured ones, so everything the instructions rely on is
+  # listed: skills provides load_skill for the math-modeling skill, and todo the task list the
+  # desktop also enables by default.
   extensions:
     - type: platform
       name: developer
     - type: builtin
       name: modeling
+    - type: platform
+      name: skills
+    - type: platform
+      name: todo
