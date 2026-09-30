@@ -53,8 +53,15 @@ recipe:
     - topsis_entropy_top3（数组，3 个高校编号，按名次排列）：以 entropy_weights_minmax 为权重、对原始数据做向量归一化的 TOPSIS 得到的前 3 名。
     - rank_first（字符串，高校编号）：你最终综合排序的第 1 名。
     - rank_last（字符串，高校编号）：你最终综合排序的最后 1 名。
+  # Recipe extensions replace the configured ones, so everything the instructions rely on is
+  # listed: skills provides load_skill for the math-modeling skill, and todo the task list the
+  # desktop also enables by default.
   extensions:
     - type: platform
       name: developer
     - type: builtin
       name: modeling
+    - type: platform
+      name: skills
+    - type: platform
+      name: todo
