@@ -36,10 +36,19 @@ const NOTABLE_ANNOTATIONS = [
   'left-behind',
   'tool-approval',
   'not-first-launch',
+  'setup',
+  'evidence',
 ];
 
 /** Informational annotations shown as key facts. */
-const FACT_ANNOTATIONS = ['first-shell', 'restart-shell', 'wizard-mode', 'wizard-endpoint'];
+const FACT_ANNOTATIONS = [
+  'first-shell',
+  'restart-shell',
+  'wizard-mode',
+  'wizard-providers',
+  'wizard-kernel-config',
+  'kernel-requests',
+];
 
 const MAX_ERROR_CHARS = 300;
 const MAX_NOTE_CHARS = 240;
@@ -230,6 +239,10 @@ function helperRow(kind, result) {
           `files left ${(result.remainingFiles || []).length}`,
           `Apps & features left ${yesNo(result.uninstallEntryPresent)}`,
           `shortcuts left ${yesNo(result.startMenuShortcutPresent || result.desktopShortcutPresent)}`,
+          Array.isArray(result.dataDirs)
+            ? `data folders left ${result.dataDirs.filter((dir) => dir && dir.exists).length}/${result.dataDirs.length}`
+            : '',
+          result.appData ? `APPDATA ${result.appData}` : '',
         ],
         error: result.error,
       };
@@ -244,7 +257,14 @@ function helperRow(kind, result) {
       return {
         what: 'Run-AsUserInner',
         ok,
-        details: [`stage ${result.stage}`, `as ${result.identity}`, `profile ${result.userProfile}`, `exit ${result.exitCode ?? '?'}`],
+        details: [
+          `stage ${result.stage}`,
+          `as ${result.identity}`,
+          `profile ${result.userProfile}`,
+          result.appData ? `APPDATA ${result.appData}` : '',
+          result.localAppData ? `LOCALAPPDATA ${result.localAppData}` : '',
+          `exit ${result.exitCode ?? '?'}`,
+        ],
         error: result.error,
       };
     default:
@@ -288,7 +308,12 @@ function buildSummary(resultsDir, env) {
   }
   if (env.SMOKE_PACKAGE_SHA) meta.push(`built from \`${env.SMOKE_PACKAGE_SHA.slice(0, 9)}\``);
   if (env.SMOKE_TEST_SHA) meta.push(`tests from \`${env.SMOKE_TEST_SHA.slice(0, 9)}\``);
-  meta.push(`wizard step 2: ${env.MODELFORGE_SMOKE_WIZARD_STRICT === '1' ? 'strict' : 'soft'}`);
+  // Same rule as WIZARD_STRICT in harness.ts: strict unless the variable is "0".
+  meta.push(
+    env.MODELFORGE_SMOKE_WIZARD_STRICT === '0'
+      ? 'wizard step 2: soft (harness fallback allowed)'
+      : 'wizard step 2: strict (flows run on what the wizard saved)'
+  );
   lines.push(meta.join(' · '));
   if (env.SMOKE_PACKAGE_SHA && env.SMOKE_TEST_SHA && env.SMOKE_PACKAGE_SHA !== env.SMOKE_TEST_SHA) {
     lines.push('');

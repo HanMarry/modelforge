@@ -9,6 +9,10 @@
  * the uninstall entry, runs the installed uninstaller with `--updated` (customUnInstall in
  * build/installer.nsh then leaves the data alone) and writes the new files. What a same-version
  * run cannot show is a data migration between versions; none exists today.
+ *
+ * In strict mode (the default, see `WIZARD_STRICT` in the harness) the chats before and after
+ * the upgrade run on the provider, model and key the wizard saved in the primary scenario, so
+ * the post-upgrade chat also shows that the kernel's configuration and secret store survived.
  */
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import fs from 'node:fs';
@@ -19,6 +23,7 @@ import {
   ensureKernelSeeded,
   ensureProject,
   hashTree,
+  kernelChatUse,
   kernelEnv,
   listRecentDirs,
   newNonce,
@@ -31,6 +36,9 @@ import {
   waitForAssistant,
   waitForShell,
   withApp,
+  wizardKernelConfigProblems,
+  STUB_MODEL,
+  WIZARD_STRICT,
   type SmokeConfig,
 } from './windows-smoke/harness';
 
@@ -61,7 +69,16 @@ test.describe('installed ModelForge: upgrade keeps user data (7.5)', () => {
   test('installing over the existing installation keeps configuration, sessions, Projects and keys', async ({}, testInfo) => {
     const c = cfg as SmokeConfig;
     const paths = appPaths(c);
-    ensureKernelSeeded(c, testInfo);
+    if (WIZARD_STRICT) {
+      // The chats below run on the provider the wizard saved in the primary scenario; the
+      // harness supplies nothing, so say plainly when it is missing.
+      expect(
+        wizardKernelConfigProblems(c),
+        `the provider saved by the wizard is in ${paths.gooseConfigFile}`
+      ).toEqual([]);
+    } else {
+      ensureKernelSeeded(c, testInfo);
+    }
     const projectDir = ensureProject(c, testInfo);
 
     // History to keep: the main spec leaves several sessions; make one if it did not.
@@ -70,7 +87,7 @@ test.describe('installed ModelForge: upgrade keeps user data (7.5)', () => {
       await chatOnce(c, testInfo, 'pre-upgrade-chat');
     }
 
-    const shownBefore = await withApp(c, testInfo, 'before-upgrade', { env: kernelEnv() }, (app) => shownCounts(app.page));
+    const shownBefore = await withApp(c, testInfo, 'before-upgrade', { env: kernelEnv(c) }, (app) => shownCounts(app.page));
     annotate(testInfo, 'shown-before', JSON.stringify(shownBefore));
     expect(shownBefore.sessionCards, 'sessions listed before the upgrade').toBeGreaterThan(0);
 
@@ -100,7 +117,7 @@ test.describe('installed ModelForge: upgrade keeps user data (7.5)', () => {
     expect(Object.keys(before.userData)).toContain('agent-kernel-secrets.json');
 
     // The app shows the same sessions and Projects, and still reaches the model.
-    const shownAfter = await withApp(c, testInfo, 'after-upgrade', { env: kernelEnv() }, async (app) => {
+    const shownAfter = await withApp(c, testInfo, 'after-upgrade', { env: kernelEnv(c) }, async (app) => {
       const shown = await shownCounts(app.page);
       await app.snap('sessions-after-upgrade');
       return shown;
@@ -182,13 +199,18 @@ async function shownCounts(page: Page): Promise<Shown> {
 
 async function chatOnce(c: SmokeConfig, testInfo: TestInfo, label: string): Promise<void> {
   const nonce = newNonce();
-  await withApp(c, testInfo, label, { env: kernelEnv() }, async (app) => {
+  await withApp(c, testInfo, label, { env: kernelEnv(c) }, async (app) => {
     const shell = await waitForShell(app.page, 90_000);
     expect(shell, 'main window').toBe('main');
     await sendChat(app.page, `请回复冒烟口令。MFSMOKE_NONCE:${nonce}`);
     await waitForAssistant(app.page, testInfo, new RegExp(`MODELFORGE_WINDOWS_SMOKE_OK[^\\n]*${nonce}`), 180_000);
     await app.snap(label);
   });
+  // The model and the key the wizard saved are still what the kernel uses.
+  const use = await kernelChatUse(c, nonce);
+  annotate(testInfo, `${label}-requests`, JSON.stringify(use));
+  expect(use.models, `${label}: model the kernel asked for`).toContain(STUB_MODEL);
+  expect(use.withoutKey, `${label}: chat requests sent without the key`).toBe(0);
   // Give the kernel a moment to flush the session to disk before the files are hashed.
   await sleep(1_000);
 }

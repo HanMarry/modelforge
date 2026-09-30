@@ -13,7 +13,11 @@
     (ui/desktop/build/installer.nsh).
 
     The script reports what it saw and what is left (program files, "Apps & features" entry,
-    shortcuts); the caller checks the data directories.
+    shortcuts). The uninstaller inherits this script's environment and removes the data folders
+    under the APPDATA / LOCALAPPDATA it finds there (customUnInstall in build/installer.nsh), so
+    the result also records those two variables, the account the script ran as and whether each
+    of the four data folders exists afterwards. The caller starts the script with the profile of
+    the user under test and checks the folders itself as well.
 
     Exit codes: 0 finished, 1 failed, 3 UI Automation could not reach the uninstaller dialogs
     (the keep/remove prompt is then unverified, not passed).
@@ -50,9 +54,30 @@ $result = [ordered]@{
     startMenuShortcutPresent = $false
     desktopShortcut          = ''
     desktopShortcutPresent   = $false
+    identity                 = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+    userProfile              = [string]$env:USERPROFILE
+    appData                  = [string]$env:APPDATA
+    localAppData             = [string]$env:LOCALAPPDATA
+    dataDirs                 = @()
     error                    = $null
 }
 $exitCode = 1
+
+# The folders "remove" deletes (build/installer.nsh), under this environment's profile.
+function Get-DataDirs {
+    $dirs = @()
+    if ($env:APPDATA) {
+        $dirs += (Join-Path $env:APPDATA 'ModelForge')
+        $dirs += (Join-Path $env:APPDATA 'Block\goose')
+    }
+    if ($env:LOCALAPPDATA) {
+        $dirs += (Join-Path $env:LOCALAPPDATA 'modelforge-updater')
+        $dirs += (Join-Path $env:LOCALAPPDATA 'Block\goose')
+    }
+    return @($dirs | ForEach-Object {
+            [ordered]@{ path = $_; exists = (Test-Path -LiteralPath $_) }
+        })
+}
 
 if (-not $EvidenceDir) {
     $EvidenceDir = Join-Path $env:TEMP 'modelforge-uninstall-evidence'
@@ -290,6 +315,7 @@ try {
     $result.startMenuShortcutPresent = Test-Path -LiteralPath $shortcuts.StartMenu
     $result.desktopShortcut = $shortcuts.Desktop
     $result.desktopShortcutPresent = Test-Path -LiteralPath $shortcuts.Desktop
+    $result.dataDirs = @(Get-DataDirs)
 }
 catch {
     Write-Host ("post-uninstall inspection failed: {0}" -f $_.Exception.Message)

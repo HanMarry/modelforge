@@ -13,14 +13,17 @@
         "installer":  "<NSIS installer>",
         "harnessDir": "<directory with node_modules and tests/e2e>",
         "node":       "<node.exe of the harness>",
-        "specs":      ["windows-installed-smoke"],
+        "specs":      ["windows-installed-smoke", "windows-installed-uninstall"],
         "resultsDir": "<writable directory for reports and evidence>",
         "env":        { "MODELFORGE_SMOKE_APP_PATH": "...", "MODELFORGE_STUB_PORT": "47372", ... }
       }
 
-    The profile variables are taken from the logon token (not inherited from the administrator
-    that started this process), then MODELFORGE_INSTALL_DIR, MODELFORGE_INSTALLER and the
-    results, evidence and state directories are set for the harness.
+    The profile variables (USERPROFILE, APPDATA, LOCALAPPDATA, TEMP) are taken from the logon
+    token, not inherited from the administrator that started this process, and everything
+    started from here inherits them: Playwright, the app, and the helpers the uninstall spec
+    runs, so the NSIS uninstaller removes (or keeps) this user's own data folders. Then
+    MODELFORGE_INSTALL_DIR, MODELFORGE_INSTALLER and the results, evidence and state directories
+    are set for the harness.
 
     Writes <resultsDir>\inner-result.json. Exit codes: 0 specs passed, 1 specs failed,
     2 setup or install failed.
@@ -28,7 +31,8 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)][string] $EnvFile,
-    [int] $TimeoutSeconds = 5100
+    # Below the -TimeoutSeconds the workflow gives Invoke-AsLocalUser.ps1.
+    [int] $TimeoutSeconds = 6300
 )
 
 $ErrorActionPreference = 'Stop'
@@ -37,17 +41,18 @@ $ErrorActionPreference = 'Stop'
 $EXIT_SETUP_FAILED = 2
 
 $result = [ordered]@{
-    ok          = $false
-    stage       = 'started'
-    identity    = ''
-    userProfile = ''
-    appData     = ''
-    installDir  = ''
-    install     = $null
-    exitCode    = $EXIT_SETUP_FAILED
-    stdoutLog   = ''
-    stderrLog   = ''
-    error       = $null
+    ok           = $false
+    stage        = 'started'
+    identity     = ''
+    userProfile  = ''
+    appData      = ''
+    localAppData = ''
+    installDir   = ''
+    install      = $null
+    exitCode     = $EXIT_SETUP_FAILED
+    stdoutLog    = ''
+    stderrLog    = ''
+    error        = $null
 }
 $resultFile = ''
 $logFile = ''
@@ -94,6 +99,7 @@ try {
     Set-ProcessEnv 'USERNAME' ([Environment]::UserName)
     $result.userProfile = $userProfile
     $result.appData = $appData
+    $result.localAppData = $localAppData
     Write-InnerLog ("running as {0}, profile {1}" -f $result.identity, $userProfile)
 
     # 2. Harness variables from the workflow, then the ones that depend on this user.

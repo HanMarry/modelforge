@@ -27,6 +27,7 @@
  *   MODELFORGE_SMOKE_PROFILE_ROOT only for cn-profile-sim: a stand-in user profile directory
  *   MODELFORGE_INSTALLER          the NSIS installer (upgrade and uninstall specs reinstall it)
  *   MODELFORGE_SMOKE_EVIDENCE_DIR where the PowerShell helpers put screenshots and JSON results
+ *   MODELFORGE_SMOKE_WIZARD_STRICT "0" for soft mode (see `WIZARD_STRICT`); strict otherwise
  */
 import { chromium, type Browser, type Page, type TestInfo } from '@playwright/test';
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
@@ -149,15 +150,49 @@ export const REQUIRED_COMMANDS = ['python', 'typst'];
 export const STUB_MODEL = 'stub-model';
 
 /**
- * Dummy key for the stub. The onboarding wizard keeps the key it tested in the desktop
- * credential store only, and the built-in kernel never reads that store, so the harness hands
- * this key to the kernel through the environment (see `ensureKernelSeeded`).
+ * Strict mode (the default; MODELFORGE_SMOKE_WIZARD_STRICT is anything but "0"): wizard step 2
+ * has to save the stub provider in the built-in kernel, its checks are hard assertions, and every
+ * later flow (chat, Python, paper, upgrade) runs on that configuration alone; the harness
+ * supplies no endpoint, model or key. Soft mode ("0") keeps a fallback for product regressions:
+ * the wizard checks are soft and `ensureKernelSeeded` stands in for what the wizard did not save,
+ * reported as a `harness-substitution` annotation, so the later flows are still covered.
  */
+export const WIZARD_STRICT = process.env.MODELFORGE_SMOKE_WIZARD_STRICT !== '0';
+
+/** Provider behind the "OpenAI" entry of wizard step 1; it takes any OpenAI-compatible address. */
+export const WIZARD_PROVIDER = 'openai';
+
+/** API address typed into wizard step 2: the stub's OpenAI-compatible base URL. */
+export function wizardAddress(cfg: SmokeConfig): string {
+  return `${cfg.stubUrl}/v1`;
+}
+
+/** Dummy key of the soft-mode fallback; the wizard is given a key of its own. */
 export const SMOKE_KERNEL_KEY = 'sk-modelforge-smoke-not-a-real-key';
 
-/** Environment for launches after the kernel has been pointed at the stub. */
-export function kernelEnv(): Record<string, string> {
-  return { OPENAI_API_KEY: SMOKE_KERNEL_KEY };
+/**
+ * Soft-mode fallback variables. goose reads them before config.yaml and its secret store
+ * (`resolve_base_url` in providers/openai_def.rs, `get_active_provider` / `get_active_model` in
+ * config/providers.rs, `Config::get_param` / `get_secrets`), so the kernel talks to the stub
+ * whatever the wizard left in its configuration.
+ */
+function fallbackKernelEnv(cfg: SmokeConfig): Record<string, string> {
+  return {
+    OPENAI_HOST: cfg.stubUrl,
+    OPENAI_BASE_PATH: 'v1/chat/completions',
+    OPENAI_API_KEY: SMOKE_KERNEL_KEY,
+    GOOSE_PROVIDER: WIZARD_PROVIDER,
+    GOOSE_MODEL: STUB_MODEL,
+  };
+}
+
+/**
+ * Extra environment for launches after the wizard. Empty in strict mode: the kernel has to find
+ * the endpoint, model and key the wizard saved. In soft mode the fallback variables, once
+ * `ensureKernelSeeded` found the wizard's configuration missing.
+ */
+export function kernelEnv(cfg: SmokeConfig): Record<string, string> {
+  return !WIZARD_STRICT && readState(cfg).providerSeeded ? fallbackKernelEnv(cfg) : {};
 }
 
 function envLookup(): Map<string, string> {
@@ -282,9 +317,6 @@ export interface AppPaths {
   gooseConfigFile: string;
   sessionsDb: string;
   gooseLogsDir: string;
-  /** The XDG-style paths build/installer.nsh removes; goose does not use them on Windows. */
-  legacyGooseConfig: string;
-  legacyGooseData: string;
 }
 
 export function appPaths(cfg: SmokeConfig): AppPaths {
@@ -309,8 +341,6 @@ export function appPaths(cfg: SmokeConfig): AppPaths {
     gooseConfigFile: path.join(gooseRoot, 'config', 'config.yaml'),
     sessionsDb: path.join(gooseRoot, 'data', 'sessions', 'sessions.db'),
     gooseLogsDir: path.join(gooseRoot, 'data', 'logs'),
-    legacyGooseConfig: path.join(home, '.config', 'goose'),
-    legacyGooseData: path.join(home, '.local', 'share', 'goose'),
   };
 }
 
@@ -330,8 +360,10 @@ export function hasCjkAndSpace(value: string): boolean {
 export interface SmokeState {
   firstShell?: string;
   firstShellMs?: number;
+  /** Wizard step 2 ended with "连接成功" and no error, so the provider was saved. */
   wizardProviderSaved?: boolean;
   wizardCompleted?: boolean;
+  /** Soft mode: the kernel runs on the harness fallback (`kernelEnv`), not the wizard's configuration. */
   providerSeeded?: boolean;
   projectDir?: string;
   exampleId?: string;
@@ -475,7 +507,7 @@ export interface LaunchOptions {
   args?: string[];
   /** Budget for the window to appear (CDP attach + first renderer page). */
   windowTimeoutMs?: number;
-  /** Extra variables on top of `appEnv` (for example `kernelEnv()`). */
+  /** Extra variables on top of `appEnv` (for example `kernelEnv(cfg)`). */
   env?: Record<string, string>;
 }
 
@@ -704,6 +736,8 @@ export interface StubRequest {
   path: string;
   /** Whether an Authorization header was sent (its value is never logged). */
   auth?: boolean;
+  /** Chat requests: the `model` of the request body. */
+  model?: string;
   nonces?: string[];
   offeredTools?: number;
   offeredToolNames?: string[];
@@ -728,6 +762,31 @@ export async function stubRequests(cfg: SmokeConfig, nonce?: string): Promise<St
     throw new Error(`stub request log unavailable: HTTP ${response.status}`);
   }
   return (await response.json()) as StubRequest[];
+}
+
+export interface KernelChatUse {
+  requests: number;
+  /** Distinct request paths: the address the kernel resolved plus goose's chat path. */
+  paths: string[];
+  /** Distinct `model` values. */
+  models: string[];
+  /** Requests without an Authorization header, i.e. without the key. */
+  withoutKey: number;
+}
+
+/**
+ * How the kernel called the stub for the chat message tagged with `nonce`. With the wizard's
+ * configuration (`OPENAI_BASE_URL` <stub>/v1) the path is /v1/chat/completions, the model is
+ * the one typed in step 2, and every request carries the key from the kernel's secret store.
+ */
+export async function kernelChatUse(cfg: SmokeConfig, nonce: string): Promise<KernelChatUse> {
+  const posts = (await stubRequests(cfg, nonce)).filter((entry) => entry.method === 'POST');
+  return {
+    requests: posts.length,
+    paths: [...new Set(posts.map((entry) => entry.path))],
+    models: [...new Set(posts.map((entry) => entry.model ?? ''))],
+    withoutKey: posts.filter((entry) => !entry.auth).length,
+  };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -873,40 +932,170 @@ export function hashTree(root: string): Record<string, string> {
   return out;
 }
 
-/**
- * Sets top-level keys of goose's flat config.yaml (harness fallback only). Existing lines for
- * those keys are replaced; everything else is kept as it is.
- */
-export function upsertGooseConfig(file: string, values: Record<string, string>): void {
-  const text = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '';
-  const keys = new Set(Object.keys(values));
-  const kept = text.split(/\r?\n/).filter((line) => {
-    const match = /^([A-Za-z0-9_]+)\s*:/.exec(line);
-    return !(match && keys.has(match[1]));
-  });
-  while (kept.length > 0 && kept[kept.length - 1].trim() === '') {
-    kept.pop();
-  }
-  for (const [key, value] of Object.entries(values)) {
-    kept.push(`${key}: ${JSON.stringify(value)}`);
-  }
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, `${kept.join('\n')}\n`, 'utf8');
+/** Block mappings of goose's config.yaml: scalars as their text, nested mappings as objects. */
+export interface GooseConfigMap {
+  [key: string]: string | GooseConfigMap;
 }
 
-/** Top-level scalar values of goose's config.yaml, for comparisons (not a YAML parser). */
-export function readGooseConfigScalars(file: string): Record<string, string> {
-  const out: Record<string, string> = {};
-  if (!fs.existsSync(file)) {
-    return out;
+/** Text of a YAML scalar as serde_yaml writes it: plain, 'single' or "double" quoted. */
+function yamlScalar(raw: string): string {
+  const text = raw.trim();
+  if (text.length >= 2 && text.startsWith("'") && text.endsWith("'")) {
+    return text.slice(1, -1).replace(/''/g, "'");
   }
-  for (const line of fs.readFileSync(file, 'utf8').split(/\r?\n/)) {
-    const match = /^([A-Za-z0-9_]+)\s*:\s*(.+?)\s*$/.exec(line);
-    if (match) {
-      out[match[1]] = match[2].replace(/^(["'])(.*)\1$/, '$2');
+  if (text.length >= 2 && text.startsWith('"') && text.endsWith('"')) {
+    try {
+      return String(JSON.parse(text));
+    } catch {
+      return text.slice(1, -1);
     }
   }
-  return out;
+  return text;
+}
+
+/** Key and the rest of a `key: value` line, or null for anything else. */
+function yamlKeyLine(content: string): { key: string; rest: string } | null {
+  const quoted = /^("(?:[^"\\]|\\.)*"|'(?:[^']|'')*')\s*:(?:\s+(.*))?$/.exec(content);
+  if (quoted) {
+    return { key: yamlScalar(quoted[1]), rest: (quoted[2] ?? '').trim() };
+  }
+  const plain = /^([^\s'"#][^:]*?)\s*:(?:\s+(.*))?$/.exec(content);
+  if (plain) {
+    return { key: plain[1], rest: (plain[2] ?? '').trim() };
+  }
+  return null;
+}
+
+/**
+ * The block mappings of goose's config.yaml (serde_yaml output), enough to compare what the app
+ * saved; not a general YAML parser. Sequences and block scalars are skipped, flow collections
+ * are kept as their text.
+ */
+export function parseGooseConfig(text: string): GooseConfigMap {
+  const root: GooseConfigMap = {};
+  // Open mappings, innermost last, with the indentation of the key that opened each.
+  const open: { indent: number; map: GooseConfigMap }[] = [{ indent: -1, map: root }];
+  const lines = text.replace(/^\uFEFF/, '').split(/\r?\n/);
+  const indentOf = (line: string) => line.length - line.trimStart().length;
+  // Index of the last line nested under the line at `index` (blank lines included).
+  const endOfNested = (index: number, indent: number) => {
+    let last = index;
+    while (
+      last + 1 < lines.length &&
+      (lines[last + 1].trim() === '' || indentOf(lines[last + 1]) > indent)
+    ) {
+      last += 1;
+    }
+    return last;
+  };
+  for (let index = 0; index < lines.length; index += 1) {
+    const content = lines[index].trim();
+    if (content === '' || content.startsWith('#') || content === '---' || content === '...') {
+      continue;
+    }
+    const indent = indentOf(lines[index]);
+    if (content === '-' || content.startsWith('- ')) {
+      // A sequence item, with whatever is nested in it.
+      index = endOfNested(index, indent);
+      continue;
+    }
+    const entry = yamlKeyLine(content);
+    if (!entry) {
+      continue;
+    }
+    while (open.length > 1 && open[open.length - 1].indent >= indent) {
+      open.pop();
+    }
+    const parent = open[open.length - 1].map;
+    if (entry.rest === '') {
+      const child: GooseConfigMap = {};
+      parent[entry.key] = child;
+      open.push({ indent, map: child });
+      continue;
+    }
+    // A scalar (block scalars `|` / `>` only by their indicator); lines nested under it are
+    // its continuation.
+    parent[entry.key] = /^[|>]/.test(entry.rest) ? '' : yamlScalar(entry.rest);
+    index = endOfNested(index, indent);
+  }
+  return root;
+}
+
+/** goose's config.yaml, or an empty mapping when there is none. */
+export function readGooseConfig(file: string): GooseConfigMap {
+  try {
+    return parseGooseConfig(fs.readFileSync(file, 'utf8'));
+  } catch {
+    return {};
+  }
+}
+
+function scalarAt(config: GooseConfigMap, ...keys: string[]): string | null {
+  let value: string | GooseConfigMap | undefined = config;
+  for (const key of keys) {
+    if (typeof value !== 'object') {
+      return null;
+    }
+    value = value[key];
+  }
+  return typeof value === 'string' ? value : null;
+}
+
+/**
+ * What wizard step 2 leaves in the kernel's config.yaml (wizardProviderSetup.ts):
+ *
+ * - ACP `providers/config/save` stores the address as `OPENAI_BASE_URL` (the endpoint field of
+ *   the OpenAI provider) and the key in the kernel's secret store, never in config.yaml;
+ * - ACP `defaults/save` makes the provider the default through `set_active_provider`
+ *   (crates/goose/src/config/providers.rs): `active_provider: <id>` and
+ *   `providers.<id>: { enabled: true, model: <model>, configured: true }`. The legacy
+ *   `GOOSE_PROVIDER` / `GOOSE_MODEL` keys are not written; goose reads them only when these
+ *   are missing.
+ */
+export interface WizardKernelConfig {
+  activeProvider: string | null;
+  model: string | null;
+  enabled: string | null;
+  configured: string | null;
+  baseUrl: string | null;
+  /** Whether config.yaml holds an `OPENAI_API_KEY` (it belongs in the secret store). */
+  keyInConfigFile: boolean;
+}
+
+export function readWizardKernelConfig(cfg: SmokeConfig): WizardKernelConfig {
+  const config = readGooseConfig(appPaths(cfg).gooseConfigFile);
+  return {
+    activeProvider: scalarAt(config, 'active_provider'),
+    model: scalarAt(config, 'providers', WIZARD_PROVIDER, 'model'),
+    enabled: scalarAt(config, 'providers', WIZARD_PROVIDER, 'enabled'),
+    configured: scalarAt(config, 'providers', WIZARD_PROVIDER, 'configured'),
+    baseUrl: scalarAt(config, 'OPENAI_BASE_URL'),
+    keyInConfigFile: 'OPENAI_API_KEY' in config,
+  };
+}
+
+/** The configuration after the specs chose OpenAI and typed the stub's address and model. */
+export function expectedWizardKernelConfig(cfg: SmokeConfig): WizardKernelConfig {
+  return {
+    activeProvider: WIZARD_PROVIDER,
+    model: STUB_MODEL,
+    enabled: 'true',
+    configured: 'true',
+    baseUrl: wizardAddress(cfg),
+    keyInConfigFile: false,
+  };
+}
+
+/** How the kernel's configuration differs from what the wizard should have saved. */
+export function wizardKernelConfigProblems(cfg: SmokeConfig): string[] {
+  const saved = readWizardKernelConfig(cfg);
+  const expected = expectedWizardKernelConfig(cfg);
+  return (Object.keys(expected) as (keyof WizardKernelConfig)[])
+    .filter((field) => saved[field] !== expected[field])
+    .map(
+      (field) =>
+        `${field} is ${JSON.stringify(saved[field])}, expected ${JSON.stringify(expected[field])}`
+    );
 }
 
 /** Entry ids and ciphertexts of the desktop credential store (`{ version, entries }`). */
@@ -1015,29 +1204,36 @@ export function readOnboarding(cfg: SmokeConfig): OnboardingRecord | null {
 }
 
 /**
- * Points the kernel at the stub. The wizard stores the default provider (`GOOSE_PROVIDER`) but
- * neither the endpoint nor the key it tested reaches goose's own configuration, so without this
- * the built-in kernel cannot answer. Run only while the app is closed. Every value the harness
- * had to supply is reported as an annotation, so the summary shows what the product did not.
+ * Soft-mode fallback; strict mode never calls it. When wizard step 2 did not leave the stub
+ * provider in the kernel (`wizardKernelConfigProblems`), later launches get the variables of
+ * `fallbackKernelEnv` through `kernelEnv`; config.yaml stays as the wizard wrote it. When the
+ * wizard did not finish, an onboarding completion record is written, or the wizard would come
+ * back and cover the chat input. Run only while the app is closed. What the harness supplied is
+ * reported once as an annotation, so the summary shows what the product did not do.
  */
 export function ensureKernelSeeded(cfg: SmokeConfig, testInfo: TestInfo): void {
-  const paths = appPaths(cfg);
-  const current = readGooseConfigScalars(paths.gooseConfigFile);
-  const values: Record<string, string> = {
-    OPENAI_HOST: cfg.stubUrl,
-    OPENAI_BASE_PATH: 'v1/chat/completions',
-    GOOSE_MODEL: STUB_MODEL,
-  };
-  const substituted = ['OPENAI_HOST', 'OPENAI_BASE_PATH', 'GOOSE_MODEL', 'OPENAI_API_KEY (env)'];
-  if (current.GOOSE_PROVIDER !== 'openai') {
-    values.GOOSE_PROVIDER = 'openai';
-    substituted.push(`GOOSE_PROVIDER (was ${current.GOOSE_PROVIDER ?? 'unset'})`);
+  if (WIZARD_STRICT) {
+    throw new Error('ensureKernelSeeded is the soft-mode fallback; strict mode runs on what the wizard saved');
   }
-  upsertGooseConfig(paths.gooseConfigFile, values);
+  const paths = appPaths(cfg);
+  const substituted: string[] = [];
+  const state = readState(cfg);
+  if (!state.providerSeeded) {
+    const problems = wizardKernelConfigProblems(cfg);
+    if (state.wizardProviderSaved !== true) {
+      problems.push('wizard step 2 did not save the provider');
+    }
+    if (problems.length > 0) {
+      writeState(cfg, { providerSeeded: true });
+      substituted.push(
+        `kernel pointed at the stub through ${Object.keys(fallbackKernelEnv(cfg)).join(', ')} ` +
+          `(environment) because ${problems.join('; ')}`
+      );
+    }
+  }
 
   const onboarding = readOnboarding(cfg);
   if (onboarding?.completed !== true) {
-    // Without a completion record the wizard would come back and cover the chat input.
     const settings = readJsonFile<Record<string, unknown>>(paths.settingsFile) ?? {};
     settings.onboarding = {
       completed: true,
@@ -1047,10 +1243,9 @@ export function ensureKernelSeeded(cfg: SmokeConfig, testInfo: TestInfo): void {
     fs.writeFileSync(paths.settingsFile, JSON.stringify(settings, null, 2), 'utf8');
     substituted.push('settings.onboarding (wizard did not complete)');
   }
-  if (!readState(cfg).providerSeeded) {
-    annotate(testInfo, 'harness-substitution', `kernel pointed at the stub by the harness: ${substituted.join(', ')}`);
+  if (substituted.length > 0) {
+    annotate(testInfo, 'harness-substitution', substituted.join('; '));
   }
-  writeState(cfg, { providerSeeded: true });
 }
 
 /**
@@ -1088,15 +1283,48 @@ export interface HelperResult<T> {
   resultFile: string;
 }
 
+/** Profile variables of the user whose data the app and its uninstaller use. */
+const PROFILE_ENV_KEYS = ['USERPROFILE', 'HOMEDRIVE', 'HOMEPATH', 'APPDATA', 'LOCALAPPDATA', 'TEMP', 'TMP'];
+
+/**
+ * The profile variables the app is started with, for helpers that must act on the same user's
+ * data: the uninstaller removes %APPDATA% / %LOCALAPPDATA% folders read from its environment
+ * (build/installer.nsh). Empty unless a stand-in profile is used (cn-profile-sim). Otherwise the
+ * harness already runs with the profile of the user under test: the runner account in the
+ * primary scenario, the new local user in cn-user (Run-AsUserInner.ps1 sets the variables from
+ * that user's logon token before starting Playwright).
+ */
+export function profileEnv(cfg: SmokeConfig): Record<string, string> {
+  if (!cfg.profileRoot) {
+    return {};
+  }
+  const env = appEnv(cfg, 0);
+  return Object.fromEntries(
+    PROFILE_ENV_KEYS.filter((key) => env[key] !== undefined).map((key) => [key, env[key]])
+  );
+}
+
+/** `base` with `extra` on top; Windows variable names are case-insensitive. */
+function mergeEnv(
+  base: Record<string, string | undefined>,
+  extra: Record<string, string>
+): Record<string, string | undefined> {
+  const replaced = new Set(Object.keys(extra).map((key) => key.toLowerCase()));
+  const kept = Object.entries(base).filter(([key]) => !replaced.has(key.toLowerCase()));
+  return { ...Object.fromEntries(kept), ...extra };
+}
+
 /**
  * Runs `scripts/<name>` with Windows PowerShell 5.1 (UI Automation and the NSIS installer are
- * driven from there). `-ResultFile` is added; the script writes its JSON result to it.
+ * driven from there). `-ResultFile` is added; the script writes its JSON result to it. `env`
+ * goes on top of the harness's own environment; the script and what it starts inherit it.
  */
 export function runHelper<T>(
   cfg: SmokeConfig,
   name: string,
   params: Record<string, string>,
-  timeoutMs: number
+  timeoutMs: number,
+  env: Record<string, string> = {}
 ): HelperResult<T> {
   fs.mkdirSync(cfg.evidenceDir, { recursive: true });
   const resultFile = path.join(
@@ -1121,7 +1349,12 @@ export function runHelper<T>(
     'v1.0',
     'powershell.exe'
   );
-  const run = spawnSync(exe, args, { encoding: 'utf8', timeout: timeoutMs, windowsHide: false });
+  const run = spawnSync(exe, args, {
+    encoding: 'utf8',
+    timeout: timeoutMs,
+    windowsHide: false,
+    env: mergeEnv(process.env, env),
+  });
   const output = `${run.stdout ?? ''}${run.stderr ?? ''}${run.error ? `\n${String(run.error)}` : ''}`;
   console.log(`[helper ${name}] exit ${run.status}\n${output.trim()}`);
   return { exitCode: run.status, output, result: readJsonFile<T>(resultFile), resultFile };

@@ -9,6 +9,20 @@
  *   2. interactive, answering "是" (keep) through UI Automation: data kept
  *   3. interactive, answering "否" (remove): desktop and kernel data removed, Projects kept
  *
+ * The data are the four folders customUnInstall in build/installer.nsh removes on "remove":
+ * %APPDATA%\ModelForge, %LOCALAPPDATA%\modelforge-updater, %APPDATA%\Block\goose and
+ * %LOCALAPPDATA%\Block\goose. "keep" and a silent uninstall must leave all four untouched,
+ * "remove" must delete all four, and the Project folder always stays. The updater cache and the
+ * kernel cache only appear after an update download or certain extensions, so before each run
+ * every folder gets a marker file (created with the folder when missing, reported as `setup`).
+ *
+ * The uninstaller reads APPDATA / LOCALAPPDATA from its environment, so it has to run with the
+ * profile of the user under test: the runner account (primary), the new local user whose
+ * profile path has Chinese characters and a space (cn-user; Run-AsUserInner.ps1 takes the
+ * variables from that user's logon token and everything started from there inherits them), or
+ * the stand-in profile (cn-profile-sim, passed through `profileEnv`). Each run checks that
+ * Uninstall-ModelForge.ps1 saw the same folders as the harness.
+ *
  * The dialogs are driven by scripts/Uninstall-ModelForge.ps1 (UI Automation by control id, so
  * the installer language does not matter). When UI Automation cannot reach them, the script
  * exits with code 3 and the test reports the prompt as unverified instead of passing.
@@ -20,9 +34,12 @@ import {
   annotate,
   appPaths,
   ensureProject,
+  hasCjkAndSpace,
   hashTree,
+  profileEnv,
   runHelper,
   smokeConfig,
+  writeProjectFile,
   type SmokeConfig,
 } from './windows-smoke/harness';
 
@@ -46,6 +63,13 @@ interface UninstallResult {
   startMenuShortcutPresent: boolean;
   desktopShortcut: string;
   desktopShortcutPresent: boolean;
+  /** Account and profile variables the script (and so the uninstaller) ran with. */
+  identity: string;
+  userProfile: string;
+  appData: string;
+  localAppData: string;
+  /** The four data folders under that profile, after the uninstall. */
+  dataDirs: { path: string; exists: boolean }[];
   error: string | null;
 }
 
@@ -61,6 +85,9 @@ interface InstallResult {
 /** UI Automation could not reach the uninstaller's dialogs (see the script). */
 const EXIT_UIA_UNAVAILABLE = 3;
 
+/** Marker the harness puts into each data folder and the Project before an uninstall. */
+const MARKER = 'mfsmoke-uninstall-marker.txt';
+
 test.describe('installed ModelForge: uninstall options (7.10)', () => {
   test.skip(cfg === null, 'MODELFORGE_INSTALL_DIR is not set; run by modelforge-windows-smoke.yml');
   test.skip(cfg !== null && !cfg.installer, 'MODELFORGE_INSTALLER is not set');
@@ -69,37 +96,31 @@ test.describe('installed ModelForge: uninstall options (7.10)', () => {
     const c = cfg as SmokeConfig;
     const projectDir = ensureProject(c, testInfo);
     ensureInstalled(c, testInfo);
-    const before = dataSnapshot(c, projectDir);
+    const before = prepareData(c, testInfo, projectDir, 'silent');
 
     const run = await uninstall(c, testInfo, 'Silent');
     expect(run.exitCode, run.output.slice(-4_000)).toBe(0);
     expectProgramRemoved(run.result);
+    expectSameProfile(c, run.result);
     expect(run.result?.promptSeen, 'a silent uninstall asks nothing').toBe(false);
 
-    const after = dataSnapshot(c, projectDir);
-    expect(after.userDataPresent, 'desktop data kept').toBe(true);
-    expect(changed(before.userData, after.userData), 'desktop data unchanged').toEqual([]);
-    expect(changed(before.kernel, after.kernel), 'kernel configuration and sessions unchanged').toEqual([]);
-    expect(changed(before.project, after.project), 'Project unchanged').toEqual([]);
+    expectDataKept(c, projectDir, before, 'silent uninstall');
   });
 
   test('interactive uninstall asks; answering "keep" leaves the data in place', async ({}, testInfo) => {
     const c = cfg as SmokeConfig;
     const projectDir = ensureProject(c, testInfo);
     ensureInstalled(c, testInfo);
-    const before = dataSnapshot(c, projectDir);
+    const before = prepareData(c, testInfo, projectDir, 'keep');
 
     const run = await uninstall(c, testInfo, 'Keep');
     skipIfUiaUnavailable(run.exitCode, testInfo);
     expect(run.exitCode, run.output.slice(-4_000)).toBe(0);
     expectPrompt(run.result, 'yes');
     expectProgramRemoved(run.result);
+    expectSameProfile(c, run.result);
 
-    const after = dataSnapshot(c, projectDir);
-    expect(after.userDataPresent, 'desktop data kept').toBe(true);
-    expect(changed(before.userData, after.userData), 'desktop data unchanged').toEqual([]);
-    expect(changed(before.kernel, after.kernel), 'kernel configuration and sessions unchanged').toEqual([]);
-    expect(changed(before.project, after.project), 'Project unchanged').toEqual([]);
+    expectDataKept(c, projectDir, before, '"keep" answer');
   });
 
   test('interactive uninstall asks; answering "remove" deletes configuration and sessions but not Projects', async ({}, testInfo) => {
@@ -107,44 +128,136 @@ test.describe('installed ModelForge: uninstall options (7.10)', () => {
     const paths = appPaths(c);
     const projectDir = ensureProject(c, testInfo);
     ensureInstalled(c, testInfo);
-    const before = dataSnapshot(c, projectDir);
-    expect(fs.existsSync(paths.sessionsDb), 'there are sessions to remove').toBe(true);
+    expect(fs.existsSync(paths.sessionsDb), `there are sessions to remove (${paths.sessionsDb})`).toBe(true);
+    // "remove" also deletes the app and kernel logs the workflow collects at the end.
+    keepLogs(c, testInfo);
+    const before = prepareData(c, testInfo, projectDir, 'remove');
 
     const run = await uninstall(c, testInfo, 'Remove');
     skipIfUiaUnavailable(run.exitCode, testInfo);
     expect(run.exitCode, run.output.slice(-4_000)).toBe(0);
     expectPrompt(run.result, 'no');
     expectProgramRemoved(run.result);
-
-    expect(fs.existsSync(paths.userData), `desktop data ${paths.userData} removed`).toBe(false);
-    expect(fs.existsSync(paths.updaterCache), `updater cache ${paths.updaterCache} removed`).toBe(false);
-    // Requirement 7.10 covers the configuration and sessions the kernel keeps. On Windows goose
-    // keeps them under %APPDATA%\Block\goose (config\ and data\); build/installer.nsh removes
-    // ~/.config/goose and ~/.local/share/goose, which goose only uses on Linux. So this fails
-    // until the uninstaller removes %APPDATA%\Block\goose (known defect). Soft only so the
-    // Project check below still runs; the test fails either way.
-    const kernelRootLeft = fs.existsSync(paths.gooseRoot);
-    if (kernelRootLeft) {
-      const left = [paths.gooseConfigFile, paths.sessionsDb].filter((file) => fs.existsSync(file));
-      annotate(
-        testInfo,
-        'product-defect',
-        `"remove" left ${paths.gooseRoot} (still there: ${left.join(', ') || 'no config.yaml or sessions.db'})`
-      );
-    }
-    expect.soft(kernelRootLeft, `kernel configuration and sessions ${paths.gooseRoot} removed`).toBe(false);
-    if (fs.existsSync(paths.gooseLocalRoot)) {
-      annotate(testInfo, 'left-behind', `${paths.gooseLocalRoot} (kernel cache) is still there`);
-    }
+    expectSameProfile(c, run.result);
 
     const after = dataSnapshot(c, projectDir);
-    expect(changed(before.project, after.project), 'the Project folder is never removed').toEqual([]);
+    expect(fs.existsSync(projectDir), `the Project folder ${projectDir} is never removed`).toBe(true);
+    expect(changed(before.project, after.project), 'the Project folder is unchanged').toEqual([]);
+    const left = dataDirs(c).filter((entry) => fs.existsSync(entry.dir));
+    for (const entry of left) {
+      annotate(testInfo, 'left-behind', `${entry.label} (${entry.dir}): ${Object.keys(hashTree(entry.dir)).slice(0, 10).join(', ')}`);
+    }
+    expect(
+      left.map((entry) => `${entry.label} (${entry.dir})`),
+      'data folders left after answering "remove"'
+    ).toEqual([]);
   });
 });
 
 // ---------------------------------------------------------------------------------------------
 // Local helpers
 // ---------------------------------------------------------------------------------------------
+
+/** The folders build/installer.nsh removes on "remove", under the profile of the user under test. */
+function dataDirs(c: SmokeConfig): { label: string; dir: string }[] {
+  const paths = appPaths(c);
+  return [
+    { label: '%APPDATA%\\ModelForge', dir: paths.userData },
+    { label: '%LOCALAPPDATA%\\modelforge-updater', dir: paths.updaterCache },
+    { label: '%APPDATA%\\Block\\goose', dir: paths.gooseRoot },
+    { label: '%LOCALAPPDATA%\\Block\\goose', dir: paths.gooseLocalRoot },
+  ];
+}
+
+interface DataSnapshot {
+  /** Label -> relative path -> SHA-256 (empty when the folder is missing). */
+  dirs: Record<string, Record<string, string>>;
+  project: Record<string, string>;
+}
+
+function dataSnapshot(c: SmokeConfig, projectDir: string): DataSnapshot {
+  return {
+    dirs: Object.fromEntries(dataDirs(c).map((entry) => [entry.label, hashTree(entry.dir)])),
+    project: hashTree(projectDir),
+  };
+}
+
+/**
+ * Puts a marker into each data folder (creating the folders nothing has created yet) and into
+ * the Project, so keeping and removing are both observable, and returns the snapshot to compare.
+ */
+function prepareData(c: SmokeConfig, testInfo: TestInfo, projectDir: string, run: string): DataSnapshot {
+  const created: string[] = [];
+  const stamp = `${run} ${new Date().toISOString()}\n`;
+  for (const entry of dataDirs(c)) {
+    if (!fs.existsSync(entry.dir)) {
+      fs.mkdirSync(entry.dir, { recursive: true });
+      created.push(`${entry.label} (${entry.dir})`);
+    }
+    fs.writeFileSync(path.join(entry.dir, MARKER), stamp, 'utf8');
+  }
+  if (created.length > 0) {
+    annotate(testInfo, 'setup', `created before the ${run} run, as nothing had yet: ${created.join(', ')}`);
+  }
+  writeProjectFile(projectDir, MARKER, stamp);
+  return dataSnapshot(c, projectDir);
+}
+
+/** All four data folders are still there with the same files, and so is the Project. */
+function expectDataKept(c: SmokeConfig, projectDir: string, before: DataSnapshot, run: string): void {
+  const missing = dataDirs(c).filter((entry) => !fs.existsSync(entry.dir));
+  expect(
+    missing.map((entry) => `${entry.label} (${entry.dir})`),
+    `data folders missing after a ${run}`
+  ).toEqual([]);
+  const after = dataSnapshot(c, projectDir);
+  for (const entry of dataDirs(c)) {
+    expect(changed(before.dirs[entry.label], after.dirs[entry.label]), `${entry.label} unchanged by a ${run}`).toEqual([]);
+  }
+  expect(fs.existsSync(projectDir), `the Project folder ${projectDir} is never removed`).toBe(true);
+  expect(changed(before.project, after.project), `the Project folder unchanged by a ${run}`).toEqual([]);
+}
+
+/** The uninstaller ran with the same profile folders as the harness (see the file comment). */
+function expectSameProfile(c: SmokeConfig, result: UninstallResult | null): void {
+  const paths = appPaths(c);
+  const same = (a: string | undefined, b: string) =>
+    path.resolve(a ?? '').toLowerCase() === path.resolve(b).toLowerCase();
+  expect(same(result?.appData, paths.appData), `uninstaller APPDATA ${result?.appData} is ${paths.appData}`).toBe(true);
+  expect(
+    same(result?.localAppData, paths.localAppData),
+    `uninstaller LOCALAPPDATA ${result?.localAppData} is ${paths.localAppData}`
+  ).toBe(true);
+  if (c.scenario !== 'primary') {
+    // The scenario user's own profile (Chinese characters and a space), not the runner's.
+    expect(hasCjkAndSpace(paths.appData), `APPDATA of the ${c.scenario} user: ${paths.appData}`).toBe(true);
+    expect(hasCjkAndSpace(paths.localAppData), `LOCALAPPDATA of the ${c.scenario} user: ${paths.localAppData}`).toBe(true);
+  }
+}
+
+/** Copies the logs and settings "remove" is about to delete into the evidence directory. */
+function keepLogs(c: SmokeConfig, testInfo: TestInfo): void {
+  const paths = appPaths(c);
+  const target = path.join(c.evidenceDir, 'before-remove');
+  // Never the credential store (agent-kernel-secrets.json) or the kernel's secrets.yaml.
+  const items: [string, string][] = [
+    [paths.appLogsDir, 'desktop-logs'],
+    [paths.settingsFile, 'settings.json'],
+    [paths.gooseLogsDir, 'kernel-logs'],
+    [paths.gooseConfigFile, 'config.yaml'],
+  ];
+  for (const [source, name] of items) {
+    if (!fs.existsSync(source)) {
+      continue;
+    }
+    try {
+      fs.mkdirSync(target, { recursive: true });
+      fs.cpSync(source, path.join(target, name), { recursive: true });
+    } catch (error) {
+      annotate(testInfo, 'evidence', `could not copy ${source}: ${String(error)}`);
+    }
+  }
+}
 
 function ensureInstalled(c: SmokeConfig, testInfo: TestInfo): void {
   if (fs.existsSync(c.exe)) {
@@ -164,11 +277,17 @@ function ensureInstalled(c: SmokeConfig, testInfo: TestInfo): void {
 }
 
 async function uninstall(c: SmokeConfig, testInfo: TestInfo, mode: UninstallResult['mode']) {
+  const env = profileEnv(c);
+  if (env.TEMP) {
+    // The uninstaller copies itself to %TEMP% before it runs.
+    fs.mkdirSync(env.TEMP, { recursive: true });
+  }
   const run = runHelper<UninstallResult>(
     c,
     'Uninstall-ModelForge.ps1',
     { Mode: mode, EvidenceDir: path.join(c.evidenceDir, `uninstall-${mode.toLowerCase()}`) },
-    10 * 60_000
+    10 * 60_000,
+    env
   );
   annotate(testInfo, `uninstall-${mode.toLowerCase()}`, JSON.stringify(run.result ?? { output: run.output.slice(-2_000) }));
   for (const shot of run.result?.screenshots ?? []) {
@@ -204,23 +323,6 @@ function expectProgramRemoved(result: UninstallResult | null): void {
   expect(result?.uninstallEntryPresent, '"Apps & features" entry removed').toBe(false);
   expect(result?.startMenuShortcutPresent, `Start menu shortcut ${result?.startMenuShortcut} removed`).toBe(false);
   expect(result?.desktopShortcutPresent, `desktop shortcut ${result?.desktopShortcut} removed`).toBe(false);
-}
-
-interface DataSnapshot {
-  userDataPresent: boolean;
-  userData: Record<string, string>;
-  kernel: Record<string, string>;
-  project: Record<string, string>;
-}
-
-function dataSnapshot(c: SmokeConfig, projectDir: string): DataSnapshot {
-  const paths = appPaths(c);
-  return {
-    userDataPresent: fs.existsSync(paths.userData),
-    userData: hashTree(paths.userData),
-    kernel: hashTree(paths.gooseRoot),
-    project: hashTree(projectDir),
-  };
 }
 
 function changed(before: Record<string, string>, after: Record<string, string>): string[] {
