@@ -43,6 +43,8 @@ $result = [ordered]@{
     desktopShortcut          = ''
     desktopShortcutPresent   = $false
     durationMs               = 0
+    # Installer runs that crashed before the one whose exit code is reported.
+    crashes                  = @()
     error                    = $null
 }
 
@@ -59,12 +61,30 @@ try {
     # token keeps the path in one piece for that parser. A single argument string is passed to
     # CreateProcess unchanged.
     $argumentLine = '/S "/D=' + $InstallDir + '"'
-    Write-Host ("running {0} {1}" -f $Installer, $argumentLine)
-    $process = Start-Process -FilePath $Installer -ArgumentList $argumentLine -PassThru
-    $code = Wait-ProcessExit -Process $process -TimeoutSeconds $TimeoutSeconds
-    if ($null -eq $code) {
-        Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
-        throw "installer did not finish within $TimeoutSeconds s"
+    # Under a freshly created local user the installer once crashed in its NSIS System plug-in
+    # (access violation in %TEMP%\ns*.tmp\System.dll, exit 0xC0000005) before writing anything,
+    # while the same installer passed for that user in other runs. A crash like that is run once
+    # more; it stays in the result and in the summary, so it is never passed over silently.
+    $crashCodes = @(-1073741819, -1073740791)   # 0xC0000005, 0xC0000409
+    $attempt = 0
+    while ($true) {
+        $attempt++
+        Write-Host ("running {0} {1} (attempt {2})" -f $Installer, $argumentLine, $attempt)
+        $process = Start-Process -FilePath $Installer -ArgumentList $argumentLine -PassThru
+        $code = Wait-ProcessExit -Process $process -TimeoutSeconds $TimeoutSeconds
+        if ($null -eq $code) {
+            Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+            throw "installer did not finish within $TimeoutSeconds s"
+        }
+        if ($attempt -lt 2 -and $crashCodes -contains [int]$code) {
+            $crash = 'attempt {0} exited with 0x{1:X8}' -f $attempt, [int]$code
+            Write-Host ("installer crashed: {0}; running it again" -f $crash)
+            $result.crashes += $crash
+            Stop-ModelForgeProcesses -InstallDir $InstallDir
+            Start-Sleep -Seconds 5
+            continue
+        }
+        break
     }
     $result.exitCode = $code
 

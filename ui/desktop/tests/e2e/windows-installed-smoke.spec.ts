@@ -68,6 +68,7 @@ import {
   STUB_MODEL,
   WIZARD_PROVIDER,
   WIZARD_STRICT,
+  type DismissOptions,
   type LaunchedApp,
   type SmokeConfig,
 } from './windows-smoke/harness';
@@ -378,15 +379,27 @@ test.describe('installed ModelForge (Windows smoke)', () => {
     // In strict mode the app got no endpoint, model or key from the harness, so the kernel
     // reached the stub with what the wizard saved.
     const use = await kernelChatUse(c, nonce);
+    const { offeredToolNames, ...requestFacts } = use;
     annotate(
       testInfo,
       'kernel-requests',
-      `${JSON.stringify(use)}; configuration from ${readState(c).providerSeeded ? 'the soft-mode harness fallback' : 'the wizard'}`
+      `${JSON.stringify(requestFacts)}; configuration from ${readState(c).providerSeeded ? 'the soft-mode harness fallback' : 'the wizard'}`
     );
     expect(use.requests, 'chat requests the stub saw for this message').toBeGreaterThan(0);
     expect(use.paths, 'the kernel called the address saved in step 2').toEqual(['/v1/chat/completions']);
     expect(use.models, 'the kernel asked for the model saved in step 2').toContain(STUB_MODEL);
     expect(use.withoutKey, 'chat requests sent without the key saved in step 2').toBe(0);
+
+    // Requirement 12: every new session connects the built-in browser panel's MCP server, so
+    // its tools reach the model next to the modeling tools.
+    const browserTools = offeredToolNames.filter((name) => /^modelforge[-_]?browser__browser_/.test(name));
+    annotate(testInfo, 'browser-tools', browserTools.join(', ') || `none among ${offeredToolNames.length} tools`);
+    expect(browserTools, 'built-in browser tools offered to the model').toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/__browser_open$/),
+        expect.stringMatching(/__browser_read$/),
+      ])
+    );
   });
 
   test('Python code runs with exit code 0 and returns its output', async ({}, testInfo) => {
@@ -510,6 +523,8 @@ test.describe('installed ModelForge (Windows smoke)', () => {
       )
     );
     try {
+      // keepResumePrompt: the start-up clean-up dismisses resume prompts for the other tests,
+      // but this one checks the prompt itself.
       await withProjectApp(c, testInfo, 'phase2', projectDir, async (app) => {
         const { page } = app;
         const benign = (text: string) => /ResizeObserver loop/.test(text);
@@ -592,7 +607,7 @@ test.describe('installed ModelForge (Windows smoke)', () => {
 
         const errors = app.pageErrors.filter((text) => !benign(text));
         expect(errors, 'uncaught renderer errors while opening the entries').toEqual([]);
-      });
+      }, { keepResumePrompt: true });
     } finally {
       fs.rmSync(planFile, { force: true });
     }
@@ -685,12 +700,13 @@ async function withProjectApp(
   testInfo: TestInfo,
   label: string,
   projectDir: string,
-  body: (app: LaunchedApp) => Promise<void>
+  body: (app: LaunchedApp) => Promise<void>,
+  dismiss: DismissOptions = {}
 ): Promise<void> {
   await withApp(c, testInfo, label, { env: kernelEnv(c) }, async (app) => {
     const shell = await waitForShell(app.page, 90_000, 'main');
     expect(shell, 'main window').toBe('main');
-    await dismissInterruptions(app.page);
+    await dismissInterruptions(app.page, dismiss);
     const workingDir = await app.page.evaluate(() =>
       String((window as unknown as { appConfig: { get: (key: string) => unknown } }).appConfig.get('GOOSE_WORKING_DIR') ?? '')
     );

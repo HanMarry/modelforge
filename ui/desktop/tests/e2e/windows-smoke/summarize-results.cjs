@@ -225,6 +225,9 @@ function helperRow(kind, result) {
           `Start menu ${yesNo(result.startMenuShortcutPresent)}`,
           `desktop ${yesNo(result.desktopShortcutPresent)}`,
           `dir ${result.installDir || ''}`,
+          Array.isArray(result.crashes) && result.crashes.length > 0
+            ? `installer crashed and was run again: ${result.crashes.join('; ')}`
+            : '',
         ],
         error: result.error,
       };

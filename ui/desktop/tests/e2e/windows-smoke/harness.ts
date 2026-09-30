@@ -785,8 +785,16 @@ export async function waitForShell(
   return `error: neither the wizard nor the main window appeared within ${timeoutMs} ms`;
 }
 
+export interface DismissOptions {
+  /** Leave the "unfinished tasks" prompt open, for the test that checks it (task 25.5). */
+  keepResumePrompt?: boolean;
+}
+
 /** Closes first-run prompts that sit on top of the main window (telemetry consent, announcements). */
-export async function dismissInterruptions(page: Page): Promise<string[]> {
+export async function dismissInterruptions(
+  page: Page,
+  options: DismissOptions = {}
+): Promise<string[]> {
   const dismissed: string[] = [];
   for (const name of [/^(不用了|No thanks)$/, /^(知道了！|Got it!)$/]) {
     const button = page.getByRole('button', { name }).first();
@@ -794,6 +802,9 @@ export async function dismissInterruptions(page: Page): Promise<string[]> {
       await button.click({ timeout: 5_000 }).catch(() => {});
       dismissed.push(String(name));
     }
+  }
+  if (options.keepResumePrompt) {
+    return dismissed;
   }
 
   // A previous interrupted task can open an app-level modal on startup. Do not inspect, start,
@@ -918,6 +929,8 @@ export interface KernelChatUse {
   models: string[];
   /** Requests without an Authorization header, i.e. without the key. */
   withoutKey: number;
+  /** Distinct tool names the kernel offered the model in these requests. */
+  offeredToolNames: string[];
 }
 
 /**
@@ -932,6 +945,7 @@ export async function kernelChatUse(cfg: SmokeConfig, nonce: string): Promise<Ke
     paths: [...new Set(posts.map((entry) => entry.path))],
     models: [...new Set(posts.map((entry) => entry.model ?? ''))],
     withoutKey: posts.filter((entry) => !entry.auth).length,
+    offeredToolNames: [...new Set(posts.flatMap((entry) => entry.offeredToolNames ?? []))].sort(),
   };
 }
 
