@@ -36,6 +36,9 @@ import {
 
 const cfg = smokeConfig();
 
+/** File time set on the installed executable before the reinstall. */
+const BACKDATED = new Date('2001-01-01T00:00:00Z');
+
 interface InstallResult {
   ok: boolean;
   exitCode: number | null;
@@ -73,7 +76,9 @@ test.describe('installed ModelForge: upgrade keeps user data (7.5)', () => {
 
     const sessionsBefore = await readSessions(paths.sessionsDb);
     const before = snapshot(c, projectDir);
-    const exeBefore = fs.statSync(c.exe).mtimeMs;
+    // The installer may restore the archived file times, so reinstalling the same build could
+    // leave the mtime as it was. Backdate the installed executable to make a rewrite visible.
+    fs.utimesSync(c.exe, BACKDATED, BACKDATED);
 
     const install = runHelper<InstallResult>(
       c,
@@ -85,7 +90,7 @@ test.describe('installed ModelForge: upgrade keeps user data (7.5)', () => {
     expect(install.exitCode, `installer run failed:\n${install.output.slice(-4_000)}`).toBe(0);
     expect(install.result?.ok).toBe(true);
     // The installer really replaced the program files.
-    expect(fs.statSync(c.exe).mtimeMs, 'ModelForge.exe was rewritten').toBeGreaterThan(exeBefore);
+    expect(fs.statSync(c.exe).mtimeMs, 'ModelForge.exe was rewritten').toBeGreaterThan(BACKDATED.getTime() + 60_000);
 
     // Nothing the user owns changed on disk.
     const after = snapshot(c, projectDir);

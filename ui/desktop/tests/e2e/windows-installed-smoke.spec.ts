@@ -20,6 +20,12 @@
  *
  * The scenario (`primary`, `cn-user`, `cn-profile-sim`) only changes which paths must contain
  * Chinese characters and spaces (7.4).
+ *
+ * Wizard step 2 (endpoint + key) has a known defect on a clean machine: saving the default
+ * provider fails with "Provider is not configured" and the endpoint never reaches the kernel's
+ * configuration. Its checks are written as they must hold once the fix is merged. By default
+ * they are soft (the test is marked failed, the step is skipped as a user would and the later
+ * steps still run); with MODELFORGE_SMOKE_WIZARD_STRICT=1 they are hard assertions.
  */
 import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test';
 import fs from 'node:fs';
@@ -61,6 +67,14 @@ const cfg = smokeConfig();
 
 /** Requirement 7.2: wizard or main window within 30 s of starting ModelForge.exe. */
 const FIRST_SHELL_BUDGET_MS = 30_000;
+
+/** Hard assertions for wizard step 2 (see the header); soft by default. */
+const WIZARD_STRICT = process.env.MODELFORGE_SMOKE_WIZARD_STRICT === '1';
+
+/** `expect` for the wizard step 2 checks: hard in strict mode, soft otherwise. */
+function wizardExpect<T>(actual: T, message: string) {
+  return WIZARD_STRICT ? expect(actual, message) : expect.soft(actual, message);
+}
 
 test.describe('installed ModelForge (Windows smoke)', () => {
   test.skip(cfg === null, 'MODELFORGE_INSTALL_DIR is not set; run by modelforge-windows-smoke.yml');
@@ -155,16 +169,22 @@ test.describe('installed ModelForge (Windows smoke)', () => {
       const errors = (await page.locator('p.text-red-600').allInnerTexts().catch(() => [])).map((t) => t.trim());
       const nextEnabled = await page.getByRole('button', { name: '下一步', exact: true }).isEnabled();
       await app.snap('wizard-key');
+      annotate(testInfo, 'wizard-mode', WIZARD_STRICT ? 'strict (MODELFORGE_SMOKE_WIZARD_STRICT=1)' : 'soft');
+      const detail = `connectivity ${succeeded ? 'ok' : 'not ok'}, errors: ${errors.join(' / ') || '(none)'}`;
+      // What must hold once the fix is merged: the test succeeds, nothing fails while the key
+      // and the default provider are saved, and the user can go on.
+      if (!(succeeded && nextEnabled && errors.length === 0)) {
+        annotate(testInfo, 'product-defect', `wizard step 2 cannot be completed on a clean machine (${detail})`);
+      }
+      wizardExpect(succeeded, `wizard step 2: the connectivity test succeeds (${detail})`).toBe(true);
+      wizardExpect(errors, `wizard step 2: no error after the connectivity test (${detail})`).toEqual([]);
+      wizardExpect(nextEnabled, `wizard step 2 lets the user continue (${detail})`).toBe(true);
       if (succeeded && nextEnabled) {
         await clickNext(page);
-        writeState(c, { wizardProviderSaved: true });
+        writeState(c, { wizardProviderSaved: errors.length === 0 });
       } else {
-        // Known product gap: the kernel refuses to make a provider the default while goose has
-        // no key for it, and the wizard keeps the key in the desktop store only. Record it, skip
-        // the step as a user would, and keep going so steps 3 and 4 are still covered.
-        const detail = `connectivity ${succeeded ? 'ok' : 'not ok'}, errors: ${errors.join(' / ') || '(none)'}`;
-        annotate(testInfo, 'product-defect', `wizard step 2 cannot be completed on a clean machine (${detail})`);
-        expect.soft(nextEnabled, `wizard step 2 lets the user continue (${detail})`).toBe(true);
+        // Soft mode only (strict mode stopped above): skip the step as a user would, and keep
+        // going so steps 3 and 4 are still covered.
         await page.getByRole('button', { name: '跳过', exact: true }).click();
         writeState(c, { wizardProviderSaved: false });
       }
@@ -233,12 +253,20 @@ test.describe('installed ModelForge (Windows smoke)', () => {
     expect(onboarding?.completed, 'settings.json onboarding.completed').toBe(true);
     annotate(testInfo, 'wizard-steps', JSON.stringify(onboarding?.steps ?? {}));
     expect(onboarding?.steps?.provider).toBe('done');
-    expect.soft(onboarding?.steps?.key, 'wizard step 2 recorded as done').toBe('done');
+    wizardExpect(onboarding?.steps?.key, 'wizard step 2 recorded as done').toBe('done');
     const credentials = readCredentialEntries(paths.credentialsFile);
     const providerKey = credentials?.['provider:openai'] ?? '';
     expect(providerKey.startsWith('enc:'), 'desktop credential store holds the encrypted key').toBe(true);
-    const gooseProvider = readGooseConfigScalars(paths.gooseConfigFile).GOOSE_PROVIDER;
-    expect.soft(gooseProvider, 'goose default provider saved by the wizard').toBe('openai');
+    // Read before ensureKernelSeeded below writes the harness values.
+    const gooseConfig = readGooseConfigScalars(paths.gooseConfigFile);
+    wizardExpect(gooseConfig.GOOSE_PROVIDER, 'goose default provider saved by the wizard').toBe('openai');
+    // The API address the user tested has to reach the kernel's configuration, or the built-in
+    // kernel cannot answer. The key name is up to the fix, so any value naming the stub counts.
+    const endpointKeys = Object.entries(gooseConfig)
+      .filter(([, value]) => value.includes(`127.0.0.1:${c.stubPort}`))
+      .map(([key]) => key);
+    annotate(testInfo, 'wizard-endpoint', endpointKeys.length > 0 ? endpointKeys.join(', ') : '(not in config.yaml)');
+    wizardExpect(endpointKeys, 'the wizard saved the API address into the kernel configuration').not.toEqual([]);
     const probes = (await stubRequests(c)).filter(
       (entry) => entry.method === 'GET' && entry.path.endsWith('/models') && entry.at >= wizardStartedAt
     );

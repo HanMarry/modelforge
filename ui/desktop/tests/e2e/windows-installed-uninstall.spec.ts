@@ -119,13 +119,23 @@ test.describe('installed ModelForge: uninstall options (7.10)', () => {
     expect(fs.existsSync(paths.userData), `desktop data ${paths.userData} removed`).toBe(false);
     expect(fs.existsSync(paths.updaterCache), `updater cache ${paths.updaterCache} removed`).toBe(false);
     // Requirement 7.10 covers the configuration and sessions the kernel keeps. On Windows goose
-    // keeps them under %APPDATA%\Block\goose; build/installer.nsh removes ~/.config/goose and
-    // ~/.local/share/goose, which goose only uses on Linux.
-    const kernelLeft = [paths.gooseConfigFile, paths.sessionsDb].filter((file) => fs.existsSync(file));
-    if (kernelLeft.length > 0) {
-      annotate(testInfo, 'product-defect', `"remove" left the kernel's configuration and sessions: ${kernelLeft.join(', ')}`);
+    // keeps them under %APPDATA%\Block\goose (config\ and data\); build/installer.nsh removes
+    // ~/.config/goose and ~/.local/share/goose, which goose only uses on Linux. So this fails
+    // until the uninstaller removes %APPDATA%\Block\goose (known defect). Soft only so the
+    // Project check below still runs; the test fails either way.
+    const kernelRootLeft = fs.existsSync(paths.gooseRoot);
+    if (kernelRootLeft) {
+      const left = [paths.gooseConfigFile, paths.sessionsDb].filter((file) => fs.existsSync(file));
+      annotate(
+        testInfo,
+        'product-defect',
+        `"remove" left ${paths.gooseRoot} (still there: ${left.join(', ') || 'no config.yaml or sessions.db'})`
+      );
     }
-    expect.soft(kernelLeft, 'kernel configuration and sessions removed').toEqual([]);
+    expect.soft(kernelRootLeft, `kernel configuration and sessions ${paths.gooseRoot} removed`).toBe(false);
+    if (fs.existsSync(paths.gooseLocalRoot)) {
+      annotate(testInfo, 'left-behind', `${paths.gooseLocalRoot} (kernel cache) is still there`);
+    }
 
     const after = dataSnapshot(c, projectDir);
     expect(changed(before.project, after.project), 'the Project folder is never removed').toEqual([]);
