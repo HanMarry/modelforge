@@ -99,6 +99,21 @@ reportRequired(FORGE_CONFIG, 'forge.config.ts', [
     pattern: /updaterCacheDirName:\s*['"]modelforge-updater['"]/,
     message: 'NSIS updaterCacheDirName "modelforge-updater" (removed by build/installer.nsh)',
   },
+  {
+    // The maker reads only getAppBuilderConfig and hands its result to app-builder-lib, so
+    // the installer options must sit under `nsis` there; anything else silently builds a
+    // one-click installer without build/installer.nsh's uninstall prompt (requirement 7.10).
+    pattern:
+      /getAppBuilderConfig:[\s\S]*?\bnsis:\s*\{[\s\S]*?oneClick:\s*false[\s\S]*?include:\s*['"]build\/installer\.nsh['"]/,
+    message:
+      'maker-nsis getAppBuilderConfig returning nsis.oneClick false and nsis.include build/installer.nsh',
+  },
+]);
+checkFile(FORGE_CONFIG, 'forge.config.ts', [
+  {
+    pattern: /getAdditionalConfig\s*:/,
+    message: 'getAdditionalConfig, which @felixrieseberg/electron-forge-maker-nsis ignores',
+  },
 ]);
 
 // vite.main.config.mts bakes the updater settings into the main bundle. A default owner there

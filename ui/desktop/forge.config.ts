@@ -112,18 +112,24 @@ module.exports = {
           channel: 'latest',
           publisherName: 'ModelForge Team',
         },
-        getAdditionalConfig: () => ({
-          oneClick: false,
-          allowToChangeInstallationDirectory: true,
-          perMachine: false,
-          // Keep %APPDATA% by default; `customUnInstall` in build/installer.nsh asks the
-          // user and removes it only when they decline to keep it (requirement 7.10).
-          deleteAppDataOnUninstall: false,
-          include: 'build/installer.nsh',
-          installerIcon: 'src/images/icon.ico',
-          uninstallerIcon: 'src/images/icon.ico',
-          shortcutName: 'ModelForge',
-          artifactName: '${productName} Setup ${version}.${ext}',
+        // The maker passes what this returns to app-builder-lib as its configuration, so the
+        // NSIS options go under `nsis`. (It reads `getAppBuilderConfig` only: the former
+        // `getAdditionalConfig` was ignored, which built a one-click installer whose
+        // uninstaller never asked about the data; Windows smoke run 36686960299.)
+        getAppBuilderConfig: async () => ({
+          nsis: {
+            oneClick: false,
+            allowToChangeInstallationDirectory: true,
+            perMachine: false,
+            // Keep %APPDATA% by default; `customUnInstall` in build/installer.nsh asks the
+            // user and removes it only when they decline to keep it (requirement 7.10).
+            deleteAppDataOnUninstall: false,
+            include: 'build/installer.nsh',
+            installerIcon: 'src/images/icon.ico',
+            uninstallerIcon: 'src/images/icon.ico',
+            shortcutName: 'ModelForge',
+            artifactName: '${productName} Setup ${version}.${ext}',
+          },
         }),
       },
     },
