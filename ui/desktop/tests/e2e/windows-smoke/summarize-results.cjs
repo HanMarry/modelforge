@@ -128,7 +128,9 @@ function collectTests(suite, out) {
       }
       out.push({
         title: spec.title,
-        status: last.status || (test.status === 'skipped' ? 'skipped' : 'unknown'),
+        // A test that only passed on its retry is `flaky` at the test level while its last result
+        // says `passed`; keep the test-level status so the summary can report the retry.
+        status: test.status === 'flaky' ? 'flaky' : last.status || (test.status === 'skipped' ? 'skipped' : 'unknown'),
         durationMs: results.reduce((sum, result) => sum + (result.duration || 0), 0),
         errors: (last.errors || []).map((error) => stripAnsi(error.message || error.value || '')).filter(Boolean),
         annotations,
@@ -155,6 +157,7 @@ function readScenario(dir, name) {
 
 const STATUS_LABEL = {
   passed: '✅ passed',
+  flaky: '🔁 flaky (passed on retry)',
   failed: '❌ failed',
   timedOut: '⏱️ timed out',
   interrupted: '⚠️ interrupted',
@@ -165,7 +168,9 @@ const STATUS_LABEL = {
 function counts(tests) {
   const out = { passed: 0, failed: 0, skipped: 0 };
   for (const test of tests) {
-    if (test.status === 'passed') out.passed += 1;
+    // A flaky test needed its retry but did pass; it is listed separately in the notes, so it is
+    // never counted as clean without saying so.
+    if (test.status === 'passed' || test.status === 'flaky') out.passed += 1;
     else if (test.status === 'skipped') out.skipped += 1;
     else out.failed += 1;
   }
@@ -373,10 +378,14 @@ function buildSummary(resultsDir, env) {
     for (const error of scenario.errors) failures.push(`- **${md(scenario.name)}** (run): ${md(clip(error.split('\n')[0], MAX_ERROR_CHARS))}`);
     for (const test of scenario.tests) {
       const where = `**${md(scenario.name)}** › ${md(test.title)}`;
-      if (!['passed', 'skipped'].includes(test.status)) {
+      if (!['passed', 'flaky', 'skipped'].includes(test.status)) {
         const first = test.errors[0] ? clip(test.errors[0].split('\n').filter(Boolean).slice(0, 2).join(' '), MAX_ERROR_CHARS) : '(no error message)';
         const more = test.errors.length > 1 ? ` (+${test.errors.length - 1} more)` : '';
         failures.push(`- ${where} — ${STATUS_LABEL[test.status] || md(test.status)}: ${md(first)}${more}`);
+      }
+      if (test.status === 'flaky') {
+        const first = test.errors[0] ? clip(test.errors[0].split('\n').filter(Boolean).slice(0, 2).join(' '), MAX_ERROR_CHARS) : '';
+        notes.push(`- ${where} — flaky: failed, then passed on retry${first ? `; first failure: ${md(first)}` : ''}`);
       }
       for (const annotation of test.annotations) {
         if (NOTABLE_ANNOTATIONS.includes(annotation.type)) {

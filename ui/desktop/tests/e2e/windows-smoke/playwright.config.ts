@@ -25,7 +25,11 @@ export default defineConfig({
   expect: { timeout: 30_000 },
   workers: 1,
   fullyParallel: false,
-  retries: 0,
+  // One retry. The cn-user scenario has twice lost its worker to a native crash (0xC0000409) on
+  // the last test, while the same test passes in the uninstall scenario, and a first-run prompt
+  // that mounts late can cost an attempt. `summarize-results.cjs` reports such a test as flaky in
+  // `summary.md`, so a retried failure is visible instead of being counted as clean.
+  retries: 1,
   forbidOnly: true,
   reporter: [
     ['list'],

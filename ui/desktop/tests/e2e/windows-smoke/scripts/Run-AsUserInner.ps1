@@ -134,21 +134,52 @@ try {
 
     # 4. Playwright. Output goes to files: this process has no console the workflow can read,
     # and redirecting to files keeps the UTF-8 bytes Node writes.
+    #
+    # One Node process per spec file. The cn-user scenario used to run both spec files in a single
+    # worker, and that worker twice died with a native crash (0xC0000409) on the last test; the
+    # same tests run in separate processes for the other scenarios and never crashed. Every spec
+    # after the first writes its report into its own directory, which the summary picks up as an
+    # extra scenario, so no report is overwritten.
     $result.stage = 'playwright'
     $harnessDir = [string]$spec.harnessDir
     $cli = Join-Path $harnessDir 'node_modules\@playwright\test\cli.js'
     if (-not (Test-Path -LiteralPath $cli)) { throw "Playwright CLI not found at $cli" }
     $specs = @($spec.specs | ForEach-Object { [string]$_ })
-    $argumentLine = ('"{0}" test -c "tests\e2e\windows-smoke\playwright.config.ts" {1}' -f $cli, ($specs -join ' '))
     $result.stdoutLog = Join-Path $resultsDir 'playwright.out.log'
     $result.stderrLog = Join-Path $resultsDir 'playwright.err.log'
-    Write-InnerLog ("{0} {1}" -f $spec.node, $argumentLine)
-    $process = Start-Process -FilePath ([string]$spec.node) -ArgumentList $argumentLine -WorkingDirectory $harnessDir `
-        -NoNewWindow -PassThru -RedirectStandardOutput $result.stdoutLog -RedirectStandardError $result.stderrLog
-    $code = Wait-ProcessExit -Process $process -TimeoutSeconds $TimeoutSeconds
-    if ($null -eq $code) {
-        & taskkill.exe /PID $process.Id /T /F 2>&1 | Out-Null
-        throw "Playwright did not finish within $TimeoutSeconds s"
+    $code = 0
+    $isFirst = $true
+    # Reports live beside the scenario directory, not inside it: the summary only looks at the
+    # directories directly under the results root.
+    $scenarioRoot = Split-Path -Parent $resultsDir
+    foreach ($name in $specs) {
+        $scenarioDir = $(if ($isFirst) { $resultsDir } else { Join-Path $scenarioRoot ('cn-user-' + ($name -replace '^windows-installed-', '')) })
+        New-Item -ItemType Directory -Force -Path $scenarioDir | Out-Null
+        Set-ProcessEnv 'MODELFORGE_SMOKE_RESULTS_DIR' $scenarioDir
+        # A worker that dies from a fatal error writes a diagnostic report here; a native
+        # termination leaves nothing else on the runner (no WER event, no stderr).
+        $nodeReports = Join-Path $resultsDir 'node-reports'
+        New-Item -ItemType Directory -Force -Path $nodeReports | Out-Null
+        $argumentLine = ('--report-on-fatalerror --report-directory "{0}" "{1}" test -c "tests\e2e\windows-smoke\playwright.config.ts" {2}' -f $nodeReports, $cli, $name)
+        $outLog = Join-Path $resultsDir ("playwright-{0}.out.log" -f $name)
+        $errLog = Join-Path $resultsDir ("playwright-{0}.err.log" -f $name)
+        Write-InnerLog ("{0} {1}" -f $spec.node, $argumentLine)
+        $process = Start-Process -FilePath ([string]$spec.node) -ArgumentList $argumentLine -WorkingDirectory $harnessDir `
+            -NoNewWindow -PassThru -RedirectStandardOutput $outLog -RedirectStandardError $errLog
+        $specCode = Wait-ProcessExit -Process $process -TimeoutSeconds $TimeoutSeconds
+        if ($null -eq $specCode) {
+            & taskkill.exe /PID $process.Id /T /F 2>&1 | Out-Null
+            throw "Playwright did not finish within $TimeoutSeconds s ($name)"
+        }
+        if ($specCode -ne 0) { $code = $specCode }
+        # Keep the single log the workflow prints after the run complete.
+        if (Test-Path -LiteralPath $outLog) {
+            Get-Content -LiteralPath $outLog -Raw | Add-Content -LiteralPath $result.stdoutLog
+        }
+        if (Test-Path -LiteralPath $errLog) {
+            Get-Content -LiteralPath $errLog -Raw | Add-Content -LiteralPath $result.stderrLog
+        }
+        $isFirst = $false
     }
     $result.stage = 'finished'
     $result.exitCode = $(if ($code -eq 0) { 0 } else { 1 })

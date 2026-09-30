@@ -29,7 +29,7 @@
  *   MODELFORGE_SMOKE_EVIDENCE_DIR where the PowerShell helpers put screenshots and JSON results
  *   MODELFORGE_SMOKE_WIZARD_STRICT "0" for soft mode (see `WIZARD_STRICT`); strict otherwise
  */
-import { chromium, type Browser, type Page, type TestInfo } from '@playwright/test';
+import { chromium, type Browser, type Locator, type Page, type TestInfo } from '@playwright/test';
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
@@ -827,12 +827,46 @@ export async function dismissInterruptions(
 }
 
 export async function sendChat(page: Page, text: string): Promise<void> {
-  await dismissInterruptions(page);
   const input = page.locator('[data-testid="chat-input"]').first();
   await input.waitFor({ state: 'visible', timeout: 60_000 });
-  await input.click();
+  await clickClearingDialogs(page, input);
   await input.fill(text);
   await input.press('Enter');
+}
+
+/** True while an app-level modal (Radix dialog overlay) covers the window. */
+async function hasOpenDialogOverlay(page: Page): Promise<boolean> {
+  return page
+    .locator('[data-slot="dialog-overlay"][data-state="open"]')
+    .first()
+    .isVisible()
+    .catch(() => false);
+}
+
+/**
+ * Clicks `target`, closing the first-run dialogs that can appear after the shell is ready.
+ * Telemetry consent and announcements load asynchronously, so on a slow machine a single check in
+ * `dismissInterruptions` runs before they exist; Playwright's own "intercepts pointer events"
+ * retry never dismisses anything, so the click would spend its whole timeout under the overlay.
+ */
+async function clickClearingDialogs(page: Page, target: Locator, timeoutMs = 60_000): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    await dismissInterruptions(page);
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) {
+      throw new Error(`the target stayed covered by a dialog for ${timeoutMs} ms`);
+    }
+    try {
+      await target.click({ timeout: Math.min(5_000, remaining) });
+      return;
+    } catch (error) {
+      if (!(await hasOpenDialogOverlay(page))) {
+        throw error;
+      }
+      await sleep(250);
+    }
+  }
 }
 
 /**
