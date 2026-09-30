@@ -234,6 +234,8 @@ function helperRow(kind, result) {
         ok,
         details: [
           `UI Automation ${yesNo(result.uiaAvailable)}`,
+          result.flow ? `flow ${result.flow}` : '',
+          Array.isArray(result.clicks) && result.mode !== 'Silent' ? `presses ${result.clicks.length}` : '',
           `prompt ${yesNo(result.promptSeen)}`,
           result.answered ? `answered ${result.answered}` : '',
           `files left ${(result.remainingFiles || []).length}`,

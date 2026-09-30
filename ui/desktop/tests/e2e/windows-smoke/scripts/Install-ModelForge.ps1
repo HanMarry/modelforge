@@ -3,7 +3,7 @@
     Silent per-user install of the ModelForge NSIS installer (task 13.6, requirement 7.4/7.5).
 
 .DESCRIPTION
-    Runs `<installer> /S /D=<InstallDir>`. Over an existing installation this is the upgrade path:
+    Runs `<installer> /S "/D=<InstallDir>"`. Over an existing installation this is the upgrade path:
     the installer runs the installed uninstaller with --updated (build/installer.nsh then keeps
     the data) and writes the new files. Afterwards it checks the executable, the "Apps & features"
     entry and the shortcuts, and writes a JSON result.
@@ -53,9 +53,12 @@ try {
     Stop-ModelForgeProcesses -InstallDir $InstallDir
 
     $watch = [System.Diagnostics.Stopwatch]::StartNew()
-    # NSIS reads /D= verbatim: it has to be the last argument and must not be quoted, even when
-    # the path has spaces. A single argument string is passed to CreateProcess unchanged.
-    $argumentLine = '/S /D=' + $InstallDir
+    # The installer takes its directory from electron-builder's own parameter parser
+    # (multiUser.nsh, StdUtils.GetParameter "D"), which overrides NSIS's native /D= and splits the
+    # command line at spaces: an unquoted `/D=C:\a b\App` installed into `C:\a`. Quoting the whole
+    # token keeps the path in one piece for that parser. A single argument string is passed to
+    # CreateProcess unchanged.
+    $argumentLine = '/S "/D=' + $InstallDir + '"'
     Write-Host ("running {0} {1}" -f $Installer, $argumentLine)
     $process = Start-Process -FilePath $Installer -ArgumentList $argumentLine -PassThru
     $code = Wait-ProcessExit -Process $process -TimeoutSeconds $TimeoutSeconds

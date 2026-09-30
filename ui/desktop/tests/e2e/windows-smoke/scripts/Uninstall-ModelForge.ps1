@@ -7,20 +7,33 @@
     -Mode Keep    runs the normal uninstaller and answers the keep-data question with "Yes".
     -Mode Remove  runs the normal uninstaller and answers it with "No".
 
-    The interactive runs are driven with UI Automation. Buttons are found by their Win32
-    control id, so the installer language does not matter: 1 = Next/Uninstall/Finish in the
-    NSIS wizard, 6 = Yes and 7 = No in the MessageBox of `customUnInstall`
-    (ui/desktop/build/installer.nsh).
+    The interactive runs press the buttons of whatever window the uninstaller shows, in the
+    order it shows them (UninstallerDialogs.ps1 has the details):
 
-    The script reports what it saw and what is left (program files, "Apps & features" entry,
-    shortcuts). The uninstaller inherits this script's environment and removes the data folders
-    under the APPDATA / LOCALAPPDATA it finds there (customUnInstall in build/installer.nsh), so
-    the result also records those two variables, the account the script ran as and whether each
-    of the four data folders exists afterwards. The caller starts the script with the profile of
-    the user under test and checks the folders itself as well.
+      1. "Are you sure you want to uninstall ModelForge?" [OK] [Cancel]: the one-click
+         uninstaller of electron-builder asks this first -> OK (IDOK 1). The assisted uninstaller
+         shows its wizard instead -> Next / Uninstall (1) on each page.
+      2. The keep-data question of customUnInstall (ui/desktop/build/installer.nsh), [Yes] [No]:
+         "Yes" keeps the data, "No" removes it -> Yes (IDYES 6) for Keep, No (IDNO 7) for Remove.
+      3. The end: the one-click uninstaller closes by itself, the wizard's last page is closed
+         with Finish (1).
 
-    Exit codes: 0 finished, 1 failed, 3 UI Automation could not reach the uninstaller dialogs
-    (the keep/remove prompt is then unverified, not passed).
+    Windows are recognised by their controls and buttons by their control id, never by text, so
+    the installer language does not matter. The uninstaller copies itself to %TEMP% and runs
+    from there (Un_A.exe), so the windows belong to that process; a window counts as the
+    uninstaller's when it belongs to an uninstaller process or its title names ModelForge.
+
+    The result records every press (clicks, steps), the windows seen, the flow (one-click or
+    assisted), and on a timeout the window it was waiting at, with its title, buttons and text.
+    It also records what is left (program files, "Apps & features" entry, shortcuts). The
+    uninstaller inherits this script's environment and removes the data folders under the
+    APPDATA / LOCALAPPDATA it finds there (customUnInstall in build/installer.nsh), so the result
+    also records those two variables, the account the script ran as and whether each of the four
+    data folders exists afterwards. The caller starts the script with the profile of the user
+    under test and checks the folders itself as well.
+
+    Exit codes: 0 finished, 1 failed, 3 UI Automation could not reach or press the uninstaller's
+    windows (the keep/remove prompt is then unverified, not passed).
 #>
 [CmdletBinding()]
 param(
@@ -32,6 +45,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'SmokeCommon.ps1')
+. (Join-Path $PSScriptRoot 'UninstallerDialogs.ps1')
 
 $EXIT_UIA_UNAVAILABLE = 3
 
@@ -39,11 +53,22 @@ $result = [ordered]@{
     ok                       = $false
     mode                     = $Mode
     uiaAvailable             = $false
+    # finished | timeout | no-window | unexpected-dialog | no-reaction | cannot-click (interactive)
+    outcome                  = ''
+    # one-click: an OK/Cancel confirmation first; assisted: the NSIS wizard
+    flow                     = ''
+    confirmSeen              = $false
+    confirmText              = ''
     promptSeen               = $false
     promptText               = ''
     answered                 = ''
     dialogs                  = @()
     clicks                   = @()
+    steps                    = @()
+    openWindows              = @()
+    uiaErrors                = @()
+    leftoverUninstallers     = @()
+    killedUninstallers       = @()
     screenshots              = @()
     installDir               = ''
     installDirExists         = $false
@@ -98,61 +123,29 @@ function Test-UninstallFinished([string] $exe) {
     return ($gone -and $entryGone -and -not $running)
 }
 
-# --- UI Automation helpers ------------------------------------------------------------------
-
-function Initialize-Uia {
-    Add-Type -AssemblyName UIAutomationClient
-    Add-Type -AssemblyName UIAutomationTypes
-    return [System.Windows.Automation.AutomationElement]::RootElement
-}
-
-function Find-ButtonById($element, [string] $id) {
-    $byId = New-Object System.Windows.Automation.PropertyCondition(
-        [System.Windows.Automation.AutomationElement]::AutomationIdProperty, $id)
-    $isButton = New-Object System.Windows.Automation.PropertyCondition(
-        [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
-        [System.Windows.Automation.ControlType]::Button)
-    $condition = New-Object System.Windows.Automation.AndCondition($byId, $isButton)
-    return $element.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $condition)
-}
-
-function Get-DialogText($element) {
-    $isText = New-Object System.Windows.Automation.PropertyCondition(
-        [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
-        [System.Windows.Automation.ControlType]::Text)
-    $texts = $element.FindAll([System.Windows.Automation.TreeScope]::Descendants, $isText)
+# What is not done yet, for the error message.
+function Get-UnfinishedParts([string] $exe) {
     $parts = @()
-    foreach ($text in $texts) {
-        $name = $text.Current.Name
-        if ($name) { $parts += $name }
-    }
-    return ($parts -join "`n")
+    if (Test-Path -LiteralPath $exe) { $parts += "$exe still present" }
+    if ($null -ne (Get-ModelForgeUninstallEntry)) { $parts += '"Apps & features" entry still present' }
+    $running = @(Get-UninstallerProcesses | ForEach-Object { '{0} (pid {1})' -f $_.ProcessName, $_.Id })
+    if ($running.Count -gt 0) { $parts += ('uninstaller still running: {0}' -f ($running -join ', ')) }
+    return ($parts -join '; ')
 }
 
-function Invoke-Element($element) {
-    $pattern = $null
-    if ($element.TryGetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern, [ref] $pattern)) {
-        $pattern.Invoke()
-        return $true
+function Stop-Uninstallers([string] $field) {
+    foreach ($process in (Get-UninstallerProcesses)) {
+        $script:result[$field] += ('{0} (pid {1})' -f $process.ProcessName, $process.Id)
+        Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
     }
-    return $false
 }
 
-# Top-level dialogs (#32770) of the uninstaller: its title names ModelForge, or it belongs to
-# one of the uninstaller processes.
-function Get-UninstallerDialogs($root) {
-    $isDialog = New-Object System.Windows.Automation.PropertyCondition(
-        [System.Windows.Automation.AutomationElement]::ClassNameProperty, '#32770')
-    $windows = $root.FindAll([System.Windows.Automation.TreeScope]::Children, $isDialog)
+# The uninstaller's windows: those of its processes (the copy it runs from %TEMP% included), or
+# any dialog whose title names ModelForge.
+function Test-UninstallerWindow($info) {
+    if ($info.title -match 'ModelForge') { return $true }
     $pids = @(Get-UninstallerProcesses | ForEach-Object { $_.Id })
-    $found = @()
-    foreach ($window in $windows) {
-        $title = [string]$window.Current.Name
-        if ($title -match 'ModelForge' -or $pids -contains $window.Current.ProcessId) {
-            $found += $window
-        }
-    }
-    return $found
+    return ($pids -contains $info.pid)
 }
 
 # --- main -------------------------------------------------------------------------------------
@@ -168,6 +161,12 @@ try {
     $result.installDir = $installDir
     $exe = Join-Path $installDir 'ModelForge.exe'
     Stop-ModelForgeProcesses -InstallDir $installDir
+    # An uninstaller left over from an earlier run would hold its dialog open and the files busy.
+    Stop-Uninstallers 'leftoverUninstallers'
+    if ($result.leftoverUninstallers.Count -gt 0) {
+        Write-Host ("stopped leftover uninstallers: {0}" -f ($result.leftoverUninstallers -join ', '))
+        Start-Sleep -Seconds 1
+    }
 
     if ($Mode -eq 'Silent') {
         $quiet = $entry.QuietUninstallString
@@ -183,13 +182,16 @@ try {
             Start-Sleep -Milliseconds 500
         }
         try {
-            $root = Initialize-Uia
+            $root = Initialize-UninstallerUi
             $result.uiaAvailable = $true
-            foreach ($dialog in (Get-UninstallerDialogs $root)) {
-                $result.dialogs += [string]$dialog.Current.Name
-                if ((Find-ButtonById $dialog '6') -and (Find-ButtonById $dialog '7')) {
+            foreach ($window in (Get-ChildrenByClass $root '#32770')) {
+                $info = Get-DialogInfo $window
+                if (-not (Test-UninstallerWindow $info)) { continue }
+                $result.dialogs += ("{0}: {1}" -f $info.role, $info.title)
+                $result.openWindows += (Get-DialogSummary $info)
+                if ($info.role -eq 'keep-data-question') {
                     $result.promptSeen = $true
-                    $result.promptText = Get-DialogText $dialog
+                    $result.promptText = $info.text
                 }
             }
         }
@@ -198,13 +200,14 @@ try {
         }
         if (-not (Test-UninstallFinished $exe)) {
             Add-Screenshot 'timeout'
-            throw "silent uninstall did not finish within $TimeoutSeconds s"
+            throw ("silent uninstall did not finish within {0} s: {1}" -f $TimeoutSeconds, (Get-UnfinishedParts $exe))
         }
+        $result.outcome = 'finished'
         $exitCode = 0
     }
     else {
         try {
-            $root = Initialize-Uia
+            $root = Initialize-UninstallerUi
             $result.uiaAvailable = $true
         }
         catch {
@@ -221,74 +224,40 @@ try {
             $null = Start-Process -FilePath $command.Exe -PassThru
         }
 
-        $started = Get-Date
-        $deadline = $started.AddSeconds($TimeoutSeconds)
-        $sawDialog = $false
-        while ((Get-Date) -lt $deadline) {
-            $dialogs = @(Get-UninstallerDialogs $root)
-            foreach ($dialog in $dialogs) {
-                try {
-                    $title = [string]$dialog.Current.Name
-                    if (-not $sawDialog) { Add-Screenshot 'first-dialog' }
-                    $sawDialog = $true
-                    if ($result.dialogs -notcontains $title) { $result.dialogs += $title }
-
-                    $yes = Find-ButtonById $dialog '6'
-                    $no = Find-ButtonById $dialog '7'
-                    if ($yes -and $no) {
-                        # The keep-data question from customUnInstall.
-                        $result.promptSeen = $true
-                        $result.promptText = Get-DialogText $dialog
-                        Add-Screenshot 'prompt'
-                        if ($Mode -eq 'Keep') {
-                            $target = $yes; $answer = 'yes'
-                        }
-                        else {
-                            $target = $no; $answer = 'no'
-                        }
-                        if (Invoke-Element $target) {
-                            $result.answered = $answer
-                            $result.clicks += ("{0}: {1}" -f $title, $answer)
-                        }
-                        Start-Sleep -Milliseconds 800
-                        continue
-                    }
-
-                    $next = Find-ButtonById $dialog '1'
-                    if ($next -and $next.Current.IsEnabled) {
-                        $label = [string]$next.Current.Name
-                        if (Invoke-Element $next) {
-                            $result.clicks += ("{0}: {1}" -f $title, $label)
-                        }
-                        Start-Sleep -Milliseconds 800
-                    }
-                }
-                catch {
-                    # The dialog closed between finding and using it; look again.
-                    Start-Sleep -Milliseconds 300
-                }
-            }
-
-            if ($sawDialog -and $dialogs.Count -eq 0 -and (Test-UninstallFinished $exe)) {
-                break
-            }
-            if (-not $sawDialog -and ((Get-Date) - $started).TotalSeconds -gt 60) {
-                Add-Screenshot 'no-dialog'
-                Get-UninstallerProcesses | Stop-Process -Force -ErrorAction SilentlyContinue
-                $result.error = 'no uninstaller dialog was reachable through UI Automation within 60 s'
-                $exitCode = $EXIT_UIA_UNAVAILABLE
-                throw $result.error
-            }
-            Start-Sleep -Milliseconds 500
+        $run = Invoke-UninstallerDialogs -Root $root -Mode $Mode -TimeoutSeconds $TimeoutSeconds `
+            -IsOurWindow { param($info) Test-UninstallerWindow $info } `
+            -IsFinished { Test-UninstallFinished $exe } `
+            -OnScreenshot { param($name) Add-Screenshot $name }
+        # The state is the function's last output; anything a callback wrote comes before it.
+        if ($run -isnot [System.Collections.IDictionary]) { $run = @($run)[-1] }
+        foreach ($key in 'outcome', 'flow', 'confirmSeen', 'confirmText', 'promptSeen', 'promptText', 'answered',
+            'dialogs', 'clicks', 'steps', 'openWindows', 'uiaErrors') {
+            $result[$key] = $run[$key]
         }
-
+        $clicks = $result.clicks -join ' -> '
+        if (-not $clicks) { $clicks = 'none' }
         Add-Screenshot 'end'
-        if (-not (Test-UninstallFinished $exe)) {
-            Get-UninstallerProcesses | Stop-Process -Force -ErrorAction SilentlyContinue
-            throw "interactive uninstall did not finish within $TimeoutSeconds s (clicks: $($result.clicks -join '; '))"
+
+        if ($run.outcome -ne 'finished') {
+            $what = $run.message
+            if ($run.outcome -eq 'timeout') {
+                $what = ('did not finish within {0} s; {1}; {2}' -f $TimeoutSeconds, $run.message, (Get-UnfinishedParts $exe))
+            }
+            elseif ($run.outcome -eq 'no-window') {
+                $what = ('no uninstaller window was reachable through UI Automation within 60 s; {0}' -f (Get-UnfinishedParts $exe))
+            }
+            Stop-Uninstallers 'killedUninstallers'
+            if ($run.outcome -eq 'no-window' -or $run.outcome -eq 'cannot-click') {
+                $exitCode = $EXIT_UIA_UNAVAILABLE
+            }
+            throw ("interactive uninstall ({0}) {1} (clicks: {2})" -f $run.outcome, $what, $clicks)
         }
         if (-not $result.promptSeen) {
-            throw 'the uninstaller finished without asking whether to keep the data'
+            $hint = ''
+            if ($result.flow -eq 'one-click') {
+                $hint = ' (one-click uninstaller: after its OK/Cancel confirmation electron-builder uninstalls silently, so customUnInstall skips the question)'
+            }
+            throw ("the uninstaller finished without asking whether to keep the data{0} (clicks: {1})" -f $hint, $clicks)
         }
         $exitCode = 0
     }
