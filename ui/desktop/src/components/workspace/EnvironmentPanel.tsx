@@ -52,11 +52,16 @@ const i18n = defineMessages({
     id: 'environmentPanel.runtimeInstallGuide',
     defaultMessage: 'Install guide',
   },
+  timedOut: {
+    id: 'environmentPanelProbe.timedOut',
+    defaultMessage: 'Timed out',
+  },
 });
 
 /**
  * Probe ids that satisfy a capability. A capability is missing only when none of its probes
- * reported a runtime, so an installed alternative (Typst instead of LaTeX) is not flagged.
+ * reported a runtime, so an installed alternative (Typst instead of LaTeX) is not flagged, and
+ * none of them timed out, since a tool that was found but answered too late may well work.
  */
 const CAPABILITY_PROBES: ReadonlyArray<{ runtimes: OptionalRuntimeId[]; probeIds: string[] }> = [
   { runtimes: ['python'], probeIds: ['python'] },
@@ -67,13 +72,25 @@ function missingOptionalRuntimes(probes: readonly EnvironmentProbe[]): OptionalR
   const missing: OptionalRuntime[] = [];
   for (const capability of CAPABILITY_PROBES) {
     const known = probes.filter((probe) => capability.probeIds.includes(probe.id));
-    if (known.length === 0 || known.some((probe) => probe.available)) continue;
+    if (
+      known.length === 0 ||
+      known.some((probe) => probe.available || probe.status === 'timeout')
+    ) {
+      continue;
+    }
     for (const id of capability.runtimes) {
       const runtime = OPTIONAL_RUNTIMES.find((candidate) => candidate.id === id);
       if (runtime) missing.push(runtime);
     }
   }
   return missing;
+}
+
+/** The version number of a probe's version line for its chip; the full line is its tooltip. */
+function shortVersion(version: string | null): string {
+  const line = version ?? '';
+  const digits = /\d+(?:\.\d+)+[\w.+-]*/.exec(line)?.[0];
+  return (digits ?? line.replace(/^[a-zA-Z ]+/, '')).slice(0, 14);
 }
 
 interface EnvironmentPanelProps {
@@ -146,8 +163,10 @@ export default function EnvironmentPanel({ workingDir }: EnvironmentPanelProps) 
               {probe.label}
               <span className="ml-1 font-mono">
                 {probe.available
-                  ? (probe.version ?? '').replace(/^[a-zA-Z ]+/, '').slice(0, 14)
-                  : intl.formatMessage(i18n.missing)}
+                  ? shortVersion(probe.version)
+                  : probe.status === 'timeout'
+                    ? intl.formatMessage(i18n.timedOut)
+                    : intl.formatMessage(i18n.missing)}
               </span>
             </span>
           ))}

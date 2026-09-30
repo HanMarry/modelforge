@@ -1853,6 +1853,9 @@
   "environmentPanel.workingDir": {
     "defaultMessage": "Working directory"
   },
+  "environmentPanelProbe.timedOut": {
+    "defaultMessage": "Timed out"
+  },
   "errorBoundary.errorGeneric": {
     "defaultMessage": "An error occurred."
   },

@@ -105,8 +105,22 @@ beforeEach(() => {
   electron.setSetting.mockResolvedValue(undefined);
   electron.detectLocalRuntimes.mockResolvedValue([]);
   electron.workspaceProbeEnvironment.mockResolvedValue([
-    { id: 'python', label: 'Python', command: 'python', version: 'Python 3.12.0', available: true },
-    { id: 'typst', label: 'Typst', command: 'typst', version: 'typst 0.12.0', available: true },
+    {
+      id: 'python',
+      label: 'Python',
+      command: 'python',
+      version: 'Python 3.12.0',
+      available: true,
+      status: 'available',
+    },
+    {
+      id: 'typst',
+      label: 'Typst',
+      command: 'typst',
+      version: 'typst 0.12.0',
+      available: true,
+      status: 'available',
+    },
   ]);
   electron.testProviderConnection.mockResolvedValue({ ok: true });
   electron.rememberProviderApiKey.mockResolvedValue({ ok: true, data: { outcome: 'encrypted' } });
@@ -274,5 +288,42 @@ describe('OnboardingWizard', () => {
 
     expect(await screen.findByText(/第 2 步\/共 4 步/)).toBeInTheDocument();
     expect(electron.setSetting).toHaveBeenCalled();
+  });
+
+  it('reports a tool that was found but answered too late as 检测超时, not 未找到', async () => {
+    electron.workspaceProbeEnvironment.mockResolvedValue([
+      {
+        id: 'python',
+        label: 'Python',
+        command: 'C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\python.exe',
+        version: null,
+        available: false,
+        status: 'timeout',
+      },
+      {
+        id: 'latexmk',
+        label: 'latexmk',
+        command: 'latexmk',
+        version: null,
+        available: false,
+        status: 'missing',
+      },
+      {
+        id: 'typst',
+        label: 'Typst',
+        command: 'D:\\a\\_temp\\mf-tools\\typst\\typst-x86_64-pc-windows-msvc\\typst.exe',
+        version: null,
+        available: false,
+        status: 'timeout',
+      },
+    ]);
+    render(
+      <IntlTestWrapper>
+        <OnboardingWizard initialStep="environment" onComplete={vi.fn()} />
+      </IntlTestWrapper>
+    );
+
+    expect(await screen.findByText('Python：检测超时')).toBeInTheDocument();
+    expect(screen.getByText('论文编译环境：检测超时')).toBeInTheDocument();
   });
 });
