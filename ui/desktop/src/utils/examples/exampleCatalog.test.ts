@@ -52,9 +52,18 @@ const completeManifestArb: fc.Arbitrary<ExampleManifest> = fc.record({
   }),
   officialUrl: fc.option(fc.string({ minLength: 1 }), { nil: undefined }),
   problemFile: fc.constant('problem.md'),
-  attachments: fc.array(fc.string({ minLength: 1 }), { minLength: 1, maxLength: 3 }),
+  // Attachments and solution files live in their own folders, as in the real manifests, so an
+  // attachment can never share a name with a solution file (always shipped), the problem file
+  // or the manifest; such a collision made the "iff redistributable" check fail spuriously.
+  attachments: fc.array(
+    fc.string({ minLength: 1 }).map((name) => `data/${name}`),
+    { minLength: 1, maxLength: 3 }
+  ),
   solution: fc.array(
-    fc.record({ question: fc.string({ minLength: 1 }), file: fc.string({ minLength: 1 }) }),
+    fc.record({
+      question: fc.string({ minLength: 1 }),
+      file: fc.string({ minLength: 1 }).map((name) => `solution/${name}`),
+    }),
     { minLength: 1, maxLength: 3 }
   ),
 });
