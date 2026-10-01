@@ -88,7 +88,6 @@ import {
 } from './connectors/feishu/feishuIpc';
 import { createFeishuController } from './connectors/feishu/feishuSdkAdapter';
 import { openPinnedAcpStream } from './connectors/feishu/feishuAcpTransport';
-import { sharedArtifactStore } from './utils/runs/artifactStore';
 import { writeFileAtomic } from './utils/atomicWrite';
 import type { FeatureIpcDeps } from './utils/featureIpc';
 import { registerRunsIpc } from './utils/runs/runsIpc';
