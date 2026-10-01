@@ -1,0 +1,368 @@
+{
+  "schemaVersion": 1,
+  "resultFile": "evals/modeling/results/20260930T173512Z.json",
+  "resultSha256": "2feabafe6aa524c8fd24d302d088c8847fefc86dd2d2e93fbe41f83196921dde",
+  "commit": "248fc9b6424968cb1eaf2d65bd5aa993d5686f83",
+  "model": "custom_deepseek/deepseek-v4-pro",
+  "run": {
+    "repository": "HanMarry/modelforge",
+    "workflow": ".github/workflows/modelforge-evals.yml（ModelForge Evals）",
+    "runId": 36742998780,
+    "jobId": 109981944469,
+    "headSha": "248fc9b6424968cb1eaf2d65bd5aa993d5686f83"
+  },
+  "artifact": {
+    "name": "modelforge-evals",
+    "id": 11116631357,
+    "digest": "sha256:446ce40304a0311332606374e166220a93ce62242f49e60be996009ae49632f5",
+    "zipBytes": 5386577,
+    "fileCount": 148,
+    "integrity": "本地 zip 的 SHA256 与 artifact 元数据 digest、run 日志记录的 digest 三者相同；两次独立下载的 148 个文件逐一 SHA256 相同。下表列出本次复核所依据的文件，两份下载中逐一相同。",
+    "files": [
+      { "path": "results/20260930T173512Z.json", "sha256": "2feabafe6aa524c8fd24d302d088c8847fefc86dd2d2e93fbe41f83196921dde" },
+      { "path": "build-manifest.json", "sha256": "42e0c1788538d55f193d4f671a914ef97d2809c5b9c141b2f7a3f66a966f3ffd" },
+      { "path": "work/20260930T173512Z/custom_deepseek_deepseek-v4-pro/practice-air-quality/paper.log", "sha256": "999ee46e01d5b8b3386b4428dd120f99ecb9264a54b8a81b34a69b55fbd68e36" },
+      { "path": "work/20260930T173512Z/custom_deepseek_deepseek-v4-pro/practice-air-quality/paper.pdf", "sha256": "13724ce6da6c1353f8e5947ae71e2a785addac10869d3f4d83a70cbcc66afedc" },
+      { "path": "work/20260930T173512Z/custom_deepseek_deepseek-v4-pro/practice-air-quality/paper.tex", "sha256": "e105b8ea210fc3324bfc9c878764b7fdf59d3f19e6dda1cf49c6c3fb61ceca68" },
+      { "path": "work/20260930T173512Z/custom_deepseek_deepseek-v4-pro/practice-air-quality/results.json", "sha256": "e24713e16a035a8c742274c0729d4f2ef0dc9a03a2a67285e6afea4e0fb2bc57" },
+      { "path": "work/20260930T173512Z/custom_deepseek_deepseek-v4-pro/practice-air-quality/attachments/air_quality.csv", "sha256": "ecb3a6a9d84b584c0f404f212fbb9bc3a1bc8a605477730304240cfd52d020f3" },
+      { "path": "work/20260930T173512Z/custom_deepseek_deepseek-v4-pro/practice-air-quality/code/01_explore.py", "sha256": "115a27bb804d7f754ad9859b4625c26578859f327063eea651481b613f8af707" },
+      { "path": "work/20260930T173512Z/custom_deepseek_deepseek-v4-pro/practice-air-quality/code/02_model.py", "sha256": "48f9c952aa385265325612538ac8d348aef350f11897f818b8ca36ed014ca395" },
+      { "path": "work/20260930T173512Z/custom_deepseek_deepseek-v4-pro/practice-air-quality/code/03_robustness.py", "sha256": "8ab3ace240724c9a454fc08bbae130c4607248a27ade00677dba36a21c958c17" },
+      { "path": "work/20260930T173512Z/custom_deepseek_deepseek-v4-pro/practice-air-quality/code/04_results.py", "sha256": "4fc897b7046fdbe4e27aa3e056a6595f91feb34f3d7c467340fb0037042d09bc" },
+      { "path": "work/20260930T173512Z/custom_deepseek_deepseek-v4-pro/practice-air-quality/code/utils.py", "sha256": "7c56ef6bdce8a5a5c2fa09a93fd8a4b33d8615e0764483d9afe0cf6b2015bbb1" },
+      { "path": "work/20260930T173512Z/custom_deepseek_deepseek-v4-pro/practice-air-quality/results/explore_results.json", "sha256": "bb2c893096f502b92261dc12325e801b9b9ecc36fbddc919bddd988c5f94c34e" },
+      { "path": "work/20260930T173512Z/custom_deepseek_deepseek-v4-pro/practice-air-quality/results/model_results.json", "sha256": "f372cb870099a42b9e23e81619097ed4418376134086382dc84b6841343b4a3e" },
+      { "path": "work/20260930T173512Z/custom_deepseek_deepseek-v4-pro/practice-air-quality/results/robustness_results.json", "sha256": "17cd3231dd8d962eaefec412c2d8a3be1e93848000105e2939235fcafe784f2d" },
+      { "path": "work/20260930T173512Z/custom_deepseek_deepseek-v4-pro/practice-bike-rebalancing/paper.log", "sha256": "7ab18a249ed3612e037e9f93837776352f4b7dd9fd1f20cd38687e0c89c19de1" },
+      { "path": "work/20260930T173512Z/custom_deepseek_deepseek-v4-pro/practice-bike-rebalancing/paper.pdf", "sha256": "814e1f41119aa6e49add39064ad168588b893f31907460cf57e1482bbb5e89ab" },
+      { "path": "work/20260930T173512Z/custom_deepseek_deepseek-v4-pro/practice-bike-rebalancing/paper.tex", "sha256": "af3bf0eb796dd01dc3ca679c689db16d684856df9566f375359bbb2fec32d39b" },
+      { "path": "work/20260930T173512Z/custom_deepseek_deepseek-v4-pro/practice-bike-rebalancing/results.json", "sha256": "c73a22adcbd13dea2263953724830f6e600255a2820e2f3b598c876ee69eb8b0" },
+      { "path": "work/20260930T173512Z/custom_deepseek_deepseek-v4-pro/practice-bike-rebalancing/attachments/demand.csv", "sha256": "731a0a984a76c98ee9f7204f93dfb1cd3e082261ca2678d8601652d67678f516" },
+      { "path": "work/20260930T173512Z/custom_deepseek_deepseek-v4-pro/practice-bike-rebalancing/attachments/stations.csv", "sha256": "4465f40e13dffcbb9f897f4811a547ec747f6d40e170e5d856215a558e686a84" },
+      { "path": "work/20260930T173512Z/custom_deepseek_deepseek-v4-pro/practice-bike-rebalancing/code/make_results.py", "sha256": "64370414171a5bfbd949e20a5a60d4234f478ec119df47b0baeceb3a28a41356" },
+      { "path": "work/20260930T173512Z/custom_deepseek_deepseek-v4-pro/practice-bike-rebalancing/code/q1.py", "sha256": "460886cad6a03b992f9fe76b75bc44af0ad100506bf7e9f18bb45bd3780f5965" },
+      { "path": "work/20260930T173512Z/custom_deepseek_deepseek-v4-pro/practice-bike-rebalancing/code/q2.py", "sha256": "9d18b98247a7149b45c035d0cf8a2359a282ec2a10f5c36ca2b64494dd79a229" },
+      { "path": "work/20260930T173512Z/custom_deepseek_deepseek-v4-pro/practice-bike-rebalancing/code/q3.py", "sha256": "5ef5e912b3bd9d5ca20a1ca5ba04da868706884af52fdc7667a32f325b78dd3c" },
+      { "path": "work/20260930T173512Z/custom_deepseek_deepseek-v4-pro/practice-bike-rebalancing/code/utils.py", "sha256": "ff14d43df7c20c58e77839e34b45916f2043e5c9731fa7be862c51f694742c06" },
+      { "path": "work/20260930T173512Z/custom_deepseek_deepseek-v4-pro/practice-bike-rebalancing/results/q1_results.json", "sha256": "d912a15db85c0c1edd3f209d46dcfa993c3fda3178f4f7289797def865cfaa99" },
+      { "path": "work/20260930T173512Z/custom_deepseek_deepseek-v4-pro/practice-bike-rebalancing/results/q2_results.json", "sha256": "ba4b60f770ea999208ed260d15ebef015419e8d139501203675e0aa9adf0e9f0" },
+      { "path": "work/20260930T173512Z/custom_deepseek_deepseek-v4-pro/practice-bike-rebalancing/results/q3_results.json", "sha256": "1f2692858141b72a2dba6b608bb21ae6072b0c132b6318455956a0a7f28edcc9" },
+      { "path": "work/20260930T173512Z/custom_deepseek_deepseek-v4-pro/practice-university-evaluation/paper.log", "sha256": "0cfce4df4a72fe404be7a27b35decfa081c6a7978e7543062714944a1a7a0655" },
+      { "path": "work/20260930T173512Z/custom_deepseek_deepseek-v4-pro/practice-university-evaluation/paper.pdf", "sha256": "e206ff9ae68a0fa81fede89559bf56f6871ee73ba00b544f5c490a924e33308c" },
+      { "path": "work/20260930T173512Z/custom_deepseek_deepseek-v4-pro/practice-university-evaluation/paper.tex", "sha256": "2ac3ec8b3e4f0996113e946683678ec0d919c294583bdf3d80cb3402fc541d86" },
+      { "path": "work/20260930T173512Z/custom_deepseek_deepseek-v4-pro/practice-university-evaluation/results.json", "sha256": "9a79e19604353e077e451ce8670f64db030b47e82f742fcab4b90de3e6410817" },
+      { "path": "work/20260930T173512Z/custom_deepseek_deepseek-v4-pro/practice-university-evaluation/attachments/universities.csv", "sha256": "8862945aca72d18be5f170011af278c64e21d0a8e7e347899fe30ee3d2081531" },
+      { "path": "work/20260930T173512Z/custom_deepseek_deepseek-v4-pro/practice-university-evaluation/code/make_results.py", "sha256": "9e389e5736ff065d9ca6dc2d33d09b43bf2fd3e1448a067ba1bc15a6ff70a106" },
+      { "path": "work/20260930T173512Z/custom_deepseek_deepseek-v4-pro/practice-university-evaluation/code/q1_weights.py", "sha256": "5b9f6e5e92c8fc9e938593c31f8c2167161eea8c8040d879b83e4eb7f6c96206" },
+      { "path": "work/20260930T173512Z/custom_deepseek_deepseek-v4-pro/practice-university-evaluation/code/q2_rank.py", "sha256": "a64e4291353827a303980a00c0570b615e364ff991978571392c05e6ece6fcbc" },
+      { "path": "work/20260930T173512Z/custom_deepseek_deepseek-v4-pro/practice-university-evaluation/code/utils.py", "sha256": "85df98e32a9652fbdbf5766b6f723b131b6add98df5b3f17e7517aa962d60da9" },
+      { "path": "work/20260930T173512Z/custom_deepseek_deepseek-v4-pro/practice-university-evaluation/results/final.json", "sha256": "5a6334e0bfe0ccb5af829b0530fd567a4135af41edb669ebb32cb8f178baf67d" },
+      { "path": "work/20260930T173512Z/custom_deepseek_deepseek-v4-pro/practice-university-evaluation/results/weights.json", "sha256": "e07b26a446fbd10c82984ae10560fd8f6cc19f3d489eb5af5ed4fa3827c310ee" }
+    ]
+  },
+  "reviewer": "Kiro AI 代理（待用户签核）",
+  "signedOff": false,
+  "reviewedAt": "2026-10-01T14:54:36+08:00",
+  "method": [
+    "逐项对照 checks.yaml 的 criterion 原文阅读 paper.tex（行号）与 paper.pdf（页码）。PDF 文本用 pdftotext 4.00 提取，中文字形经 TeX Live adobemapping 的 Adobe-GB1-UCS2 映射还原；三篇 PDF 的文本与 paper.tex 一致，paper.log 中的行号引用与当前 paper.tex 对得上。",
+    "数值复算只用 Python 3.12 标准库，直接读附件 CSV（附件 SHA256 与各题 baseline.json 记录一致）。sklearn 的 train_test_split 与 KFold 用 numpy 旧版 RandomState（MT19937 + 洗牌）重放，numpy default_rng 用 SeedSequence + PCG64 重放；两者先用已知输出自检。scikit-learn、SciPy 拟合的非线性模型、MILP 求解时间与 numpy 正态抽样没有重放，相关数值只核对与代码产物一致。",
+    "没有调用任何模型，没有重跑评测。"
+  ],
+  "standard": "criterion 列出的每个要素都在论文中给出、且与数据和代码一致才判通过；任一要素缺失或与数据不符判未通过；不影响要素本身的附带错误记入 defects，不改变判定；拿不准时判未通过，并在 borderline 中标明，供签核人复看。",
+  "tasks": [
+    {
+      "id": "practice-air-quality",
+      "checks": [
+        {
+          "id": "C04",
+          "question": "问题一",
+          "criterion": "给出各变量的分布与异常值识别方法（如 IQR 或 3σ）及识别结果，说明预处理方法（标准化等）及理由，且结论与数据一致（交通拥堵指数、湿度与 PM2.5 正相关，风速负相关，气温相关性弱）。",
+          "verdict": "通过",
+          "evidence": [
+            "分布：paper.tex:101-117 表 1 给出 5 个数值字段的均值、标准差、最小值、中位数、最大值，paper.tex:119-124 图 1 为分布直方图（PDF 第 3–4 页）。",
+            "异常值方法与结果：paper.tex:99 写明 IQR 准则（Q1−1.5IQR, Q3+1.5IQR）与 MAD 修正 z 分数（|z|>3.5），五个字段均未检出异常值，表 1 异常值列均为 0（PDF 第 3 页）；代码 code/01_explore.py:47-54。",
+            "预处理及理由：paper.tex:163-170（PDF 第 6 页）无缺失、无重复、无异常值，故不填充、不清洗；日期只作序号；随机 80:20 划分并固定种子 42；只对 SVR 在训练集上拟合 StandardScaler，避免测试集信息泄漏。",
+            "结论与数据一致：paper.tex:137-140、161（PDF 第 4、6 页）traffic_index r=0.6510、humidity r=0.3491 为正相关，wind_speed r=−0.3589 为负相关，temperature r=−0.1096（p=0.1225，不显著）。"
+          ],
+          "recomputed": [
+            "200 行、缺失值 0、重复行 0；Pearson r：temperature −0.1096、humidity 0.3491、wind_speed −0.3589、traffic_index 0.6510。",
+            "IQR 栅栏下 5 个字段异常值均为 0（pm2_5 下栅栏 37.375，低于最小值 38），MAD 修正 z 与 3σ 准则也都是 0；表 1 的均值、标准差、中位数、极值与数据一致（traffic_index 均值 56.165，表中四舍五入为 56.17）。"
+          ]
+        },
+        {
+          "id": "C07",
+          "question": "问题二",
+          "criterion": "至少建立两种预测模型，说明训练集与测试集的划分方式（随机划分固定种子，或按时间顺序划分），在同一测试集上用 RMSE、MAE、R² 比较，并给出变量重要性排序及解释。",
+          "verdict": "通过",
+          "evidence": [
+            "四种模型：paper.tex:33、182 建立 OLS、随机森林、梯度提升、SVR；代码 code/02_model.py:37、64-67。",
+            "划分方式：paper.tex:33、168 随机 80:20、固定随机种子 42；code/utils.py:45-46 为 train_test_split(test_size=0.2, random_state=42)。",
+            "同一测试集比较：paper.tex:196-213 表 3（PDF 第 7 页）四种模型在同一划分（训练 160、测试 40）上的测试 RMSE、MAE、R²；code/02_model.py:71-90 对同一 X_te 评估。",
+            "重要性排序及解释：paper.tex:224-226（PDF 第 8 页）随机森林基尼重要性 traffic_index 0.5120 > wind_speed 0.2202 > humidity 0.1819 > temperature 0.0859，并用排列重要性互证；机理解释见 paper.tex:161、192。"
+          ],
+          "recomputed": [
+            "重放 train_test_split(random_state=42) 后用最小二乘复算：截距 43.2022，系数 −0.088226 / 0.225721 / −3.571152 / 0.522860，训练 RMSE 6.9117，测试 RMSE 6.7535、MAE 5.6638、R² 0.5906，VIF 1.268 / 1.256 / 1.033 / 1.014，均与论文和 results/model_results.json 一致。",
+            "随机森林、梯度提升、SVR 的数值没有独立复算（复核环境没有 scikit-learn），只核对论文与 results/model_results.json 一致。"
+          ],
+          "defects": [
+            "paper.tex:226 把排列重要性写成“drop-column 后 RMSE 的增量”，而 code/02_model.py:108 用的是 sklearn permutation_importance 的默认评分（R² 的下降），既不是 drop-column 也不是 RMSE；排序结论不受影响。"
+          ]
+        },
+        {
+          "id": "C08",
+          "question": "问题三",
+          "criterion": "给出预测的置信区间或预测区间及其计算方法；写明高温、静风的筛选阈值，并单独评估这些样本上的误差；讨论新增\"工业排放\"等特征时模型如何扩展。",
+          "verdict": "通过",
+          "evidence": [
+            "预测区间及方法：paper.tex:252（PDF 第 9 页）残差 Bootstrap（B=2000，固定种子）构造 95% 预测区间（ŷ 加残差分位数），平均宽度 23.77、覆盖 40/40；另有 OLS 系数 95% 置信区间（经典与 HC3，paper.tex:232-250）；代码 code/03_robustness.py:48-60。",
+            "阈值与分组误差：paper.tex:256、265（PDF 第 9 页）高温为温度 ≥ 75% 分位 22.55 °C，静风为风速 ≤ 25% 分位 3.00 m/s；测试集高温子集 n=10 RMSE 6.05、静风子集 n=11 RMSE 7.06、两者兼有 n=4 RMSE 6.14；代码 code/03_robustness.py:76-104。",
+            "新增“工业排放”特征的扩展：paper.tex:306-315（PDF 第 11 页）线性扩展、交互与非线性、分时建模、物理约束四条。"
+          ],
+          "recomputed": [
+            "阈值 22.55 与 3.0（线性分位数）；OLS 子集 n=10 RMSE 6.0522、R² 0.7212，n=11 RMSE 7.0596，n=4 RMSE 6.1389。",
+            "重放 default_rng(42) 与 Generator.integers，逐轮复现 2000 次残差 Bootstrap：平均宽度 23.7707、覆盖 40/40，与论文一致；5 折交叉验证 OLS RMSE 7.082±0.405、R² 0.606±0.083，与 paper.tex:270 一致。"
+          ],
+          "defects": [
+            "预测区间只重抽训练残差，没有计入参数估计的不确定性，40/40 的覆盖率偏高，论文没有讨论。"
+          ]
+        },
+        {
+          "id": "C09",
+          "question": "全题",
+          "criterion": "论文结构完整（摘要、问题重述、模型假设、模型建立与求解、模型检验、评价与推广），摘要写明各问的关键数值结论，且与 results.json 一致。",
+          "verdict": "通过",
+          "evidence": [
+            "结构：摘要 paper.tex:25-37，问题重述 39，问题分析 49，模型假设 61，符号说明 71，模型建立与求解 93，模型检验 274，模型评价与推广 288，参考文献 317（PDF 第 1–12 页）。",
+            "摘要关键数值（paper.tex:31-35，PDF 第 1 页）：问题一 200 行、缺失 0 与四个 Pearson 系数；问题二 80:20 与种子 42、OLS 测试 RMSE 6.7535、MAE 5.6638、R² 0.5906 与重要性排序；问题三 预测区间宽度 23.77、覆盖 100%、高温 RMSE 6.05、静风 RMSE 7.06、5 折交叉验证 RMSE 7.08±0.40。",
+            "与 results.json 一致：row_count 200、missing_value_count 0、pearson_pm25 四项、top_feature traffic_index、ols_test_rmse 6.7535、ols_test_r2 0.5906 与摘要逐项一致；四个 OLS 系数与正文式 (2)（paper.tex:189）一致。"
+          ]
+        }
+      ],
+      "summary": {
+        "automatic": { "passed": 5, "failed": 0 },
+        "manual": { "passed": 4, "failed": 0 },
+        "passed": 9,
+        "failed": 0,
+        "pending": 0,
+        "total": 9
+      }
+    },
+    {
+      "id": "practice-bike-rebalancing",
+      "checks": [
+        {
+          "id": "C04",
+          "question": "问题一",
+          "criterion": "论文给出供需缺口的量化定义（公式），说明只计正值还是直接求和的口径，并给出缺口最大的 3 个站点及其缺口量；建议的初始车辆数不低于零缺车所需的最少值且不超过站点容量。",
+          "verdict": "通过",
+          "evidence": [
+            "缺口定义（公式）：paper.tex:145-158（PDF 第 4 页）C_i(h) 为从 0 时起的累计净需求，G_i(h)=max(0, C_i(h))，全天整体缺口 G_i=max_h G_i(h)=mib_i。",
+            "口径：只取累计净需求的正部、按小时取峰值而不是求和（paper.tex:150-157，含义见 paper.tex:154）；高峰时段分布另按“正净需求之和”统计（paper.tex:175）。累计峰值是 baseline.json 列出的常见口径之一。",
+            "缺口最大的 3 个站点：paper.tex:31-32、163-164（PDF 第 1、5 页）S03 32 辆、S01 13 辆、S12 11 辆；代码 code/q1.py:47、code/utils.py:68-78。",
+            "建议初始车辆数：paper.tex:199-218 表 4（PDF 第 6 页）取 mib_i，合计 79，即零缺车所需的最少值。"
+          ],
+          "recomputed": [
+            "mib：S01 13、S02 9、S03 32、S04 0、S05 4、S06 0、S07 3、S08 0、S09 1、S10 4、S11 2、S12 11，合计 79；前 3 为 S03 32、S01 13、S12 11（第 4 为 S02 9）；12 个站点的 mib 都不超过容量（S03 为 32 ≤ 52）。",
+            "按 code/utils.py:107-132 的逐时模拟（借车受现有车辆限制、还车受容量截断）：以 mib 为初始值，12 个站点全天缺车均为 0；任一站点取 mib−1 都会缺 1 辆，最少性成立。"
+          ],
+          "defects": [
+            "paper.tex:340 称 S03 的累计净需求“在第 19 小时达到 32”，复算峰值在 20 时（C(19)=29，C(20)=32）。"
+          ]
+        },
+        {
+          "id": "C06",
+          "question": "问题二",
+          "criterion": "写出完整的调度路径模型：决策变量、以总行驶距离为目标的目标函数、载重 30 辆的容量约束、各站车辆数非负且不超过容量、最终回到出发站点；并说明目标值的定义与求解算法。",
+          "verdict": "未通过",
+          "evidence": [
+            "已给出的部分：决策变量 x_ijt、y_it、q_it、u_it（paper.tex:232-233、245）；目标函数为总行驶距离 Σ c_ij x_ijt（paper.tex:235）；载重 Σ_i q_it ≤ Q=30（paper.tex:240、130）；每趟从 d 出发并回到 d（式 (6)，paper.tex:238）；目标值 T_i=mib_i（paper.tex:222-226）；算法为 MTZ 消子环的 0–1 混合整数规划，用 SciPy 的 HiGHS 求解（paper.tex:243、247）。PDF 第 6–7 页。"
+          ],
+          "failures": [
+            "缺少“各站车辆数非负且不超过容量”约束：式 (5)–(11) 中没有站点库存约束（如 0 ≤ 初始车辆数 − 取车量 + 送车量 ≤ 容量）；容量只出现在模型假设 3（paper.tex:103-104，针对白天借还模拟），不在调度模型里。",
+            "与库存有关的唯一约束写错：paper.tex:240 的 Σ_{i≠d} q_it ≤ s_i 对 i 求和、右端却是 s_i，下标不一致；代码 code/q2.py:150-154 实现的是 Σ_t q_it ≤ s_i。",
+            "模型只在出发站 d 卸车：paper.tex:230-241 只有取车量 q_it，送车隐含在 d，不能表示有多个缺口站的调度；本题只因 S03 是唯一缺口站才适用（paper.tex:251）。"
+          ],
+          "recomputed": [
+            "方案本身可行（见 C07 的复算），但不能代替模型中缺失的约束。"
+          ]
+        },
+        {
+          "id": "C07",
+          "question": "问题二",
+          "criterion": "给出调度方案表（每段路线的起点、终点、搬运量），方案可行：任一时刻车上不超过 30 辆，搬出总量等于搬入总量，调度后各站车辆数达到所定目标值；同时给出总行驶距离与满足率提升幅度。",
+          "verdict": "通过",
+          "evidence": [
+            "调度方案：paper.tex:249-258（PDF 第 7 页）第 1 趟 S03→S09→S03，在 S09 取 30 辆运回 S03，距离 8.0592；第 2 趟 S03→S04→S03，在 S04 取 1 辆，距离 6.1081；调度后 S03 由 1 辆增至 32 辆，S09 由 39 辆降至 9 辆，S04 由 16 辆降至 15 辆。",
+            "可行性：车上最多 30 辆（S09→S03 段），搬出 31 辆等于搬入 31 辆，调度后各站不低于目标值（目标值按 paper.tex:224-225 定义为下限）。",
+            "总行驶距离 14.1672（paper.tex:257）；满足率由 340/371=91.644% 提升到 371/371=100%，提升 8.356 个百分点（paper.tex:269-276，PDF 第 8 页）。"
+          ],
+          "recomputed": [
+            "欧氏距离 S03–S09 为 4.0296、S03–S04 为 3.0540，两趟合计 14.1672；调度后 12 个站点的车辆数都不低于 mib、不超过容量。",
+            "按 code/utils.py:107-143 的口径复算满足率：340/371 → 371/371，提升 8.356 个百分点。",
+            "穷举每趟至多 3 个取车站的两趟方案，最短仍为 {S04}+{S09}，14.1672，与 MILP 结果一致。"
+          ],
+          "defects": [
+            "方案以列表而非表格给出，也没有逐段写出搬运量（去程空驶、回程载 30 辆或 1 辆需由读者推出）；内容可以唯一确定，不据此判未通过。",
+            "paper.tex:344-347 的最优性论证不严谨：称 S03↔S04 与 S03↔S09 是“最短的两条单站往返”，但 S03↔S06（7.0902）比 S03↔S09（8.0592）短，论证没有考虑各站富余量（S06 只富余 2 辆）。"
+          ]
+        },
+        {
+          "id": "C08",
+          "question": "问题三",
+          "criterion": "给出 2 辆调度车的协同方案与相对单车节省的行驶距离，完成目标车辆数上浮与下调 10% 的灵敏度分析，并对 24 个站点的规模给出计算时间评估。",
+          "verdict": "通过",
+          "evidence": [
+            "两车协同方案与节省量：paper.tex:280-288（PDF 第 8 页）两车各执行一趟（S03↔S09 取 30 辆、S03↔S04 取 1 辆），总距离仍为 14.1672，节省 0。",
+            "±10% 灵敏度：paper.tex:290-317 表 5（PDF 第 9 页）α=0.9 需搬入 28 辆、1 趟、8.059；α=1.1 需搬入 34 辆、2 趟、14.167；另给出 α=0.8、1.2；代码 code/q3.py:191-197。",
+            "24 个站点的计算时间：paper.tex:319-332（PDF 第 9 页）合成 n=8…24、K=2 的实例各解 3 次，n=24 平均约 4.4 秒（results/q3_results.json 记为 4.383 秒）；代码 code/q3.py:203-219。"
+          ],
+          "recomputed": [
+            "各 α 的需搬入量 25 / 28 / 31 / 34 / 37 与表 5 一致；穷举得 α=0.8、0.9 的最短距离 8.0592（一趟至 S09），α=1.0、1.1、1.2 为 14.1672（S04 与 S09 各一趟），与表 5 一致。",
+            "两车下界：共需 31 辆、单车载重 30，任何方案都要两次把车送到 S03；离 S03 最近的 S04 只富余 16 辆，其余至少 15 辆最省的来源是 S09，所以无论几辆车总距离都不少于 14.1672，节省 0 成立。",
+            "求解时间与运行环境有关，复核环境没有 SciPy，没有重测。"
+          ],
+          "defects": [
+            "两车距离没有建模求解：code/q3.py:183 直接令 two_dist = single_dist。结论经上面的下界论证成立，但 paper.tex:286-287 把“增加车辆只改变完成时间、不改变总里程”说成一般规律，属于过度概括。",
+            "可扩展性实验的合成实例设了两个缺口站 N0、N1（code/q3.py:214-215），而模型只向出发站送车（code/q3.py:38-41），N1 的缺口被当作送往 N0；计时反映的是这一简化模型在 24 个站点规模下的求解时间。"
+          ]
+        },
+        {
+          "id": "C09",
+          "question": "全题",
+          "criterion": "论文结构完整（摘要、问题重述、模型假设、模型建立与求解、模型检验、评价与推广），摘要写明各问的关键数值结论，且与 results.json 一致。",
+          "verdict": "通过",
+          "evidence": [
+            "结构：摘要 paper.tex:25-47，问题重述 49，问题分析 62，模型假设 96，符号说明 112，模型建立与求解 139，模型检验 334，模型评价与推广 355，参考文献 381（PDF 第 1–12 页）。",
+            "摘要关键数值（paper.tex:29-44，PDF 第 1 页）：问题一 前 3 站 S03 32、S01 13、S12 11，9 时缺车 25、19 时 24，净需求 −65，mib 合计 79，需搬入 31；问题二 两趟方案、总距离 14.167、满足率 91.644%→100%（提升 8.356 个百分点）；问题三 两车 14.167、节省 0，±10% 灵敏度 8.059 / 14.167，24 站约 4.4 秒。",
+            "与 results.json 一致：total_net_demand −65、top_gap_station S03、min_initial_bikes 与合计 79、min_rebalance_bikes 31、vrp_total_distance 14.1672、satisfaction_gain 8.3558、two_vehicle_distance_saving 0。"
+          ],
+          "defects": [
+            "模型检验与模型评价两章直接使用三级标题，PDF 中编号显示为 6.0.1、7.0.1 等，属排版问题。"
+          ]
+        }
+      ],
+      "summary": {
+        "automatic": { "passed": 4, "failed": 0 },
+        "manual": { "passed": 4, "failed": 1 },
+        "passed": 8,
+        "failed": 1,
+        "pending": 0,
+        "total": 9
+      }
+    },
+    {
+      "id": "practice-university-evaluation",
+      "checks": [
+        {
+          "id": "C03",
+          "question": "问题一",
+          "criterion": "相关性结论与数据一致：指出论文数与总被引次数高度相关、存在信息重叠，并据此处理（如降维或调整权重）；不把论文数与 H 指数判断为高度相关。",
+          "verdict": "未通过",
+          "evidence": [
+            "相关性结论与数据一致：paper.tex:155-167（PDF 第 4–5 页）论文数与总被引 r=0.8283，写明强正相关、存在明显信息重叠；论文数与 H 指数 r=0.2240，判为重叠较弱，没有判为高度相关。"
+          ],
+          "failures": [
+            "没有据此处理：paper.tex:166 只写“二者不宜同时赋予过高权重”，此后既没有降维，也没有针对重叠调整权重；AHP 判断矩阵按“专家经验”的重要性次序给出（paper.tex:188），与重叠无关；PCA 只用于赋权（paper.tex:205），不是降维。",
+            "最终综合权重反而把两者排在前两位：总被引 0.3525、论文数 0.2182，合计 0.5707（paper.tex:216-217 表 4；code/q2_rank.py:26）；PCA 权重中两者合计 0.6920。",
+            "paper.tex:324 称熵权法与 PCA 会“自动抑制”相关指标的额外权重，与本文结果相反：熵权只看离散度，PCA 恰好给这两项最高权重。"
+          ],
+          "recomputed": [
+            "Pearson 矩阵与表 3（paper.tex:155-159）逐项一致；熵权、AHP、PCA 与综合权重与表 4 一致。"
+          ]
+        },
+        {
+          "id": "C05",
+          "question": "问题一",
+          "criterion": "说明无量纲化方法及理由，至少使用两种赋权方法（如熵权法与层次分析法、主成分分析）并比较权重差异；使用层次分析法时给出判断矩阵与一致性比率，且 CR < 0.1。",
+          "verdict": "通过",
+          "evidence": [
+            "无量纲化方法及理由：paper.tex:119-134（PDF 第 4 页）min–max 归一化供熵权法求比重（保证非负），向量归一化供 TOPSIS，选择理由见 paper.tex:134。",
+            "三种赋权方法及比较：熵权法、AHP、PCA（paper.tex:172-205），权重对比见表 4 与图 2（paper.tex:207-230，PDF 第 6–7 页），差异讨论见 paper.tex:232。",
+            "AHP：判断矩阵 paper.tex:189-197，λmax=5.0682、CI=0.0170、CR=0.0170/1.12=0.0152<0.1（paper.tex:198-202，PDF 第 6 页）；代码 code/q1_weights.py:46-53、code/utils.py:55-67。"
+          ],
+          "recomputed": [
+            "判断矩阵满足互反性；幂迭代得权重 0.0918 / 0.4312 / 0.2583 / 0.0613 / 0.1574，λmax 5.0682、CI 0.0170、CR 0.0152。",
+            "熵权 0.2154 / 0.2816 / 0.1430 / 0.2010 / 0.1590；相关矩阵的 Jacobi 特征分解得前两个主成分贡献 41.38%、26.06%，第一主成分载荷与 PCA 权重 0.3474 / 0.3446 / 0.0937 / 0.0139 / 0.2004 与论文一致。"
+          ],
+          "defects": [
+            "paper.tex:126 称 min–max 归一化“对极值不敏感”，事实相反（结果由最小值和最大值决定）；不影响方法和主要理由。"
+          ]
+        },
+        {
+          "id": "C07",
+          "question": "问题二",
+          "criterion": "说明评价模型及选择理由，给出 20 所高校的综合得分表与完整排序，并用 Spearman 秩相关系数等方法比较不同赋权方法下排序的稳健性。",
+          "verdict": "通过",
+          "evidence": [
+            "评价模型及选择理由：paper.tex:234-252（PDF 第 7 页）向量归一化 TOPSIS，理由见 paper.tex:250，以三种权重的平均值为综合权重（paper.tex:252）。",
+            "综合得分表与完整排序：paper.tex:257-288 表 5（PDF 第 8 页）列出 20 所高校的综合得分与最终名次，并列出熵权下的得分与名次。",
+            "稳健性比较：paper.tex:298-302（PDF 第 9 页）三种权重下排序两两的 Spearman 系数 0.8872 / 0.9143 / 0.9203，综合与熵权 0.9383；另做综合权重 ±10% 扰动 2000 次（均值 0.9921、最小 0.9564）；代码 code/q2_rank.py:61-69、79-99。"
+          ],
+          "recomputed": [
+            "综合权重 TOPSIS：U08 0.8211、U02 0.7562、U04 0.5581、U16 0.5431 … U15 0.1182，20 所的排序与表 5 一致；熵权 TOPSIS 前 4 为 U08 0.8233、U02 0.7127、U04 0.5567、U16 0.5009。",
+            "三组排序的 Spearman 系数 0.8872 / 0.9143 / 0.9203 / 0.9383 逐项一致；扰动实验依赖 numpy 正态抽样，没有重放。"
+          ],
+          "defects": [
+            "paper.tex:299 称“三种方案的前 3 名完全一致（U08、U02、U04）”不成立：复算 PCA 权重下前 3 为 U08、U02、U16（U16 0.6027 高于 U04 0.5943）；code/q2_rank.py 也没有输出 AHP、PCA 的前 3 名。三种方案的最后 1 名都是 U15，这一半属实。该句是 Spearman 比较之外的补充说法，不影响本项要素，故仍判通过。"
+          ],
+          "borderline": true
+        },
+        {
+          "id": "C08",
+          "question": "问题三",
+          "criterion": "用各指标的标准化得分或贡献解释排名靠前与靠后高校的主要驱动指标，分析不同赋权方法导致排序差异的原因并给出组合赋权等更稳健的策略，说明新增指标时模型如何调整。",
+          "verdict": "未通过",
+          "evidence": [
+            "排序差异原因：paper.tex:313-314（PDF 第 10 页），举 U13（熵权第 6、综合第 8）、U01（第 7、第 10）为例，与表 5 一致。",
+            "更稳健的策略：paper.tex:316-317 多方法权重平均加秩相关与扰动检验，并提出 Borda 秩聚合。",
+            "新增指标的调整：paper.tex:319-325 重新无量纲化、重新赋权（AHP 扩为 6×6 并重检 CR）、重新合成与检验。"
+          ],
+          "failures": [
+            "驱动指标没有用标准化得分或贡献解释：paper.tex:306-311（PDF 第 9–10 页）只列原始值和各指标内的名次，没有计算任何标准化得分或对综合得分的贡献（问题分析 paper.tex:81 说要用“贡献”，正文没有做），代码中也没有相应计算。",
+            "所列名次多处与数据不符：U08 论文数实为第 4（文中第 3）、H 指数 57 实为并列第 4（文中并列第 2）、奖励 26 实为并列第 6（文中并列第 5）；U04 论文数实为第 3（文中第 2）、总被引实为第 3（文中第 4）；U15 的 H 指数 30 为并列第 13，不是“接近最低”。"
+          ],
+          "recomputed": [
+            "综合权重 TOPSIS 中各指标在 D⁺ 平方中的占比：U08 主要差在总被引（60%）与奖励（31%），U02 几乎全差在奖励（84%），U04 差在总被引（48%）与奖励（39%），U15 差在总被引（79%）。论文对 U02、U04、U15 的定性说法大体成立，但没有给出这类量化依据。"
+          ],
+          "defects": [
+            "paper.tex:324 称新增的相关指标会被熵权法与 PCA 自动抑制额外权重，与本文 PCA 的结果相反。"
+          ]
+        },
+        {
+          "id": "C09",
+          "question": "全题",
+          "criterion": "论文结构完整（摘要、问题重述、模型假设、模型建立与求解、模型检验、评价与推广），摘要写明各问的关键数值结论，且与 results.json 一致。",
+          "verdict": "未通过",
+          "evidence": [
+            "结构：摘要 paper.tex:25-30，问题重述 32，问题分析 75，模型假设与符号说明 84，模型建立与求解 114，模型检验（稳健性分析）297，结果解释与建议（问题三）304，模型评价与推广 327，参考文献 346，附录 353（PDF 第 1–12 页）。",
+            "摘要（paper.tex:26，PDF 第 1 页）写明问题一、问题二的数值：熵权最大指标为总被引（w=0.2816）、CR=0.0152、r=0.8283 与 0.2240、前 3 名 U08 / U02 / U04、第 1 名 U08、最后 1 名 U15、Spearman 不低于 0.887、扰动均值 0.992，与 results.json 的 pearson_papers_citations、pearson_papers_h_index、top_weight_indicator、topsis_entropy_top3、rank_first、rank_last 一致。"
+          ],
+          "failures": [
+            "摘要对问题三只写“做了驱动指标解释，并讨论了新增指标时模型的可扩展方案”，没有给出任何结论（驱动指标是什么、名次如何变化等）。",
+            "交付的 paper.pdf 有 8 处交叉引用显示为“??”（PDF 第 1、4、5、7、8 页，如“原始数据如表 ?? 所示”）；paper.log 记有 There were undefined references 与 Rerun to get cross-references right，即只编译了一遍。"
+          ],
+          "borderline": true,
+          "note": "问题三以定性结论为主。若签核人认为“各问的关键数值结论”对问题三不作要求，且不把未解析的交叉引用计入“结构完整”，可改判通过；按“拿不准时判未通过”的规则暂判未通过。"
+        }
+      ],
+      "summary": {
+        "automatic": { "passed": 4, "failed": 0 },
+        "manual": { "passed": 2, "failed": 3 },
+        "passed": 6,
+        "failed": 3,
+        "pending": 0,
+        "total": 9
+      }
+    }
+  ],
+  "summary": {
+    "automatic": { "passed": 13, "failed": 0 },
+    "manual": { "passed": 10, "failed": 4 },
+    "passed": 23,
+    "failed": 4,
+    "pending": 0,
+    "total": 27
+  },
+  "conclusion": "27 项检查全部有结论：通过 23 项，未通过 4 项（共享单车 C06；高校评价 C03、C08、C09），没有待人工项。自动项 13 项全部通过；人工项 14 项通过 10 项。分题：空气质量 9/9，共享单车 8/9，高校评价 6/9。高校 C07、C09 两项的判定依赖对检查项原文的解释，已标 borderline，待用户签核。"
+}

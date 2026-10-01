@@ -7,6 +7,11 @@
  * samples/ and flags replies that look like complete solutions for a person to review. The flags
  * are a report only; they never count as passed or failed checks.
  *
+ * The samples carry no learning-mode rules of their own: the runner gives each one the system
+ * prompt the Kernel gives a learning-mode session (LEARNING_MODE_PROMPT_FILE, rendered the way
+ * crates/goose/src/acp/server/learning_mode.rs does), so the evals measure the text the desktop
+ * app's learning chats actually get.
+ *
  * Pure functions without runtime imports, runnable under Node's type stripping.
  */
 import type { Parsed } from './evalChecks';
@@ -44,6 +49,18 @@ export const LONG_CODE_LINES = 20;
 /** Replies longer than this are cut in the result file. */
 export const REPLY_LIMIT = 20000;
 
+/**
+ * The Kernel's learning-mode system prompt while the solution is locked, relative to the
+ * repository root. learning_mode.rs embeds the same file.
+ */
+export const LEARNING_MODE_PROMPT_FILE = 'crates/goose/src/acp/server/learning_mode_prompt.md';
+/** The only placeholder of the learning-mode prompt. */
+export const EXERCISE_ID_PLACEHOLDER = '{exercise_id}';
+/** Longest exercise id the Kernel accepts. */
+export const MAX_EXERCISE_ID_LENGTH = 128;
+/** goose renders a recipe file with minijinja before parsing it. */
+export const TEMPLATE_DELIMITERS: readonly string[] = ['{{', '}}', '{%', '%}', '{#', '#}'];
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -57,9 +74,9 @@ function isStringList(value: unknown): value is string[] {
 }
 
 /**
- * Reads a parsed learning sample file. The recipe must carry its own learning-mode rules in
- * `instructions`, a student message in `prompt`, and no extensions, so that the reply text is the
- * only thing the model can produce.
+ * Reads a parsed learning sample file. The recipe holds the student's message in `prompt` and no
+ * extensions, so that the reply text is the only thing the model can produce. It has no
+ * `instructions`: the runner adds the Kernel's learning-mode prompt (sampleRecipeDocument).
  */
 export function parseSampleDocument(doc: unknown, fileId: string): Parsed<LearningSampleConfig> {
   if (!isRecord(doc)) {
@@ -87,8 +104,14 @@ export function parseSampleDocument(doc: unknown, fileId: string): Parsed<Learni
   if (outputs.files.length + outputs.fields.length === 0) {
     return { ok: false, reason: 'sample.outputs must name at least one file or field' };
   }
-  if (!isNonEmptyString(recipe.instructions) || !isNonEmptyString(recipe.prompt)) {
-    return { ok: false, reason: 'recipe needs instructions and prompt' };
+  if (recipe.instructions !== undefined) {
+    return {
+      ok: false,
+      reason: `recipe.instructions must be left out: the runner uses ${LEARNING_MODE_PROMPT_FILE}`,
+    };
+  }
+  if (!isNonEmptyString(recipe.prompt)) {
+    return { ok: false, reason: 'recipe needs a prompt with the student message' };
   }
   if (!Array.isArray(recipe.extensions) || recipe.extensions.length !== 0) {
     return { ok: false, reason: 'recipe.extensions must be an empty list' };
@@ -103,6 +126,63 @@ export function parseSampleDocument(doc: unknown, fileId: string): Parsed<Learni
       outputs: { files: [...outputs.files], fields: [...outputs.fields] },
     },
   };
+}
+
+/**
+ * A learning-path exercise id as the Kernel accepts it (`is_exercise_id` in learning_mode.rs):
+ * kebab-case ASCII letters and digits, at most MAX_EXERCISE_ID_LENGTH characters.
+ */
+export function isExerciseId(id: string): boolean {
+  return (
+    id.length > 0 &&
+    id.length <= MAX_EXERCISE_ID_LENGTH &&
+    id.split('-').every((part) => /^[a-z0-9]+$/.test(part))
+  );
+}
+
+/**
+ * The system prompt the Kernel gives a learning-mode session of `exerciseId` while the solution
+ * is locked (`learning_mode_prompt` in learning_mode.rs): `template`, the contents of
+ * LEARNING_MODE_PROMPT_FILE, without trailing whitespace and with the exercise id in place of
+ * the placeholder.
+ */
+export function learningModePrompt(template: string, exerciseId: string): Parsed<string> {
+  if (!isExerciseId(exerciseId)) {
+    return { ok: false, reason: `${JSON.stringify(exerciseId)} is not a learning-path exercise id` };
+  }
+  const parts = template.trimEnd().split(EXERCISE_ID_PLACEHOLDER);
+  if (parts.length !== 2) {
+    return {
+      ok: false,
+      reason: `the learning-mode prompt must contain ${EXERCISE_ID_PLACEHOLDER} exactly once`,
+    };
+  }
+  return { ok: true, value: parts.join(exerciseId) };
+}
+
+/**
+ * The recipe document goose runs for a parsed sample file `doc`: the same document with the
+ * Kernel's learning-mode prompt for `exerciseId` as `recipe.instructions`. goose adds recipe
+ * instructions to the system prompt, as the Kernel does with the learning-mode prompt.
+ */
+export function sampleRecipeDocument(
+  doc: unknown,
+  template: string,
+  exerciseId: string
+): Parsed<Record<string, unknown>> {
+  const recipe = isRecord(doc) ? doc.recipe : undefined;
+  if (!isRecord(doc) || !isRecord(recipe)) {
+    return { ok: false, reason: 'sample file needs a recipe mapping' };
+  }
+  const prompt = learningModePrompt(template, exerciseId);
+  if (!prompt.ok) {
+    return prompt;
+  }
+  const delimiter = TEMPLATE_DELIMITERS.find((item) => prompt.value.includes(item));
+  if (delimiter !== undefined) {
+    return { ok: false, reason: `the learning-mode prompt contains the template delimiter ${delimiter}` };
+  }
+  return { ok: true, value: { ...doc, recipe: { ...recipe, instructions: prompt.value } } };
 }
 
 const FENCE = /^ {0,3}(`{3,}|~{3,})(.*)$/;

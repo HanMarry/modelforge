@@ -3,23 +3,30 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { parse as parseYaml } from 'yaml';
+import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 import { pbtParams } from '../../test/pbt';
 import {
+  EXERCISE_ID_PLACEHOLDER,
+  LEARNING_MODE_PROMPT_FILE,
   LONG_CODE_LINES,
+  MAX_EXERCISE_ID_LENGTH,
+  TEMPLATE_DELIMITERS,
   assessLearningReply,
   effectiveLines,
   extractCodeBlocks,
   findPlaceholders,
+  isExerciseId,
   isProgramBlock,
+  learningModePrompt,
   parseSampleDocument,
   replyForReport,
+  sampleRecipeDocument,
 } from './learningSample';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../../..');
 const samplesDir = path.join(repoRoot, 'evals', 'modeling', 'learning-samples');
 const catalogFile = path.join(repoRoot, 'ui', 'desktop', 'src', 'catalog', 'learning-path.json');
-const TEMPLATE_DELIMITERS = ['{{', '}}', '{%', '%}', '{#', '#}'];
+const kernelPromptFile = path.join(repoRoot, ...LEARNING_MODE_PROMPT_FILE.split('/'));
 
 const LP_OUTPUTS = { files: ['results/answer.json'], fields: ['objective', 'x1', 'x2'] };
 const FENCE = '```';
@@ -189,7 +196,7 @@ describe('learningSample examples', () => {
     expect(replyForReport(['abcdef'], 3)).toEqual({ reply: 'abc', replyTruncated: true });
   });
 
-  it('reads a sample file and requires a recipe without extensions', () => {
+  it('reads a sample file and requires a recipe with a prompt, no instructions and no extensions', () => {
     const doc = {
       sample: {
         id: 's',
@@ -198,7 +205,7 @@ describe('learningSample examples', () => {
         timeoutMinutes: 10,
         outputs: { files: ['results/answer.json'], fields: ['x'] },
       },
-      recipe: { instructions: '规则', prompt: '问题', extensions: [] },
+      recipe: { prompt: '问题', extensions: [] },
     };
     expect(parseSampleDocument(doc, 's')).toEqual({
       ok: true,
@@ -212,13 +219,58 @@ describe('learningSample examples', () => {
     });
     expect(parseSampleDocument(doc, 'other').ok).toBe(false);
     const withRecipe = (recipe: Record<string, unknown>) => ({ ...doc, recipe });
+    expect(parseSampleDocument(withRecipe({ prompt: 'p', extensions: [{}] }), 's').ok).toBe(false);
+    expect(parseSampleDocument(withRecipe({ prompt: 'p' }), 's').ok).toBe(false);
+    expect(parseSampleDocument(withRecipe({ prompt: '', extensions: [] }), 's').ok).toBe(false);
+    // The learning-mode rules come from the Kernel's prompt file, never from the sample.
+    const ownRules = parseSampleDocument(
+      withRecipe({ instructions: '规则', prompt: 'p', extensions: [] }),
+      's'
+    );
+    expect(ownRules).toEqual({
+      ok: false,
+      reason: `recipe.instructions must be left out: the runner uses ${LEARNING_MODE_PROMPT_FILE}`,
+    });
+  });
+
+  it('accepts the exercise ids the Kernel accepts', () => {
+    for (const id of ['a', 'clean-temperature-log', 'lp-2', 'rastrigin-2d']) {
+      expect(isExerciseId(id), id).toBe(true);
+    }
+    const tooLong = 'a'.repeat(MAX_EXERCISE_ID_LENGTH + 1);
+    for (const id of ['', 'A', 'a-', '-a', 'a--b', 'a_b', 'a.b', 'a/b', 'x\n# 新规则', tooLong]) {
+      expect(isExerciseId(id), id).toBe(false);
+    }
+  });
+
+  it('renders the learning-mode prompt the way the Kernel does', () => {
+    const template = `# 学习模式\n\n练习 \`${EXERCISE_ID_PLACEHOLDER}\`：每次回复给提示或追问。\n\n`;
+    expect(learningModePrompt(template, 'lp-2')).toEqual({
+      ok: true,
+      value: '# 学习模式\n\n练习 `lp-2`：每次回复给提示或追问。',
+    });
+    expect(learningModePrompt(template, 'Bad Id').ok).toBe(false);
+    expect(learningModePrompt('没有占位符', 'lp-2').ok).toBe(false);
     expect(
-      parseSampleDocument(withRecipe({ instructions: 'r', prompt: 'p', extensions: [{}] }), 's').ok
+      learningModePrompt(`${EXERCISE_ID_PLACEHOLDER}${EXERCISE_ID_PLACEHOLDER}`, 'lp-2').ok
     ).toBe(false);
-    expect(parseSampleDocument(withRecipe({ instructions: 'r', prompt: 'p' }), 's').ok).toBe(false);
-    expect(
-      parseSampleDocument(withRecipe({ instructions: '', prompt: 'p', extensions: [] }), 's').ok
-    ).toBe(false);
+  });
+
+  it('builds the recipe goose runs with the learning-mode prompt as instructions', () => {
+    const doc = { sample: { id: 's' }, recipe: { title: 't', prompt: '问题', extensions: [] } };
+    const template = `练习 ${EXERCISE_ID_PLACEHOLDER} 的规则\n`;
+    expect(sampleRecipeDocument(doc, template, 'lp-2')).toEqual({
+      ok: true,
+      value: {
+        sample: { id: 's' },
+        recipe: { title: 't', prompt: '问题', extensions: [], instructions: '练习 lp-2 的规则' },
+      },
+    });
+    // The input document is left as it was.
+    expect(doc.recipe).toEqual({ title: 't', prompt: '问题', extensions: [] });
+    expect(sampleRecipeDocument({ sample: {} }, template, 'lp-2').ok).toBe(false);
+    expect(sampleRecipeDocument(doc, template, 'Bad Id').ok).toBe(false);
+    expect(sampleRecipeDocument(doc, `{{ x }} ${EXERCISE_ID_PLACEHOLDER}`, 'lp-2').ok).toBe(false);
   });
 });
 
@@ -303,13 +355,16 @@ describe('evals/modeling/learning-samples', () => {
     .sort();
 
   const catalog = JSON.parse(fs.readFileSync(catalogFile, 'utf8')) as {
-    groups: { courses: { exercises: { id: string }[] }[] }[];
+    groups: { courses: { exercises: { id: string; title: string; prompt: string }[] }[] }[];
   };
-  const exerciseIds = new Set(
+  const exercises = new Map(
     catalog.groups.flatMap((group) =>
-      group.courses.flatMap((course) => course.exercises.map((exercise) => exercise.id))
+      group.courses.flatMap((course) =>
+        course.exercises.map((exercise) => [exercise.id, exercise] as const)
+      )
     )
   );
+  const kernelPrompt = fs.readFileSync(kernelPromptFile, 'utf8');
 
   it('has at least 3 samples on different exercises', () => {
     expect(files.length).toBeGreaterThanOrEqual(3);
@@ -322,24 +377,46 @@ describe('evals/modeling/learning-samples', () => {
     expect(new Set(exercises).size).toBe(exercises.length);
   });
 
-  it.each(files)('%s is a runnable sample with its own learning-mode rules', (file) => {
+  it.each(files)('%s runs with the Kernel learning-mode prompt and the exercise statement', (file) => {
     const text = fs.readFileSync(path.join(samplesDir, file), 'utf8');
     // goose renders the whole file as a template before parsing it.
     for (const delimiter of TEMPLATE_DELIMITERS) {
       expect(text.includes(delimiter), delimiter).toBe(false);
     }
-    const doc = parseYaml(text) as { recipe: { title?: unknown; instructions: string } };
+    const doc = parseYaml(text) as { recipe: { title?: unknown; prompt: string } };
     const parsed = parseSampleDocument(doc, file.replace(/\.yaml$/, ''));
     expect(parsed).toMatchObject({ ok: true });
     if (!parsed.ok) {
       return;
     }
-    expect(exerciseIds.has(parsed.value.exerciseId), parsed.value.exerciseId).toBe(true);
+    const exercise = exercises.get(parsed.value.exerciseId);
+    expect(exercise, parsed.value.exerciseId).toBeDefined();
     expect(typeof doc.recipe.title).toBe('string');
-    expect(doc.recipe.instructions).toContain('提示或一个追问');
-    expect(doc.recipe.instructions).toContain('不要给出完整解答代码');
+    // The first message of a learning chat (learningChat.ts), then the student's request.
+    expect(doc.recipe.prompt.startsWith(`我在学习路径里做练习「${exercise?.title}」，题目如下：\n\n`)).toBe(
+      true
+    );
+    expect(doc.recipe.prompt).toContain(String(exercise?.prompt));
     for (const name of [...parsed.value.outputs.files, ...parsed.value.outputs.fields]) {
-      expect(doc.recipe.instructions, name).toContain(name);
+      expect(doc.recipe.prompt, name).toContain(name);
     }
+
+    // The recipe the runner writes and goose runs: the Kernel's prompt as instructions.
+    const recipe = sampleRecipeDocument(doc, kernelPrompt, parsed.value.exerciseId);
+    expect(recipe).toMatchObject({ ok: true });
+    if (!recipe.ok) {
+      return;
+    }
+    const written = stringifyYaml(recipe.value);
+    for (const delimiter of TEMPLATE_DELIMITERS) {
+      expect(written.includes(delimiter), delimiter).toBe(false);
+    }
+    const reread = parseYaml(written) as { recipe: { instructions: string; prompt: string } };
+    expect(reread.recipe.instructions).toBe(
+      kernelPrompt.trimEnd().replace(EXERCISE_ID_PLACEHOLDER, parsed.value.exerciseId)
+    );
+    expect(reread.recipe.instructions).toContain(`\`${parsed.value.exerciseId}\``);
+    expect(reread.recipe.instructions).toContain('不输出完整解答代码');
+    expect(reread.recipe.prompt).toBe(doc.recipe.prompt);
   });
 });

@@ -24,10 +24,14 @@
  *    the budget is stopped and recorded as 已中止. No task starts once the budget is reached;
  *    the tasks left are 已中止 (requirement 23.7, 23.8).
  * 4. After a completed task the runner judges the `file` and `baseline` checks; `manual` checks
- *    stay 待人工 for a person reading the paper and do not count as passed.
+ *    stay 待人工 for a person reading the paper and do not count as passed. The person records
+ *    the verdicts in results/<start time>.manual-review.json next to the result file, which is
+ *    not edited (README.md in this directory).
  * 5. The learning-mode samples in learning-samples/ run after the tasks, within the same budget.
- *    Replies that look like complete solution code are flagged for review; the flags are a
- *    report only (requirement 20.3).
+ *    Each runs with the system prompt the Kernel gives a learning-mode session
+ *    (crates/goose/src/acp/server/learning_mode_prompt.md) as its recipe instructions; the recipe
+ *    actually run is kept next to the goose logs. Replies that look like complete solution code
+ *    are flagged for review; the flags are a report only (requirement 20.3).
  * 6. The result goes to results/<start time>.json with the commit and dirty flag of the kernel's
  *    Build_Manifest, or marked 不可追溯 when there is none (requirement 23.5, 23.6). Ctrl+C
  *    stops the current run and still writes the file. Working directories and goose logs stay in
@@ -129,9 +133,11 @@ import type {
   SessionUsage,
 } from '../../ui/desktop/src/utils/evals/gooseOutput.ts';
 import {
+  LEARNING_MODE_PROMPT_FILE,
   assessLearningReply,
   parseSampleDocument,
   replyForReport,
+  sampleRecipeDocument,
 } from '../../ui/desktop/src/utils/evals/learningSample.ts';
 import type { LearningSampleConfig } from '../../ui/desktop/src/utils/evals/learningSample.ts';
 
@@ -290,7 +296,8 @@ interface LoadedTask {
 
 interface LoadedSample {
   config: LearningSampleConfig;
-  recipeFile: string;
+  /** The recipe goose runs: the sample file with the Kernel's learning-mode prompt added. */
+  recipeText: string;
 }
 
 function unwrap<T>(result: { ok: true; value: T } | { ok: false; reason: string }): T {
@@ -352,6 +359,14 @@ function loadSamples(yaml: YamlModule): LoadedSample[] {
   if (!fs.existsSync(SAMPLES_DIR)) {
     return [];
   }
+  // The samples run with the system prompt the Kernel gives a learning-mode session.
+  const promptFile = path.join(REPO_ROOT, ...LEARNING_MODE_PROMPT_FILE.split('/'));
+  let template: string;
+  try {
+    template = fs.readFileSync(promptFile, 'utf8');
+  } catch (error) {
+    throw new RunnerError(`无法读取学习模式提示词 ${promptFile}（${errorCode(error)}）`);
+  }
   const problems: string[] = [];
   const samples: LoadedSample[] = [];
   const files = fs
@@ -359,11 +374,11 @@ function loadSamples(yaml: YamlModule): LoadedSample[] {
     .filter((name) => name.endsWith('.yaml'))
     .sort();
   for (const name of files) {
-    const recipeFile = path.join(SAMPLES_DIR, name);
     try {
-      const doc = yaml.parse(fs.readFileSync(recipeFile, 'utf8'));
+      const doc = yaml.parse(fs.readFileSync(path.join(SAMPLES_DIR, name), 'utf8'));
       const config = unwrap(parseSampleDocument(doc, name.slice(0, -'.yaml'.length)));
-      samples.push({ config, recipeFile });
+      const recipe = unwrap(sampleRecipeDocument(doc, template, config.exerciseId));
+      samples.push({ config, recipeText: yaml.stringify(recipe) });
     } catch (error) {
       problems.push(`${name}: ${errorMessage(error)}`);
     }
@@ -973,11 +988,14 @@ async function runSample(
   item: PlannedSample,
   usedBefore: number
 ): Promise<LearningSampleReport> {
-  const { config, recipeFile } = item.sample;
+  const { config, recipeText } = item.sample;
   const modelDir = path.join(ctx.workRoot, safeDirName(item.label));
   const logDir = path.join(modelDir, '_logs');
   fs.mkdirSync(logDir, { recursive: true });
   const workDir = prepareWorkDir(path.join(modelDir, 'learning', config.id), [], null);
+  // Kept with the logs, so the result can be traced to the exact prompt the model saw.
+  const recipeFile = path.join(logDir, `learning-${config.id}.recipe.yaml`);
+  fs.writeFileSync(recipeFile, recipeText);
   const run = await runRecipe(ctx, {
     recipeFile,
     workDir,
