@@ -13,7 +13,15 @@
 #
 # In run 36699931665 the reports stopped mid-test with plenty of memory left, i.e. the watchdog
 # died together with the tests. Start it in its own session (setsid) so that a test killing its
-# process group, or the runner, does not take the watchdog along.
+# process group, or the runner, does not take the watchdog along. A session does not help against
+# kill(-1, ...), which reaches every process of the user, and that was the cause after all (found
+# with .github/workflows/diag-rust-runner-loss.yml): goose-mcp killed process trees through
+# procps-ng's kill(1), which sends `-12345` to `-1`. goose-mcp now calls kill(2) itself, and ci.yml
+# runs the tests in rust-test-sandbox.sh (own PID namespace) so that no test can do it again.
+#
+# When the runner is lost, this script never gets to post its final state. The reports name their
+# run attempt (status target_url, check run external_id), and ci.yml's rust-watchdog-finalize job
+# (finalize-rust-watchdog.sh) gives them a final state after the Rust job, whatever its result.
 #
 # Environment: WATCHDOG_TOKEN (a token with statuses: write and checks: write),
 # WATCHDOG_STATUS_SHA (the commit to report on) and WATCHDOG_TEST_LOG (a file the test output is
@@ -31,17 +39,27 @@ meminfo_mb() {
   awk -v key="$1:" '$1 == key { print int($2 / 1024) }' /proc/meminfo
 }
 
+# This run attempt, so finalize-rust-watchdog.sh can tell its reports from other runs' reports:
+# the status's target_url and the check run's external_id name it.
+run_url=""
+run_ref=""
+if [[ -n "${GITHUB_RUN_ID:-}" ]]; then
+  run_url="${GITHUB_SERVER_URL:-https://github.com}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/attempts/${GITHUB_RUN_ATTEMPT:-1}"
+  run_ref="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT:-1}"
+fi
+
 # Posts a commit status; failures (a read-only token on a fork, a network hiccup) are ignored.
 post_status() {
-  local state="$1" description="$2"
+  local state="$1" description="$2" target=""
   [[ -n "${WATCHDOG_TOKEN:-}" && -n "$status_sha" ]] || return 0
   # Only characters that need no JSON escaping, and GitHub's 140-character limit.
   description="$(printf '%s' "$description" | tr -cd '[:alnum:] ._:,()|/+=-' | cut -c 1-140)"
+  [[ -z "$run_url" ]] || target=",\"target_url\":\"${run_url}\""
   curl -sS -o /dev/null -m 10 -X POST \
     -H "Authorization: Bearer ${WATCHDOG_TOKEN}" \
     -H "Accept: application/vnd.github+json" \
     "${GITHUB_API_URL:-https://api.github.com}/repos/${GITHUB_REPOSITORY}/statuses/${status_sha}" \
-    -d "{\"state\":\"${state}\",\"context\":\"rust-watchdog\",\"description\":\"${description}\"}" ||
+    -d "{\"state\":\"${state}\",\"context\":\"rust-watchdog\",\"description\":\"${description}\"${target}}" ||
     true
 }
 
@@ -80,10 +98,11 @@ post_log() {
   [[ -n "$check_run_id" ]] || sha="$status_sha"
   body="$(tail -n 300 "$test_log" 2>/dev/null | tail -c 60000 |
     jq -Rs --arg sha "$sha" --arg summary "${last_line} | $(runner_state)" \
-      --argjson state "$status_json" \
+      --argjson state "$status_json" --arg run "$run_ref" \
       '$state + {name: "rust-watchdog-log",
         output: {title: "Rust test output (last lines)", summary: $summary, text: .}}
-        + (if $sha == "" then {} else {head_sha: $sha} end)')" ||
+        + (if $sha == "" then {} else {head_sha: $sha} end)
+        + (if $sha == "" or $run == "" then {} else {external_id: $run} end)')" ||
     return 0
   local url="${GITHUB_API_URL:-https://api.github.com}/repos/${GITHUB_REPOSITORY}/check-runs"
   local method=POST

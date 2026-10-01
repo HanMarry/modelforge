@@ -1,0 +1,39 @@
+// Fallback for signals.bt on a kernel without BTF: the same signal records, without the
+// sender's parent and without process exits (both need the kernel's task struct).
+
+BEGIN
+{
+  printf("bpftrace attached (minimal)\n");
+}
+
+tracepoint:syscalls:sys_enter_kill
+/args->sig != 0/
+{
+  time("%H:%M:%S ");
+  printf("kill(%d, %d) by pid=%d tid=%d uid=%d comm=%s\n",
+    args->pid, args->sig, pid, tid, uid, comm);
+}
+
+tracepoint:syscalls:sys_enter_tgkill
+/args->sig == 1 || args->sig == 2 || args->sig == 3 || args->sig == 6 || args->sig == 9 ||
+ args->sig == 15 || args->sig == 19 || args->sig == 20 || args->sig == 21 || args->sig == 22/
+{
+  time("%H:%M:%S ");
+  printf("tgkill(%d, %d, %d) by pid=%d tid=%d uid=%d comm=%s\n",
+    args->tgid, args->pid, args->sig, pid, tid, uid, comm);
+}
+
+tracepoint:signal:signal_generate
+/args->sig == 1 || args->sig == 2 || args->sig == 3 || args->sig == 6 || args->sig == 9 ||
+ args->sig == 15 || args->sig == 19 || args->sig == 20 || args->sig == 21 || args->sig == 22/
+{
+  time("%H:%M:%S ");
+  printf("deliver sig=%d to pid=%d comm=%s group=%d result=%d code=%d from pid=%d comm=%s\n",
+    args->sig, args->pid, args->comm, args->group, args->result, args->code, pid, comm);
+}
+
+tracepoint:oom:mark_victim
+{
+  time("%H:%M:%S ");
+  printf("oom victim pid=%d\n", args->pid);
+}
