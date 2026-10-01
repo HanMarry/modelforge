@@ -8,14 +8,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../../../ui/dialog';
-import { ExtensionFormData } from '../utils';
+import { ExtensionFormData, ExtensionHeaderRow } from '../utils';
 import EnvVarsSection from './EnvVarsSection';
-import HeadersSection from './HeadersSection';
+import HeadersSection, { PendingHeader } from './HeadersSection';
 import ExtensionConfigFields from './ExtensionConfigFields';
 import { PlusIcon, Edit, Trash2, AlertTriangle, Info } from 'lucide-react';
 import ExtensionInfoFields from './ExtensionInfoFields';
 import ExtensionTimeoutField from './ExtensionTimeoutField';
 import { acpUpsertConfig } from '../../../../acp/config';
+import { normalizeAcpError } from '../../../../acp/errors';
 import { ConfirmationModal } from '../../../ui/ConfirmationModal';
 import { defineMessages, useIntl } from '../../../../i18n';
 
@@ -57,13 +58,26 @@ const i18n = defineMessages({
     id: 'extensionModal.closeWithoutSaving',
     defaultMessage: 'Close Without Saving',
   },
+  saveFailed: {
+    id: 'extensionModal.saveFailed',
+    defaultMessage:
+      'Could not save {name}: {reason}. Your entries are kept, so you can try again.',
+  },
+  unknownError: {
+    id: 'extensionModal.unknownError',
+    defaultMessage: 'unknown error',
+  },
 });
 
 interface ExtensionModalProps {
   title: string;
   initialData: ExtensionFormData;
   onClose: () => void;
-  onSubmit: (formData: ExtensionFormData) => void;
+  /**
+   * Saves the extension. When the returned promise rejects, the modal stays open with the
+   * entries and shows the error, so the user can try again (requirements 1.3, 1.11).
+   */
+  onSubmit: (formData: ExtensionFormData) => void | Promise<void>;
   onDelete?: (name: string) => void;
   submitLabel: string;
   modalType: 'add' | 'edit';
@@ -86,7 +100,12 @@ export default function ExtensionModal({
   const [hasPendingEnvVars, setHasPendingEnvVars] = useState(false);
   const [pendingEnvVar, setPendingEnvVar] = useState<{ key: string; value: string } | null>(null);
   const [hasPendingHeaders, setHasPendingHeaders] = useState(false);
-  const [pendingHeader, setPendingHeader] = useState<{ key: string; value: string } | null>(null);
+  const [pendingHeader, setPendingHeader] = useState<PendingHeader | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  // Saved header values are stored under the extension name; a renamed extension cannot keep
+  // them, so they have to be typed again.
+  const storedValuesNeedReentry = formData.name !== initialData.name;
 
   // Function to check if form has been modified
   const hasFormChanges = (): boolean => {
@@ -181,10 +200,10 @@ export default function ExtensionModal({
     });
   };
 
-  const handleAddHeader = (key: string, value: string) => {
+  const handleAddHeader = (key: string, value: string, sensitive: boolean) => {
     setFormData({
       ...formData,
-      headers: [...formData.headers, { key, value, isEdited: true }],
+      headers: [...formData.headers, { key, value, isEdited: true, sensitive }],
     });
   };
 
@@ -211,13 +230,22 @@ export default function ExtensionModal({
         return;
       }
     }
-    const newHeaders = [...formData.headers];
-    newHeaders[index][field] = value;
-
-    // Mark as edited if it's a value change
-    if (field === 'value') {
-      newHeaders[index].isEdited = true;
-    }
+    const newHeaders = formData.headers.map((header, i): ExtensionHeaderRow => {
+      if (i !== index) {
+        return header;
+      }
+      if (field === 'value') {
+        return { ...header, value, isEdited: true };
+      }
+      // A saved value belongs to its header name, so it only follows a change of case.
+      const sameName = header.key.trim().toLowerCase() === value.trim().toLowerCase();
+      return {
+        ...header,
+        key: value,
+        isEdited: true,
+        storedReference: sameName ? header.storedReference : null,
+      };
+    });
 
     setFormData({
       ...formData,
@@ -225,8 +253,27 @@ export default function ExtensionModal({
     });
   };
 
+  const handleHeaderSensitiveChange = (index: number, sensitive: boolean) => {
+    // A saved value that is no longer sensitive has to be typed again to leave the store.
+    const newHeaders = formData.headers.map(
+      (header, i): ExtensionHeaderRow =>
+        i === index
+          ? {
+              ...header,
+              sensitive,
+              isEdited: true,
+              storedReference: sensitive ? header.storedReference : null,
+            }
+          : header
+    );
+    setFormData({
+      ...formData,
+      headers: newHeaders,
+    });
+  };
+
   const handlePendingHeaderChange = useCallback(
-    (hasPending: boolean, header: { key: string; value: string } | null) => {
+    (hasPending: boolean, header: PendingHeader | null) => {
       setHasPendingHeaders(hasPending);
       setPendingHeader(header);
     },
@@ -283,7 +330,7 @@ export default function ExtensionModal({
     );
   };
 
-  const getFinalHeaders = () => {
+  const getFinalHeaders = (): ExtensionHeaderRow[] => {
     const finalHeaders = [...formData.headers];
     if (pendingHeader && pendingHeader.key.trim() !== '' && pendingHeader.value.trim() !== '') {
       finalHeaders.push({ ...pendingHeader, isEdited: true });
@@ -305,9 +352,11 @@ export default function ExtensionModal({
   };
 
   const isHeadersValid = () => {
-    return getFinalHeaders().every(
-      ({ key, value }) => (key === '' && value === '') || (key !== '' && value !== '')
-    );
+    return getFinalHeaders().every(({ key, value, storedReference }) => {
+      // A saved value that was not replaced is sent back as is, unless the extension was renamed.
+      const hasValue = value !== '' || (Boolean(storedReference) && !storedValuesNeedReentry);
+      return (key === '' && value === '') || (key !== '' && hasValue);
+    });
   };
 
   const isTimeoutValid = () => {
@@ -347,6 +396,8 @@ export default function ExtensionModal({
         .filter((envVar) => envVar.isEdited)
         .map(({ key, value }) => storeSecret(key, value));
 
+      setIsSaving(true);
+      setSaveError(null);
       try {
         // Wait for all secrets to be stored
         const results = await Promise.all(secretPromises);
@@ -360,13 +411,18 @@ export default function ExtensionModal({
                 ? Number(finalFormData.timeout)
                 : finalFormData.timeout,
           };
-          onSubmit(dataToSubmit);
+          await onSubmit(dataToSubmit);
           onClose();
         } else {
           console.error('Failed to store one or more secrets');
         }
       } catch (error) {
+        // The save failed: keep the modal open with everything the user typed (requirement 1.3).
         console.error('Error during submission:', error);
+        const reason = normalizeAcpError(error, intl.formatMessage(i18n.unknownError)).message;
+        setSaveError(intl.formatMessage(i18n.saveFailed, { name: formData.name, reason }));
+      } finally {
+        setIsSaving(false);
       }
     }
   };
@@ -468,11 +524,22 @@ export default function ExtensionModal({
                       onAdd={handleAddHeader}
                       onRemove={handleRemoveHeader}
                       onChange={handleHeaderChange}
+                      onSensitiveChange={handleHeaderSensitiveChange}
                       submitAttempted={submitAttempted}
+                      storedValuesNeedReentry={storedValuesNeedReentry}
                       onPendingInputChange={handlePendingHeaderChange}
                     />
                   </div>
                 </>
+              )}
+
+              {saveError && (
+                <div
+                  role="alert"
+                  className="rounded-md border border-red-500 p-3 text-sm text-red-500"
+                >
+                  {saveError}
+                </div>
               )}
             </div>
           )}
@@ -514,7 +581,7 @@ export default function ExtensionModal({
                 <Button
                   data-testid="extension-submit-btn"
                   onClick={handleSubmit}
-                  disabled={!isFormValid()}
+                  disabled={!isFormValid() || isSaving}
                 >
                   {submitLabel}
                 </Button>

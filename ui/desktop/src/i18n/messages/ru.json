@@ -2051,6 +2051,12 @@
   "extensionModal.removeExtension": {
     "defaultMessage": "Удалить расширение"
   },
+  "extensionModal.saveFailed": {
+    "defaultMessage": "Не удалось сохранить {name}: {reason}. Введённые данные сохранены, можно попробовать ещё раз."
+  },
+  "extensionModal.unknownError": {
+    "defaultMessage": "неизвестная ошибка"
+  },
   "extensionModal.unsavedChangesMessage": {
     "defaultMessage": "У вас есть несохраненные изменения конфигурации расширения. Закрыть без сохранения?"
   },
@@ -2360,11 +2366,29 @@
   "headersSection.headersDescription": {
     "defaultMessage": "Добавьте пользовательские HTTP-заголовки для запросов к MCP-серверу. После заполнения обоих полей нажмите «+», чтобы добавить."
   },
+  "headersSection.markNewSensitive": {
+    "defaultMessage": "Отметить новый заголовок как секретный"
+  },
+  "headersSection.markSensitive": {
+    "defaultMessage": "Отметить {name} как секретный"
+  },
   "headersSection.noSpaces": {
     "defaultMessage": "Имя заголовка не может содержать пробелы"
   },
+  "headersSection.reenterSavedValues": {
+    "defaultMessage": "Сохранённые значения привязаны к имени расширения. После переименования введите их заново: {names}"
+  },
   "headersSection.requestHeaders": {
     "defaultMessage": "Заголовки запроса"
+  },
+  "headersSection.savedValueLabel": {
+    "defaultMessage": "Сохранённое значение {name} скрыто. Введите новое значение, чтобы заменить его."
+  },
+  "headersSection.sensitive": {
+    "defaultMessage": "Секретный"
+  },
+  "headersSection.sensitiveHint": {
+    "defaultMessage": "Секретные значения хранятся в системном хранилище учётных данных и больше не отображаются. Authorization, Proxy-Authorization, X-API-Key и api-key всегда считаются секретными."
   },
   "headersSection.value": {
     "defaultMessage": "Значение"

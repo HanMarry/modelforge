@@ -2051,6 +2051,12 @@
   "extensionModal.removeExtension": {
     "defaultMessage": "Supprimer l'extension"
   },
+  "extensionModal.saveFailed": {
+    "defaultMessage": "Impossible d’enregistrer {name} : {reason}. Vos saisies sont conservées, vous pouvez réessayer."
+  },
+  "extensionModal.unknownError": {
+    "defaultMessage": "erreur inconnue"
+  },
   "extensionModal.unsavedChangesMessage": {
     "defaultMessage": "Vous avez des modifications non enregistrées dans la configuration de l'extension. Voulez-vous vraiment fermer sans enregistrer ?"
   },
@@ -2360,11 +2366,29 @@
   "headersSection.headersDescription": {
     "defaultMessage": "Ajoutez des en-têtes HTTP personnalisés à inclure dans les requêtes vers le serveur MCP. Cliquez sur le bouton « + » pour ajouter après avoir rempli les deux champs."
   },
+  "headersSection.markNewSensitive": {
+    "defaultMessage": "Marquer le nouvel en-tête comme sensible"
+  },
+  "headersSection.markSensitive": {
+    "defaultMessage": "Marquer {name} comme sensible"
+  },
   "headersSection.noSpaces": {
     "defaultMessage": "Le nom de l'en-tête ne peut pas contenir d'espaces"
   },
+  "headersSection.reenterSavedValues": {
+    "defaultMessage": "Les valeurs enregistrées sont liées au nom de l’extension. Après un changement de nom, saisissez-les à nouveau : {names}"
+  },
   "headersSection.requestHeaders": {
     "defaultMessage": "En-têtes de requête"
+  },
+  "headersSection.savedValueLabel": {
+    "defaultMessage": "La valeur enregistrée de {name} est masquée. Saisissez une nouvelle valeur pour la remplacer."
+  },
+  "headersSection.sensitive": {
+    "defaultMessage": "Sensible"
+  },
+  "headersSection.sensitiveHint": {
+    "defaultMessage": "Les valeurs sensibles sont conservées dans le magasin d’identifiants du système et ne sont plus affichées. Authorization, Proxy-Authorization, X-API-Key et api-key sont toujours sensibles."
   },
   "headersSection.value": {
     "defaultMessage": "Valeur"

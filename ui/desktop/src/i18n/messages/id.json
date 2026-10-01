@@ -2051,6 +2051,12 @@
   "extensionModal.removeExtension": {
     "defaultMessage": "Hapus ekstensi"
   },
+  "extensionModal.saveFailed": {
+    "defaultMessage": "Tidak dapat menyimpan {name}: {reason}. Isian Anda tetap ada, jadi Anda dapat mencoba lagi."
+  },
+  "extensionModal.unknownError": {
+    "defaultMessage": "kesalahan tidak diketahui"
+  },
   "extensionModal.unsavedChangesMessage": {
     "defaultMessage": "Anda memiliki perubahan yang belum disimpan pada konfigurasi ekstensi. Apakah Anda yakin ingin menutup tanpa menyimpan?"
   },
@@ -2360,11 +2366,29 @@
   "headersSection.headersDescription": {
     "defaultMessage": "Tambahkan header HTTP khusus untuk disertakan dalam permintaan ke server MCP. Klik tombol \"+\" untuk menambahkan setelah mengisi kedua bidang."
   },
+  "headersSection.markNewSensitive": {
+    "defaultMessage": "Tandai header baru sebagai sensitif"
+  },
+  "headersSection.markSensitive": {
+    "defaultMessage": "Tandai {name} sebagai sensitif"
+  },
   "headersSection.noSpaces": {
     "defaultMessage": "Nama header tidak boleh mengandung spasi"
   },
+  "headersSection.reenterSavedValues": {
+    "defaultMessage": "Nilai tersimpan terikat pada nama ekstensi. Setelah mengganti nama, masukkan lagi: {names}"
+  },
   "headersSection.requestHeaders": {
     "defaultMessage": "Header Permintaan"
+  },
+  "headersSection.savedValueLabel": {
+    "defaultMessage": "Nilai tersimpan dari {name} disembunyikan. Ketik nilai baru untuk menggantinya."
+  },
+  "headersSection.sensitive": {
+    "defaultMessage": "Sensitif"
+  },
+  "headersSection.sensitiveHint": {
+    "defaultMessage": "Nilai sensitif disimpan di penyimpanan kredensial sistem dan tidak ditampilkan lagi. Authorization, Proxy-Authorization, X-API-Key, dan api-key selalu sensitif."
   },
   "headersSection.value": {
     "defaultMessage": "Nilai"

@@ -105,9 +105,64 @@ describe('Extension Utils', () => {
         timeout: undefined,
         envVars: [{ key: 'API_KEY', value: '••••••••', isEdited: false }],
         headers: [
-          { key: 'Authorization', value: 'Bearer token', isEdited: false },
-          { key: 'Content-Type', value: 'application/json', isEdited: false },
+          {
+            key: 'Authorization',
+            value: 'Bearer token',
+            isEdited: false,
+            sensitive: true,
+            storedReference: null,
+          },
+          {
+            key: 'Content-Type',
+            value: 'application/json',
+            isEdited: false,
+            sensitive: false,
+            storedReference: null,
+          },
         ],
+      });
+    });
+
+    it('never reads back saved header values and treats header marks in env_keys as marks', () => {
+      const stored = '${secret:extension_github__header__authorization_0123456789abcdef}';
+      const extension: FixedExtensionEntry = {
+        type: 'streamable_http',
+        name: 'GitHub',
+        description: '',
+        uri: 'https://example.com/mcp',
+        enabled: true,
+        headers: {
+          Authorization: stored,
+          'X-Tenant': 'Bearer ${TENANT_TOKEN}',
+          'X-Trace': 'trace-1',
+        },
+        env_keys: ['TENANT_TOKEN', 'x-tenant'],
+      };
+
+      const formData = extensionToFormData(extension);
+
+      expect(formData.envVars).toEqual([
+        { key: 'TENANT_TOKEN', value: '••••••••', isEdited: false },
+      ]);
+      expect(formData.headers).toEqual([
+        { key: 'Authorization', value: '', isEdited: false, sensitive: true, storedReference: stored },
+        {
+          key: 'X-Tenant',
+          value: 'Bearer ${TENANT_TOKEN}',
+          isEdited: false,
+          sensitive: true,
+          storedReference: null,
+        },
+        { key: 'X-Trace', value: 'trace-1', isEdited: false, sensitive: false, storedReference: null },
+      ]);
+      // Sending the form back unchanged keeps the saved value and the variable reference.
+      expect(createExtensionConfig(formData)).toMatchObject({
+        env_keys: ['TENANT_TOKEN'],
+        headers: {
+          Authorization: stored,
+          'X-Tenant': 'Bearer ${TENANT_TOKEN}',
+          'X-Trace': 'trace-1',
+        },
       });
     });
 
@@ -377,6 +432,44 @@ describe('Extension Utils', () => {
           Authorization: 'Bearer token',
         },
       });
+    });
+
+    it('marks sensitive headers in env_keys and sends saved values back as references', () => {
+      const storedAuthorization =
+        '${secret:extension_gateway__header__authorization_0123456789abcdef}';
+      const storedKey = '${secret:extension_gateway__header__x_api_key_0123456789abcdef}';
+      const formData = {
+        ...getDefaultFormData(),
+        name: 'Gateway',
+        type: 'streamable_http' as const,
+        endpoint: 'https://example.com/mcp',
+        envVars: [{ key: 'TENANT_TOKEN', value: '••••••••', isEdited: false }],
+        headers: [
+          // Saved and not replaced: goes back as its own reference.
+          { key: 'Authorization', value: '', sensitive: true, storedReference: storedAuthorization },
+          // Saved and replaced: the new value goes to the Kernel, which stores it again.
+          { key: 'X-Api-Key', value: 'new-key', sensitive: true, storedReference: storedKey },
+          // Marked by the user: listed in env_keys so that the Kernel stores it.
+          { key: 'X-Session-Id', value: 'abc', sensitive: true },
+          // Refers to a variable: never stored, so not marked.
+          { key: 'X-Tenant', value: 'Bearer ${TENANT_TOKEN}', sensitive: true },
+          { key: 'X-Trace', value: 'trace-1', sensitive: false },
+          // A saved row whose reference was dropped and that has no value is left out.
+          { key: 'X-Dropped', value: '', sensitive: true, storedReference: null },
+        ],
+      };
+
+      expect(createExtensionConfig(formData)).toMatchObject({
+        env_keys: ['TENANT_TOKEN', 'X-Session-Id'],
+        headers: {
+          Authorization: storedAuthorization,
+          'X-Api-Key': 'new-key',
+          'X-Session-Id': 'abc',
+          'X-Tenant': 'Bearer ${TENANT_TOKEN}',
+          'X-Trace': 'trace-1',
+        },
+      });
+      expect(createExtensionConfig(formData)).not.toHaveProperty(['headers', 'X-Dropped']);
     });
 
     it('should create builtin extension config', () => {

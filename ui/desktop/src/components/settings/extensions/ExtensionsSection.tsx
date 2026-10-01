@@ -133,25 +133,22 @@ export default function ExtensionsSection({
     setIsModalOpen(true);
   };
 
+  // The modal closes itself once the save succeeds. A failed save rejects, so the modal stays
+  // open with the user's entries and shows why (requirements 1.3, 1.11).
   const handleAddExtension = async (formData: ExtensionFormData) => {
-    // Close the modal immediately
-    handleModalClose();
-
     const extensionConfig = createExtensionConfig(formData);
     try {
       await activateExtensionDefault({
         addToConfig: addExtension,
         extensionConfig: extensionConfig,
       });
-    } catch (error) {
-      console.error('Failed to add extension:', error);
     } finally {
       await fetchExtensions();
-      if (onModalClose) {
-        setTimeout(() => {
-          onModalClose(formData.name);
-        }, 200);
-      }
+    }
+    if (onModalClose) {
+      setTimeout(() => {
+        onModalClose(formData.name);
+      }, 200);
     }
   };
 
@@ -161,19 +158,17 @@ export default function ExtensionsSection({
       return;
     }
 
-    // Close the modal immediately
-    handleModalClose();
-
     const extensionConfig = createExtensionConfig(formData);
     const originalName = selectedExtension.name;
+    const originalKey = selectedExtension.configKey ?? nameToKey(originalName);
 
     try {
-      if (originalName !== extensionConfig.name) {
+      // Save the new entry before removing a renamed one, so a failed save leaves the
+      // original extension and its credentials in place.
+      await addExtension(extensionConfig.name, extensionConfig, formData.enabled);
+      if (originalName !== extensionConfig.name && originalKey !== nameToKey(extensionConfig.name)) {
         await removeExtension(originalName);
       }
-      await addExtension(extensionConfig.name, extensionConfig, formData.enabled);
-    } catch (error) {
-      console.error('Failed to update extension:', error);
     } finally {
       await fetchExtensions();
     }

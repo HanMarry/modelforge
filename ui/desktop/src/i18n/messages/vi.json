@@ -2051,6 +2051,12 @@
   "extensionModal.removeExtension": {
     "defaultMessage": "Xóa tiện ích mở rộng"
   },
+  "extensionModal.saveFailed": {
+    "defaultMessage": "Không thể lưu {name}: {reason}. Dữ liệu bạn đã nhập vẫn được giữ lại để bạn có thể thử lại."
+  },
+  "extensionModal.unknownError": {
+    "defaultMessage": "lỗi không xác định"
+  },
   "extensionModal.unsavedChangesMessage": {
     "defaultMessage": "Bạn có các thay đổi chưa lưu đối với cấu hình tiện ích mở rộng. Bạn có chắc chắn muốn đóng mà không lưu không?"
   },
@@ -2360,11 +2366,29 @@
   "headersSection.headersDescription": {
     "defaultMessage": "Thêm các tiêu đề HTTP tùy chỉnh để đưa vào các yêu cầu gửi đến máy chủ MCP. Nhấp vào nút \"+\" để thêm sau khi đã điền cả hai trường."
   },
+  "headersSection.markNewSensitive": {
+    "defaultMessage": "Đánh dấu tiêu đề mới là nhạy cảm"
+  },
+  "headersSection.markSensitive": {
+    "defaultMessage": "Đánh dấu {name} là nhạy cảm"
+  },
   "headersSection.noSpaces": {
     "defaultMessage": "Tên tiêu đề không được chứa khoảng trắng"
   },
+  "headersSection.reenterSavedValues": {
+    "defaultMessage": "Giá trị đã lưu gắn với tên tiện ích mở rộng. Sau khi đổi tên, hãy nhập lại các giá trị sau: {names}"
+  },
   "headersSection.requestHeaders": {
     "defaultMessage": "Tiêu đề yêu cầu"
+  },
+  "headersSection.savedValueLabel": {
+    "defaultMessage": "Giá trị đã lưu của {name} được ẩn. Nhập giá trị mới để thay thế."
+  },
+  "headersSection.sensitive": {
+    "defaultMessage": "Nhạy cảm"
+  },
+  "headersSection.sensitiveHint": {
+    "defaultMessage": "Giá trị nhạy cảm được lưu trong kho thông tin xác thực của hệ thống và sẽ không hiển thị lại. Authorization, Proxy-Authorization, X-API-Key và api-key luôn được coi là nhạy cảm."
   },
   "headersSection.value": {
     "defaultMessage": "Giá trị"

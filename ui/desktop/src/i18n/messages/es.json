@@ -2051,6 +2051,12 @@
   "extensionModal.removeExtension": {
     "defaultMessage": "Quitar extensión"
   },
+  "extensionModal.saveFailed": {
+    "defaultMessage": "No se pudo guardar {name}: {reason}. Tus datos se conservan para que puedas volver a intentarlo."
+  },
+  "extensionModal.unknownError": {
+    "defaultMessage": "error desconocido"
+  },
   "extensionModal.unsavedChangesMessage": {
     "defaultMessage": "Tienes cambios sin guardar en la configuración de la extensión. ¿Seguro que quieres cerrar sin guardar?"
   },
@@ -2360,11 +2366,29 @@
   "headersSection.headersDescription": {
     "defaultMessage": "Añade encabezados HTTP personalizados para incluirlos en las peticiones al servidor MCP. Haz clic en el botón \"+\" para añadir después de rellenar ambos campos."
   },
+  "headersSection.markNewSensitive": {
+    "defaultMessage": "Marcar el nuevo encabezado como sensible"
+  },
+  "headersSection.markSensitive": {
+    "defaultMessage": "Marcar {name} como sensible"
+  },
   "headersSection.noSpaces": {
     "defaultMessage": "El nombre del encabezado no puede contener espacios"
   },
+  "headersSection.reenterSavedValues": {
+    "defaultMessage": "Los valores guardados están ligados al nombre de la extensión. Después de cambiarle el nombre, vuelve a introducirlos: {names}"
+  },
   "headersSection.requestHeaders": {
     "defaultMessage": "Encabezados de la petición"
+  },
+  "headersSection.savedValueLabel": {
+    "defaultMessage": "El valor guardado de {name} está oculto. Escribe un valor nuevo para reemplazarlo."
+  },
+  "headersSection.sensitive": {
+    "defaultMessage": "Sensible"
+  },
+  "headersSection.sensitiveHint": {
+    "defaultMessage": "Los valores sensibles se guardan en el almacén de credenciales del sistema y no se vuelven a mostrar. Authorization, Proxy-Authorization, X-API-Key y api-key siempre son sensibles."
   },
   "headersSection.value": {
     "defaultMessage": "Valor"

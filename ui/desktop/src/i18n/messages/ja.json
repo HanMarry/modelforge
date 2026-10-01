@@ -2051,6 +2051,12 @@
   "extensionModal.removeExtension": {
     "defaultMessage": "拡張機能を削除"
   },
+  "extensionModal.saveFailed": {
+    "defaultMessage": "{name} を保存できませんでした: {reason}。入力内容は保持されているので、もう一度お試しください。"
+  },
+  "extensionModal.unknownError": {
+    "defaultMessage": "不明なエラー"
+  },
   "extensionModal.unsavedChangesMessage": {
     "defaultMessage": "拡張機能の設定に未保存の変更があります。保存せずに閉じてもよろしいですか？"
   },
@@ -2360,11 +2366,29 @@
   "headersSection.headersDescription": {
     "defaultMessage": "MCP Server へのリクエストに含めるカスタム HTTP ヘッダーを追加します。両方のフィールドに入力してから「+」ボタンをクリックして追加してください。"
   },
+  "headersSection.markNewSensitive": {
+    "defaultMessage": "新しいヘッダーを機密としてマーク"
+  },
+  "headersSection.markSensitive": {
+    "defaultMessage": "{name} を機密としてマーク"
+  },
   "headersSection.noSpaces": {
     "defaultMessage": "ヘッダー名にスペースは使用できません"
   },
+  "headersSection.reenterSavedValues": {
+    "defaultMessage": "保存済みの値は拡張機能の名前に紐づいています。名前を変更した後は、次の値を再入力してください: {names}"
+  },
   "headersSection.requestHeaders": {
     "defaultMessage": "リクエストヘッダー"
+  },
+  "headersSection.savedValueLabel": {
+    "defaultMessage": "{name} の保存済みの値は非表示です。新しい値を入力すると置き換えられます。"
+  },
+  "headersSection.sensitive": {
+    "defaultMessage": "機密"
+  },
+  "headersSection.sensitiveHint": {
+    "defaultMessage": "機密の値はシステムの認証情報ストアに保存され、再表示されません。Authorization、Proxy-Authorization、X-API-Key、api-key は常に機密として扱われます。"
   },
   "headersSection.value": {
     "defaultMessage": "値"

@@ -2051,6 +2051,12 @@
   "extensionModal.removeExtension": {
     "defaultMessage": "Uzantıyı kaldır"
   },
+  "extensionModal.saveFailed": {
+    "defaultMessage": "{name} kaydedilemedi: {reason}. Girdileriniz korunuyor, tekrar deneyebilirsiniz."
+  },
+  "extensionModal.unknownError": {
+    "defaultMessage": "bilinmeyen hata"
+  },
   "extensionModal.unsavedChangesMessage": {
     "defaultMessage": "Uzantı yapılandırmasında kaydedilmemiş değişiklikleriniz var. Kaydetmeden kapatmak istediğinizden emin misiniz?"
   },
@@ -2360,11 +2366,29 @@
   "headersSection.headersDescription": {
     "defaultMessage": "MCP sunucusuna yapılan isteklere dahil etmek için özel HTTP üstbilgileri ekleyin. Her iki alanı da doldurduktan sonra eklemek için \"+\" butonuna tıklayın."
   },
+  "headersSection.markNewSensitive": {
+    "defaultMessage": "Yeni başlığı hassas olarak işaretle"
+  },
+  "headersSection.markSensitive": {
+    "defaultMessage": "{name} başlığını hassas olarak işaretle"
+  },
   "headersSection.noSpaces": {
     "defaultMessage": "Başlık adı boşluk içeremez"
   },
+  "headersSection.reenterSavedValues": {
+    "defaultMessage": "Kaydedilen değerler uzantı adına bağlıdır. Yeniden adlandırdıktan sonra bunları tekrar girin: {names}"
+  },
   "headersSection.requestHeaders": {
     "defaultMessage": "Başlıkları Talep Et"
+  },
+  "headersSection.savedValueLabel": {
+    "defaultMessage": "{name} için kaydedilen değer gizli. Değiştirmek için yeni bir değer yazın."
+  },
+  "headersSection.sensitive": {
+    "defaultMessage": "Hassas"
+  },
+  "headersSection.sensitiveHint": {
+    "defaultMessage": "Hassas değerler sistemin kimlik bilgisi deposunda tutulur ve bir daha gösterilmez. Authorization, Proxy-Authorization, X-API-Key ve api-key her zaman hassastır."
   },
   "headersSection.value": {
     "defaultMessage": "Değer"

@@ -105,10 +105,9 @@ export default function ExtensionsView({
     setIsAddModalOpen(false);
   };
 
+  // The modal closes itself once the save succeeds. A failed save rejects, so the modal stays
+  // open with the user's entries and shows why (requirements 1.3, 1.11).
   const handleAddExtension = async (formData: ExtensionFormData) => {
-    // Close the modal immediately
-    handleModalClose();
-
     const extensionConfig = createExtensionConfig(formData);
 
     try {
@@ -116,10 +115,8 @@ export default function ExtensionsView({
         addToConfig: addExtension,
         extensionConfig: extensionConfig,
       });
+    } finally {
       // Trigger a refresh of the extensions list
-      setRefreshKey((prevKey) => prevKey + 1);
-    } catch (error) {
-      console.error('Failed to activate extension:', error);
       setRefreshKey((prevKey) => prevKey + 1);
     }
   };

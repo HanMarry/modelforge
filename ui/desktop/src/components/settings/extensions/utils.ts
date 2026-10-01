@@ -1,5 +1,10 @@
 import type { FixedExtensionEntry } from '../../ConfigContext';
 import type { ExtensionConfig } from '../../../types/extensions';
+import {
+  headerRowsFrom,
+  headersForSubmit,
+  isSecretReference,
+} from '../providers/modal/subcomponents/forms/sensitiveHeaders';
 
 // Default extension timeout in seconds
 // TODO: keep in sync with rust better
@@ -18,6 +23,21 @@ export function nameToKey(name: string): string {
     .toLowerCase();
 }
 
+/** One request header of the extension editor. */
+export interface ExtensionHeaderRow {
+  key: string;
+  /** Value typed in the editor. Empty for a saved sensitive value that was not replaced. */
+  value: string;
+  isEdited?: boolean;
+  /** Kept in the credential store instead of the config file (requirements 1.1, 1.11). */
+  sensitive?: boolean;
+  /**
+   * Secret reference of a value that is already in the credential store. It is sent back
+   * unchanged when no new value is typed, which keeps the saved value; it is never shown.
+   */
+  storedReference?: string | null;
+}
+
 export interface ExtensionFormData {
   name: string;
   description: string;
@@ -31,11 +51,7 @@ export interface ExtensionFormData {
     value: string;
     isEdited?: boolean;
   }[];
-  headers: {
-    key: string;
-    value: string;
-    isEdited?: boolean;
-  }[];
+  headers: ExtensionHeaderRow[];
   installation_notes?: string;
   available_tools?: string[];
   // streamable_http fields with no form input yet; carried through so an
@@ -65,7 +81,7 @@ export function extensionToFormData(extension: FixedExtensionEntry): ExtensionFo
   const hasEnvs = extension.type === 'streamable_http' || extension.type === 'stdio';
 
   // Handle both envs (legacy) and env_keys (new secrets)
-  let envVars = [];
+  const envVars: ExtensionFormData['envVars'] = [];
 
   // Add legacy envs with their values
   if (hasEnvs && extension.envs) {
@@ -78,28 +94,35 @@ export function extensionToFormData(extension: FixedExtensionEntry): ExtensionFo
     );
   }
 
-  // Add env_keys with placeholder values
+  const headerValues: Record<string, string> =
+    extension.type === 'streamable_http' && 'headers' in extension && extension.headers
+      ? { ...extension.headers }
+      : {};
+  const headerNames = new Set(Object.keys(headerValues).map(normalizeHeaderName));
+
+  // Add env_keys with placeholder values. An entry that names a request header is the
+  // sensitive mark of that header (task 2.12), not an environment variable.
+  const headerMarks: string[] = [];
   if (hasEnvs && extension.env_keys) {
-    envVars.push(
-      ...extension.env_keys.map((key) => ({
-        key,
-        value: '••••••••', // Placeholder for secret values
-        isEdited: false, // Mark as not edited initially
-      }))
-    );
+    for (const key of extension.env_keys) {
+      if (headerNames.has(normalizeHeaderName(key))) {
+        headerMarks.push(key);
+      } else {
+        envVars.push({
+          key,
+          value: '••••••••', // Placeholder for secret values
+          isEdited: false, // Mark as not edited initially
+        });
+      }
+    }
   }
 
-  // Handle headers for streamable_http
-  let headers = [];
-  if (extension.type === 'streamable_http' && 'headers' in extension && extension.headers) {
-    headers.push(
-      ...Object.entries(extension.headers).map(([key, value]) => ({
-        key,
-        value: value as string,
-        isEdited: false, // Mark as not edited initially
-      }))
-    );
-  }
+  // Handle headers for streamable_http. A value kept in the credential store comes back as its
+  // secret reference; the row keeps it to send back and never shows it (requirement 1.11).
+  const headers: ExtensionHeaderRow[] = headerRowsFrom({
+    headers: headerValues,
+    sensitive_headers: headerMarks,
+  }).map((row) => ({ ...row, isEdited: false }));
 
   const availableTools =
     'available_tools' in extension
@@ -142,6 +165,55 @@ function availableToolsConfig(availableTools?: string[] | null) {
   return normalized ? { available_tools: normalized } : undefined;
 }
 
+/** Header names are case-insensitive. */
+function normalizeHeaderName(name: string): string {
+  return name.trim().toLowerCase();
+}
+
+/** `$NAME` or `${NAME}`, the same pattern as `variable_pattern` in extension_credentials.rs. */
+const VARIABLE_PATTERN = /\$\{[ \t]*([A-Za-z_][A-Za-z0-9_]*)[ \t]*\}|\$([A-Za-z_][A-Za-z0-9_]*)/g;
+
+/** Whether `value` takes its credential from one of the extension's variables. */
+function refersToVariable(value: string, variables: string[]): boolean {
+  for (const match of value.matchAll(VARIABLE_PATTERN)) {
+    const name = match[1] ?? match[2];
+    if (name && variables.includes(name)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Header values and sensitive marks to save for a streamable_http extension, following the
+ * contract of crates/goose/src/config/extension_credentials.rs (task 2.12):
+ * - a saved sensitive value that was not replaced goes back as its own secret reference, which
+ *   the Kernel keeps as is;
+ * - a header the user marked as sensitive is listed in `env_keys`; the Kernel stores its value,
+ *   puts the reference in its place and drops the mark. Auth header names are sensitive on the
+ *   Kernel side anyway, so they are not listed, the same as for custom providers.
+ * A value that refers to one of `variables` is never stored, so its header is not marked: a mark
+ * left in `env_keys` would be looked up as a secret when the extension starts.
+ */
+export function headersConfigFrom(
+  rows: ExtensionHeaderRow[],
+  variables: string[]
+): { headers: Record<string, string>; marks: string[] } {
+  const { headers, sensitiveHeaders } = headersForSubmit(
+    rows.map((row) => ({
+      key: row.key,
+      value: row.value,
+      sensitive: row.sensitive ?? false,
+      storedReference: row.storedReference ?? null,
+    }))
+  );
+  const marks = sensitiveHeaders.filter((name) => {
+    const value = headers[name];
+    return !isSecretReference(value) && !refersToVariable(value, variables);
+  });
+  return { headers, marks };
+}
+
 export function createExtensionConfig(formData: ExtensionFormData): ExtensionConfig {
   // Extract just the keys from env vars
   const env_keys = formData.envVars.map(({ key }) => key).filter((key) => key.length > 0);
@@ -161,16 +233,13 @@ export function createExtensionConfig(formData: ExtensionFormData): ExtensionCon
       ...availableToolsConfig(formData.available_tools),
     };
   } else if (formData.type === 'streamable_http') {
-    // Extract headers
-    const headers = formData.headers
-      .filter(({ key, value }) => key.length > 0 && value.length > 0)
-      .reduce(
-        (acc, header) => {
-          acc[header.key] = header.value;
-          return acc;
-        },
-        {} as Record<string, string>
-      );
+    const { headers, marks } = headersConfigFrom(formData.headers, env_keys);
+    const allEnvKeys = [...env_keys];
+    for (const mark of marks) {
+      if (!allEnvKeys.some((key) => normalizeHeaderName(key) === normalizeHeaderName(mark))) {
+        allEnvKeys.push(mark);
+      }
+    }
 
     return {
       type: 'streamable_http',
@@ -178,7 +247,7 @@ export function createExtensionConfig(formData: ExtensionFormData): ExtensionCon
       description: formData.description,
       timeout: formData.timeout,
       uri: formData.endpoint || '',
-      ...(env_keys.length > 0 ? { env_keys } : {}),
+      ...(allEnvKeys.length > 0 ? { env_keys: allEnvKeys } : {}),
       headers,
       ...availableToolsConfig(formData.available_tools),
       ...(formData.socket != null ? { socket: formData.socket } : {}),

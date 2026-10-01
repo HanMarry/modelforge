@@ -2051,6 +2051,12 @@
   "extensionModal.removeExtension": {
     "defaultMessage": "Buang sambungan"
   },
+  "extensionModal.saveFailed": {
+    "defaultMessage": "Tidak dapat menyimpan {name}: {reason}. Entri anda dikekalkan, jadi anda boleh mencuba lagi."
+  },
+  "extensionModal.unknownError": {
+    "defaultMessage": "ralat tidak diketahui"
+  },
   "extensionModal.unsavedChangesMessage": {
     "defaultMessage": "Anda mempunyai perubahan yang belum disimpan pada konfigurasi sambungan. Adakah anda pasti mahu menutup tanpa menyimpan?"
   },
@@ -2360,11 +2366,29 @@
   "headersSection.headersDescription": {
     "defaultMessage": "Tambah pengepala HTTP tersuai untuk disertakan dalam permintaan kepada pelayan MCP. Klik butang \"+\" untuk menambah selepas mengisi kedua-dua medan."
   },
+  "headersSection.markNewSensitive": {
+    "defaultMessage": "Tandakan pengepala baharu sebagai sensitif"
+  },
+  "headersSection.markSensitive": {
+    "defaultMessage": "Tandakan {name} sebagai sensitif"
+  },
   "headersSection.noSpaces": {
     "defaultMessage": "Nama pengepala tidak boleh mengandungi ruang"
   },
+  "headersSection.reenterSavedValues": {
+    "defaultMessage": "Nilai tersimpan terikat pada nama sambungan. Selepas menamakan semula, masukkan semula nilai ini: {names}"
+  },
   "headersSection.requestHeaders": {
     "defaultMessage": "Pengepala Permintaan"
+  },
+  "headersSection.savedValueLabel": {
+    "defaultMessage": "Nilai tersimpan bagi {name} disembunyikan. Taip nilai baharu untuk menggantikannya."
+  },
+  "headersSection.sensitive": {
+    "defaultMessage": "Sensitif"
+  },
+  "headersSection.sensitiveHint": {
+    "defaultMessage": "Nilai sensitif disimpan dalam stor kelayakan sistem dan tidak dipaparkan lagi. Authorization, Proxy-Authorization, X-API-Key dan api-key sentiasa sensitif."
   },
   "headersSection.value": {
     "defaultMessage": "Nilai"

@@ -2051,6 +2051,12 @@
   "extensionModal.removeExtension": {
     "defaultMessage": "移除扩展"
   },
+  "extensionModal.saveFailed": {
+    "defaultMessage": "无法保存 {name}：{reason}。已填写的内容已保留，可以重试。"
+  },
+  "extensionModal.unknownError": {
+    "defaultMessage": "未知错误"
+  },
   "extensionModal.unsavedChangesMessage": {
     "defaultMessage": "你对扩展配置有未保存的更改。确定要不保存就关闭吗？"
   },
@@ -2360,11 +2366,29 @@
   "headersSection.headersDescription": {
     "defaultMessage": "添加请求 MCP 服务器时附带的自定义 HTTP 请求头。填完两个字段后点击“+”按钮添加。"
   },
+  "headersSection.markNewSensitive": {
+    "defaultMessage": "将新请求头标记为敏感"
+  },
+  "headersSection.markSensitive": {
+    "defaultMessage": "将 {name} 标记为敏感"
+  },
   "headersSection.noSpaces": {
     "defaultMessage": "请求头名称不能包含空格"
   },
+  "headersSection.reenterSavedValues": {
+    "defaultMessage": "已保存的值与扩展名称绑定，改名后需要重新输入：{names}"
+  },
   "headersSection.requestHeaders": {
     "defaultMessage": "请求头"
+  },
+  "headersSection.savedValueLabel": {
+    "defaultMessage": "{name} 的已保存值已隐藏。输入新值即可替换。"
+  },
+  "headersSection.sensitive": {
+    "defaultMessage": "敏感"
+  },
+  "headersSection.sensitiveHint": {
+    "defaultMessage": "敏感值保存在系统凭据库中，保存后不再显示。Authorization、Proxy-Authorization、X-API-Key 和 api-key 始终视为敏感。"
   },
   "headersSection.value": {
     "defaultMessage": "值"

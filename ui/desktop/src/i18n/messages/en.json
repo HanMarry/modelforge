@@ -2051,6 +2051,12 @@
   "extensionModal.removeExtension": {
     "defaultMessage": "Remove extension"
   },
+  "extensionModal.saveFailed": {
+    "defaultMessage": "Could not save {name}: {reason}. Your entries are kept, so you can try again."
+  },
+  "extensionModal.unknownError": {
+    "defaultMessage": "unknown error"
+  },
   "extensionModal.unsavedChangesMessage": {
     "defaultMessage": "You have unsaved changes to the extension configuration. Are you sure you want to close without saving?"
   },
@@ -2360,11 +2366,29 @@
   "headersSection.headersDescription": {
     "defaultMessage": "Add custom HTTP headers to include in requests to the MCP server. Click the \"+\" button to add after filling both fields."
   },
+  "headersSection.markNewSensitive": {
+    "defaultMessage": "Mark the new header as sensitive"
+  },
+  "headersSection.markSensitive": {
+    "defaultMessage": "Mark {name} as sensitive"
+  },
   "headersSection.noSpaces": {
     "defaultMessage": "Header name cannot contain spaces"
   },
+  "headersSection.reenterSavedValues": {
+    "defaultMessage": "Saved values are tied to the extension name. After renaming, enter them again: {names}"
+  },
   "headersSection.requestHeaders": {
     "defaultMessage": "Request Headers"
+  },
+  "headersSection.savedValueLabel": {
+    "defaultMessage": "Saved value of {name} is hidden. Type a new value to replace it."
+  },
+  "headersSection.sensitive": {
+    "defaultMessage": "Sensitive"
+  },
+  "headersSection.sensitiveHint": {
+    "defaultMessage": "Sensitive values are kept in the system credential store and are not shown again. Authorization, Proxy-Authorization, X-API-Key and api-key are always sensitive."
   },
   "headersSection.value": {
     "defaultMessage": "Value"

@@ -2051,6 +2051,12 @@
   "extensionModal.removeExtension": {
     "defaultMessage": "移除擴充功能"
   },
+  "extensionModal.saveFailed": {
+    "defaultMessage": "無法儲存 {name}：{reason}。已填寫的內容已保留，可以重試。"
+  },
+  "extensionModal.unknownError": {
+    "defaultMessage": "未知錯誤"
+  },
   "extensionModal.unsavedChangesMessage": {
     "defaultMessage": "您對擴充功能設定有尚未儲存的變更。您確定要不儲存就關閉嗎？"
   },
@@ -2360,11 +2366,29 @@
   "headersSection.headersDescription": {
     "defaultMessage": "新增要在傳送至 MCP 伺服器的要求中包含的自訂 HTTP 標頭。填妥兩個欄位後，按一下「+」按鈕即可新增。"
   },
+  "headersSection.markNewSensitive": {
+    "defaultMessage": "將新的請求標頭標記為敏感"
+  },
+  "headersSection.markSensitive": {
+    "defaultMessage": "將 {name} 標記為敏感"
+  },
   "headersSection.noSpaces": {
     "defaultMessage": "標頭名稱不可包含空格"
   },
+  "headersSection.reenterSavedValues": {
+    "defaultMessage": "已儲存的值與擴充功能名稱綁定，重新命名後需要重新輸入：{names}"
+  },
   "headersSection.requestHeaders": {
     "defaultMessage": "要求標頭"
+  },
+  "headersSection.savedValueLabel": {
+    "defaultMessage": "{name} 的已儲存值已隱藏。輸入新值即可取代。"
+  },
+  "headersSection.sensitive": {
+    "defaultMessage": "敏感"
+  },
+  "headersSection.sensitiveHint": {
+    "defaultMessage": "敏感值會儲存在系統憑證庫中，儲存後不再顯示。Authorization、Proxy-Authorization、X-API-Key 與 api-key 一律視為敏感。"
   },
   "headersSection.value": {
     "defaultMessage": "值"

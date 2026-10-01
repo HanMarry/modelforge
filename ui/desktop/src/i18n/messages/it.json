@@ -2051,6 +2051,12 @@
   "extensionModal.removeExtension": {
     "defaultMessage": "Rimuovi estensione"
   },
+  "extensionModal.saveFailed": {
+    "defaultMessage": "Impossibile salvare {name}: {reason}. I dati inseriti vengono mantenuti, quindi puoi riprovare."
+  },
+  "extensionModal.unknownError": {
+    "defaultMessage": "errore sconosciuto"
+  },
   "extensionModal.unsavedChangesMessage": {
     "defaultMessage": "Hai modifiche non salvate nella configurazione dell'estensione. Vuoi davvero chiudere senza salvare?"
   },
@@ -2360,11 +2366,29 @@
   "headersSection.headersDescription": {
     "defaultMessage": "Aggiungi header HTTP personalizzati da includere nelle richieste al server MCP. Fai clic sul pulsante \"+\" per aggiungere dopo aver compilato entrambi i campi."
   },
+  "headersSection.markNewSensitive": {
+    "defaultMessage": "Contrassegna la nuova intestazione come sensibile"
+  },
+  "headersSection.markSensitive": {
+    "defaultMessage": "Contrassegna {name} come sensibile"
+  },
   "headersSection.noSpaces": {
     "defaultMessage": "Il nome dell'header non può contenere spazi"
   },
+  "headersSection.reenterSavedValues": {
+    "defaultMessage": "I valori salvati sono legati al nome dell’estensione. Dopo averla rinominata, inseriscili di nuovo: {names}"
+  },
   "headersSection.requestHeaders": {
     "defaultMessage": "Header della richiesta"
+  },
+  "headersSection.savedValueLabel": {
+    "defaultMessage": "Il valore salvato di {name} è nascosto. Digita un nuovo valore per sostituirlo."
+  },
+  "headersSection.sensitive": {
+    "defaultMessage": "Sensibile"
+  },
+  "headersSection.sensitiveHint": {
+    "defaultMessage": "I valori sensibili vengono conservati nell’archivio credenziali di sistema e non vengono più mostrati. Authorization, Proxy-Authorization, X-API-Key e api-key sono sempre sensibili."
   },
   "headersSection.value": {
     "defaultMessage": "Valore"

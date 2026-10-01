@@ -105,7 +105,6 @@ export default function ConnectorsView() {
    * MCP server the user already knows about can be wired up without a code change.
    */
   const handleAddCustom = async (formData: ExtensionFormData) => {
-    setShowAddModal(false);
     try {
       await activateExtensionDefault({
         addToConfig: addExtension,
@@ -120,6 +119,8 @@ export default function ConnectorsView() {
         title: intl.formatMessage(i18n.installFailed),
         msg: error instanceof Error ? error.message : String(error),
       });
+      // The modal stays open with the user's entries and shows why (requirements 1.3, 1.11).
+      throw error;
     }
   };
 
