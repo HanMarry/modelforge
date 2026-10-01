@@ -25,11 +25,12 @@ export default defineConfig({
   expect: { timeout: 30_000 },
   workers: 1,
   fullyParallel: false,
-  // One retry. The cn-user scenario has twice lost its worker to a native crash (0xC0000409) on
-  // the last test, while the same test passes in the uninstall scenario, and a first-run prompt
-  // that mounts late can cost an attempt. `summarize-results.cjs` reports such a test as flaky in
-  // `summary.md`, so a retried failure is visible instead of being counted as clean.
-  retries: 1,
+  // No retries: a test that fails once fails the run. The worker crash that a retry used to
+  // cover (0xC0000409 in the cn-user uninstall spec) was fs.cpSync aborting on a path with
+  // Chinese characters; the harness no longer uses it (harness.ts, "Files"). The tests share
+  // state, so a rerun of one would not repeat what it checked either. `summarize-results.cjs`
+  // still reports a flaky test should retries come back.
+  retries: 0,
   forbidOnly: true,
   reporter: [
     ['list'],

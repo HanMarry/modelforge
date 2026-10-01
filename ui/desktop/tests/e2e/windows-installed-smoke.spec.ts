@@ -16,7 +16,13 @@
  *   5. Python execution returns exit code 0 and its stdout (7.3)
  *   6. paper compilation writes a PDF inside the Project (7.3)
  *   7. phase-2 entries open without errors: resume prompt, /learning, workspace tabs
- *   8. paper check runs read-only in its utility process and reads the PDF with pdfjs
+ *   8. phase-1 entries open (task 20; primary scenario): diagnostics center, competitions,
+ *      example library, datasets, gallery, join collaboration, the workspace browser tab, the
+ *      versions panel's auto snapshots and the connectors page's Feishu section
+ *   9. paper check runs read-only in its utility process and reads the PDF with pdfjs
+ *
+ * Test 3 creates the example Project through wizard step 4 as a user does, including the
+ * Windows folder dialog, which scripts/Select-FolderInDialog.ps1 drives with UI Automation.
  *
  * The scenario (`primary`, `cn-user`, `cn-profile-sim`) only changes which paths must contain
  * Chinese characters and spaces (7.4).
@@ -53,6 +59,8 @@ import {
   readOnboarding,
   readState,
   readWizardKernelConfig,
+  removeSync,
+  runHelperAsync,
   runRecords,
   sendChat,
   sleep,
@@ -273,39 +281,70 @@ test.describe('installed ModelForge (Windows smoke)', () => {
       expect(typesettingText).toMatch(/^论文编译环境：可用/);
       await clickNext(page);
 
-      // Step 4: example Project. The save location comes from a native folder dialog, which CDP
-      // cannot drive; the bridge function the button calls is replaced when the bridge allows it,
-      // otherwise the same IPC the button uses is called directly.
+      // Step 4: example Project, as a user creates it. "选择保存位置" opens the Windows folder
+      // dialog (main.ts 'directory-chooser'), which CDP cannot reach, so
+      // scripts/Select-FolderInDialog.ps1 does the user's part there: it types the folder into
+      // the dialog's folder box and presses OK. Then "创建并打开". Only a dialog that cannot be
+      // driven at all is replaced by the IPC the button uses, reported as a substitution.
       await expect(page.getByText(/第 4 步\/共 4 步/)).toBeVisible();
       const listed = await firstVisible(page, 30_000, {
         list: page.getByRole('radiogroup', { name: '示例题' }),
         empty: page.getByText(/^暂无可直接打开的示例题/),
       });
       if (listed === 'list') {
-        const replaced = await page.evaluate((dir: string) => {
-          const bridge = (window as unknown as { electron: Record<string, unknown> }).electron;
-          const fake = async () => ({ canceled: false, filePaths: [dir] });
-          try {
-            bridge.directoryChooser = fake;
-          } catch {
-            return false;
+        await page.getByRole('button', { name: '选择保存位置', exact: true }).click();
+        const pick = await runHelperAsync<FolderDialogResult>(
+          c,
+          'Select-FolderInDialog.ps1',
+          {
+            ProcessId: String(app.child.pid),
+            Folder: parentDir,
+            EvidenceDir: path.join(c.evidenceDir, 'folder-dialog'),
+          },
+          120_000
+        );
+        const picked = pick.result;
+        annotate(
+          testInfo,
+          'folder-dialog',
+          picked
+            ? JSON.stringify({
+                outcome: picked.outcome,
+                dialog: picked.dialog,
+                text: picked.textMethod,
+                presses: picked.presses,
+                cancelled: picked.cancelled,
+                ...(picked.ok ? {} : { editBoxes: picked.editBoxes, message: picked.messageText, error: picked.error }),
+              })
+            : `no result (exit ${pick.exitCode}): ${pick.output.slice(-1_500)}`
+        );
+        for (const shot of picked?.screenshots ?? []) {
+          if (fs.existsSync(shot)) {
+            await testInfo.attach(path.basename(shot), { path: shot, contentType: 'image/png' });
           }
-          return bridge.directoryChooser === fake;
-        }, parentDir);
-        if (replaced) {
-          await page.getByRole('button', { name: '选择保存位置', exact: true }).click();
-          await expect(page.getByText(parentDir, { exact: true })).toBeVisible();
+        }
+        if (pick.exitCode === 0) {
+          // The step shows the folder the dialog returned, and the Project is created in it.
+          await expect(page.getByText('尚未选择保存位置', { exact: true })).toBeHidden({ timeout: 15_000 });
+          await expect(page.getByText(new RegExp(`^${escapeRegExp(parentDir)}\\\\?$`, 'i'))).toBeVisible();
+          await app.snap('wizard-location');
           await page.getByRole('button', { name: '创建并打开', exact: true }).click();
           await expect(page.getByText(/第 4 步\/共 4 步/)).toBeHidden({ timeout: 60_000 });
           const recent = await listRecentDirs(page);
           const projectDir = recent[0] ?? '';
-          expect(projectDir.startsWith(parentDir), `new Project ${projectDir} under ${parentDir}`).toBe(true);
+          expect(isInsideDir(projectDir, parentDir), `new Project ${projectDir} under ${parentDir}`).toBe(true);
           writeState(c, { projectDir, projectVia: 'wizard-button' });
-          annotate(testInfo, 'harness-substitution', 'native folder dialog replaced by a fixed folder in the renderer bridge');
         } else {
+          if (pick.exitCode !== EXIT_NO_FOLDER_DIALOG) {
+            annotate(testInfo, 'unexpected', `the folder dialog opened but could not be used: ${picked?.error ?? pick.output.slice(-500)}`);
+          }
           const created = await createExampleProject(page, parentDir);
           writeState(c, { projectDir: created.projectDir, exampleId: created.exampleId, projectVia: 'wizard-ipc' });
-          annotate(testInfo, 'harness-substitution', `bridge is read-only; Project created through project-create-from-example (${created.exampleId})`);
+          annotate(
+            testInfo,
+            'harness-substitution',
+            `folder dialog not driven (${picked?.outcome ?? `exit ${pick.exitCode}`}); Project created through project-create-from-example (${created.exampleId})`
+          );
           await page.getByRole('button', { name: '完成', exact: true }).click();
         }
       } else {
@@ -477,7 +516,9 @@ test.describe('installed ModelForge (Windows smoke)', () => {
       ].join('\n')
     );
     const pdf = path.join(projectDir, 'paper', 'main.pdf');
-    fs.rmSync(pdf, { force: true });
+    // Not fs.rmSync: it removes nothing under a path with Chinese characters (harness).
+    removeSync(pdf);
+    expect(fs.existsSync(pdf), `no PDF from an earlier run at ${pdf}`).toBe(false);
     const startedAt = Date.now();
     const nonce = newNonce();
     // compile_latex resolves `path` against the kernel's cwd, so it gets an absolute path.
@@ -609,8 +650,179 @@ test.describe('installed ModelForge (Windows smoke)', () => {
         expect(errors, 'uncaught renderer errors while opening the entries').toEqual([]);
       }, { keepResumePrompt: true });
     } finally {
-      fs.rmSync(planFile, { force: true });
+      // Gone for the later launches, so they are not offered this task to resume.
+      removeSync(planFile);
     }
+  });
+
+  test('phase-1 entries open: diagnostics, competitions, examples, datasets, gallery, collaboration, browser, auto snapshots, Feishu', async ({}, testInfo) => {
+    const c = cfg as SmokeConfig;
+    // Task 20 (phase-1 acceptance) on the installed app; the other scenarios cover the flows.
+    test.skip(c.scenario !== 'primary', 'the phase-1 entry check runs in the primary scenario');
+    if (!WIZARD_STRICT) {
+      ensureKernelSeeded(c, testInfo);
+    }
+    const projectDir = ensureProject(c, testInfo);
+    await withProjectApp(c, testInfo, 'phase1', projectDir, async (app) => {
+      const { page } = app;
+      const benign = (text: string) => /ResizeObserver loop/.test(text);
+      app.pageErrors.length = 0;
+      // Error banners of a page; react-toastify renders its own role="alert" container.
+      const alerts = () => page.locator('[role="alert"]:not(.Toastify *)');
+      const h1 = (name: string) => page.getByRole('heading', { level: 1, name, exact: true });
+      const h2 = (name: string) => page.getByRole('heading', { level: 2, name, exact: true });
+
+      // A sidebar row is a button holding an icon and a span with its label (NavigationPanel.tsx
+      // NavRow / NavSubRow / NavGroupRow); other buttons can carry the same text (the Hub's
+      // "赛事" picker), so the row is found by that span.
+      const navRow = (label: string) =>
+        page
+          .locator('button')
+          .filter({
+            has: page.locator('span.text-left.flex-1.truncate', { hasText: new RegExp(`^${escapeRegExp(label)}$`) }),
+          })
+          .first();
+      const openFromSidebar = async (label: string, route: string) => {
+        const row = navRow(label);
+        if (!(await row.isVisible().catch(() => false))) {
+          // The sidebar folds away on a narrow window; open it again as a user would.
+          const reopen = page.getByRole('button', { name: '展开导航', exact: true }).first();
+          if (await reopen.isVisible().catch(() => false)) {
+            await reopen.click();
+          }
+        }
+        await expect(row, `sidebar entry "${label}"`).toBeVisible({ timeout: 15_000 });
+        await row.click();
+        await expect
+          .poll(() => page.evaluate(() => window.location.hash), { message: `"${label}" opens #${route}`, timeout: 15_000 })
+          .toBe(`#${route}`);
+      };
+      const home = async () => {
+        await page.evaluate(() => {
+          window.location.hash = '#/';
+        });
+        await expect(page.locator('[data-testid="chat-input"]').first()).toBeVisible({ timeout: 30_000 });
+        await dismissInterruptions(page);
+      };
+      const openTab = async (label: string) => {
+        const tab = page.getByRole('button', { name: label, exact: true }).first();
+        await tab.click();
+        await expect(tab, `workspace tab "${label}" is the open one`).toHaveAttribute('aria-pressed', 'true');
+      };
+
+      await test.step('workspace: 浏览器', async () => {
+        await openTab('浏览器');
+        await expect(page.getByPlaceholder('搜索或输入网址')).toBeVisible({ timeout: 30_000 });
+        await sleep(1_500);
+        await expect(alerts().filter({ hasText: /无法加载页面|URL 协议不受支持/ })).toHaveCount(0);
+        await app.snap('tab-browser');
+      });
+
+      await test.step('workspace: 版本 › 自动快照', async () => {
+        await openTab('版本');
+        await page.getByRole('button', { name: '自动快照', exact: true }).click();
+        // Before the list arrives and when there is none the tab shows its empty text; with
+        // snapshots it shows the hint above the list. An error (no git) shows neither.
+        const listed = page
+          .getByText('还没有自动快照。智能体写入文件前会自动创建快照。', { exact: true })
+          .or(page.getByText('选择两个快照进行对比，或选择一个进行恢复。', { exact: true }));
+        await expect(listed).toBeVisible({ timeout: 30_000 });
+        await sleep(2_000);
+        await expect(listed).toBeVisible();
+        await expect(page.getByText('Git 不可用，无法创建快照。', { exact: true })).toHaveCount(0);
+        await app.snap('tab-auto-snapshots');
+      });
+
+      await test.step('诊断中心', async () => {
+        await openFromSidebar('诊断中心', '/diagnostics');
+        await expect(h1('诊断中心')).toBeVisible({ timeout: 30_000 });
+        // Auto snapshots run the MinGit that ships with the app (requirement 11.2).
+        const git = page.locator('section').filter({ has: h2('自动快照使用的 git') });
+        await expect(git).toContainText('随包 MinGit', { timeout: 30_000 });
+        await expect(git.locator('.text-red-600')).toHaveCount(0);
+        // The installed kernel is traceable to its build manifest.
+        const provenance = page.locator('section').filter({ has: h2('构建来源') });
+        await expect(provenance).toContainText('commit：', { timeout: 30_000 });
+        await expect(provenance.locator('.text-red-600')).toHaveCount(0);
+        const packageSha = process.env.MODELFORGE_SMOKE_PACKAGE_SHA ?? '';
+        if (packageSha) {
+          await expect(provenance, 'the build manifest names the packaged commit').toContainText(packageSha.slice(0, 9));
+        }
+        annotate(testInfo, 'diagnostics', (await provenance.innerText()).replace(/\s+/g, ' ').slice(0, 300));
+        await app.snap('entry-diagnostics');
+      });
+
+      await test.step('赛事', async () => {
+        await openFromSidebar('赛事', '/competitions');
+        await expect(h1('数学建模赛事')).toBeVisible({ timeout: 30_000 });
+        await expect(page.getByText(/^数据更新日期：/)).toBeVisible();
+        // The first competition is selected and its preparation can start.
+        await expect(page.getByRole('button', { name: '开始备赛', exact: true })).toBeVisible();
+        await expect(alerts()).toHaveCount(0);
+        await app.snap('entry-competitions');
+      });
+
+      await test.step('示例题库', async () => {
+        await openFromSidebar('示例题', '/examples');
+        await expect(h1('示例题库')).toBeVisible({ timeout: 30_000 });
+        await expect(page.getByText('加载中…', { exact: true })).toHaveCount(0, { timeout: 30_000 });
+        await expect(page.getByText('暂无可用示例题', { exact: true })).toHaveCount(0);
+        await expect(page.getByRole('button', { name: '参考思路', exact: true })).toBeVisible();
+        await app.snap('entry-examples');
+      });
+
+      await test.step('数据集', async () => {
+        await openFromSidebar('数据集', '/datasets');
+        await expect(h1('数据集')).toBeVisible({ timeout: 30_000 });
+        await expect(page.getByRole('button', { name: '生成数据说明', exact: true })).toBeVisible();
+        await sleep(1_500);
+        await expect(alerts()).toHaveCount(0);
+        await app.snap('entry-datasets');
+      });
+
+      await test.step('作品广场', async () => {
+        await openFromSidebar('作品广场', '/gallery');
+        await expect(h1('作品广场')).toBeVisible({ timeout: 30_000 });
+        await expect(page.getByRole('button', { name: '导入', exact: true })).toBeVisible();
+        await expect(page.getByRole('button', { name: '刷新', exact: true }).first()).toBeVisible();
+        await sleep(1_500);
+        await expect(alerts()).toHaveCount(0);
+        await app.snap('entry-gallery');
+      });
+
+      await test.step('加入协作', async () => {
+        await openFromSidebar('加入协作', '/collab');
+        await expect(h1('加入协作')).toBeVisible({ timeout: 30_000 });
+        await expect(page.getByLabel('邀请码')).toBeVisible();
+        await expect(page.getByLabel('显示名')).toBeVisible();
+        // Nothing to join with yet: the button waits for an invitation code and a name.
+        await expect(page.getByRole('button', { name: '加入', exact: true })).toBeDisabled();
+        await expect(alerts()).toHaveCount(0);
+        await app.snap('entry-collab');
+      });
+
+      await test.step('连接器 › 飞书', async () => {
+        const group = navRow('扩展');
+        await expect(group, 'sidebar group "扩展"').toBeVisible({ timeout: 15_000 });
+        if ((await group.getAttribute('aria-expanded')) !== 'true') {
+          await group.click();
+        }
+        await openFromSidebar('连接器', '/connectors');
+        await expect(h1('连接器')).toBeVisible({ timeout: 30_000 });
+        await expect(h2('飞书')).toBeVisible({ timeout: 30_000 });
+        // A clean profile: the bot is off and its whitelist is empty.
+        const enabled = page.getByRole('checkbox', { name: '启用飞书机器人', exact: true });
+        await expect(enabled).toBeVisible();
+        await expect(enabled).not.toBeChecked();
+        await expect(page.getByText('白名单为空，不会响应任何账号', { exact: true })).toBeVisible();
+        await expect(alerts()).toHaveCount(0);
+        await app.snap('entry-connectors-feishu');
+      });
+
+      await home();
+      const errors = app.pageErrors.filter((text) => !benign(text));
+      expect(errors, 'uncaught renderer errors while opening the entries').toEqual([]);
+    });
   });
 
   test('paper check runs read-only in its utility process and reads the PDF with pdfjs', async ({}, testInfo) => {
@@ -665,6 +877,35 @@ test.describe('installed ModelForge (Windows smoke)', () => {
 // ---------------------------------------------------------------------------------------------
 // Local helpers
 // ---------------------------------------------------------------------------------------------
+
+/** Result of scripts/Select-FolderInDialog.ps1. */
+interface FolderDialogResult {
+  ok: boolean;
+  /** picked | no-dialog | no-folder-box | message-box | still-open | uia-unavailable | error */
+  outcome: string;
+  dialog: { title: string; buttons: string; process: string; pid: number } | null;
+  /** ValuePattern or WM_SETTEXT */
+  textMethod: string;
+  presses: number;
+  editBoxes: string[];
+  messageText: string;
+  cancelled: boolean;
+  screenshots: string[];
+  error: string | null;
+}
+
+/** Select-FolderInDialog.ps1: no folder dialog appeared, or UI Automation is unavailable. */
+const EXIT_NO_FOLDER_DIALOG = 3;
+
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/** `child` lies inside `parent` (Windows paths, any letter case). */
+function isInsideDir(child: string, parent: string): boolean {
+  const base = path.resolve(parent).toLowerCase() + path.sep;
+  return path.resolve(child).toLowerCase().startsWith(base);
+}
 
 async function clickNext(page: Page): Promise<void> {
   const next = page.getByRole('button', { name: '下一步', exact: true });

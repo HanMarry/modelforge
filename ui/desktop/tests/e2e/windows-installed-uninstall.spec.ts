@@ -39,6 +39,7 @@ import path from 'node:path';
 import {
   annotate,
   appPaths,
+  copyTreeSync,
   ensureProject,
   hasCjkAndSpace,
   hashTree,
@@ -299,8 +300,8 @@ function keepLogs(c: SmokeConfig, testInfo: TestInfo): void {
       continue;
     }
     try {
-      fs.mkdirSync(target, { recursive: true });
-      fs.cpSync(source, path.join(target, name), { recursive: true });
+      // Not fs.cpSync: it aborts the worker for a source under a Chinese profile path (harness).
+      copyTreeSync(source, path.join(target, name));
     } catch (error) {
       annotate(testInfo, 'evidence', `could not copy ${source}: ${String(error)}`);
     }
