@@ -14,7 +14,7 @@ use crate::agents::state_machine::ops_toolcalling::{
 use crate::agents::state_machine::{
     applied, messages_since_kickoff, not_applicable, Emitter, Operation, OperationResult,
 };
-use crate::agents::tool_execution::{CHAT_MODE_TOOL_SKIPPED_RESPONSE, DECLINED_RESPONSE};
+use crate::agents::tool_execution::{declined_response, CHAT_MODE_TOOL_SKIPPED_RESPONSE};
 use crate::config::GooseMode;
 use crate::conversation::message::Message;
 use crate::conversation::Conversation;
@@ -178,7 +178,7 @@ impl Operation<Session, GooseEffect> for UnknownToolOperation {
                 }
                 ToolDisposition::Decline => (
                     Ok(CallToolResult::error(vec![ContentBlock::text(
-                        DECLINED_RESPONSE,
+                        declined_response(&session.id, &request.id),
                     )])),
                     false,
                 ),

@@ -81,8 +81,14 @@ import { registerDatasetIpc } from './utils/datasetIpc';
 import { registerBrowserIpc } from './utils/browser/browserIpc';
 import { registerGalleryIpc } from './utils/gallery/galleryIpc';
 import { registerCollabIpc } from './utils/collab/collabIpc';
-import { registerFeishuIpc } from './connectors/feishu/feishuIpc';
+import {
+  FEISHU_UNDELIVERED_CHANNEL,
+  registerFeishuIpc,
+  type FeishuUndeliveredEvent,
+} from './connectors/feishu/feishuIpc';
 import { createFeishuController } from './connectors/feishu/feishuSdkAdapter';
+import { openPinnedAcpStream } from './connectors/feishu/feishuAcpTransport';
+import { sharedArtifactStore } from './utils/runs/artifactStore';
 import { writeFileAtomic } from './utils/atomicWrite';
 import type { FeatureIpcDeps } from './utils/featureIpc';
 import { registerRunsIpc } from './utils/runs/runsIpc';
@@ -253,24 +259,64 @@ registerCollabIpc(ipcMain, {
   secretValues: () => credentialStore.sensitiveValues(),
 });
 
-// Feishu connector (requirement 15): config + enable/disable + status IPC.
-const feishuSessionFile = path.join(app.getPath('userData'), 'feishu-sessions.json');
+// Feishu connector (requirement 15): it runs in the main process with its own ACP connection to
+// the primary window's goose serve. Chat → session mappings and undelivered-reply marks live in
+// settings.json; config + enable/disable + status go through registerFeishuIpc.
 const feishuController = createFeishuController({
   store: {
-    load: async () => {
-      try {
-        return JSON.parse(fsSync.readFileSync(feishuSessionFile, 'utf8')) as Record<string, string>;
-      } catch {
-        return {};
+    loadChats: async () => ({ ...(getSettings().feishuChatSessions ?? {}) }),
+    saveChats: async (chats) => {
+      updateSettings((settings) => {
+        settings.feishuChatSessions = chats;
+      });
+    },
+    markUndelivered: async (sessionId) => {
+      const markedAt = new Date().toISOString();
+      updateSettings((settings) => {
+        settings.feishuUndelivered = {
+          ...(settings.feishuUndelivered ?? {}),
+          [sessionId]: { markedAt },
+        };
+      });
+      const event: FeishuUndeliveredEvent = { sessionId, markedAt };
+      for (const win of getRegularWindows()) {
+        win.webContents.send(FEISHU_UNDELIVERED_CHANNEL, event);
       }
     },
-    save: async (mapping) => {
-      await writeFileAtomic(feishuSessionFile, JSON.stringify(mapping, null, 2));
-    },
   },
-  connectAcp: async () => {
-    // The dedicated ACP connection reuses the primary window's goose serve lease.
-    throw new Error('Feishu ACP connection is not wired to a goose serve lease yet');
+  openAcpStream: async () => {
+    // The same goose serve as the primary window, with the certificate that window trusts.
+    const primary = getRegularWindows()[0];
+    const acpUrl = primary ? gooseServeLeases.getAcpUrl(primary.id) : null;
+    if (!acpUrl) {
+      throw new Error('No ModelForge window with a running goose serve is open');
+    }
+    return openPinnedAcpStream(acpUrl, verifyBackendCertificate);
+  },
+  workingDir: () => feishuWorkingDir(),
+  clientInfo: { name: 'modelforge-feishu', version: app.getVersion() },
+  // Runs of Feishu sessions update the Artifact store like the renderer's do.
+  onRunStarted: (notification) => {
+    sharedArtifactStore()
+      .runStarted({
+        workingDir: notification.workingDir,
+        runId: notification.runId,
+        declaredOutputs: notification.declaredOutputs ?? [],
+      })
+      .catch((error: unknown) =>
+        log.warn(`[feishu] runs/started was not applied: ${errorMessage(error)}`)
+      );
+  },
+  onRunFinished: (notification) => {
+    sharedArtifactStore()
+      .runFinished({
+        workingDir: notification.workingDir,
+        runId: notification.runId,
+        recordPath: notification.recordPath,
+      })
+      .catch((error: unknown) =>
+        log.warn(`[feishu] runs/finished was not applied: ${errorMessage(error)}`)
+      );
   },
   log: (message) => log.info(`[feishu] ${message}`),
   redact: (text) => redactText(text, credentialStore.sensitiveValues()),
@@ -279,8 +325,29 @@ registerFeishuIpc(ipcMain, {
   store: credentialStore,
   file: path.join(app.getPath('userData'), 'feishu.json'),
   controller: feishuController,
+  undelivered: (sessionId) => getSettings().feishuUndelivered?.[sessionId] ?? null,
+  // The CredentialStore can decrypt the App Secret only once the app is ready.
+  ready: app.whenReady(),
   log: (message) => log.info(`[feishu] ${message}`),
 });
+
+/** Working directory of new Feishu sessions: the project of the primary window. */
+async function feishuWorkingDir(): Promise<string> {
+  const primary = getRegularWindows()[0];
+  if (primary) {
+    try {
+      const dir: unknown = await primary.webContents.executeJavaScript(
+        `window.appConfig ? window.appConfig.get('GOOSE_WORKING_DIR') : null`
+      );
+      if (typeof dir === 'string' && path.isAbsolute(dir) && fsSync.existsSync(dir)) {
+        return dir;
+      }
+    } catch (error) {
+      log.warn(`[feishu] reading the working directory failed: ${errorMessage(error)}`);
+    }
+  }
+  return os.homedir();
+}
 
 // Layer C features (spec mathmodel-parity-and-beyond, stage 2). Each feature owns its module;
 // the C1 branches fill in the handlers without touching this block.

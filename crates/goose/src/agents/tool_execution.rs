@@ -3,10 +3,11 @@ use async_trait::async_trait;
 use futures::stream::{self, BoxStream};
 use futures::{Stream, StreamExt};
 use rmcp::model::CallToolResult;
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 
@@ -161,6 +162,102 @@ pub const DECLINED_RESPONSE: &str = "The user has declined to run this tool. \
     DO NOT attempt to call this tool again. \
     If there are no alternative methods to proceed, clearly explain the situation and STOP.";
 
+/// Tool result of a call whose approver rejected it (ModelForge requirement 15.5).
+pub const DECLINED_REJECTED_RESPONSE: &str = "已拒绝：审批人拒绝了这次工具调用，工具没有执行。\
+    DO NOT attempt to call this tool again. \
+    If there are no alternative methods to proceed, clearly explain the situation and STOP.";
+
+/// Tool result of a call that nobody approved before the client's deadline (requirement 15.5).
+pub const DECLINED_TIMEOUT_RESPONSE: &str = "已超时：审批在时限内没有得到批准，工具没有执行。\
+    DO NOT attempt to call this tool again. \
+    If there are no alternative methods to proceed, clearly explain the situation and STOP.";
+
+/// Why a client denied a tool call, when it said so in its permission response. A denial
+/// without a recorded reason keeps [`DECLINED_RESPONSE`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ToolDenialReason {
+    /// The approver explicitly rejected the call.
+    Rejected,
+    /// No approval arrived before the client's deadline.
+    TimedOut,
+}
+
+impl ToolDenialReason {
+    /// Parses the wire value a client sends: `"rejected"` or `"timeout"`.
+    pub fn from_wire(value: &str) -> Option<Self> {
+        match value {
+            "rejected" => Some(Self::Rejected),
+            "timeout" => Some(Self::TimedOut),
+            _ => None,
+        }
+    }
+
+    /// The tool result recorded for the denied call.
+    pub fn tool_result_text(self) -> &'static str {
+        match self {
+            Self::Rejected => DECLINED_REJECTED_RESPONSE,
+            Self::TimedOut => DECLINED_TIMEOUT_RESPONSE,
+        }
+    }
+}
+
+/// A declined result is written right after the answer arrives, so an older reason belongs to a
+/// call that was never declined (a cancelled turn, for example) and is dropped.
+const TOOL_DENIAL_REASON_TTL: Duration = Duration::from_secs(10 * 60);
+/// Upper bound on remembered reasons, so abandoned entries cannot pile up.
+const TOOL_DENIAL_REASON_CAPACITY: usize = 256;
+
+struct RecordedToolDenial {
+    session_id: String,
+    request_id: String,
+    reason: ToolDenialReason,
+    recorded_at: Instant,
+}
+
+/// Denial reasons by session and tool request. The permission response that carries the reason
+/// reaches the agent as a bare `Permission`, so the reason waits here until the declined tool
+/// result is written, on the live path or on the state machine's.
+static TOOL_DENIAL_REASONS: std::sync::Mutex<VecDeque<RecordedToolDenial>> =
+    std::sync::Mutex::new(VecDeque::new());
+
+fn tool_denial_reasons() -> std::sync::MutexGuard<'static, VecDeque<RecordedToolDenial>> {
+    let mut reasons = TOOL_DENIAL_REASONS
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    reasons.retain(|entry| entry.recorded_at.elapsed() < TOOL_DENIAL_REASON_TTL);
+    reasons
+}
+
+/// Remembers why the client denied `request_id` in `session_id`. Call it before the denial is
+/// submitted to the agent, so the declined tool result can carry the reason.
+pub fn record_tool_denial_reason(session_id: &str, request_id: &str, reason: ToolDenialReason) {
+    let mut reasons = tool_denial_reasons();
+    reasons.retain(|entry| entry.session_id != session_id || entry.request_id != request_id);
+    while reasons.len() >= TOOL_DENIAL_REASON_CAPACITY {
+        reasons.pop_front();
+    }
+    reasons.push_back(RecordedToolDenial {
+        session_id: session_id.to_string(),
+        request_id: request_id.to_string(),
+        reason,
+        recorded_at: Instant::now(),
+    });
+}
+
+/// The tool result of a declined call: the text of the reason recorded for it, which is used
+/// once, or [`DECLINED_RESPONSE`] when the client gave none.
+pub(crate) fn declined_response(session_id: &str, request_id: &str) -> String {
+    let mut reasons = tool_denial_reasons();
+    let position = reasons
+        .iter()
+        .position(|entry| entry.session_id == session_id && entry.request_id == request_id);
+    let recorded = position.and_then(|index| reasons.remove(index));
+    match recorded {
+        Some(entry) => entry.reason.tool_result_text().to_string(),
+        None => DECLINED_RESPONSE.to_string(),
+    }
+}
+
 pub const CHAT_MODE_TOOL_SKIPPED_RESPONSE: &str = "Let the user know the tool call was skipped in goose chat mode. \
                                         DO NOT apologize for skipping the tool call. DO NOT say sorry. \
                                         Provide an explanation of what the tool call would do, structured as a \
@@ -252,7 +349,9 @@ impl Agent {
                     if let Some(response) = request_to_response_map.get_mut(&request.id) {
                         response.add_tool_response_with_metadata(
                             request.id.clone(),
-                            Ok(CallToolResult::error(vec![ContentBlock::text(DECLINED_RESPONSE)])),
+                            Ok(CallToolResult::error(vec![ContentBlock::text(
+                                declined_response(&session.id, &request.id),
+                            )])),
                             request.metadata.as_ref(),
                         );
                     }
@@ -266,5 +365,88 @@ impl Agent {
             }
         }
     }.boxed()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // The registry is process-wide and tests run in parallel, so every test uses its own
+    // session ids.
+
+    #[test]
+    fn a_denial_without_a_reason_keeps_the_default_text() {
+        assert_eq!(
+            declined_response("denial-default", "request-1"),
+            DECLINED_RESPONSE
+        );
+    }
+
+    #[test]
+    fn a_recorded_reason_becomes_the_result_once() {
+        record_tool_denial_reason("denial-once", "request-1", ToolDenialReason::TimedOut);
+
+        assert_eq!(
+            declined_response("denial-once", "request-1"),
+            DECLINED_TIMEOUT_RESPONSE
+        );
+        assert_eq!(
+            declined_response("denial-once", "request-1"),
+            DECLINED_RESPONSE
+        );
+    }
+
+    #[test]
+    fn reasons_belong_to_one_session_and_request() {
+        record_tool_denial_reason("denial-scope-a", "request-1", ToolDenialReason::Rejected);
+
+        assert_eq!(
+            declined_response("denial-scope-b", "request-1"),
+            DECLINED_RESPONSE
+        );
+        assert_eq!(
+            declined_response("denial-scope-a", "request-2"),
+            DECLINED_RESPONSE
+        );
+        assert_eq!(
+            declined_response("denial-scope-a", "request-1"),
+            DECLINED_REJECTED_RESPONSE
+        );
+    }
+
+    #[test]
+    fn a_later_reason_replaces_an_earlier_one() {
+        record_tool_denial_reason("denial-replace", "request-1", ToolDenialReason::Rejected);
+        record_tool_denial_reason("denial-replace", "request-1", ToolDenialReason::TimedOut);
+
+        assert_eq!(
+            declined_response("denial-replace", "request-1"),
+            DECLINED_TIMEOUT_RESPONSE
+        );
+        assert_eq!(
+            declined_response("denial-replace", "request-1"),
+            DECLINED_RESPONSE
+        );
+    }
+
+    #[test]
+    fn wire_values_and_result_texts() {
+        assert_eq!(
+            ToolDenialReason::from_wire("rejected"),
+            Some(ToolDenialReason::Rejected)
+        );
+        assert_eq!(
+            ToolDenialReason::from_wire("timeout"),
+            Some(ToolDenialReason::TimedOut)
+        );
+        assert_eq!(ToolDenialReason::from_wire("expired"), None);
+        assert_eq!(ToolDenialReason::from_wire(""), None);
+        assert!(ToolDenialReason::Rejected
+            .tool_result_text()
+            .starts_with("已拒绝"));
+        assert!(ToolDenialReason::TimedOut
+            .tool_result_text()
+            .starts_with("已超时"));
     }
 }
