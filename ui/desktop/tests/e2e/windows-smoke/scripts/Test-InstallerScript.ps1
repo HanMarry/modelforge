@@ -163,6 +163,22 @@ function Read-NsisHeader([string] $path) {
     return $info
 }
 
+# A string-table entry for display. In a Unicode header a variable reference is NS_VAR_CODE (3)
+# followed by its index packed into one character (low 7 bits, then the next 7 bits shifted by
+# one): "*" 0x0003 0x8082 "(&w8192 .s)" is '*$2(&w8192 .s)'. Other codes show as "?".
+function Format-NsisString([string] $value) {
+    $evaluator = [System.Text.RegularExpressions.MatchEvaluator] {
+        param($m)
+        $packed = [int][char]$m.Value[1]
+        $index = ($packed -band 0x7F) -bor (($packed -band 0x7F00) -shr 1)
+        if ($index -lt 10) { return ('$' + $index) }
+        if ($index -lt 20) { return ('$R' + ($index - 10)) }
+        return ('$[var {0}]' -f $index)
+    }
+    $decoded = [regex]::Replace($value, '\x03[\u8080-\uFFFF]', $evaluator)
+    return ($decoded -replace '[\x01-\x1F\uE000-\uF8FF]', '?')
+}
+
 # Counts in the string table of the NSIS header of $path (see the description).
 function Measure-Header([string] $path, [string] $name) {
     $entry = [ordered]@{
@@ -190,8 +206,7 @@ function Measure-Header([string] $path, [string] $name) {
             $entry.boundedCopy += [regex]::Matches($text, 'lstrcpynW', 'IgnoreCase').Count
             $entry.knownFolder += [regex]::Matches($text, 'SHGetKnownFolderPath', 'IgnoreCase').Count
             foreach ($m in [regex]::Matches($text, '[^\x00]{0,200}\(&w\d+\s*\.s\)[^\x00]{0,40}')) {
-                # Variable references are control or private-use characters in the string table.
-                if ($entry.unboundedStrings.Count -lt 5) { $entry.unboundedStrings += ($m.Value -replace '[\x01-\x1F\uE000-\uF8FF]', '?') }
+                if ($entry.unboundedStrings.Count -lt 5) { $entry.unboundedStrings += (Format-NsisString $m.Value) }
             }
         }
         $entry.decoded = $true

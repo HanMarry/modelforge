@@ -345,6 +345,10 @@ $dumpFiles = @(Get-ChildItem -LiteralPath $dumps -Filter '*.dmp' -File -Recurse 
 # never waits for input (run 36853323097: ".effmach x86; ..." on one -c line failed with
 # "Extra character error", the rest including "q" never ran and cdb sat until the timeout).
 # The dumps are of the 32-bit installer (WOW64); .effmach x86 makes sure cdb shows x86 frames.
+# The fault at System.dll+0x1581 (System!Store+0x4a0, NSIS 3.0.4.1's System.dll) is the byte
+# loop "mov al,[ecx+edx]; mov [edx],al; inc edx" with edi the start of the destination and ecx
+# the distance to the source (run 36857451672), so ecx+edi is the Shell's buffer and
+# ecx+edx-1 the last byte read. `!heap -p` lives in ext.dll in current debuggers.
 $cdbCommands = @(
     '.effmach x86',
     '.exr -1',
@@ -354,9 +358,11 @@ $cdbCommands = @(
     'u @eip L3',
     'lmv m System',
     '!gflag',
+    '.echo MF-SOURCE',
+    'du @ecx+@edi',
     '.echo MF-HEAP',
-    '!heap -p -a @esi',
-    '!heap -p -a @edi',
+    '!ext.heap -p -a @ecx+@edi',
+    '!ext.heap -p -a @ecx+@edx-1',
     'q'
 )
 $analysed = @{}
@@ -397,7 +403,7 @@ foreach ($dump in $dumpFiles) {
                 # together with the line of values under them.
                 foreach ($pattern in @('ExceptionCode:\s*\S+[^\r\n]*', 'Attempt to read from address \S+', 'Attempt to write to address \S+',
                         'ExceptionAddress:\s*[^\r\n]+', 'System\+0x[0-9a-f]+', '[^\r\n]*(?:ds|es):002b:[0-9a-f`]+=[^\r\n]*',
-                        'Current NtGlobalFlag contents:[^\r\n]+', 'address [0-9a-f`]+ found in[^\r\n]*',
+                        'Current NtGlobalFlag contents:[^\r\n]+', '(?m)^[0-9a-f`]{8}\s+"[A-Za-z]:\\[^"\r\n]*"', 'address [0-9a-f`]+ found in[^\r\n]*',
                         'in busy allocation[^\r\n]*\r?\n[^\r\n]+', 'HEAP_ENTRY Size[^\r\n]*\r?\n[^\r\n]+',
                         '[^\r\n]*SHGetKnownFolderPath[^\r\n]*', '[^\r\n]*CoTaskMemAlloc[^\r\n]*')) {
                     foreach ($m in [regex]::Matches($text, $pattern, 'IgnoreCase')) {
