@@ -5663,6 +5663,9 @@
   "runs.reasonOutputModified": {
     "defaultMessage": "Changed outside ModelForge: {path}"
   },
+  "runs.reasonRecordMissing": {
+    "defaultMessage": "Run record missing or unreadable: {path}"
+  },
   "runs.reasonUnreadable": {
     "defaultMessage": "Cannot be read: {path}"
   },

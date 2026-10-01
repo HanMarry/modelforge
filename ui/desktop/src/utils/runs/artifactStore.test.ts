@@ -209,6 +209,135 @@ describe('Artifact store', () => {
     ).toEqual(finished);
   });
 
+  /** A Project with the code and data of a run that has not started yet. */
+  async function emptyRunProject(): Promise<string> {
+    const root = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'modelforge-run-')));
+    tempDirs.push(root);
+    await writeFiles(root, { 'data/in.csv': INPUT_TEXT, 'code/q1.py': CODE_TEXT });
+    await fs.mkdir(path.join(root, '.modelforge'));
+    return root;
+  }
+
+  const recordMissing = { kind: 'record-missing', path: RECORD_PATH };
+
+  it('keeps a live run 执行中 and ends it when its record cannot be read', async () => {
+    const root = await emptyRunProject();
+    const artifacts = store();
+    await artifacts.runStarted({
+      workingDir: root,
+      runId: RUN_ID,
+      declaredOutputs: [OUT],
+      toolCallId: 'call-1',
+    });
+
+    // Passes while the run goes on leave it alone.
+    expect(getArtifactEntry(await artifacts.checkStale(root), OUT)?.status).toBe('执行中');
+
+    await writeFiles(root, { [OUT]: OUTPUT_TEXT, [RECORD_PATH]: '{ "schemaVersion": 1,' });
+    const finished = await artifacts.runFinished({
+      workingDir: root,
+      runId: RUN_ID,
+      recordPath: RECORD_PATH,
+      toolCallId: 'call-1',
+    });
+    expect(getArtifactEntry(finished, OUT)).toMatchObject({
+      status: '已过期',
+      runId: RUN_ID,
+      staleReasons: [recordMissing],
+    });
+
+    // Once the record is repaired, the next pass applies it.
+    await writeFiles(root, { [RECORD_PATH]: serializeRunRecord(runRecord()) });
+    expect(getArtifactEntry(await artifacts.checkStale(root), OUT)).toMatchObject({
+      status: '已生成',
+      runId: RUN_ID,
+      staleReasons: [],
+    });
+  });
+
+  it('ends a run whose record was written under another suffix', async () => {
+    const root = await emptyRunProject();
+    const renamed = `${RUN_ID.slice(0, 18)}-zzzzzz`;
+    const renamedPath = `.modelforge/runs/${renamed}.json`;
+    const artifacts = store();
+    await artifacts.runStarted({
+      workingDir: root,
+      runId: RUN_ID,
+      declaredOutputs: [OUT, 'results/never.csv'],
+      toolCallId: 'call-2',
+    });
+
+    await writeFiles(root, {
+      [OUT]: OUTPUT_TEXT,
+      [renamedPath]: serializeRunRecord(runRecord({ runId: renamed })),
+    });
+    const finished = await artifacts.runFinished({
+      workingDir: root,
+      runId: renamed,
+      recordPath: renamedPath,
+      toolCallId: 'call-2',
+    });
+
+    expect(getArtifactEntry(finished, OUT)).toMatchObject({ status: '已生成', runId: renamed });
+    expect(getArtifactEntry(finished, 'results/never.csv')).toMatchObject({
+      status: '未开始',
+      runId: null,
+    });
+  });
+
+  it('ends a run that left no record once its tool call is over', async () => {
+    const root = await emptyRunProject();
+    const artifacts = store();
+    await artifacts.runStarted({ workingDir: root, runId: RUN_ID, declaredOutputs: [OUT] });
+
+    // The renderer reports the end of the tool call as the end of the run it started.
+    const ended = await artifacts.runFinished({
+      workingDir: root,
+      runId: RUN_ID,
+      recordPath: RECORD_PATH,
+    });
+
+    expect(getArtifactEntry(ended, OUT)).toMatchObject({
+      status: '已过期',
+      staleReasons: [recordMissing],
+    });
+  });
+
+  it('ends on opening what an earlier session left 执行中', async () => {
+    const root = await emptyRunProject();
+    const before = store();
+    await before.runStarted({ workingDir: root, runId: RUN_ID, declaredOutputs: [OUT] });
+    before.close();
+
+    // A restart: the kernel that ran it is gone, and no record was written.
+    const index = await store().getIndex(root);
+
+    expect(getArtifactEntry(index, OUT)).toMatchObject({
+      status: '已过期',
+      runId: RUN_ID,
+      staleReasons: [recordMissing],
+    });
+  });
+
+  it('outdates the Artifacts of a resumed step whose record is missing', async () => {
+    const root = await project();
+    const artifacts = store();
+    expect(getArtifactEntry(await artifacts.getIndex(root), OUT)?.status).toBe('已生成');
+    await fs.rm(path.join(root, ...RECORD_PATH.split('/')));
+
+    const index = await artifacts.markResumeStale(root, { id: 'fit', runIds: [RUN_ID] }, [
+      { kind: 'record-missing', runId: RUN_ID },
+    ]);
+
+    expect(getArtifactEntry(index, OUT)).toMatchObject({
+      status: '已过期',
+      runId: RUN_ID,
+      staleReasons: [recordMissing],
+    });
+    // Saved, so the panel shows it after a restart too.
+    expect(getArtifactEntry(await store().getIndex(root), OUT)?.status).toBe('已过期');
+  });
+
   it('refuses malformed requests', async () => {
     const root = await project();
     const artifacts = store();

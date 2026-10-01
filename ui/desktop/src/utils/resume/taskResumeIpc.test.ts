@@ -267,6 +267,37 @@ describe('task resume IPC', () => {
     ]);
   });
 
+  it('marks the Artifacts of the step it resumes from out of date (22.5)', async () => {
+    const root = await project();
+    await fs.rm(path.join(root, '.modelforge', 'runs', `${RUN_CLEAN}.json`));
+    const markResumeStale = vi.fn().mockResolvedValue(undefined);
+    const handle = vi.fn();
+    registerTaskResumeIpc({ handle }, deps, { markResumeStale });
+    const listener = handle.mock.calls.find(
+      ([channel]) => channel === 'task-resume-continue'
+    )?.[1] as Listener;
+    const missing = [{ kind: 'record-missing', runId: RUN_CLEAN }];
+
+    const result = await listener({}, { projectDir: root, taskId: TASK_ID });
+
+    expect(result).toEqual({
+      ok: true,
+      data: { skip: [], resumeFrom: 'clean', staleReasons: missing },
+    });
+    expect(markResumeStale).toHaveBeenCalledExactlyOnceWith(
+      root,
+      { id: 'clean', title: '数据清洗', runIds: [RUN_CLEAN] },
+      missing
+    );
+
+    // Marking them is best effort: the renderer still gets the plan.
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    markResumeStale.mockRejectedValueOnce(new Error('disk full'));
+    expect(await listener({}, { projectDir: root, taskId: TASK_ID })).toMatchObject({ ok: true });
+    expect(warn).toHaveBeenCalledOnce();
+    warn.mockRestore();
+  });
+
   it('dismisses a task by setting only its flag', async () => {
     const root = await project();
 

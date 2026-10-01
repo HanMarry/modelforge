@@ -5663,6 +5663,9 @@
   "runs.reasonOutputModified": {
     "defaultMessage": "於 ModelForge 之外被修改：{path}"
   },
+  "runs.reasonRecordMissing": {
+    "defaultMessage": "執行記錄缺少或無法讀取：{path}"
+  },
   "runs.reasonUnreadable": {
     "defaultMessage": "無法讀取：{path}"
   },

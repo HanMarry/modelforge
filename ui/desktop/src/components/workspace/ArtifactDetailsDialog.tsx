@@ -36,6 +36,10 @@ const messages = defineMessages({
   },
   reasonMissing: { id: 'runs.reasonMissing', defaultMessage: 'Missing: {path}' },
   reasonUnreadable: { id: 'runs.reasonUnreadable', defaultMessage: 'Cannot be read: {path}' },
+  reasonRecordMissing: {
+    id: 'runs.reasonRecordMissing',
+    defaultMessage: 'Run record missing or unreadable: {path}',
+  },
   runId: { id: 'runs.runId', defaultMessage: 'Run ID' },
   command: { id: 'runs.command', defaultMessage: 'Command' },
   exitCode: { id: 'runs.exitCode', defaultMessage: 'Exit code' },
@@ -91,6 +95,7 @@ const REASON_MESSAGES: Record<StaleReasonKind, MessageDescriptor> = {
   'output-modified': messages.reasonOutputModified,
   missing: messages.reasonMissing,
   unreadable: messages.reasonUnreadable,
+  'record-missing': messages.reasonRecordMissing,
 };
 
 const FILE_STATE_MESSAGES: Record<ArtifactFileState, MessageDescriptor> = {

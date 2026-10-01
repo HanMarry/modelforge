@@ -205,8 +205,8 @@ export default function TaskResumePrompt() {
     }
     setActive({ key, phase: 'planned', plan });
     if (plan.resumeFrom !== null) {
-      // 22.5: the outputs of a step that fails the check are out of date. Artifact_Status is
-      // kept by the runs feature; its staleness check marks them 已过期 once it is available.
+      // 22.5: `task-resume-continue` has marked the Artifacts of the step resumed from 已过期;
+      // a detection pass brings the rest of the Project panel up to date as well.
       window.electron.artifactsCheckStale(task.projectDir).catch(() => undefined);
     }
   };

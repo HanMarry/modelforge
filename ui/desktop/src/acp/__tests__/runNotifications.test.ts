@@ -6,6 +6,8 @@ import type {
 import {
   handleAcpRunFinishedNotification,
   handleAcpRunStartedNotification,
+  handleRunToolCallEnded,
+  RUN_END_GRACE_MS,
   subscribeToRunFinished,
   subscribeToRunStarted,
 } from '../runNotifications';
@@ -104,14 +106,82 @@ describe('run notifications', () => {
         workingDir: '/projects/q1',
         runId: RUN_ID,
         declaredOutputs: ['results/out.csv'],
+        toolCallId: 'tool-1',
       });
       expect(artifactsRunFinished).toHaveBeenCalledExactlyOnceWith({
         workingDir: '/projects/q1',
         runId: RUN_ID,
         recordPath: `.modelforge/runs/${RUN_ID}.json`,
+        toolCallId: 'tool-1',
       });
       // The refusal is logged; the rescan of the Project catches up later.
       expect(warn).toHaveBeenCalledOnce();
+    });
+
+    describe('when the tool call that started a run ends', () => {
+      const ok = { ok: true, data: { schemaVersion: 1, entries: {} } };
+
+      afterEach(() => {
+        vi.useRealTimers();
+      });
+
+      function mainProcessWith() {
+        const artifactsRunStarted = vi.fn().mockResolvedValue(ok);
+        const artifactsRunFinished = vi.fn().mockResolvedValue(ok);
+        window.electron = { ...original, artifactsRunStarted, artifactsRunFinished };
+        return artifactsRunFinished;
+      }
+
+      it('tells the main process the run is over when no runs/finished follows', async () => {
+        vi.useFakeTimers();
+        const artifactsRunFinished = mainProcessWith();
+        await handleAcpRunStartedNotification({ ...started, toolCallId: 'tool-no-record' });
+
+        handleRunToolCallEnded('session-1', 'tool-no-record');
+        await vi.advanceTimersByTimeAsync(RUN_END_GRACE_MS - 1);
+        expect(artifactsRunFinished).not.toHaveBeenCalled();
+        await vi.advanceTimersByTimeAsync(1);
+
+        expect(artifactsRunFinished).toHaveBeenCalledExactlyOnceWith({
+          workingDir: '/projects/q1',
+          runId: RUN_ID,
+          recordPath: `.modelforge/runs/${RUN_ID}.json`,
+          toolCallId: 'tool-no-record',
+        });
+        // Once is enough.
+        handleRunToolCallEnded('session-1', 'tool-no-record');
+        await vi.advanceTimersByTimeAsync(RUN_END_GRACE_MS);
+        expect(artifactsRunFinished).toHaveBeenCalledOnce();
+      });
+
+      it('lets the runs/finished that follows end the run instead', async () => {
+        vi.useFakeTimers();
+        const artifactsRunFinished = mainProcessWith();
+        const toolCallId = 'tool-with-record';
+        await handleAcpRunStartedNotification({ ...started, toolCallId });
+
+        handleRunToolCallEnded('session-1', toolCallId);
+        await handleAcpRunFinishedNotification({ ...finished, toolCallId });
+        await vi.advanceTimersByTimeAsync(RUN_END_GRACE_MS);
+
+        expect(artifactsRunFinished).toHaveBeenCalledExactlyOnceWith({
+          workingDir: '/projects/q1',
+          runId: RUN_ID,
+          recordPath: `.modelforge/runs/${RUN_ID}.json`,
+          toolCallId,
+        });
+      });
+
+      it('ignores tool calls that started no run', async () => {
+        vi.useFakeTimers();
+        const artifactsRunFinished = mainProcessWith();
+
+        handleRunToolCallEnded('session-1', 'tool-without-run');
+        handleRunToolCallEnded('session-2', 'tool-no-record');
+        await vi.advanceTimersByTimeAsync(RUN_END_GRACE_MS);
+
+        expect(artifactsRunFinished).not.toHaveBeenCalled();
+      });
     });
 
     it('still notifies the listeners when the main process cannot be reached', async () => {

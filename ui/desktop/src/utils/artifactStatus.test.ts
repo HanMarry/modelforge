@@ -15,19 +15,25 @@ import type {
   RunRecord,
   RunRecordMap,
 } from '../types/runRecord';
+import type { ResumeStep, StepStaleReason } from '../types/taskPlan';
 import {
+  applyResumeStaleness,
+  applyRunEnded,
   applyRunFinished,
   applyRunStarted,
   ARTIFACT_STATUSES,
+  awaitsRunRecord,
   detectStaleness,
   emptyArtifactIndex,
   findStaleReasons,
   getArtifactEntry,
   isArtifactStatus,
   markVerified,
+  runRecordPath,
   STALE_REASON_KINDS,
 } from './artifactStatus';
 import { FILE_HASH_MISSING, FILE_HASH_UNREADABLE, RUN_FAILURES } from './runRecord';
+import { applyNewRuns, settleEndedRuns } from './runs/artifactSync';
 
 // --- fixtures and generators -----------------------------------------------------------------
 
@@ -97,6 +103,29 @@ const indexArb: fc.Arbitrary<ArtifactIndex> = fc
       pairs.map(([path, fields]): [string, ArtifactEntry] => [path, { path, ...fields }])
     ),
   }));
+
+const anyRunIdArb = fc.constantFrom(...RUN_IDS, ORPHAN_RUN_ID);
+
+/**
+ * Like `indexArb`, with some entries outdated because the record of their run was missing, which
+ * wait for that record (`awaitsRunRecord`).
+ */
+const indexWithAwaitingArb: fc.Arbitrary<ArtifactIndex> = fc
+  .tuple(indexArb, fc.array(fc.tuple(pathArb, anyRunIdArb), { maxLength: 3 }))
+  .map(([index, awaiting]) => {
+    const entries = { ...index.entries };
+    for (const [path, runId] of awaiting) {
+      entries[path] = {
+        path,
+        status: '已过期',
+        runId,
+        failure: null,
+        verification: null,
+        staleReasons: [{ kind: 'record-missing', path: runRecordPath(runId) }],
+      };
+    }
+    return { ...index, entries };
+  });
 
 const recordedHashArb = fc.oneof(
   { weight: 4, arbitrary: fc.constant(HASH_CURRENT) },
@@ -431,6 +460,104 @@ describe('Artifact_Status transitions', () => {
       { kind: 'missing', path: '__proto__' },
     ]);
   });
+
+  it('ends a run that left no record, and applies the record if it turns up after all', () => {
+    const table = 'results/q1.csv';
+    const started = applyRunStarted(emptyArtifactIndex(), RUN_IDS[0], [figure, table]);
+
+    const ended = applyRunEnded(started, RUN_IDS[0], null);
+    expect(getArtifactEntry(ended, figure)).toStrictEqual({
+      path: figure,
+      status: '已过期',
+      runId: RUN_IDS[0],
+      failure: null,
+      verification: null,
+      staleReasons: [{ kind: 'record-missing', path: `.modelforge/runs/${RUN_IDS[0]}.json` }],
+    });
+    expect(applyRunEnded(ended, RUN_IDS[0], null)).toBe(ended);
+
+    const late = makeRun({ ...baseRun, outputs: [{ path: figure, sha256: HASH_CURRENT }] });
+    const applied = applyNewRuns(ended, [late]);
+    expect(getArtifactEntry(applied, figure)?.status).toBe('已生成');
+    expect(getArtifactEntry(applied, table)?.status).toBe('未开始');
+  });
+
+  it('settles a run whose record got a new suffix and keeps a live run 执行中', () => {
+    const table = 'results/q1.csv';
+    const renamed = `${RUN_IDS[0].slice(0, 18)}-zzzzzz`;
+    const record = makeRun({
+      ...baseRun,
+      runId: renamed,
+      outputs: [{ path: figure, sha256: HASH_CURRENT }],
+    });
+    const runs = toRunMap([record]);
+    const pending = applyNewRuns(
+      applyRunStarted(emptyArtifactIndex(), RUN_IDS[0], [figure, table]),
+      [record]
+    );
+
+    expect(settleEndedRuns(pending, runs, (runId) => runId === RUN_IDS[0])).toBe(pending);
+    const settled = settleEndedRuns(pending, runs, () => false);
+    expect(getArtifactEntry(settled, figure)).toMatchObject({ status: '已生成', runId: renamed });
+    expect(getArtifactEntry(settled, table)).toMatchObject({ status: '未开始', runId: null });
+  });
+
+  it('outdates the Artifacts of a resumed step with why the step failed the check', () => {
+    const generated = makeRun({ ...baseRun, outputs: [{ path: figure, sha256: HASH_CURRENT }] });
+    const state = applyRunFinished(emptyArtifactIndex(), generated);
+    const step = { id: 'plot', runIds: [RUN_IDS[0]] };
+
+    // 记录缺失
+    const missing: StepStaleReason[] = [{ kind: 'record-missing', runId: RUN_IDS[0] }];
+    const outdated = applyResumeStaleness(state, step, missing);
+    expect(getArtifactEntry(outdated, figure)).toStrictEqual({
+      path: figure,
+      status: '已过期',
+      runId: RUN_IDS[0],
+      failure: null,
+      verification: null,
+      staleReasons: [{ kind: 'record-missing', path: `.modelforge/runs/${RUN_IDS[0]}.json` }],
+    });
+    expect(applyResumeStaleness(outdated, step, missing)).toBe(outdated);
+
+    // 哈希不一致, 文件缺失
+    const changed = applyResumeStaleness(state, step, [
+      {
+        kind: 'hash-mismatch',
+        runId: RUN_IDS[0],
+        role: 'input',
+        path: data,
+        expected: HASH_CURRENT,
+        actual: HASH_OTHER,
+      },
+      {
+        kind: 'hash-mismatch',
+        runId: RUN_IDS[0],
+        role: 'code',
+        path: code,
+        expected: HASH_CURRENT,
+        actual: FILE_HASH_UNREADABLE,
+      },
+      { kind: 'file-missing', runId: RUN_IDS[0], role: 'output', path: figure },
+    ]);
+    expect(getArtifactEntry(changed, figure)?.staleReasons).toStrictEqual([
+      { kind: 'input-changed', path: data },
+      { kind: 'unreadable', path: code },
+      { kind: 'missing', path: figure },
+    ]);
+
+    // A failed run stays 执行失败, a truncated record still backs its Artifacts, and an
+    // Artifact of another step is not touched.
+    expect(
+      applyResumeStaleness(state, step, [
+        { kind: 'run-failed', runId: RUN_IDS[0], exitCode: 1, failure: '非零退出码' },
+        { kind: 'record-truncated', runId: RUN_IDS[0], role: 'output' },
+      ])
+    ).toBe(state);
+    expect(applyResumeStaleness(state, { id: 'other', runIds: [RUN_IDS[1]] }, missing)).toBe(
+      state
+    );
+  });
 });
 
 // --- properties ------------------------------------------------------------------------------
@@ -439,15 +566,22 @@ describe('Artifact_Status transitions', () => {
 describe('Property 39: 执行结束的状态转换', () => {
   it('generates the outputs of a successful run and fails every Artifact of a failed one', () => {
     fc.assert(
-      fc.property(indexArb, runArb, (state, run) => {
+      fc.property(indexWithAwaitingArb, runArb, (state, run) => {
         const before = cloneIndex(state);
         const next = applyRunFinished(deepFreeze(state), deepFreeze(run));
         expect(state).toStrictEqual(before);
 
         const outputs = new Set(run.outputs.map((file) => file.path));
+        // 执行中 for this run, or outdated because its record was missing.
         const pending = Object.keys(state.entries).filter(
           (path) =>
-            state.entries[path].status === '执行中' && state.entries[path].runId === run.runId
+            state.entries[path].runId === run.runId &&
+            (state.entries[path].status === '执行中' ||
+              (state.entries[path].status === '已过期' &&
+                state.entries[path].staleReasons.some(
+                  (reason) =>
+                    reason.kind === 'record-missing' && reason.path === runRecordPath(run.runId)
+                )))
         );
         const related = new Set([...outputs, ...pending]);
         expect(Object.keys(next.entries).sort()).toEqual(
@@ -492,6 +626,248 @@ describe('Property 39: 执行结束的状态转换', () => {
           }
         }
       }),
+      pbtParams
+    );
+  });
+
+  it('ends every 执行中 entry of a run that is over as the record it left says', () => {
+    fc.assert(
+      fc.property(
+        indexWithAwaitingArb,
+        anyRunIdArb,
+        fc.option(runArb, { nil: null }),
+        (state, runId, record) => {
+          const before = cloneIndex(state);
+          const next = applyRunEnded(
+            deepFreeze(state),
+            runId,
+            record === null ? null : deepFreeze(record)
+          );
+          expect(state).toStrictEqual(before);
+          expect(Object.keys(next.entries)).toEqual(Object.keys(state.entries));
+
+          for (const path of Object.keys(state.entries)) {
+            const entry = state.entries[path];
+            const after = next.entries[path];
+            if (entry.status !== '执行中' || entry.runId !== runId) {
+              expect(after).toBe(entry);
+            } else if (record === null) {
+              // Nothing traces what the run wrote; the record still applies if it turns up.
+              expect(after).toStrictEqual({
+                path,
+                status: '已过期',
+                runId,
+                failure: null,
+                verification: null,
+                staleReasons: [{ kind: 'record-missing', path: runRecordPath(runId) }],
+              });
+              expect(awaitsRunRecord(after)).toBe(true);
+            } else if (record.exitCode === 0) {
+              const written = record.outputs.some((file) => file.path === path);
+              expect(after).toStrictEqual({
+                path,
+                status: written ? '已生成' : '未开始',
+                runId: written ? record.runId : null,
+                failure: null,
+                verification: null,
+                staleReasons: [],
+              });
+            } else {
+              expect(after).toStrictEqual({
+                path,
+                status: '执行失败',
+                runId: record.runId,
+                failure: record.failure ?? '非零退出码',
+                verification: null,
+                staleReasons: [],
+              });
+            }
+          }
+        }
+      ),
+      pbtParams
+    );
+  });
+
+  it('leaves no entry 执行中 after its run is over, and settling twice changes nothing', () => {
+    fc.assert(
+      fc.property(
+        indexWithAwaitingArb,
+        runsArb,
+        fc.subarray([...RUN_IDS, ORPHAN_RUN_ID]),
+        (state, runs, live) => {
+          const isLive = (runId: string) => live.includes(runId);
+          const before = cloneIndex(state);
+          const next = settleEndedRuns(deepFreeze(state), deepFreeze(runs), isLive);
+          expect(state).toStrictEqual(before);
+
+          for (const path of Object.keys(state.entries)) {
+            const entry = state.entries[path];
+            const after = next.entries[path];
+            if (entry.status !== '执行中' || (entry.runId !== null && isLive(entry.runId))) {
+              expect(after).toBe(entry);
+            } else if (entry.runId === null) {
+              expect(after).toStrictEqual({
+                path,
+                status: '未开始',
+                runId: null,
+                failure: null,
+                verification: null,
+                staleReasons: [],
+              });
+            } else {
+              // The run ids of the pool start at different times, so a run left its own record
+              // or none.
+              const record = runs.get(entry.runId) ?? null;
+              expect(after).toStrictEqual(
+                applyRunEnded(state, entry.runId, record).entries[path]
+              );
+              expect(after.status).not.toBe('执行中');
+            }
+          }
+          expect(settleEndedRuns(next, runs, isLive)).toStrictEqual(next);
+        }
+      ),
+      pbtParams
+    );
+  });
+});
+
+/** A step's reason as an Artifact shows it, written from the rules of `applyResumeStaleness`. */
+function expectedResumeReason(reason: StepStaleReason): StaleReason | null {
+  switch (reason.kind) {
+    case 'record-missing':
+      return reason.runId === null
+        ? null
+        : { kind: 'record-missing', path: runRecordPath(reason.runId) };
+    case 'hash-mismatch': {
+      const byRole = {
+        input: 'input-changed',
+        code: 'code-changed',
+        output: 'output-modified',
+      } as const;
+      return {
+        kind: reason.actual === FILE_HASH_UNREADABLE ? 'unreadable' : byRole[reason.role],
+        path: reason.path,
+      };
+    }
+    case 'file-missing':
+      return { kind: 'missing', path: reason.path };
+    default:
+      return null;
+  }
+}
+
+function uniqueReasons(reasons: readonly StaleReason[]): StaleReason[] {
+  return reasons.filter(
+    (reason, index) =>
+      reasons.findIndex((other) => other.kind === reason.kind && other.path === reason.path) ===
+      index
+  );
+}
+
+const roleArb = fc.constantFrom('input' as const, 'code' as const, 'output' as const);
+
+const stepReasonArb: fc.Arbitrary<StepStaleReason> = fc.oneof(
+  fc.record(
+    { kind: fc.constant('record-missing' as const), runId: fc.option(anyRunIdArb, { nil: null }) },
+    plain
+  ),
+  fc.record(
+    {
+      kind: fc.constant('record-truncated' as const),
+      runId: anyRunIdArb,
+      role: fc.constantFrom('input' as const, 'output' as const),
+    },
+    plain
+  ),
+  fc.record(
+    {
+      kind: fc.constant('run-failed' as const),
+      runId: anyRunIdArb,
+      exitCode: fc.constantFrom(1, null),
+      failure: fc.constantFrom(...FAILURES),
+    },
+    plain
+  ),
+  fc.record(
+    {
+      kind: fc.constant('hash-mismatch' as const),
+      runId: anyRunIdArb,
+      role: roleArb,
+      path: pathArb,
+      expected: fc.constant(HASH_OLD),
+      actual: fc.constantFrom(HASH_CURRENT, FILE_HASH_UNREADABLE),
+    },
+    plain
+  ),
+  fc.record(
+    { kind: fc.constant('file-missing' as const), runId: anyRunIdArb, role: roleArb, path: pathArb },
+    plain
+  )
+);
+
+const stepArb: fc.Arbitrary<ResumeStep> = fc.record(
+  { id: fc.constant('solve'), runIds: fc.subarray([...RUN_IDS, ORPHAN_RUN_ID]) },
+  plain
+);
+
+const RESUMED_STATUSES: readonly string[] = ['已生成', '已验证', '已过期', '执行中'];
+
+// Feature: mathmodel-parity-and-beyond, Property 50: 中断恢复跳过规则
+// The Artifact half of requirement 22.5: the step resumed from is incomplete, so its Artifacts
+// are out of date for the reasons `planResume` gave.
+describe('Property 50: 中断恢复跳过规则', () => {
+  it('outdates the Artifacts of the step resumed from with the reasons of their runs', () => {
+    fc.assert(
+      fc.property(
+        indexWithAwaitingArb,
+        stepArb,
+        fc.array(stepReasonArb, { maxLength: 5 }),
+        (state, step, reasons) => {
+          const before = cloneIndex(state);
+          const next = applyResumeStaleness(deepFreeze(state), step, reasons);
+          expect(state).toStrictEqual(before);
+          expect(Object.keys(next.entries)).toEqual(Object.keys(state.entries));
+
+          const mapped = reasons.flatMap((reason) => {
+            const stale = expectedResumeReason(reason);
+            return stale === null || reason.runId === null ? [] : [{ runId: reason.runId, stale }];
+          });
+          const all = uniqueReasons(mapped.map(({ stale }) => stale));
+          for (const path of Object.keys(state.entries)) {
+            const entry = state.entries[path];
+            const after = next.entries[path];
+            const linked =
+              entry.runId !== null &&
+              step.runIds.includes(entry.runId) &&
+              RESUMED_STATUSES.includes(entry.status);
+            if (!linked || all.length === 0) {
+              expect(after).toStrictEqual(entry);
+              continue;
+            }
+            const own = uniqueReasons(
+              mapped.filter(({ runId }) => runId === entry.runId).map(({ stale }) => stale)
+            );
+            const kept = entry.status === '已过期' ? entry.staleReasons : [];
+            const added = (own.length > 0 ? own : all).filter(
+              (reason) =>
+                !kept.some((known) => known.kind === reason.kind && known.path === reason.path)
+            );
+            if (entry.status === '已过期' && added.length === 0) {
+              expect(after).toStrictEqual(entry);
+            } else {
+              expect(after).toStrictEqual({
+                ...entry,
+                status: '已过期',
+                failure: null,
+                staleReasons: [...kept, ...added],
+              });
+            }
+          }
+          expect(applyResumeStaleness(next, step, reasons)).toStrictEqual(next);
+        }
+      ),
       pbtParams
     );
   });
