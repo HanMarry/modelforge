@@ -56,12 +56,14 @@ jobs:
       fail-fast: false
       matrix:
         mode: [full, acp]
-    env:
-      DIAG_DIR: ${{ runner.temp }}/diag
-      DIAG_TEST_LOG: ${{ runner.temp }}/diag/test-output.log
     steps:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: Locate the evidence directory
+        run: |
+          echo "DIAG_DIR=$RUNNER_TEMP/diag" >> "$GITHUB_ENV"
+          echo "DIAG_TEST_LOG=$RUNNER_TEMP/diag/test-output.log" >> "$GITHUB_ENV"
 
       - uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659 # v1.17.0
 
