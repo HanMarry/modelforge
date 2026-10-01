@@ -88,7 +88,7 @@ import {
 } from './connectors/feishu/feishuIpc';
 import { createFeishuController } from './connectors/feishu/feishuSdkAdapter';
 import { openPinnedAcpStream } from './connectors/feishu/feishuAcpTransport';
-import { writeFileAtomic } from './utils/atomicWrite';
+import { writeFileAtomic, writeFileAtomicSync } from './utils/atomicWrite';
 import type { FeatureIpcDeps } from './utils/featureIpc';
 import { registerRunsIpc } from './utils/runs/runsIpc';
 import { sharedArtifactStore } from './utils/runs/artifactStore';
@@ -519,7 +519,16 @@ function getSettings(): Settings {
 function updateSettings(modifier: (settings: Settings) => void): void {
   const settings = getSettings();
   modifier(settings);
-  fsSync.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
+  writeSettingsFile(settings);
+}
+
+/**
+ * Atomic, because the main process also rewrites settings.json in the background (the Feishu
+ * connector's chat sessions and undelivered marks): a torn file reads back as the defaults,
+ * and the next write would then drop every other setting.
+ */
+function writeSettingsFile(settings: Settings): void {
+  writeFileAtomicSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
 }
 
 function getConfiguredGooseLocale(): string | undefined {
@@ -2281,7 +2290,7 @@ ipcMain.handle('set-setting', (_event, key: SettingKey, value: unknown) => {
   const settings = getSettings();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (settings as any)[key] = value;
-  fsSync.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
+  writeSettingsFile(settings);
 
   if (key === 'language') {
     appConfig.GOOSE_LOCALE = getConfiguredGooseLocale();
