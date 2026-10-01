@@ -1,6 +1,7 @@
 import type { RequestPermissionRequest, RequestPermissionResponse } from '@agentclientprotocol/sdk';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  answerAcpPermissionRequestsWith,
   cancelAcpPermissionRequestsForSession,
   requestAcpPermission,
   resolveAcpPermissionRequest,
@@ -176,5 +177,44 @@ describe('ACP permission requests', () => {
       true
     );
     await expect(secondResponse).resolves.toMatchObject({ outcome: { outcome: 'selected' } });
+  });
+
+  it('answers the requests of a session automatically while the answer is registered', async () => {
+    const release = answerAcpPermissionRequestsWith('session-1', 'deny_once');
+    try {
+      // Refused for this one call, without asking anyone; the model carries on.
+      await expect(
+        requestAcpPermission(permissionRequest('session-1', 'tool-1'))
+      ).resolves.toEqual({
+        outcome: { outcome: 'selected', optionId: 'reject-once' },
+      });
+      expect(acpChatSessionActions.applyPermissionRequest).not.toHaveBeenCalled();
+
+      // Other sessions still ask the user.
+      const otherSession = requestAcpPermission(permissionRequest('session-2', 'tool-1'));
+      await expectStillPending(otherSession);
+    } finally {
+      release();
+    }
+
+    const afterRelease = requestAcpPermission(permissionRequest('session-1', 'tool-2'));
+    await expectStillPending(afterRelease);
+    expect(acpChatSessionActions.applyPermissionRequest).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps a newer automatic answer when an older one is released', async () => {
+    const releaseOlder = answerAcpPermissionRequestsWith('session-1', 'allow_once');
+    const releaseNewer = answerAcpPermissionRequestsWith('session-1', 'deny_once');
+    try {
+      releaseOlder();
+
+      await expect(
+        requestAcpPermission(permissionRequest('session-1', 'tool-1'))
+      ).resolves.toEqual({
+        outcome: { outcome: 'selected', optionId: 'reject-once' },
+      });
+    } finally {
+      releaseNewer();
+    }
   });
 });

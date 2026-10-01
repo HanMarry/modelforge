@@ -1148,6 +1148,30 @@
   "createSubRecipeInline.validationMsg": {
     "defaultMessage": "नाम, शीर्षक, रेसिपी विवरण और निर्देश आवश्यक हैं।"
   },
+  "credentialMigrationNotice.failure": {
+    "defaultMessage": "{owner} {name}: the {step} step failed"
+  },
+  "credentialMigrationNotice.ownerExtension": {
+    "defaultMessage": "Extension"
+  },
+  "credentialMigrationNotice.ownerProvider": {
+    "defaultMessage": "Provider"
+  },
+  "credentialMigrationNotice.retry": {
+    "defaultMessage": "Their configuration was left unchanged. The migration is retried automatically on the next start."
+  },
+  "credentialMigrationNotice.stepReplace": {
+    "defaultMessage": "replace"
+  },
+  "credentialMigrationNotice.stepVerify": {
+    "defaultMessage": "verify"
+  },
+  "credentialMigrationNotice.stepWrite": {
+    "defaultMessage": "write"
+  },
+  "credentialMigrationNotice.title": {
+    "defaultMessage": "Some plaintext request headers could not be moved to the credential store"
+  },
   "credentialStorageStatus.checkAgain": {
     "defaultMessage": "Check again"
   },
@@ -2051,6 +2075,12 @@
   "extensionModal.removeExtension": {
     "defaultMessage": "एक्सटेंशन हटाएँ"
   },
+  "extensionModal.saveFailed": {
+    "defaultMessage": "{name} को सहेजा नहीं जा सका: {reason}। आपकी प्रविष्टियाँ बनी हुई हैं, इसलिए आप फिर से कोशिश कर सकते हैं।"
+  },
+  "extensionModal.unknownError": {
+    "defaultMessage": "अज्ञात त्रुटि"
+  },
   "extensionModal.unsavedChangesMessage": {
     "defaultMessage": "आपके पास एक्सटेंशन कॉन्फ़िगरेशन में सहेजे नहीं गए परिवर्तन हैं. क्या आप वाकई बिना सहेजे बंद करना चाहते हैं?"
   },
@@ -2363,11 +2393,29 @@
   "headersSection.headersDescription": {
     "defaultMessage": "MCP सर्वर के अनुरोधों में शामिल करने के लिए कस्टम HTTP हेडर जोड़ें। दोनों फ़ील्ड भरने के बाद जोड़ने के लिए \"+\" बटन पर क्लिक करें।"
   },
+  "headersSection.markNewSensitive": {
+    "defaultMessage": "नए हेडर को संवेदनशील के रूप में चिह्नित करें"
+  },
+  "headersSection.markSensitive": {
+    "defaultMessage": "{name} को संवेदनशील के रूप में चिह्नित करें"
+  },
   "headersSection.noSpaces": {
     "defaultMessage": "हेडर नाम में रिक्त स्थान नहीं हो सकते"
   },
+  "headersSection.reenterSavedValues": {
+    "defaultMessage": "सहेजे गए मान एक्सटेंशन के नाम से जुड़े होते हैं। नाम बदलने के बाद इन्हें फिर से दर्ज करें: {names}"
+  },
   "headersSection.requestHeaders": {
     "defaultMessage": "शीर्षलेखों का अनुरोध करें"
+  },
+  "headersSection.savedValueLabel": {
+    "defaultMessage": "{name} का सहेजा गया मान छिपा हुआ है। इसे बदलने के लिए नया मान टाइप करें।"
+  },
+  "headersSection.sensitive": {
+    "defaultMessage": "संवेदनशील"
+  },
+  "headersSection.sensitiveHint": {
+    "defaultMessage": "संवेदनशील मान सिस्टम क्रेडेंशियल स्टोर में रखे जाते हैं और दोबारा नहीं दिखाए जाते। Authorization, Proxy-Authorization, X-API-Key और api-key हमेशा संवेदनशील होते हैं।"
   },
   "headersSection.value": {
     "defaultMessage": "मूल्य"
@@ -5289,7 +5337,7 @@
     "defaultMessage": "Only LaTeX (.tex), Markdown (.md) and PDF files can be reviewed."
   },
   "review.failureApproval": {
-    "defaultMessage": "The Kernel asked for a tool approval, which this panel cannot grant. Switch the permission mode to automatic or smart approval, then try again."
+    "defaultMessage": "The review stopped because the Kernel asked a question this panel cannot answer, such as a form from an extension. Tool approvals are refused automatically and do not stop the review. Try again."
   },
   "review.failureCancelled": {
     "defaultMessage": "The review was interrupted."

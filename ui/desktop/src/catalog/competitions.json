@@ -1,23 +1,23 @@
 {
-  "updatedAt": "2026-09-01",
+  "updatedAt": "2026-10-01",
   "competitions": [
     {
       "id": "cumcm",
       "name": "全国大学生数学建模竞赛",
       "organizer": "中国工业与应用数学学会",
       "website": "https://www.mcm.edu.cn/",
-      "registration": { "start": null, "end": null },
-      "contest": { "start": "2026-09-04", "end": "2026-09-07" },
+      "registration": { "start": null, "end": "2026-09-09" },
+      "contest": { "start": "2026-09-10", "end": "2026-09-13" },
       "templateIds": ["cumcm", "cumcm-latex", "cumcm-typst"],
       "exampleIds": ["cumcm-2023-a", "cumcm-2024-c"]
     },
     {
       "id": "mcm",
       "name": "美国大学生数学建模竞赛（MCM/ICM）",
-      "organizer": "COMAP",
+      "organizer": "COMAP（Consortium for Mathematics and its Applications）",
       "website": "https://www.comap.com/contests/mcm-icm",
-      "registration": { "start": "2026-01-06", "end": "2026-02-04" },
-      "contest": { "start": "2026-02-05", "end": "2026-02-09" },
+      "registration": { "start": null, "end": "2027-01-28" },
+      "contest": { "start": "2027-01-28", "end": "2027-02-01" },
       "templateIds": ["mcm"],
       "exampleIds": []
     },
@@ -27,17 +27,17 @@
       "organizer": "华数杯全国大学生数学建模竞赛组委会",
       "website": null,
       "registration": { "start": null, "end": null },
-      "contest": { "start": "2026-07-16", "end": "2026-07-19" },
+      "contest": { "start": null, "end": null },
       "templateIds": ["huashubei"],
       "exampleIds": ["huashubei-2023-c"]
     },
     {
       "id": "diangongbei",
       "name": "电工杯",
-      "organizer": "中国电工技术学会",
-      "website": null,
-      "registration": { "start": null, "end": null },
-      "contest": { "start": null, "end": null },
+      "organizer": "中国电机工程学会",
+      "website": "https://shumo.neepu.edu.cn/",
+      "registration": { "start": "2026-04-10", "end": "2026-05-20" },
+      "contest": { "start": "2026-05-22", "end": "2026-05-25" },
       "templateIds": ["diangongbei"],
       "exampleIds": []
     },
@@ -46,16 +46,16 @@
       "name": "MathorCup",
       "organizer": "中国优选法统筹法与经济数学研究会",
       "website": "https://www.mathorcup.org/",
-      "registration": { "start": null, "end": null },
-      "contest": { "start": "2026-04-15", "end": "2026-04-19" },
+      "registration": { "start": "2025-12-30", "end": "2026-04-16" },
+      "contest": { "start": "2026-04-17", "end": "2026-04-21" },
       "templateIds": ["mathorcup"],
       "exampleIds": []
     },
     {
       "id": "shenzhen",
       "name": "深圳杯",
-      "organizer": "深圳市科学技术协会",
-      "website": null,
+      "organizer": "全国大学生数学建模竞赛组委会",
+      "website": "https://www.m2ct.org/",
       "registration": { "start": null, "end": null },
       "contest": { "start": null, "end": null },
       "templateIds": [],
@@ -64,10 +64,10 @@
     {
       "id": "apmcm",
       "name": "APMCM 亚太赛",
-      "organizer": "亚太地区大学生数学建模竞赛组委会",
+      "organizer": "中国国际科技促进会物联网工作委员会、北京图象图形学学会、亚太地区大学生数学建模竞赛组委会",
       "website": "https://www.apmcm.org/",
       "registration": { "start": null, "end": null },
-      "contest": { "start": "2026-11-26", "end": "2026-11-30" },
+      "contest": { "start": null, "end": null },
       "templateIds": ["apmcm", "apmcm-en"],
       "exampleIds": []
     },
@@ -75,9 +75,9 @@
       "id": "stats",
       "name": "统计建模大赛",
       "organizer": "中国统计教育学会",
-      "website": null,
-      "registration": { "start": null, "end": null },
-      "contest": { "start": "2026-06-01", "end": "2026-06-30" },
+      "website": "http://tjjmds.ai-learning.net/",
+      "registration": { "start": null, "end": "2026-05-17" },
+      "contest": { "start": null, "end": null },
       "templateIds": ["stats"],
       "exampleIds": []
     }

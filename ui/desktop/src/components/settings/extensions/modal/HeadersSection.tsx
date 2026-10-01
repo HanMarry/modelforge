@@ -4,6 +4,11 @@ import { Plus, X } from 'lucide-react';
 import { Input } from '../../../ui/input';
 import { cn } from '../../../../utils';
 import { defineMessages, useIntl } from '../../../../i18n';
+import type { ExtensionHeaderRow } from '../utils';
+import {
+  isAuthHeaderName,
+  SAVED_VALUE_MASK,
+} from '../../providers/modal/subcomponents/forms/sensitiveHeaders';
 
 const i18n = defineMessages({
   requestHeaders: {
@@ -38,18 +43,59 @@ const i18n = defineMessages({
     id: 'headersSection.add',
     defaultMessage: 'Add',
   },
+  sensitive: {
+    id: 'headersSection.sensitive',
+    defaultMessage: 'Sensitive',
+  },
+  markSensitive: {
+    id: 'headersSection.markSensitive',
+    defaultMessage: 'Mark {name} as sensitive',
+  },
+  markNewSensitive: {
+    id: 'headersSection.markNewSensitive',
+    defaultMessage: 'Mark the new header as sensitive',
+  },
+  sensitiveHint: {
+    id: 'headersSection.sensitiveHint',
+    defaultMessage:
+      'Sensitive values are kept in the system credential store and are not shown again. Authorization, Proxy-Authorization, X-API-Key and api-key are always sensitive.',
+  },
+  savedValueLabel: {
+    id: 'headersSection.savedValueLabel',
+    defaultMessage: 'Saved value of {name} is hidden. Type a new value to replace it.',
+  },
+  reenterSavedValues: {
+    id: 'headersSection.reenterSavedValues',
+    defaultMessage:
+      'Saved values are tied to the extension name. After renaming, enter them again: {names}',
+  },
 });
 
+/** The header typed into the last row but not added yet. */
+export interface PendingHeader {
+  key: string;
+  value: string;
+  sensitive: boolean;
+}
+
 interface HeadersSectionProps {
-  headers: { key: string; value: string; isEdited?: boolean }[];
-  onAdd: (key: string, value: string) => void;
+  headers: ExtensionHeaderRow[];
+  onAdd: (key: string, value: string, sensitive: boolean) => void;
   onRemove: (index: number) => void;
   onChange: (index: number, field: 'key' | 'value', value: string) => void;
+  onSensitiveChange: (index: number, sensitive: boolean) => void;
   submitAttempted: boolean;
-  onPendingInputChange: (
-    hasPendingInput: boolean,
-    pendingHeader: { key: string; value: string } | null
-  ) => void;
+  /**
+   * Saved values are stored under the extension name, so they cannot follow a renamed
+   * extension and have to be typed again.
+   */
+  storedValuesNeedReentry?: boolean;
+  onPendingInputChange: (hasPendingInput: boolean, pendingHeader: PendingHeader | null) => void;
+}
+
+/** Auth header names are always sensitive (requirement 1.1). */
+function isRowSensitive(header: Pick<ExtensionHeaderRow, 'key' | 'sensitive'>): boolean {
+  return Boolean(header.sensitive) || isAuthHeaderName(header.key);
 }
 
 export default function HeadersSection({
@@ -57,25 +103,31 @@ export default function HeadersSection({
   onAdd,
   onRemove,
   onChange,
+  onSensitiveChange,
   submitAttempted,
+  storedValuesNeedReentry = false,
   onPendingInputChange,
 }: HeadersSectionProps) {
   const intl = useIntl();
   const [newKey, setNewKey] = React.useState('');
   const [newValue, setNewValue] = React.useState('');
+  const [newSensitive, setNewSensitive] = React.useState(false);
   const [validationError, setValidationError] = React.useState<string | null>(null);
   const [invalidFields, setInvalidFields] = React.useState<{ key: boolean; value: boolean }>({
     key: false,
     value: false,
   });
+  const newRowSensitive = newSensitive || isAuthHeaderName(newKey);
 
   // Notify parent when pending input changes
   React.useEffect(() => {
     const hasPendingInput = newKey.trim() !== '' || newValue.trim() !== '';
     const pendingHeader =
-      newKey.trim() && newValue.trim() ? { key: newKey, value: newValue } : null;
+      newKey.trim() && newValue.trim()
+        ? { key: newKey, value: newValue, sensitive: newRowSensitive }
+        : null;
     onPendingInputChange(hasPendingInput, pendingHeader);
-  }, [newKey, newValue, onPendingInputChange]);
+  }, [newKey, newValue, newRowSensitive, onPendingInputChange]);
 
   const handleAdd = () => {
     const keyEmpty = !newKey.trim();
@@ -113,9 +165,10 @@ export default function HeadersSection({
 
     setValidationError(null);
     setInvalidFields({ key: false, value: false });
-    onAdd(newKey, newValue);
+    onAdd(newKey, newValue, newRowSensitive);
     setNewKey('');
     setNewValue('');
+    setNewSensitive(false);
   };
 
   const clearValidation = () => {
@@ -123,11 +176,20 @@ export default function HeadersSection({
     setInvalidFields({ key: false, value: false });
   };
 
+  /** A saved value counts as filled in unless the extension was renamed. */
+  const keepsSavedValue = (header: ExtensionHeaderRow) =>
+    Boolean(header.storedReference) && !storedValuesNeedReentry;
+
   const isFieldInvalid = (index: number, field: 'key' | 'value') => {
     if (!submitAttempted) return false;
-    const value = headers[index][field].trim();
-    return value === '';
+    const header = headers[index];
+    if (header[field].trim() !== '') return false;
+    return field === 'key' || !keepsSavedValue(header);
   };
+
+  const headersToReenter = storedValuesNeedReentry
+    ? headers.filter((header) => header.storedReference && header.value.trim() === '')
+    : [];
 
   return (
     <div>
@@ -137,41 +199,67 @@ export default function HeadersSection({
           {intl.formatMessage(i18n.headersDescription)}
         </p>
       </div>
-      <div className="grid grid-cols-[1fr_1fr_auto] gap-2 items-center">
+      <div className="grid grid-cols-[1fr_1fr_auto_auto] gap-2 items-center">
         {/* Existing headers */}
-        {headers.map((header, index) => (
-          <React.Fragment key={index}>
-            <div className="relative">
-              <Input
-                value={header.key}
-                onChange={(e) => onChange(index, 'key', e.target.value)}
-                placeholder={intl.formatMessage(i18n.headerName)}
-                className={cn(
-                  'w-full text-text-primary border-border-primary hover:border-border-primary',
-                  isFieldInvalid(index, 'key') && 'border-red-500 focus:border-red-500'
-                )}
-              />
-            </div>
-            <div className="relative">
-              <Input
-                value={header.value}
-                onChange={(e) => onChange(index, 'value', e.target.value)}
-                placeholder={intl.formatMessage(i18n.value)}
-                className={cn(
-                  'w-full text-text-primary border-border-primary hover:border-border-primary',
-                  isFieldInvalid(index, 'value') && 'border-red-500 focus:border-red-500'
-                )}
-              />
-            </div>
-            <Button
-              onClick={() => onRemove(index)}
-              variant="ghost"
-              className="group p-2 h-auto text-iconSubtle hover:bg-transparent"
-            >
-              <X className="h-3 w-3 text-gray-400 group-hover:text-white group-hover:drop-shadow-sm transition-all" />
-            </Button>
-          </React.Fragment>
-        ))}
+        {headers.map((header, index) => {
+          const headerName = header.key.trim() || intl.formatMessage(i18n.headerName);
+          const sensitive = isRowSensitive(header);
+          // A saved sensitive value is never read back: the field stays empty and only shows
+          // the mask until a new value is typed (requirement 1.11).
+          const savedValueLabel = header.storedReference
+            ? intl.formatMessage(i18n.savedValueLabel, { name: headerName })
+            : undefined;
+          return (
+            <React.Fragment key={index}>
+              <div className="relative">
+                <Input
+                  value={header.key}
+                  onChange={(e) => onChange(index, 'key', e.target.value)}
+                  placeholder={intl.formatMessage(i18n.headerName)}
+                  className={cn(
+                    'w-full text-text-primary border-border-primary hover:border-border-primary',
+                    isFieldInvalid(index, 'key') && 'border-red-500 focus:border-red-500'
+                  )}
+                />
+              </div>
+              <div className="relative">
+                <Input
+                  type={sensitive ? 'password' : 'text'}
+                  value={header.value}
+                  onChange={(e) => onChange(index, 'value', e.target.value)}
+                  placeholder={
+                    header.storedReference ? SAVED_VALUE_MASK : intl.formatMessage(i18n.value)
+                  }
+                  aria-label={savedValueLabel}
+                  title={savedValueLabel}
+                  autoComplete="off"
+                  className={cn(
+                    'w-full text-text-primary border-border-primary hover:border-border-primary',
+                    isFieldInvalid(index, 'value') && 'border-red-500 focus:border-red-500'
+                  )}
+                />
+              </div>
+              <label className="flex items-center gap-1 text-xs text-text-secondary whitespace-nowrap">
+                <input
+                  type="checkbox"
+                  checked={sensitive}
+                  disabled={isAuthHeaderName(header.key)}
+                  onChange={(e) => onSensitiveChange(index, e.target.checked)}
+                  aria-label={intl.formatMessage(i18n.markSensitive, { name: headerName })}
+                  className="rounded border-border-primary"
+                />
+                {intl.formatMessage(i18n.sensitive)}
+              </label>
+              <Button
+                onClick={() => onRemove(index)}
+                variant="ghost"
+                className="group p-2 h-auto text-iconSubtle hover:bg-transparent"
+              >
+                <X className="h-3 w-3 text-gray-400 group-hover:text-white group-hover:drop-shadow-sm transition-all" />
+              </Button>
+            </React.Fragment>
+          );
+        })}
 
         {/* Empty row with Add button */}
         <Input
@@ -187,17 +275,30 @@ export default function HeadersSection({
           )}
         />
         <Input
+          type={newRowSensitive ? 'password' : 'text'}
           value={newValue}
           onChange={(e) => {
             setNewValue(e.target.value);
             clearValidation();
           }}
           placeholder={intl.formatMessage(i18n.value)}
+          autoComplete="off"
           className={cn(
             'w-full text-text-primary border-border-primary hover:border-border-primary',
             invalidFields.value && 'border-red-500 focus:border-red-500'
           )}
         />
+        <label className="flex items-center gap-1 text-xs text-text-secondary whitespace-nowrap">
+          <input
+            type="checkbox"
+            checked={newRowSensitive}
+            disabled={isAuthHeaderName(newKey)}
+            onChange={(e) => setNewSensitive(e.target.checked)}
+            aria-label={intl.formatMessage(i18n.markNewSensitive)}
+            className="rounded border-border-primary"
+          />
+          {intl.formatMessage(i18n.sensitive)}
+        </label>
         <Button
           onClick={handleAdd}
           variant="ghost"
@@ -206,6 +307,14 @@ export default function HeadersSection({
           <Plus /> {intl.formatMessage(i18n.add)}
         </Button>
       </div>
+      <p className="mt-2 text-xs text-text-secondary">{intl.formatMessage(i18n.sensitiveHint)}</p>
+      {headersToReenter.length > 0 && (
+        <div role="alert" className="mt-2 text-red-500 text-sm">
+          {intl.formatMessage(i18n.reenterSavedValues, {
+            names: headersToReenter.map((header) => header.key).join(', '),
+          })}
+        </div>
+      )}
       {validationError && <div className="mt-2 text-red-500 text-sm">{validationError}</div>}
     </div>
   );

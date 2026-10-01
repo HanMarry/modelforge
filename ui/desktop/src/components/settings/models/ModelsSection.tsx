@@ -10,6 +10,7 @@ import { defaultSettings, type AgentKernelSettings } from '../../../utils/settin
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
 import ResetProviderSection from '../reset_provider/ResetProviderSection';
 import CredentialStorageStatus from '../providers/CredentialStorageStatus';
+import CredentialMigrationStatus from '../providers/CredentialMigrationNotice';
 import { defineMessages, useIntl } from '../../../i18n';
 
 const i18n = defineMessages({
@@ -116,6 +117,7 @@ export default function ModelsSection({ setView }: ModelsSectionProps) {
   return (
     <section id="models" className="space-y-4 pr-4">
       <CredentialStorageStatus />
+      <CredentialMigrationStatus />
       <Card className="p-2 pb-4">
         <CardContent className="px-2">
           {isLoading ? (

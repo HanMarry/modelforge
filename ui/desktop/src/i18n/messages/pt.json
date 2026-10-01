@@ -1148,6 +1148,30 @@
   "createSubRecipeInline.validationMsg": {
     "defaultMessage": "O nome, o título, a descrição da receita e as instruções são obrigatórios."
   },
+  "credentialMigrationNotice.failure": {
+    "defaultMessage": "{owner} {name}: the {step} step failed"
+  },
+  "credentialMigrationNotice.ownerExtension": {
+    "defaultMessage": "Extension"
+  },
+  "credentialMigrationNotice.ownerProvider": {
+    "defaultMessage": "Provider"
+  },
+  "credentialMigrationNotice.retry": {
+    "defaultMessage": "Their configuration was left unchanged. The migration is retried automatically on the next start."
+  },
+  "credentialMigrationNotice.stepReplace": {
+    "defaultMessage": "replace"
+  },
+  "credentialMigrationNotice.stepVerify": {
+    "defaultMessage": "verify"
+  },
+  "credentialMigrationNotice.stepWrite": {
+    "defaultMessage": "write"
+  },
+  "credentialMigrationNotice.title": {
+    "defaultMessage": "Some plaintext request headers could not be moved to the credential store"
+  },
   "credentialStorageStatus.checkAgain": {
     "defaultMessage": "Check again"
   },
@@ -2051,6 +2075,12 @@
   "extensionModal.removeExtension": {
     "defaultMessage": "Remover extensão"
   },
+  "extensionModal.saveFailed": {
+    "defaultMessage": "Não foi possível guardar {name}: {reason}. Os dados introduzidos foram mantidos, pode tentar novamente."
+  },
+  "extensionModal.unknownError": {
+    "defaultMessage": "erro desconhecido"
+  },
   "extensionModal.unsavedChangesMessage": {
     "defaultMessage": "Você tem alterações não salvas na configuração da extensão. Tem certeza de que deseja fechar sem salvar?"
   },
@@ -2363,11 +2393,29 @@
   "headersSection.headersDescription": {
     "defaultMessage": "Adicione cabeçalhos HTTP personalizados para incluir nas requisições ao servidor MCP. Clique no botão \"+\" para adicionar após preencher ambos os campos."
   },
+  "headersSection.markNewSensitive": {
+    "defaultMessage": "Marcar o novo cabeçalho como sensível"
+  },
+  "headersSection.markSensitive": {
+    "defaultMessage": "Marcar {name} como sensível"
+  },
   "headersSection.noSpaces": {
     "defaultMessage": "O nome do cabeçalho não pode conter espaços"
   },
+  "headersSection.reenterSavedValues": {
+    "defaultMessage": "Os valores guardados estão associados ao nome da extensão. Depois de mudar o nome, introduza-os novamente: {names}"
+  },
   "headersSection.requestHeaders": {
     "defaultMessage": "Cabeçalhos da requisição"
+  },
+  "headersSection.savedValueLabel": {
+    "defaultMessage": "O valor guardado de {name} está oculto. Escreva um novo valor para o substituir."
+  },
+  "headersSection.sensitive": {
+    "defaultMessage": "Sensível"
+  },
+  "headersSection.sensitiveHint": {
+    "defaultMessage": "Os valores sensíveis são guardados no armazenamento de credenciais do sistema e não voltam a ser mostrados. Authorization, Proxy-Authorization, X-API-Key e api-key são sempre sensíveis."
   },
   "headersSection.value": {
     "defaultMessage": "Valor"
@@ -5289,7 +5337,7 @@
     "defaultMessage": "Only LaTeX (.tex), Markdown (.md) and PDF files can be reviewed."
   },
   "review.failureApproval": {
-    "defaultMessage": "The Kernel asked for a tool approval, which this panel cannot grant. Switch the permission mode to automatic or smart approval, then try again."
+    "defaultMessage": "The review stopped because the Kernel asked a question this panel cannot answer, such as a form from an extension. Tool approvals are refused automatically and do not stop the review. Try again."
   },
   "review.failureCancelled": {
     "defaultMessage": "The review was interrupted."
