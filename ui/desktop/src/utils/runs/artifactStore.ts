@@ -166,6 +166,8 @@ const DEFAULT_MAX_WATCHERS = 8;
  */
 const MAX_LIVE_RUN_MS = (86_400 + 3_600) * 1000;
 const MAX_TOOL_CALL_ID_LENGTH = 512;
+/** Announced run ids remembered per Project; the oldest is forgotten first. */
+const MAX_ANNOUNCED_RUNS = 1024;
 /** Projects whose index stays in memory. */
 const MAX_PROJECTS = 32;
 const ARTIFACT_STAGES = new Set(['results', 'figures', 'paper']);
@@ -226,6 +228,11 @@ interface ProjectState {
    * this is empty, so whatever was `执行中` before ends on the first pass.
    */
   liveRuns: Map<string, LiveRun>;
+  /**
+   * Ids `runs/started` announced, oldest first, at most `MAX_ANNOUNCED_RUNS`: a record under one
+   * of them is that run's own, never another run's record renamed (`settleEndedRuns`).
+   */
+  announcedRuns: Set<string>;
   /** True while the watcher saw no change since the last pass. */
   fresh: boolean;
   /** Counts the changes the watcher reported. */
@@ -417,6 +424,7 @@ export function createArtifactStore(options: ArtifactStoreOptions = {}): Artifac
       index: null,
       runs: new Map(),
       liveRuns: new Map(),
+      announcedRuns: new Set(),
       fresh: false,
       changes: 0,
       queue: Promise.resolve(),
@@ -566,7 +574,7 @@ export function createArtifactStore(options: ArtifactStoreOptions = {}): Artifac
     let next = applyNewRuns(previous, loaded.records.map(({ record }) => record));
     // What a run that is over left `执行中`: a record under another suffix, a broken record or
     // no record at all.
-    next = settleEndedRuns(next, runs, liveIn(state));
+    next = settleEndedRuns(next, runs, liveIn(state), (runId) => state.announcedRuns.has(runId));
 
     const artifactFiles = await scanFiles(state.root);
     const present = new Set(artifactFiles);
@@ -701,6 +709,14 @@ export function createArtifactStore(options: ArtifactStoreOptions = {}): Artifac
       await ensureWatching(state);
       return serialize(state, async () => {
         const previous = await loadIndex(state);
+        state.announcedRuns.delete(started.runId);
+        state.announcedRuns.add(started.runId);
+        for (const oldest of state.announcedRuns) {
+          if (state.announcedRuns.size <= MAX_ANNOUNCED_RUNS) {
+            break;
+          }
+          state.announcedRuns.delete(oldest);
+        }
         // A start that arrives after its Run_Record was written is already over.
         const record = path.join(root, ...RUNS_DIR.split('/'), `${started.runId}.json`);
         if (await isFile(record)) {

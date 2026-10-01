@@ -111,7 +111,7 @@ mod tests {
     #[cfg(unix)]
     use std::fs;
     #[cfg(unix)]
-    use std::os::unix::fs::{symlink, PermissionsExt};
+    use std::os::unix::fs::symlink;
     #[cfg(unix)]
     use std::process::Command;
 
@@ -185,12 +185,11 @@ mod tests {
 
         let fixture = tempfile::tempdir().unwrap();
         let executable = fixture.path().join(CODEX_ACP_PROVIDER_NAME);
-        fs::write(
+        goose_test_support::write_executable_script(
             &executable,
             "#!/bin/sh\n: > \"$GOOSE_CODEX_ACP_MARKER\"\nexit 1\n",
         )
         .unwrap();
-        fs::set_permissions(&executable, fs::Permissions::from_mode(0o700)).unwrap();
 
         let search_paths = serde_json::to_string(&vec![fixture.path()]).unwrap();
         for (name, mode, config_fixture, should_launch) in [

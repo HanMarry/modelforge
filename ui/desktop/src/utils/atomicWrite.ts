@@ -111,6 +111,98 @@ export async function writeFileAtomic(
   }
 }
 
+/** The subset of the synchronous `fs` API `writeFileAtomicSync` needs, injectable for tests. */
+export interface AtomicWriteSyncFileSystem {
+  openSync: (target: string, flags: 'wx') => number;
+  writeFileSync: (fd: number, data: string | Uint8Array) => void;
+  fsyncSync: (fd: number) => void;
+  closeSync: (fd: number) => void;
+  renameSync: (from: string, to: string) => void;
+  unlinkSync: (target: string) => void;
+}
+
+export interface AtomicWriteSyncOptions {
+  fs?: AtomicWriteSyncFileSystem;
+  /** Blocks between rename retries; injectable so tests do not sleep. */
+  sleep?: (ms: number) => void;
+  tempPath?: (target: string) => string;
+}
+
+const nodeSyncFs: AtomicWriteSyncFileSystem = {
+  openSync: (target, flags) => fs.openSync(target, flags),
+  writeFileSync: (fd, data) => fs.writeFileSync(fd, data),
+  fsyncSync: (fd) => fs.fsyncSync(fd),
+  closeSync: (fd) => fs.closeSync(fd),
+  renameSync: (from, to) => fs.renameSync(from, to),
+  unlinkSync: (target) => fs.unlinkSync(target),
+};
+
+/** Blocks the calling thread; only used for the short waits between rename retries. */
+const blockingSleep = (ms: number): void => {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+};
+
+/**
+ * `writeFileAtomic` for callers that must stay synchronous, such as `settings.json`, which the
+ * main process reads back right after writing it: the same temporary file, flush and rename, and
+ * the same rename retries, whose short waits block.
+ */
+export function writeFileAtomicSync(
+  target: string,
+  data: string | Uint8Array,
+  options: AtomicWriteSyncOptions = {}
+): void {
+  const fileSystem = options.fs ?? nodeSyncFs;
+  const sleep = options.sleep ?? blockingSleep;
+  const tempPath = (options.tempPath ?? defaultTempPath)(target);
+  let stage: AtomicWriteStage = 'open';
+  let created = false;
+  try {
+    const fd = fileSystem.openSync(tempPath, 'wx');
+    created = true;
+    let closed = false;
+    try {
+      stage = 'write';
+      fileSystem.writeFileSync(fd, data);
+      stage = 'sync';
+      fileSystem.fsyncSync(fd);
+      stage = 'close';
+      closed = true;
+      fileSystem.closeSync(fd);
+    } finally {
+      if (!closed) {
+        try {
+          fileSystem.closeSync(fd);
+        } catch {
+          // The write already failed; that error is the one reported.
+        }
+      }
+    }
+    stage = 'rename';
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        fileSystem.renameSync(tempPath, target);
+        return;
+      } catch (error) {
+        const code = errorCode(error);
+        if (attempt >= RENAME_RETRIES || !code || !RETRYABLE_RENAME_CODES.has(code)) {
+          throw error;
+        }
+        sleep(RENAME_RETRY_DELAY_MS);
+      }
+    }
+  } catch (error) {
+    if (created) {
+      try {
+        fileSystem.unlinkSync(tempPath);
+      } catch {
+        // Best effort: a leftover temporary file never replaces the target.
+      }
+    }
+    throw new AtomicWriteError(target, stage, error);
+  }
+}
+
 /** Injectable writer for modules that persist state (credential store, reports, indexes). */
 export interface AtomicFs {
   writeFileAtomic: (target: string, data: string | Uint8Array) => Promise<void>;

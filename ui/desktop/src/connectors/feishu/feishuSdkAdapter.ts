@@ -13,6 +13,7 @@ import {
   createFeishuAcpPort,
   type FeishuAcpPortHandle,
   type FeishuAcpPortOptions,
+  type FeishuRunEnded,
 } from './feishuAcpPort';
 import {
   createFeishuConnector,
@@ -52,6 +53,8 @@ export interface FeishuControllerOptions {
   clientInfo: { name: string; version: string };
   onRunStarted?: (notification: RunStartedNotification_unstable) => void;
   onRunFinished?: (notification: RunFinishedNotification_unstable) => void;
+  /** A run of a Feishu session that ended without `runs/finished` (`FeishuAcpPortOptions`). */
+  onRunEnded?: (run: FeishuRunEnded) => void;
   log?: (message: string) => void;
   /** Masks key values in logs and outgoing messages. */
   redact?: (text: string) => string;
@@ -122,6 +125,7 @@ export function createFeishuController(options: FeishuControllerOptions): Feishu
       clientInfo: options.clientInfo,
       onRunStarted: options.onRunStarted,
       onRunFinished: options.onRunFinished,
+      onRunEnded: options.onRunEnded,
       log: (message) => log(`acp: ${redact(message)}`),
     });
     let deliver: ((event: FeishuInboundEvent) => void) | null = null;
