@@ -1,0 +1,223 @@
+# Diagnoses the CI failure where "Build and Test Rust Project" loses its hosted runner ("The hosted
+# runner lost communication with the server") 10-45 s into tests/acp_server_test.rs, with no log.
+#
+# Each job builds the tests exactly like ci.yml (same command, so the same test binaries), then
+# runs them in rounds while a root-side monitor (.github/scripts/diag-runner-loss/root-monitor.sh)
+# records signals with sender and raw target (bpftrace), memory, threads, processes, sockets,
+# disk and kernel messages, and reports to a check run that survives a lost runner.
+#   full: the whole CI test command, round after round
+#   acp:  tests/acp_server_test.rs alone, alternating default threads and --test-threads=1
+# By default the rounds run in .github/scripts/rust-test-sandbox.sh (PID namespace, cgroup
+# limits), so a test that kills or starves the machine fails its round instead of the runner.
+#
+# Runs only on workflow_dispatch. The push trigger only registers the workflow on this branch so
+# that it can be dispatched; its jobs are skipped on push.
+name: Diagnose Rust runner loss
+
+on:
+  workflow_dispatch:
+    inputs:
+      full_rounds:
+        description: Rounds of the whole CI test command
+        default: "8"
+      acp_rounds:
+        description: Rounds of acp_server_test alone
+        default: "24"
+      sandbox:
+        description: Run the rounds in rust-test-sandbox.sh
+        type: boolean
+        default: true
+  push:
+    branches:
+      - mp/s4-ci-runner
+    paths:
+      - .github/workflows/diag-rust-runner-loss.yml
+
+permissions:
+  contents: read
+  # The root monitor reports through a check run.
+  checks: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  diagnose:
+    name: Diagnose (${{ matrix.mode }})
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [full, acp]
+    env:
+      DIAG_DIR: ${{ runner.temp }}/diag
+      DIAG_TEST_LOG: ${{ runner.temp }}/diag/test-output.log
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659 # v1.17.0
+
+      - name: Repair stale v8 prebuilt marker
+        run: .github/scripts/repair-v8-prebuilt.sh
+
+      - name: Install Dependencies
+        run: |
+          sudo apt update -y
+          sudo apt install -y libdbus-1-dev gnome-keyring libxcb1-dev
+          sudo apt install -y bpftrace gdb jq
+
+      - name: Start the root monitor
+        env:
+          DIAG_TOKEN: ${{ github.token }}
+          DIAG_SHA: ${{ github.sha }}
+          DIAG_CHECK_NAME: diag-rust-runner-loss (${{ matrix.mode }})
+          DIAG_SCRIPTS: ${{ github.workspace }}/.github/scripts/diag-runner-loss
+        run: |
+          mkdir -p "$DIAG_DIR"
+          : > "$DIAG_TEST_LOG"
+          uname -a
+          sudo bpftrace --version || true
+          # Root, own session: nothing the runner user does to its processes reaches it.
+          sudo --preserve-env=DIAG_TOKEN,DIAG_SHA,DIAG_CHECK_NAME,DIAG_SCRIPTS,DIAG_DIR,DIAG_TEST_LOG,GITHUB_REPOSITORY,GITHUB_API_URL \
+            setsid --fork bash "$DIAG_SCRIPTS/root-monitor.sh" < /dev/null > /dev/null 2>&1
+          for _ in $(seq 1 120); do
+            if grep -q -E 'bpftrace attached|falling back to auditd' "$DIAG_DIR/monitor.log" 2> /dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          sleep 3
+          cat "$DIAG_DIR/monitor.log" || true
+          head -n 5 "$DIAG_DIR/signals.log" || true
+          sudo cat "$DIAG_DIR/bpftrace.err" 2> /dev/null | tail -n 20 || true
+
+      - name: Build tests like ci.yml
+        working-directory: crates
+        run: |
+          export CARGO_INCREMENTAL=0
+          free -m
+          df -h /
+          cargo test --locked --no-run 2>&1 | tail -n 40
+        env:
+          RUST_MIN_STACK: 8388608
+
+      - name: Run rounds
+        working-directory: crates
+        env:
+          RUST_MIN_STACK: 8388608
+          MODE: ${{ matrix.mode }}
+          FULL_ROUNDS: ${{ inputs.full_rounds }}
+          ACP_ROUNDS: ${{ inputs.acp_rounds }}
+          SANDBOX: ${{ inputs.sandbox }}
+          TEST_BINARY_TIMEOUT_SECS: "600"
+        run: |
+          gnome-keyring-daemon --components=secrets --daemonize --unlock <<< 'foobar'
+          export CARGO_INCREMENTAL=0
+          export CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER="$GITHUB_WORKSPACE/.github/scripts/test-binary-runner.sh"
+          if [[ "$MODE" == full ]]; then rounds="$FULL_ROUNDS"; else rounds="$ACP_ROUNDS"; fi
+          for i in $(seq 1 "$rounds"); do
+            if [[ "$MODE" == full ]]; then
+              label=full
+              cmd=(cargo test --locked --tests --no-fail-fast -- --skip scenario_tests::scenarios::tests)
+            elif ((i % 2)); then
+              label=acp-default
+              cmd=(cargo test --locked --test acp_server_test)
+            else
+              label=acp-serial
+              cmd=(cargo test --locked --test acp_server_test -- --test-threads=1)
+            fi
+            if [[ "$SANDBOX" == true ]]; then
+              cmd=("$GITHUB_WORKSPACE/.github/scripts/rust-test-sandbox.sh" --name "diag-$label-$i" --timeout 1800 -- "${cmd[@]}")
+            fi
+            round_log="$DIAG_DIR/round-$i-$label.log"
+            echo "round $i/$rounds $label start $(date -u +%H:%M:%S)" | tee -a "$DIAG_TEST_LOG" "$DIAG_DIR/rounds.txt"
+            start=$SECONDS
+            set +e
+            "${cmd[@]}" 2>&1 | tee -a "$DIAG_TEST_LOG" > "$round_log"
+            status=${PIPESTATUS[0]}
+            set -e
+            echo "round $i/$rounds $label exit $status after $((SECONDS - start))s" | tee -a "$DIAG_TEST_LOG" "$DIAG_DIR/rounds.txt"
+            # Failures, timeouts and sandbox messages of this round, and the binary it used.
+            sed 's/\x1b\[[0-9;]*m//g' "$round_log" |
+              grep -a -E 'Running tests/acp_server_test|^test result: FAILED|\.\.\. FAILED|panicked|timed out|rust-test-sandbox|Sandbox time limit|signal|not finished|error:' |
+              cut -c 1-300 | head -n 60 || true
+          done
+
+      - name: Summarize
+        if: always()
+        run: |
+          sudo chmod -R a+rX "$DIAG_DIR" || true
+          signals="$DIAG_DIR/signals.log"
+          {
+            echo "## Runner-loss diagnostics (${{ matrix.mode }})"
+            echo
+            echo '```'
+            cat "$DIAG_DIR/rounds.txt" 2> /dev/null || echo "no rounds ran"
+            echo '```'
+            echo
+            echo "Suspicious signal records (kill(-1|0, ...), signals to or exits of Runner.*, OOM victims):"
+            echo '```'
+            grep -a -E 'kill\((-1|0), |to pid=[0-9]+ comm=Runner\.|exit pid=[0-9]+ comm=Runner\.|oom victim' "$signals" 2> /dev/null | tail -n 80 || true
+            echo '```'
+            echo
+            echo "Group kills (negative targets) by sender:"
+            echo '```'
+            grep -a -E '^\S+ kill\(-[0-9]+, ' "$signals" 2> /dev/null |
+              sed -E 's/^\S+ kill\((-?[0-9]+), ([0-9]+)\) by .* comm=([^ ]+) .*/target<0 sig=\2 comm=\3/' |
+              sort | uniq -c | sort -rn | head -n 30 || true
+            echo '```'
+            echo
+            echo "Extremes over the job (samples every 2 s):"
+            echo '```'
+            awk '{ for (i = 1; i <= NF; i++) {
+                     if ($i == "mem") { v = $(i+1) + 0; if (min_mem == "" || v < min_mem) min_mem = v }
+                     if ($i == "thr") { v = $(i+1) + 0; if (v > max_thr) max_thr = v }
+                     if ($i == "procs") { v = $(i+1) + 0; if (v > max_procs) max_procs = v }
+                     if ($i == "files") { v = $(i+1) + 0; if (v > max_files) max_files = v }
+                     if ($i == "ct") { v = $(i+1) + 0; if (v > max_ct) max_ct = v }
+                     if ($i == "tw") { v = $(i+1) + 0; if (v > max_tw) max_tw = v }
+                 } }
+                 END { printf "min MemAvailable %sM, max threads %s, max processes %s, max open files %s, max conntrack %s, max TIME_WAIT %s\n",
+                       min_mem, max_thr, max_procs, max_files, max_ct, max_tw }' "$DIAG_DIR/samples.log" 2> /dev/null || true
+            grep -a 'rate5s' "$signals" 2> /dev/null |
+              awk '{ split($3, f, "="); split($4, c, "="); if (f[2] > mf) mf = f[2]; if (c[2] > mc) mc = c[2] }
+                   END { printf "max forks per 5 s %s, max TCP connects per 5 s %s\n", mf, mc }' || true
+            echo '```'
+            echo
+            echo "Kernel messages worth a look:"
+            echo '```'
+            grep -a -i -E 'oom|killed process|hung task|soft lockup|blocked for more than|segfault|out of memory|oomd' \
+              "$DIAG_DIR/journal.log" "$DIAG_DIR/dmesg.log" 2> /dev/null | tail -n 40 || true
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Stop the root monitor
+        if: always()
+        run: |
+          pid="$(cat "$DIAG_DIR/monitor.pid" 2> /dev/null || true)"
+          if [[ -n "$pid" ]]; then
+            sudo kill -TERM "$pid" || true
+            for _ in $(seq 1 60); do
+              sudo kill -0 "$pid" 2> /dev/null || break
+              sleep 1
+            done
+          fi
+          sudo chmod -R a+rX "$DIAG_DIR" || true
+          tail -n 20 "$DIAG_DIR/monitor.log" || true
+
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: diag-rust-runner-loss-${{ matrix.mode }}
+          path: ${{ runner.temp }}/diag
+          if-no-files-found: warn
+          retention-days: 14
