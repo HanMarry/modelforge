@@ -1640,12 +1640,7 @@ mod tests {
         let (program, script) = FAKE_PYTHON;
         let path = project.join(program);
         fs::create_dir_all(path.parent().unwrap()).unwrap();
-        fs::write(&path, script).unwrap();
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            fs::set_permissions(&path, fs::Permissions::from_mode(0o755)).unwrap();
-        }
+        goose_test_support::write_executable_script(&path, script).unwrap();
         program
     }
 

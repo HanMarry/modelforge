@@ -2178,22 +2178,17 @@ mod tests {
         std::fs::create_dir(&login_bin).unwrap();
 
         let fake_shell = tmp.path().join("fake-login-shell");
-        std::fs::write(
+        goose_test_support::write_executable_script(
             &fake_shell,
             "#!/bin/sh\nprintf '%s\\n' \"$FAKE_LOGIN_PATH\"\n",
         )
         .unwrap();
         let helper = login_bin.join("hook-visible-tool");
-        std::fs::write(&helper, "#!/bin/sh\nprintf 'hook-visible-tool-ran'\n").unwrap();
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            for path in [&fake_shell, &helper] {
-                let mut perms = std::fs::metadata(path).unwrap().permissions();
-                perms.set_mode(0o755);
-                std::fs::set_permissions(path, perms).unwrap();
-            }
-        }
+        goose_test_support::write_executable_script(
+            &helper,
+            "#!/bin/sh\nprintf 'hook-visible-tool-ran'\n",
+        )
+        .unwrap();
 
         let fake_shell = fake_shell.to_string_lossy().into_owned();
         let fake_login_path = format!("{}:/usr/bin:/bin", login_bin.display());
