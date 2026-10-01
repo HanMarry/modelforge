@@ -1148,6 +1148,30 @@
   "createSubRecipeInline.validationMsg": {
     "defaultMessage": "名稱、標題、食譜描述與指示為必填。"
   },
+  "credentialMigrationNotice.failure": {
+    "defaultMessage": "{owner} {name}：{step}步驟失敗"
+  },
+  "credentialMigrationNotice.ownerExtension": {
+    "defaultMessage": "擴充功能"
+  },
+  "credentialMigrationNotice.ownerProvider": {
+    "defaultMessage": "模型供應商"
+  },
+  "credentialMigrationNotice.retry": {
+    "defaultMessage": "相關設定保持不變，下次啟動時會自動重試遷移。"
+  },
+  "credentialMigrationNotice.stepReplace": {
+    "defaultMessage": "替換"
+  },
+  "credentialMigrationNotice.stepVerify": {
+    "defaultMessage": "驗證"
+  },
+  "credentialMigrationNotice.stepWrite": {
+    "defaultMessage": "寫入"
+  },
+  "credentialMigrationNotice.title": {
+    "defaultMessage": "部分明文請求標頭未能遷移到憑證庫"
+  },
   "credentialStorageStatus.checkAgain": {
     "defaultMessage": "重新檢查"
   },

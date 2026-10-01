@@ -3,9 +3,20 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import DiagnosticsView from './DiagnosticsView';
 import type { CategoryResult, DiagnosticCategory } from '../../utils/diagnostics/diagnosticsService';
+import type { CredentialMigrationFailure } from '../../acp/credentialMigration';
+import { IntlTestWrapper } from '../../i18n/test-utils';
 
 vi.mock('react-router', () => ({
   useNavigate: () => vi.fn(),
+}));
+
+const migration = vi.hoisted(() => ({
+  failures: vi.fn<() => Promise<CredentialMigrationFailure[]>>(),
+}));
+
+vi.mock('../../acp/credentialMigration', () => ({
+  getCredentialMigrationFailures: migration.failures,
+  subscribeToCredentialMigrationRefresh: () => () => undefined,
 }));
 
 const normalResult: CategoryResult = {
@@ -48,6 +59,7 @@ const electron = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  migration.failures.mockResolvedValue([]);
   (window as unknown as { electron: unknown }).electron = electron;
 });
 
@@ -61,6 +73,27 @@ describe('DiagnosticsView', () => {
     expect(screen.getByText('Python 环境')).toBeInTheDocument();
     expect(screen.getByText('LaTeX/Typst 编译环境')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '一键检测' })).toBeInTheDocument();
+    expect(screen.queryByTestId('credential-migration-notice')).not.toBeInTheDocument();
+  });
+
+  it('names the configs whose plaintext headers could not be migrated (requirement 1.9)', async () => {
+    migration.failures.mockResolvedValue([
+      {
+        owner: 'provider',
+        name: 'Gateway',
+        stage: 'write',
+        message:
+          'provider Gateway: plaintext header migration failed at write: header Authorization: the keyring is locked',
+      },
+      { owner: 'extension', name: 'GitHub', stage: 'replace', message: '' },
+    ]);
+    render(<DiagnosticsView />, { wrapper: IntlTestWrapper });
+
+    const notice = await screen.findByTestId('credential-migration-notice');
+    expect(notice).toHaveTextContent('Provider Gateway: the write step failed');
+    expect(notice).toHaveTextContent('header Authorization: the keyring is locked');
+    expect(notice).toHaveTextContent('Extension GitHub: the replace step failed');
+    expect(notice).toHaveTextContent('The migration is retried automatically on the next start.');
   });
 
   it('runs diagnostics when the one-click button is clicked', async () => {

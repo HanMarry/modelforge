@@ -1148,6 +1148,30 @@
   "createSubRecipeInline.validationMsg": {
     "defaultMessage": "名称、标题、配方描述和指令均为必填项。"
   },
+  "credentialMigrationNotice.failure": {
+    "defaultMessage": "{owner} {name}：{step}步骤失败"
+  },
+  "credentialMigrationNotice.ownerExtension": {
+    "defaultMessage": "扩展"
+  },
+  "credentialMigrationNotice.ownerProvider": {
+    "defaultMessage": "模型供应商"
+  },
+  "credentialMigrationNotice.retry": {
+    "defaultMessage": "相关配置保持不变，下次启动时会自动重试迁移。"
+  },
+  "credentialMigrationNotice.stepReplace": {
+    "defaultMessage": "替换"
+  },
+  "credentialMigrationNotice.stepVerify": {
+    "defaultMessage": "验证"
+  },
+  "credentialMigrationNotice.stepWrite": {
+    "defaultMessage": "写入"
+  },
+  "credentialMigrationNotice.title": {
+    "defaultMessage": "部分明文请求头未能迁移到凭据库"
+  },
   "credentialStorageStatus.checkAgain": {
     "defaultMessage": "重新检查"
   },

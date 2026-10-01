@@ -4,6 +4,7 @@ import { ScrollArea } from '../../ui/scroll-area';
 import BackButton from '../../ui/BackButton';
 import ProviderGrid from './ProviderGrid';
 import CredentialStorageStatus from './CredentialStorageStatus';
+import CredentialMigrationStatus from './CredentialMigrationNotice';
 import {
   acpListSettingsProviderDetails,
   acpListSetupProviderDetails,
@@ -111,6 +112,7 @@ export default function ProviderSettings({
           <div className="w-full max-w-6xl mx-auto pt-4 px-4 sm:px-6 md:px-8">
             <div className="relative z-10">
               <CredentialStorageStatus className="pb-6" />
+              <CredentialMigrationStatus className="mb-6" />
               {loading ? (
                 <div>{intl.formatMessage(i18n.loadingProviders)}</div>
               ) : (
