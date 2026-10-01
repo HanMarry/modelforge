@@ -2,6 +2,9 @@
  * IPC for the Feishu connector settings (requirement 15.3). App ID and App Secret are kept in
  * the desktop CredentialStore and only ever surfaced as masks; the enable flag and the open_id
  * whitelist are kept in a plain JSON file under the user data directory.
+ *
+ * `feishu-undelivered` reports whether a session was marked "飞书回复未送达" (requirement 15.2);
+ * marks made while the app runs are pushed on `FEISHU_UNDELIVERED_CHANNEL`.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -10,9 +13,13 @@ import type { CredentialStore } from '../../utils/credentialStore';
 import { maskSecret } from '../../utils/secretMask';
 import { describeError, toIpcError, type IpcResult } from '../../utils/ipcResult';
 import { normalizeWhitelist } from './routing';
+import type { FeishuLinkState } from './larkChannel';
 
 const FEISHU_APP_ID = 'feishu:app_id';
 const FEISHU_APP_SECRET = 'feishu:app_secret';
+
+/** Push event: a session was just marked as having an undelivered Feishu reply. */
+export const FEISHU_UNDELIVERED_CHANNEL = 'feishu-undelivered-changed';
 
 export interface FeishuConfig {
   enabled: boolean;
@@ -28,11 +35,27 @@ export interface FeishuSaveConfig {
   whitelist?: string[];
 }
 
+export interface FeishuStatus {
+  /** Whether the connector is actually running (not just enabled in settings). */
+  started: boolean;
+  link: FeishuLinkState;
+}
+
+export interface FeishuUndeliveredMark {
+  /** ISO 8601 time of the latest reply that could not be delivered. */
+  markedAt: string;
+}
+
+export interface FeishuUndeliveredEvent extends FeishuUndeliveredMark {
+  sessionId: string;
+}
+
 export interface FeishuController {
   start: (config: { appId: string; appSecret: string; whitelist: string[] }) => Promise<void>;
   stop: () => Promise<void>;
   /** Whether the connector is actually running (not just enabled in settings). */
   isStarted: () => boolean;
+  status: () => FeishuStatus;
 }
 
 interface FeishuState {
@@ -48,7 +71,16 @@ function maskValue(value: string | null): string | null {
 
 export function registerFeishuIpc(
   ipc: Pick<IpcMain, 'handle'>,
-  deps: { store: CredentialStore; file: string; controller: FeishuController; log?: (m: string) => void }
+  deps: {
+    store: CredentialStore;
+    file: string;
+    controller: FeishuController;
+    /** The undelivered mark of a session, if any. */
+    undelivered: (sessionId: string) => FeishuUndeliveredMark | null;
+    /** Saved settings start the connector once this resolves (the CredentialStore needs it). */
+    ready?: Promise<unknown>;
+    log?: (m: string) => void;
+  }
 ): void {
   const { store, controller, log = () => {} } = deps;
 
@@ -125,13 +157,30 @@ export function registerFeishuIpc(
   );
 
   ipc.handle('feishu-status', async () =>
-    (async (): Promise<IpcResult<{ started: boolean }>> => {
-      return { ok: true, data: { started: controller.isStarted() } };
+    (async (): Promise<IpcResult<FeishuStatus>> => {
+      return { ok: true, data: controller.status() };
     })().catch((error) => ({
       ok: false as const,
       error: toIpcError('UNEXPECTED', describeError(error), store.sensitiveValues()),
     }))
   );
 
-  void startIfEnabled();
+  ipc.handle('feishu-undelivered', async (_event, sessionId: unknown) =>
+    (async (): Promise<IpcResult<FeishuUndeliveredMark | null>> => {
+      if (typeof sessionId !== 'string' || !sessionId) {
+        return {
+          ok: false,
+          error: toIpcError('INVALID_ARGUMENT', 'sessionId is required', store.sensitiveValues()),
+        };
+      }
+      return { ok: true, data: deps.undelivered(sessionId) };
+    })().catch((error) => ({
+      ok: false as const,
+      error: toIpcError('UNEXPECTED', describeError(error), store.sensitiveValues()),
+    }))
+  );
+
+  void (deps.ready ?? Promise.resolve())
+    .then(startIfEnabled)
+    .catch((error) => log(`starting from saved settings failed: ${describeError(error)}`));
 }

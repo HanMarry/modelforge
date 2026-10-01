@@ -42,6 +42,7 @@ import { ModelForgeWordmark } from './icons/ModelForge';
 import { REPOSITORY_URL } from '../branding';
 import EnvironmentBadge from './GooseSidebar/EnvironmentBadge';
 import SessionActionsHeader from './SessionActionsHeader';
+import FeishuUndeliveredNotice from './feishu/FeishuUndeliveredNotice';
 import { isAcpRecovering, subscribeToAcpRecovery } from '../acp/acpConnection';
 import { estimateTokensFromChars } from '../utils/tokenEstimate';
 
@@ -575,6 +576,8 @@ export default function BaseChat({
               {intl.formatMessage(i18n.reconnecting)}
             </div>
           )}
+
+          <FeishuUndeliveredNotice sessionId={sessionId} />
 
           <ChatInputCard
             className={cn(

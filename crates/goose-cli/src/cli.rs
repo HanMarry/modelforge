@@ -1640,7 +1640,12 @@ async fn handle_mcp_command(server: McpCommand) -> Result<()> {
         McpCommand::AutoVisualiser => serve(AutoVisualiserRouter::new()).await?,
         McpCommand::ComputerController => serve(ComputerControllerServer::new()).await?,
         McpCommand::Memory => serve(MemoryServer::new()).await?,
-        McpCommand::Modeling => serve(ModelingServer::new()).await?,
+        McpCommand::Modeling => {
+            serve(ModelingServer::with_run_integration(
+                kernel_run_integration(),
+            ))
+            .await?
+        }
         McpCommand::Tutorial => serve(TutorialServer::new()).await?,
     }
     Ok(())
@@ -2802,8 +2807,21 @@ async fn handle_default_session() -> Result<()> {
     session.interactive(None).await
 }
 
+/// What the modeling extension's recorded runs use in this process: the Kernel's
+/// Credential_Store values, which the Run_Records replace with their Secret_References
+/// (requirement 16.2). The ACP server learns about runs from the tool calls, so no observer.
+fn kernel_run_integration() -> goose_mcp::modeling::RunIntegration {
+    goose_mcp::modeling::RunIntegration {
+        secrets: goose::config::run_record_secrets::kernel_secret_values(),
+        ..goose_mcp::modeling::RunIntegration::default()
+    }
+}
+
 pub async fn cli() -> anyhow::Result<()> {
     register_builtin_extensions(goose_mcp::BUILTIN_EXTENSIONS.clone());
+    // Before the first session spawns a builtin modeling server, which keeps the integration
+    // installed when it is created.
+    goose_mcp::modeling::set_builtin_run_integration(kernel_run_integration());
 
     let cli = Cli::parse();
 

@@ -103,6 +103,22 @@ export interface Settings {
   showPricing: boolean;
   seenAnnouncementIds: string[];
   recentModels: RecentModel[];
+
+  // Feishu connector (requirement 15), written by the main process only (not in the
+  // `set-setting` allowlist): private chat id → its desktop session, and the sessions whose
+  // Feishu reply could not be delivered.
+  feishuChatSessions?: Record<string, FeishuChatSessionSetting>;
+  feishuUndelivered?: Record<string, FeishuUndeliveredSetting>;
+}
+
+export interface FeishuChatSessionSetting {
+  sessionId: string;
+  name: string;
+}
+
+export interface FeishuUndeliveredSetting {
+  /** ISO 8601 time of the latest reply that could not be delivered. */
+  markedAt: string;
 }
 
 export type SettingKey = keyof Settings;

@@ -2186,6 +2186,9 @@
   "externalBackendSection.workingDirPlaceholder": {
     "defaultMessage": "/home/goose/workspace"
   },
+  "feishu.undeliveredNotice": {
+    "defaultMessage": "飞书回复未送达（{time}），结果仍保留在本会话中。"
+  },
   "figuresPanel.all": {
     "defaultMessage": "全部"
   },
@@ -5710,6 +5713,9 @@
   },
   "runs.reasonOutputModified": {
     "defaultMessage": "在 ModelForge 之外被修改：{path}"
+  },
+  "runs.reasonRecordMissing": {
+    "defaultMessage": "运行记录缺失或无法读取：{path}"
   },
   "runs.reasonUnreadable": {
     "defaultMessage": "无法读取：{path}"

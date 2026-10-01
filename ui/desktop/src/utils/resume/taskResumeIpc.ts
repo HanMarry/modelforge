@@ -6,7 +6,8 @@
  *   read, no file is hashed, so the prompt appears within its 5 seconds.
  * - `task-resume-continue`: reads the plan, its Run_Records and the current hashes of every file
  *   they name, and returns `planResume` (22.2, 22.5). The renderer sends that plan with the ACP
- *   resume request as is; the skip rule exists only in `utils/resumePlanner.ts`.
+ *   resume request as is; the skip rule exists only in `utils/resumePlanner.ts`. The Artifacts
+ *   of the step it resumes from become 已过期 with the step's reasons (22.5).
  * - `task-resume-dismiss`: "放弃恢复" writes `dismissed: true` (22.6).
  * - `task-resume-complete`: when every step still checks out there is nothing to run; the task is
  *   marked 已完成 here instead of starting a Kernel session for it.
@@ -20,7 +21,13 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { IpcMain } from 'electron';
 import type { FileHashSnapshot, RunRecordMap } from '../../types/runRecord';
-import type { ResumePlan, TaskPlan, TaskPlanProblem } from '../../types/taskPlan';
+import type {
+  ResumePlan,
+  ResumeStep,
+  StepStaleReason,
+  TaskPlan,
+  TaskPlanProblem,
+} from '../../types/taskPlan';
 import type {
   ResumableTask,
   TaskResumeIpcErrorCode,
@@ -297,15 +304,44 @@ export async function listResumableTasks(request: TaskResumeListRequest): Promis
   return tasks;
 }
 
-async function planFor(projectDir: string, plan: TaskPlan): Promise<ResumePlan> {
+/**
+ * Where the Artifacts of a step that fails the resume check are marked 已过期 (requirement 22.5,
+ * task 25.4): the Artifact store of the main process (`utils/runs/artifactStore.ts`).
+ */
+export interface ResumeArtifacts {
+  markResumeStale: (
+    projectDir: string,
+    step: ResumeStep,
+    reasons: readonly StepStaleReason[]
+  ) => Promise<unknown>;
+}
+
+async function planFor(
+  projectDir: string,
+  plan: TaskPlan,
+  artifacts: ResumeArtifacts | null
+): Promise<ResumePlan> {
   const runs = await readRuns(projectDir, planRunIds(plan));
   const hashes = await hashProjectFiles(projectDir, planFilePaths(plan, runs));
-  return planResume(plan.steps, runs, hashes);
+  const resume = planResume(plan.steps, runs, hashes);
+  const step = plan.steps.find((candidate) => candidate.id === resume.resumeFrom);
+  if (artifacts && step) {
+    // 22.5: the step runs again, so its Artifacts are out of date; the plan stands either way.
+    try {
+      await artifacts.markResumeStale(projectDir, step, resume.staleReasons);
+    } catch (error) {
+      console.warn(`[task-resume] could not mark the Artifacts of ${step.id} 已过期:`, error);
+    }
+  }
+  return resume;
 }
 
 /** `planResume` on the files as they are now (22.2, 22.5). */
-export async function planTaskResume(target: TaskResumeTarget): Promise<ResumePlan> {
-  return planFor(target.projectDir, await readPlan(target));
+export async function planTaskResume(
+  target: TaskResumeTarget,
+  artifacts: ResumeArtifacts | null = null
+): Promise<ResumePlan> {
+  return planFor(target.projectDir, await readPlan(target), artifacts);
 }
 
 /** "放弃恢复" (22.6): only the flag changes; outputs and Run_Records are not touched. */
@@ -318,9 +354,12 @@ export async function dismissTask(target: TaskResumeTarget): Promise<null> {
 }
 
 /** Marks the task 已完成 when, checked again now, no step is left to run. */
-export async function completeTask(target: TaskResumeTarget): Promise<ResumePlan> {
+export async function completeTask(
+  target: TaskResumeTarget,
+  artifacts: ResumeArtifacts | null = null
+): Promise<ResumePlan> {
   const plan = await readPlan(target);
-  const resume = await planFor(target.projectDir, plan);
+  const resume = await planFor(target.projectDir, plan, artifacts);
   if (resume.resumeFrom === null && plan.status !== '已完成') {
     await writePlan(target.projectDir, { ...plan, status: '已完成' });
   }
@@ -337,17 +376,25 @@ async function respond<T>(deps: FeatureIpcDeps, work: () => Promise<T>): Promise
   }
 }
 
-export function registerTaskResumeIpc(ipc: Pick<IpcMain, 'handle'>, deps: FeatureIpcDeps): void {
+/**
+ * `artifacts` marks the Artifacts of the step a task resumes from 已过期; `main.ts` passes the
+ * shared Artifact store. Without one only the plan is computed.
+ */
+export function registerTaskResumeIpc(
+  ipc: Pick<IpcMain, 'handle'>,
+  deps: FeatureIpcDeps,
+  artifacts: ResumeArtifacts | null = null
+): void {
   ipc.handle('task-resume-list', (_event, request: unknown) =>
     respond(deps, () => listResumableTasks(readListRequest(request)))
   );
   ipc.handle('task-resume-continue', (_event, target: unknown) =>
-    respond(deps, () => planTaskResume(readTarget(target)))
+    respond(deps, () => planTaskResume(readTarget(target), artifacts))
   );
   ipc.handle('task-resume-dismiss', (_event, target: unknown) =>
     respond(deps, () => dismissTask(readTarget(target)))
   );
   ipc.handle('task-resume-complete', (_event, target: unknown) =>
-    respond(deps, () => completeTask(readTarget(target)))
+    respond(deps, () => completeTask(readTarget(target), artifacts))
   );
 }

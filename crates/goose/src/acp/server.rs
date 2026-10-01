@@ -15,6 +15,7 @@ use crate::agents::platform_extensions::developer::DeveloperClient;
 use crate::agents::state_machine::{
     has_unapplied_tool_confirmation_response, pending_tool_confirmations,
 };
+use crate::agents::tool_execution::record_tool_denial_reason;
 use crate::agents::{
     Agent, AgentConfig, ExtensionConfig, ExtensionLoadResult, GoosePlatform, SessionConfig,
 };
@@ -89,6 +90,7 @@ use uuid::Uuid;
 use self::message_meta::{
     content_chunk_for_message, message_meta_without_steer, populate_output_token_limit_content,
 };
+use self::permission_reason::denial_reason_from_meta;
 use self::tool_calls::chain::{breaks_consecutive_tool_calls, ReadyToolChain, ToolChainTracker};
 use self::tool_calls::conversion::{
     build_initial_tool_call_with_message_meta, build_permission_tool_call_update,
@@ -119,6 +121,7 @@ mod modelforge_capabilities;
 mod new_session;
 mod onboarding;
 mod overwrite_confirm;
+mod permission_reason;
 mod prompts;
 mod providers;
 mod recipe;
@@ -1669,7 +1672,18 @@ impl GooseAcpAgent {
         cx.send_request(permission_request)
             .on_receiving_result(move |result| async move {
                 let permission = match result {
-                    Ok(response) => outcome_to_confirmation(&response.outcome).permission,
+                    Ok(response) => {
+                        let permission = outcome_to_confirmation(&response.outcome).permission;
+                        // A client with its own approval flow says why it denied the call, so
+                        // the declined tool result reads "已拒绝" or "已超时" (ModelForge
+                        // requirement 15.5). Recorded before the denial reaches the agent.
+                        if let Some(reason) =
+                            denial_reason_from_meta(response.meta.as_ref(), &permission)
+                        {
+                            record_tool_denial_reason(&target.session_id, &request_id, reason);
+                        }
+                        permission
+                    }
                     Err(e) => {
                         error!(error = ?e, "permission request failed");
                         Permission::Cancel
