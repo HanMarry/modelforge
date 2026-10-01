@@ -635,26 +635,39 @@ fn is_cjk(c: char) -> bool {
 /// once it exits, the tree relationship is gone and the descendants cannot be found.
 async fn kill_process_tree(pid: u32) {
     #[cfg(windows)]
-    let mut cmd = {
-        let mut cmd = tokio::process::Command::new("taskkill");
-        cmd.args(["/F", "/T", "/PID", &pid.to_string()]);
-        cmd
-    };
+    {
+        let _ = tokio::process::Command::new("taskkill")
+            .args(["/F", "/T", "/PID", &pid.to_string()])
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status()
+            .await;
+    }
     #[cfg(unix)]
-    let mut cmd = {
-        // The child leads its own process group (process_group(0) at spawn), so a negative
-        // pid reaches every process in the tree.
-        let mut cmd = tokio::process::Command::new("kill");
-        cmd.args(["-KILL", &format!("-{pid}")]);
-        cmd
-    };
+    {
+        // The child leads its own process group (process_group(0) at spawn), so signalling the
+        // negated pid reaches every process in the tree. This calls kill(2) itself and never the
+        // kill(1) program: procps-ng's kill (/usr/bin/kill on Debian and Ubuntu) reads only the
+        // first digit of a negative pid, so `kill -KILL -12345` sent SIGKILL to -1, i.e. to every
+        // process of the user (on CI that took the whole runner down).
+        if let Some(group) = process_group_target(pid) {
+            // SAFETY: kill(2) takes no pointers. `group` names exactly one process group: it is
+            // the negation of a pid greater than 1, so never 0 (our own group) or -1 (everyone).
+            unsafe {
+                libc::kill(group, libc::SIGKILL);
+            }
+        }
+    }
+}
 
-    let _ = cmd
-        .stdin(std::process::Stdio::null())
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .status()
-        .await;
+/// The kill(2) target that signals the process group led by `pid`, or `None` when that is not
+/// exactly one other group: 0 and 1 would turn into "our own group" and "every process we may
+/// signal", and the pid has to fit in `pid_t`.
+#[cfg(unix)]
+fn process_group_target(pid: u32) -> Option<libc::pid_t> {
+    let pid = libc::pid_t::try_from(pid).ok()?;
+    (pid > 1).then_some(-pid)
 }
 
 fn validate_pdf(path: &std::path::Path, started_at: std::time::SystemTime) -> anyhow::Result<()> {
@@ -948,6 +961,83 @@ mod tests {
         assert!(!ok);
         assert!(error.contains("timed out"));
         assert!(start.elapsed() < Duration::from_secs(5));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_process_group_kill_never_targets_our_own_group_or_every_process() {
+        // kill(0, ..) signals the caller's own group, kill(-1, ..) every process it may signal.
+        assert_eq!(process_group_target(0), None);
+        assert_eq!(process_group_target(1), None);
+        assert_eq!(process_group_target(2), Some(-2));
+        // procps-ng's kill(1) turned "-12345" into -1: every digit has to reach kill(2).
+        assert_eq!(process_group_target(12345), Some(-12345));
+        assert_eq!(process_group_target(u32::MAX), None);
+    }
+
+    /// The whole tree goes and nothing else does. Through procps-ng's kill(1) the group kill
+    /// missed the tree (a pid not starting with 1) or reached every process of the user (a pid
+    /// starting with 1), this test binary and a CI runner included.
+    #[cfg(target_os = "linux")]
+    #[tokio::test]
+    async fn killing_a_process_tree_takes_the_whole_tree_and_nothing_else() {
+        use std::os::unix::process::ExitStatusExt;
+        use tokio::io::AsyncBufReadExt;
+
+        let mut tree = tokio::process::Command::new("sh")
+            .args(["-c", "sleep 60 & echo $!; wait"])
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::null())
+            .kill_on_drop(true)
+            .process_group(0)
+            .spawn()
+            .unwrap();
+        let mut line = String::new();
+        tokio::io::BufReader::new(tree.stdout.take().unwrap())
+            .read_line(&mut line)
+            .await
+            .unwrap();
+        let grandchild: u32 = line.trim().parse().unwrap();
+        let mut bystander = tokio::process::Command::new("sleep")
+            .arg("60")
+            .kill_on_drop(true)
+            .process_group(0)
+            .spawn()
+            .unwrap();
+
+        kill_process_tree(tree.id().unwrap()).await;
+
+        let status = tokio::time::timeout(Duration::from_secs(10), tree.wait())
+            .await
+            .expect("the tree's leader should end")
+            .unwrap();
+        assert_eq!(status.signal(), Some(libc::SIGKILL));
+        let deadline = std::time::Instant::now() + Duration::from_secs(10);
+        while process_is_running(grandchild) {
+            assert!(
+                std::time::Instant::now() < deadline,
+                "grandchild {grandchild} survived the tree kill"
+            );
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
+        assert!(
+            bystander.try_wait().unwrap().is_none(),
+            "a process outside the tree was killed"
+        );
+        bystander.kill().await.unwrap();
+    }
+
+    /// Whether `pid` is running: neither gone nor an exited process waiting to be reaped.
+    #[cfg(target_os = "linux")]
+    fn process_is_running(pid: u32) -> bool {
+        let Ok(stat) = std::fs::read_to_string(format!("/proc/{pid}/stat")) else {
+            return false;
+        };
+        // The state follows the parenthesised command name, which may itself contain ") ".
+        stat.rsplit_once(") ")
+            .and_then(|(_, rest)| rest.chars().next())
+            .is_some_and(|state| state != 'Z')
     }
 
     #[tokio::test]
