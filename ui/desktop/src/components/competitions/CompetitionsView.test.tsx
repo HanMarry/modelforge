@@ -51,8 +51,9 @@ const statusButton = (label: string) => screen.getByRole('button', { name: label
 beforeEach(() => {
   vi.clearAllMocks();
   // Only the clock is fake, so statuses are fixed while React and the queries use real timers.
+  // 2026-09-11 falls inside the 2026 national contest (2026-09-10 to 2026-09-13).
   vi.useFakeTimers({ toFake: ['Date'] });
-  vi.setSystemTime(new Date(2026, 8, 5, 12, 0, 0));
+  vi.setSystemTime(new Date(2026, 8, 11, 12, 0, 0));
   directoryChooser.mockResolvedValue({ canceled: false, filePaths: ['/parent'] });
   addRecentDir.mockResolvedValue(undefined);
   openExternal.mockResolvedValue({ ok: true });
@@ -92,11 +93,17 @@ describe('CompetitionsView filters (requirement 8.6, 8.7)', () => {
     fireEvent.click(statusButton('Running'));
     expect(listedNames()).toEqual([CUMCM]);
 
+    // Running first, then the ended ones in id order (diangongbei, mathorcup).
     fireEvent.click(statusButton('Ended'));
-    expect(listedNames()).toEqual([CUMCM, '华数杯', 'MathorCup', MCM, '统计建模大赛']);
+    expect(listedNames()).toEqual([CUMCM, '电工杯', 'MathorCup']);
 
+    // Both conditions apply: MCM/ICM matches the keyword but has not started yet.
+    fireEvent.change(keywordInput(), { target: { value: 'MATHOR' } });
+    expect(listedNames()).toEqual(['MathorCup']);
     fireEvent.change(keywordInput(), { target: { value: 'mcm' } });
-    expect(listedNames()).toEqual([MCM]);
+    expect(listedNames()).toEqual([]);
+    fireEvent.change(keywordInput(), { target: { value: '电工' } });
+    expect(listedNames()).toEqual(['电工杯']);
 
     fireEvent.change(keywordInput(), { target: { value: 'no such contest' } });
     expect(listedNames()).toEqual([]);
@@ -113,8 +120,9 @@ describe('CompetitionsView filters (requirement 8.6, 8.7)', () => {
   it('matches the keyword as a case-insensitive substring of the name', () => {
     renderView();
 
+    // MCM/ICM has announced contest dates, APMCM has not, so MCM/ICM sorts first.
     fireEvent.change(keywordInput(), { target: { value: 'MCM' } });
-    expect(listedNames()).toEqual(['APMCM 亚太赛', MCM]);
+    expect(listedNames()).toEqual([MCM, 'APMCM 亚太赛']);
 
     fireEvent.change(keywordInput(), { target: { value: 'mathor' } });
     expect(listedNames()).toEqual(['MathorCup']);
@@ -126,13 +134,14 @@ describe('CompetitionsView filters (requirement 8.6, 8.7)', () => {
 
     fireEvent.click(statusButton('Not started'));
 
-    // Contest dates not announced count as not started and sort after the dated one.
-    expect(listedNames()).toEqual(['APMCM 亚太赛', '电工杯', '深圳杯']);
+    // Contest dates not announced count as not started and sort after the dated one, in id
+    // order (apmcm, huashubei, shenzhen, stats).
+    expect(listedNames()).toEqual([MCM, 'APMCM 亚太赛', '华数杯', '深圳杯', '统计建模大赛']);
   });
 });
 
 describe('CompetitionsView details', () => {
-  it('falls back to the generic template and shows unannounced data (requirement 8.2, 8.9)', () => {
+  it('falls back to the generic template when a competition has none (requirement 8.2)', () => {
     renderView();
 
     fireEvent.click(screen.getByRole('button', { name: /^深圳杯/ }));
@@ -141,6 +150,14 @@ describe('CompetitionsView details', () => {
     expect(screen.getByText('No matching template')).toBeVisible();
     expect(screen.getByText('No examples yet')).toBeVisible();
     expect(screen.getByText('Generic paper template')).toBeVisible();
+  });
+
+  it('shows an unconfirmed website as "To be announced" that cannot be clicked (requirement 8.9)', () => {
+    renderView();
+
+    fireEvent.click(screen.getByRole('button', { name: /^华数杯/ }));
+
+    expect(screen.getByRole('heading', { name: '华数杯' })).toBeVisible();
     const website = screen.getByText('Website:').closest('div') as HTMLElement;
     expect(within(website).getByText('To be announced')).toBeVisible();
     expect(within(website).queryByRole('button')).not.toBeInTheDocument();
