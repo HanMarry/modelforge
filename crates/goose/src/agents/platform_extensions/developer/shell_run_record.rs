@@ -25,8 +25,10 @@
 //! `sudo python`, `env X=1 python`, `time python`, PowerShell's `& python`, `uv pip`) is not a
 //! computation command: the shell behaves exactly as before and nothing is scanned.
 //!
-//! Credential values: the recorder gets [`NoSecretValues`], like the modeling extension's default
-//! `RunIntegration`, until the integration layer supplies the Credential_Store values.
+//! Credential values (requirement 16.2): the recorder replaces the values of [`RunSource::secrets`]
+//! with their Secret_References before the record is written. The developer extension passes the
+//! Kernel's Credential_Store values (`crate::config::run_record_secrets::kernel_secret_values`),
+//! the same source goose-cli installs for the modeling extension.
 
 use std::iter::Peekable;
 use std::path::{Path, PathBuf};
@@ -37,7 +39,7 @@ use std::time::Duration;
 
 use goose_run_record::run_record::{Dependency, FileHash, RunRecord};
 use goose_run_record::run_recorder::{
-    FinishedRun, NoSecretValues, ProbedEnvironment, RunHandle, RunOutcome, RunRecorder, RunSpec,
+    FinishedRun, ProbedEnvironment, RunHandle, RunOutcome, RunRecorder, RunSpec, SecretValues,
     CONFIG_UNKNOWN,
 };
 use rmcp::model::{
@@ -109,6 +111,8 @@ pub(crate) struct RunSource {
     pub(crate) tool_call_id: Option<String>,
     /// Looks up the session's provider and model for the record's config.
     pub(crate) sessions: Option<Arc<SessionManager>>,
+    /// The Credential_Store values the record must not contain.
+    pub(crate) secrets: Arc<dyn SecretValues>,
 }
 
 /// What the shell does about a command, decided before it runs.
@@ -146,8 +150,10 @@ pub(crate) async fn prepare(
     let (provider, model) = session_config(source.sessions.as_deref(), session_id).await;
     let command = command.to_string();
     let root = project_root.to_path_buf();
+    let secrets = source.secrets;
     let begun =
-        tokio::task::spawn_blocking(move || begin(&root, command, &code, provider, model)).await;
+        tokio::task::spawn_blocking(move || begin(&root, command, &code, provider, model, secrets))
+            .await;
     match begun {
         Ok(Ok((recorder, handle))) => PreparedRun::Record(Box::new(ActiveRun {
             recorder,
@@ -166,9 +172,9 @@ fn begin(
     code: &CodeFile,
     provider: String,
     model: String,
+    secrets: Arc<dyn SecretValues>,
 ) -> Result<(RunRecorder, RunHandle), String> {
-    let recorder =
-        RunRecorder::new(root, Arc::new(NoSecretValues)).map_err(|error| format!("{error:#}"))?;
+    let recorder = RunRecorder::new(root, secrets).map_err(|error| format!("{error:#}"))?;
     let code_file = code
         .candidates
         .iter()
@@ -1166,7 +1172,8 @@ mod tests {
     use crate::agents::mcp_client::McpClientTrait;
     use crate::agents::platform_extensions::developer::DeveloperClient;
     use crate::agents::tool_execution::{ToolCallContext, ToolCallNotificationEmitter};
-    use goose_run_record::run_record::{is_run_id, runs_dir, RunFailure, SEED_UNSET};
+    use goose_run_record::run_record::{is_run_id, runs_dir, RunFailure, SecretValue, SEED_UNSET};
+    use goose_run_record::run_recorder::NoSecretValues;
     use rmcp::object;
     use std::fs;
     use tokio_util::sync::CancellationToken;
@@ -1449,6 +1456,19 @@ mod tests {
         RunSource {
             tool_call_id: Some("call_1".to_string()),
             sessions: None,
+            secrets: Arc::new(NoSecretValues),
+        }
+    }
+
+    /// One Credential_Store entry, as the Kernel's source would supply it.
+    struct OneSecret;
+
+    impl SecretValues for OneSecret {
+        fn secret_values(&self) -> Vec<SecretValue> {
+            vec![SecretValue {
+                reference: "${secret:deepseek_api_key}".to_string(),
+                value: "sk-shell-secret-0123456789".to_string(),
+            }]
         }
     }
 
@@ -1548,6 +1568,46 @@ mod tests {
             )),
             "{}",
             text.text
+        );
+    }
+
+    #[tokio::test]
+    async fn credential_values_in_the_command_are_replaced_in_the_record() {
+        let project = project();
+        let source = RunSource {
+            secrets: Arc::new(OneSecret),
+            ..source()
+        };
+        let PreparedRun::Record(run) = prepare(
+            "python3 job.py --token sk-shell-secret-0123456789",
+            project.path(),
+            None,
+            source,
+        )
+        .await
+        else {
+            panic!("expected a recorded run");
+        };
+        let run = *run;
+        let probes = Probes {
+            started: Instant::now(),
+            runtime: ProbeTask(tokio::spawn(async { None })),
+            dependencies: ProbeTask(tokio::spawn(async { Some(Vec::new()) })),
+        };
+        let report = run.finish(Some(RunOutcome::Exited(0)), probes).await;
+        let mut result = CallToolResult::success(vec![ContentBlock::text("output")]);
+        report.attach(&mut result);
+
+        let run_id = run_of(&result)["runId"]
+            .as_str()
+            .expect("a run id")
+            .to_string();
+        let text =
+            fs::read_to_string(runs_dir(project.path()).join(format!("{run_id}.json"))).unwrap();
+        assert!(!text.contains("sk-shell-secret-0123456789"), "{text}");
+        assert_eq!(
+            read_record(project.path(), &run_id).command,
+            "python3 job.py --token ${secret:deepseek_api_key}"
         );
     }
 
