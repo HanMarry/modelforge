@@ -13,7 +13,7 @@
 # Without passwordless sudo, systemd-run, unshare and setpriv it runs the command directly.
 #
 # Usage: rust-test-sandbox.sh [--name NAME] [--timeout SECS] -- command [args...]
-# Environment: SANDBOX_MEMORY_MAX (default 12G), SANDBOX_SWAP_MAX (default 2G),
+# Environment: SANDBOX_MEMORY_MAX (default 85%, of physical memory), SANDBOX_SWAP_MAX (default 2G),
 #              SANDBOX_TASKS_MAX (default 8192).
 set -u
 
@@ -66,9 +66,11 @@ while read -r resource soft hard; do
   limits+=("--${resource,,}=${soft}:${hard}")
 done < <(prlimit --pid $$ --noheadings --raw --output RESOURCE,SOFT,HARD)
 
-echo "rust-test-sandbox: scope ${unit}.scope (MemoryMax ${SANDBOX_MEMORY_MAX:-12G}, MemorySwapMax ${SANDBOX_SWAP_MAX:-2G}, TasksMax ${SANDBOX_TASKS_MAX:-8192}), new PID namespace${timeout_secs:+, time limit ${timeout_secs}s}"
+limit_note=""
+((timeout_secs <= 0)) || limit_note=", time limit ${timeout_secs}s"
+echo "rust-test-sandbox: scope ${unit}.scope (MemoryMax ${SANDBOX_MEMORY_MAX:-85%}, MemorySwapMax ${SANDBOX_SWAP_MAX:-2G}, TasksMax ${SANDBOX_TASKS_MAX:-8192}), new PID namespace${limit_note}"
 sudo -n systemd-run --scope --quiet --collect --unit="$unit" \
-  -p MemoryMax="${SANDBOX_MEMORY_MAX:-12G}" \
+  -p MemoryMax="${SANDBOX_MEMORY_MAX:-85%}" \
   -p MemorySwapMax="${SANDBOX_SWAP_MAX:-2G}" \
   -p TasksMax="${SANDBOX_TASKS_MAX:-8192}" \
   unshare --pid --fork --kill-child --mount-proc \

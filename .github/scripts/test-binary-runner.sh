@@ -25,8 +25,11 @@ set -m
 "$bin" "$@" > "$out" 2>&1 < /dev/null &
 pid=$!
 set +m
-tail -n +1 -s 0.2 -f --pid="$pid" "$out" &
+# Streams the output as it is written and exits once the binary is gone and all of it is out.
+tail -n +1 -s 0.1 -f --pid="$pid" "$out" &
 tailer=$!
+sleep "$limit" &
+timer=$!
 
 forward() { kill -"$1" -- "-$pid" 2> /dev/null || kill -"$1" "$pid" 2> /dev/null; }
 trap 'forward TERM' TERM
@@ -53,22 +56,23 @@ report() {
   fi
 }
 
-deadline=$((SECONDS + limit))
-while kill -0 "$pid" 2> /dev/null; do
-  if ((SECONDS >= deadline)); then
-    report "$@"
-    forward KILL
-    wait "$pid" 2> /dev/null
-    wait "$tailer" 2> /dev/null
-    exit 124
-  fi
-  sleep 1 &
-  wait $!
+while :; do
+  ended=""
+  wait -n -p ended "$pid" "$timer"
+  status=$?
+  # A trapped signal interrupts wait without any job having ended (wait unsets the variable).
+  [[ -z "${ended:-}" ]] || break
 done
 
-status=0
-wait "$pid" || status=$?
-# tail exits once the binary is gone and it has printed the rest of the output.
+if [[ "$ended" == "$timer" ]]; then
+  report "$@"
+  forward KILL
+  wait "$pid" 2> /dev/null
+  wait "$tailer" 2> /dev/null
+  exit 124
+fi
+kill "$timer" 2> /dev/null
+wait "$timer" 2> /dev/null
 wait "$tailer" 2> /dev/null
 if ((status > 128 && status < 160)); then
   # Ended by a signal: end the same way, so cargo reports the signal.
