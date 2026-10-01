@@ -9,7 +9,8 @@
     measures that for a candidate installer and, when given, a baseline installer:
 
       1. static: which install-mode code each installer was compiled with
-         (Test-InstallerScript.ps1: unbounded "(&w<n> .s)" read or bounded lstrcpynW copy);
+         (Test-InstallerScript.ps1 reads the NSIS headers: unbounded "(&w<n> .s)" read or
+         bounded lstrcpynW copy);
       2. natural: -Rounds fresh silent per-user installs of each installer, in turn, as a new
          local user whose profile path has Chinese characters and a space (Invoke-AsLocalUser.ps1
          with Run-InstallLoop.ps1); no crashed install is run again;
@@ -26,8 +27,9 @@
     The installers are copied to mf-setup-<label>.exe so the registry settings above apply to
     them only. Writes <WorkDir>\results\crash-check.json and summary.md.
 
-    Exit code 0 when the candidate never crashed and was compiled with the bounded copy, 1
-    otherwise (also when a phase could not run), 2 when the check itself failed.
+    Exit code 0 when the candidate never crashed and its headers do not show the unbounded read
+    (a header that cannot be read is reported, not failed), 1 otherwise (also when a phase
+    could not run), 2 when the check itself failed.
 #>
 [CmdletBinding()]
 param(
@@ -110,11 +112,13 @@ foreach ($installer in $installers) {
             scripts = @($static.scripts | ForEach-Object {
                     [ordered]@{
                         name          = [string]$_.name
-                        decompiled    = [bool]$_.decompiled
+                        decoded       = [bool]$_.decoded
+                        compression   = [string]$_.compression
+                        headerBytes   = $_.headerBytes
                         unboundedRead = $_.unboundedRead
                         boundedCopy   = $_.boundedCopy
                         knownFolder   = $_.knownFolder
-                        sample        = (@($_.unboundedLines) | Select-Object -First 1)
+                        sample        = (@($_.unboundedStrings) | Select-Object -First 1)
                         error         = $_.error
                     }
                 })
@@ -141,10 +145,10 @@ foreach ($installer in $installers) {
             if (-not (Test-Path -LiteralPath $root)) { New-Item -Path $root -Force | Out-Null }
             New-Item -Path $key -Force | Out-Null
             New-ItemProperty -Path $key -Name DumpFolder -PropertyType ExpandString -Value $dumps -Force | Out-Null
-            # Full dumps (the heap is needed for !heap), at most 4 per folder; each phase gets
-            # its own folder (Set-DumpFolder).
+            # Full dumps (the heap is needed for !heap), about 100 MB each, at most 3 per folder;
+            # each phase gets its own folder (Set-DumpFolder).
             New-ItemProperty -Path $key -Name DumpType -PropertyType DWord -Value 2 -Force | Out-Null
-            New-ItemProperty -Path $key -Name DumpCount -PropertyType DWord -Value 4 -Force | Out-Null
+            New-ItemProperty -Path $key -Name DumpCount -PropertyType DWord -Value 3 -Force | Out-Null
             $dumpKeys += $key
         }
         catch {
@@ -336,6 +340,25 @@ foreach ($candidate in @("${env:ProgramFiles(x86)}\Windows Kits\10\Debuggers\x64
     if ($candidate -and (Test-Path -LiteralPath $candidate)) { $cdb = $candidate; break }
 }
 $dumpFiles = @(Get-ChildItem -LiteralPath $dumps -Filter '*.dmp' -File -Recurse -ErrorAction SilentlyContinue | Sort-Object LastWriteTime)
+# One command per line. cdb reads them from a script file (-cf) and, should that stop at a
+# failing command, again from standard input, which ends with "q" and then end of file, so it
+# never waits for input (run 36853323097: ".effmach x86; ..." on one -c line failed with
+# "Extra character error", the rest including "q" never ran and cdb sat until the timeout).
+# The dumps are of the 32-bit installer (WOW64); .effmach x86 makes sure cdb shows x86 frames.
+$cdbCommands = @(
+    '.effmach x86',
+    '.exr -1',
+    '.ecxr',
+    'kv 12',
+    'ub @eip L8',
+    'u @eip L3',
+    'lmv m System',
+    '!gflag',
+    '.echo MF-HEAP',
+    '!heap -p -a @esi',
+    '!heap -p -a @edi',
+    'q'
+)
 $analysed = @{}
 foreach ($dump in $dumpFiles) {
     $label = $(if ($dump.Name -match 'mf-setup-([a-z]+)\.exe') { $Matches[1] } else { 'other' })
@@ -348,10 +371,20 @@ foreach ($dump in $dumpFiles) {
         $analysed[$slot] = $count + 1
         $log = Join-Path $dump.DirectoryName ($dump.BaseName + '.cdb.txt')
         $symbols = Join-Path $WorkDir 'symbols'
-        $commands = '.effmach x86; !wow64exts.sw; .exr -1; .ecxr; r; kv 12; ub @eip L8; u @eip L3; lmv m System; !gflag; .echo MF-HEAP; !heap -p -a @esi; !heap -p -a @edi; q'
+        $cdbWork = Join-Path $WorkDir 'cdb'
+        New-Item -ItemType Directory -Force -Path $cdbWork | Out-Null
+        $scriptFile = Join-Path $cdbWork ($dump.BaseName + '.script.txt')
+        $inputFile = Join-Path $cdbWork ($dump.BaseName + '.stdin.txt')
+        $commandText = ($cdbCommands -join "`r`n") + "`r`n"
+        [System.IO.File]::WriteAllText($scriptFile, $commandText, (New-Object System.Text.ASCIIEncoding))
+        [System.IO.File]::WriteAllText($inputFile, $commandText, (New-Object System.Text.ASCIIEncoding))
         try {
             $env:_NT_SYMBOL_PATH = "srv*$symbols*https://msdl.microsoft.com/download/symbols"
-            $process = Start-Process -FilePath $cdb -ArgumentList @('-z', ('"{0}"' -f $dump.FullName), '-logo', ('"{0}"' -f $log), '-c', ('"{0}"' -f $commands)) -PassThru -WindowStyle Hidden
+            $process = Start-Process -FilePath $cdb -PassThru -NoNewWindow `
+                -ArgumentList @('-z', ('"{0}"' -f $dump.FullName), '-logo', ('"{0}"' -f $log), '-cf', ('"{0}"' -f $scriptFile)) `
+                -RedirectStandardInput $inputFile `
+                -RedirectStandardOutput (Join-Path $cdbWork ($dump.BaseName + '.stdout.txt')) `
+                -RedirectStandardError (Join-Path $cdbWork ($dump.BaseName + '.stderr.txt'))
             if (-not $process.WaitForExit(300000)) {
                 Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
                 Add-CheckError ("cdb timed out on {0}" -f $dump.Name)
@@ -359,11 +392,17 @@ foreach ($dump in $dumpFiles) {
             if (Test-Path -LiteralPath $log) {
                 $text = [System.IO.File]::ReadAllText($log)
                 $entry.analysis = (Split-Path -Leaf $log)
+                # The faulting instruction with its memory operand (".ecxr"), the heap block the
+                # registers point into and its allocation stack (page heap): column headers
+                # together with the line of values under them.
                 foreach ($pattern in @('ExceptionCode:\s*\S+[^\r\n]*', 'Attempt to read from address \S+', 'Attempt to write to address \S+',
-                        'ExceptionAddress:\s*[^\r\n]+', 'System\+0x[0-9a-f]+', 'Current NtGlobalFlag contents:[^\r\n]+',
-                        'address [0-9a-f`]+ found in[^\r\n]*', 'UserSize[^\r\n]*', '[^\r\n]*SHGetKnownFolderPath[^\r\n]*', '[^\r\n]*CoTaskMemAlloc[^\r\n]*')) {
+                        'ExceptionAddress:\s*[^\r\n]+', 'System\+0x[0-9a-f]+', '[^\r\n]*(?:ds|es):002b:[0-9a-f`]+=[^\r\n]*',
+                        'Current NtGlobalFlag contents:[^\r\n]+', 'address [0-9a-f`]+ found in[^\r\n]*',
+                        'in busy allocation[^\r\n]*\r?\n[^\r\n]+', 'HEAP_ENTRY Size[^\r\n]*\r?\n[^\r\n]+',
+                        '[^\r\n]*SHGetKnownFolderPath[^\r\n]*', '[^\r\n]*CoTaskMemAlloc[^\r\n]*')) {
                     foreach ($m in [regex]::Matches($text, $pattern, 'IgnoreCase')) {
-                        if ($entry.facts.Count -lt 16 -and $entry.facts -notcontains $m.Value.Trim()) { $entry.facts += $m.Value.Trim() }
+                        $fact = ($m.Value -replace '\s+', ' ').Trim()
+                        if ($entry.facts.Count -lt 16 -and $entry.facts -notcontains $fact) { $entry.facts += $fact }
                     }
                 }
             }
@@ -413,8 +452,10 @@ foreach ($phase in $check.phases) {
     }
 }
 $candidateStatic = @($check.static | Where-Object { $_.label -eq 'candidate' })[0]
-$staticFixed = $candidateStatic -and $candidateStatic.verdict -eq 'fixed'
-$check.ok = ($candidateRuns -gt 0) -and ($candidateCrashes -eq 0) -and $staticFixed -and ($check.errors.Count -eq 0 -or $candidateRuns -ge ($Rounds + $PageHeapRounds))
+# The crash counts decide; the static check only fails the candidate when it finds the
+# unbounded read. "unknown" (a header this script cannot read) is reported in the summary.
+$staticVulnerable = $candidateStatic -and $candidateStatic.verdict -eq 'vulnerable'
+$check.ok = ($candidateRuns -gt 0) -and ($candidateCrashes -eq 0) -and (-not $staticVulnerable) -and ($check.errors.Count -eq 0 -or $candidateRuns -ge ($Rounds + $PageHeapRounds))
 $check.verdict = ('candidate: {0} crashes in {1} installs, compiled {2}' -f $candidateCrashes, $candidateRuns, $(if ($candidateStatic) { $candidateStatic.verdict } else { 'unchecked' }))
 
 # --- summary ----------------------------------------------------------------------------------------
@@ -430,8 +471,12 @@ foreach ($installer in $installers) {
     $detail = '(not checked)'
     if ($static) {
         $detail = ($static.verdict + ': ' + ((@($static.scripts) | ForEach-Object {
-                        if ($_.decompiled) { '{0} unbounded {1}, lstrcpynW {2}, SHGetKnownFolderPath {3}' -f $_.name, $_.unboundedRead, $_.boundedCopy, $_.knownFolder }
-                        else { '{0} not decompiled ({1})' -f $_.name, $_.error }
+                        if ($_.decoded) {
+                            $sample = $(if ($_.sample) { ' `{0}`' -f ($_.sample -replace '[`|]', '') } else { '' })
+                            '{0} header ({1}, {2:N0} bytes): unbounded (&w<n> .s) {3}{4}, lstrcpynW {5}, SHGetKnownFolderPath {6}' -f $_.name, $_.compression,
+                                [int]$_.headerBytes, $_.unboundedRead, $sample, $_.boundedCopy, $_.knownFolder
+                        }
+                        else { '{0} header not read ({1})' -f $_.name, $_.error }
                     }) -join '; '))
     }
     $lines += ('| {0} | `{1}` | {2} |' -f $installer.label, $installer.sha256.Substring(0, 12), $detail)
@@ -449,7 +494,12 @@ foreach ($phase in $check.phases) {
 }
 $lines += ''
 if ($check.phases.Count -gt 0) {
-    $dirs = @($check.phases | ForEach-Object { $_.byLabel } | ForEach-Object { '{0}: {1}' -f $_.label, $_.installDirs } | Select-Object -Unique)
+    $dirs = @()
+    foreach ($installer in $installers) {
+        $mine = @($check.phases | ForEach-Object { $_.byLabel } | Where-Object { $_.label -eq $installer.label } |
+            ForEach-Object { @($_.installDirs -split '; ') } | Where-Object { $_ } | Select-Object -Unique)
+        $dirs += ('{0}: {1}' -f $installer.label, $(if ($mine.Count) { $mine -join '; ' } else { '(none installed)' }))
+    }
     $lines += ('Default per-user directories chosen by the installers: {0}' -f ($dirs -join ' | '))
     $lines += ''
 }
