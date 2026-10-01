@@ -7,7 +7,7 @@
 | `<题目>/task.yaml` | 运行器读取的 `eval` 段与 goose recipe |
 | `<题目>/checks.yaml` | 人工制定的检查项，`method` 为 `file`、`baseline` 或 `manual` |
 | `<题目>/baseline.json` | 关键数值的参考值与允许误差 |
-| `learning-samples/` | 学习模式抽样对话（需求 20.3），只出报告 |
+| `learning-samples/` | 学习模式抽样对话（需求 20.3），只出报告。样例本身不带学习模式规则：运行器把 Kernel 的学习模式提示词 `crates/goose/src/acp/server/learning_mode_prompt.md`（填入练习 id）作为 recipe instructions，实际运行的 recipe 存在 goose 日志旁 |
 | `run.mts` | 运行器，用法见文件头注释；CI 中由 `.github/workflows/modelforge-evals.yml` 调用 |
 | `results/` | 结果文件与人工复核记录 |
 
