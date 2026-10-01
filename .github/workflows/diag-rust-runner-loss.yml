@@ -1,5 +1,10 @@
-# Diagnoses the CI failure where "Build and Test Rust Project" loses its hosted runner ("The hosted
-# runner lost communication with the server") 10-45 s into tests/acp_server_test.rs, with no log.
+# Diagnoses CI failures where "Build and Test Rust Project" loses its hosted runner ("The hosted
+# runner lost communication with the server") with no log left behind.
+#
+# It found the cause of the failures seen from 2026-09-17 on: goose-mcp's kill_process_tree ran
+# `kill -KILL -<pid>`, and procps-ng's kill(1) (/usr/bin/kill on Ubuntu) sends a negative PID to
+# the group named by its first digit only; for a PID starting with 1 that is kill(-1, SIGKILL),
+# every process of the runner user, the runner included. goose-mcp now calls kill(2) itself.
 #
 # Each job builds the tests exactly like ci.yml (same command, so the same test binaries), then
 # runs them in rounds while a root-side monitor (.github/scripts/diag-runner-loss/root-monitor.sh)
@@ -7,14 +12,15 @@
 # disk and kernel messages, and reports to a check run that survives a lost runner.
 #   full: the whole CI test command, round after round
 #   acp:  tests/acp_server_test.rs alone, alternating default threads and --test-threads=1
-#   kill-demo: goose-mcp's modeling timeout test twice, once as is and once after pushing the
-#              sandbox's PID counter past 10000, so that the timed-out child's PID starts with 1
-#              (procps-ng's kill(1) reads only the first digit of a negative PID)
+#   kill-demo: goose-mcp's modeling timeout test twice, once in a fresh PID namespace and once
+#              after pushing the namespace's PID counter past 10000; either way the timed-out
+#              child's PID starts with 1. The signal records show which group the kill reached.
 # By default the rounds run in .github/scripts/rust-test-sandbox.sh (PID namespace, cgroup
 # limits), so a test that kills or starves the machine fails its round instead of the runner.
 #
-# Runs only on workflow_dispatch. The push trigger only registers the workflow on this branch so
-# that it can be dispatched; its jobs are skipped on push.
+# With finalize_sha set, a separate job gives the stale "rust-watchdog" reports of that commit
+# a final state (finalize-rust-watchdog.sh); check runs can only be finished by the GitHub app
+# that created them, i.e. from a workflow run. Set modes to [] to only do that.
 name: Diagnose Rust runner loss
 
 on:
@@ -33,11 +39,12 @@ on:
       modes:
         description: JSON list of modes (full, acp, kill-demo)
         default: '["full", "acp"]'
-  push:
-    branches:
-      - mp/s4-ci-runner
-    paths:
-      - .github/workflows/diag-rust-runner-loss.yml
+      finalize_sha:
+        description: Commit whose stale rust-watchdog reports get a final state (empty to skip)
+        default: ""
+      finalize_result:
+        description: Result to record for the jobs that left those reports
+        default: failure
 
 permissions:
   contents: read
@@ -53,9 +60,30 @@ defaults:
     shell: bash
 
 jobs:
+  finalize:
+    name: Finalize stale watchdog reports
+    if: inputs.finalize_sha != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      statuses: write
+      checks: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          sparse-checkout: .github/scripts
+
+      - name: Finalize the rust-watchdog status and rust-watchdog-log check runs
+        run: bash .github/scripts/finalize-rust-watchdog.sh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WATCHDOG_STATUS_SHA: ${{ inputs.finalize_sha }}
+          JOB_RESULT: ${{ inputs.finalize_result }}
+
   diagnose:
     name: Diagnose (${{ matrix.mode }})
-    if: github.event_name == 'workflow_dispatch'
+    if: inputs.modes != '[]'
     runs-on: ubuntu-latest
     timeout-minutes: 150
     strategy:
@@ -139,7 +167,9 @@ jobs:
             kill-demo) rounds=2 ;;
             *) rounds="$ACP_ROUNDS" ;;
           esac
-          demo_test=(cargo test --locked -p goose-mcp --lib modeling::tests::commands_time_out_instead_of_hanging -- --exact)
+          demo_test=(cargo test --locked -p goose-mcp --lib -- --exact
+            modeling::tests::commands_time_out_instead_of_hanging
+            modeling::tests::killing_a_process_tree_takes_the_whole_tree_and_nothing_else)
           for i in $(seq 1 "$rounds"); do
             if [[ "$MODE" == full ]]; then
               label=full
