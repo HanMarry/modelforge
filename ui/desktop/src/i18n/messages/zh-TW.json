@@ -5334,7 +5334,7 @@
     "defaultMessage": "只能評審 LaTeX（.tex）、Markdown（.md）和 PDF 檔案。"
   },
   "review.failureApproval": {
-    "defaultMessage": "核心要求工具授權，評審面板無法代為授權。請將權限模式改為自動或智慧核准後重試。"
+    "defaultMessage": "核心提出了評審面板無法回答的問題（例如擴充功能要求填寫的表單），評審已停止。工具授權會被自動拒絕，不會中斷評審。請重試。"
   },
   "review.failureCancelled": {
     "defaultMessage": "評審已中斷。"

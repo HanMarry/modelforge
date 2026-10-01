@@ -5334,7 +5334,7 @@
     "defaultMessage": "只能评审 LaTeX（.tex）、Markdown（.md）和 PDF 文件。"
   },
   "review.failureApproval": {
-    "defaultMessage": "内核请求了工具授权，评审面板无法代为授权。请将权限模式改为自动或智能批准后重试。"
+    "defaultMessage": "内核提出了评审面板无法回答的问题（例如扩展要求填写的表单），评审已停止。工具授权会被自动拒绝，不会中断评审。请重试。"
   },
   "review.failureCancelled": {
     "defaultMessage": "评审被中断。"

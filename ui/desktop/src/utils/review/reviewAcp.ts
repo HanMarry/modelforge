@@ -7,12 +7,18 @@
 import { acpChatSessionActions, acpChatSessionStore } from '../../acp/chatSessionStore';
 import { cancelAcpElicitationRequestsForSession } from '../../acp/elicitationRequests';
 import { formatAcpError } from '../../acp/errors';
-import { cancelAcpPermissionRequestsForSession } from '../../acp/permissionRequests';
+import {
+  answerAcpPermissionRequestsWith,
+  cancelAcpPermissionRequestsForSession,
+} from '../../acp/permissionRequests';
 import { acpCancelPrompt, acpPromptSession } from '../../acp/prompt';
 import { acpCloseSession, acpNewSession, acpRenameSession } from '../../acp/sessions';
 import { ChatState } from '../../types/chatState';
 import { createUserMessage, type Message } from '../../types/message';
 import type { ReviewKernel } from './reviewRunner';
+
+/** Stops answering the approvals of a review session; see `openSession`. */
+const approvalAnswers = new Map<string, () => void>();
 
 function messageText(message: Message): string {
   return message.content
@@ -31,6 +37,11 @@ export const acpReviewKernel: ReviewKernel = {
   async openSession(workingDir, title) {
     try {
       const { sessionId } = await acpNewSession(workingDir, []);
+      // A review only loads the skill and reads the paper, and this panel has no approval
+      // prompt. A tool call that needs approval is refused for this one time, so the Kernel
+      // tells the model and the review goes on instead of waiting (MP-26). Approvals are only
+      // requested during a turn, which starts after this returns.
+      approvalAnswers.set(sessionId, answerAcpPermissionRequestsWith(sessionId, 'deny_once'));
       // A readable name in the session list; failing to rename does not affect the review.
       void acpRenameSession(sessionId, title).catch(() => undefined);
       return sessionId;
@@ -67,6 +78,8 @@ export const acpReviewKernel: ReviewKernel = {
   },
 
   async closeSession(sessionId) {
+    approvalAnswers.get(sessionId)?.();
+    approvalAnswers.delete(sessionId);
     cancelAcpPermissionRequestsForSession(sessionId);
     cancelAcpElicitationRequestsForSession(sessionId);
     try {

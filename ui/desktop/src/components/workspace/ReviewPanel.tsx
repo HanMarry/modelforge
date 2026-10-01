@@ -114,7 +114,7 @@ const messages = defineMessages({
   failureApproval: {
     id: 'review.failureApproval',
     defaultMessage:
-      'The Kernel asked for a tool approval, which this panel cannot grant. Switch the permission mode to automatic or smart approval, then try again.',
+      'The review stopped because the Kernel asked a question this panel cannot answer, such as a form from an extension. Tool approvals are refused automatically and do not stop the review. Try again.',
   },
   failureTruncated: {
     id: 'review.failureTruncated',

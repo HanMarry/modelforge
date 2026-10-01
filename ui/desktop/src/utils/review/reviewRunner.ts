@@ -22,7 +22,11 @@ export interface ReviewKernel {
   prompt(sessionId: string, text: string): Promise<string>;
   /** Cancels the running turn and any pending approval request. */
   cancel(sessionId: string): Promise<void>;
-  /** The turn is blocked on a tool approval or another question to the user. */
+  /**
+   * The turn is blocked on a question to the user. Tool approvals of a review session are
+   * answered automatically (`reviewAcp.ts`), so this is left for other questions, such as a
+   * form an extension asks the user to fill in.
+   */
   isWaitingForUser(sessionId: string): boolean;
   /** Text of each assistant message in the session, oldest first. */
   replyTexts(sessionId: string): string[];
@@ -48,7 +52,8 @@ export interface ReviewRunRequest {
  * - `model-call-failed`: the prompt request failed (provider error, lost connection).
  * - `timeout`: no answer within the time limit.
  * - `cancelled`: the user stopped the review, or the Kernel reported the turn as cancelled.
- * - `approval-required`: the Kernel asked for a tool approval the panel cannot grant.
+ * - `approval-required`: the Kernel asked the user something the panel cannot answer. Tool
+ *   approvals are refused automatically and do not end the review.
  * - `output-truncated`: the model hit its token or turn limit before finishing.
  * - `refused`: the model declined to answer.
  * - `no-json`: the reply had no JSON object (for example the skill refused a missing file).
