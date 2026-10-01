@@ -242,6 +242,58 @@ describe('settleEndedRuns', () => {
       entry(OUT, { status: '未开始' })
     );
   });
+
+  describe('a run that started in the same millisecond is not a rename', () => {
+    // Parallel tool calls: RUN_ID left no record, OTHER (same start time) left its own.
+    const OTHER = '20260920T101530123-bbbbbb';
+    const otherRecord = runRecord({ runId: OTHER, exitCode: 2, failure: '非零退出码', outputs: [] });
+    const recordMissing = entry('results/a.csv', {
+      status: '已过期',
+      runId: RUN_ID,
+      staleReasons: [{ kind: 'record-missing', path: RECORD_PATH }],
+    });
+
+    it('while the other run still has entries of its own', () => {
+      const pending = applyRunStarted(
+        applyRunStarted(emptyArtifactIndex(), RUN_ID, ['results/a.csv']),
+        OTHER,
+        ['results/b.csv']
+      );
+
+      const settled = settleEndedRuns(pending, new Map([[OTHER, otherRecord]]), () => false);
+
+      expect(getArtifactEntry(settled, 'results/a.csv')).toEqual(recordMissing);
+      expect(getArtifactEntry(settled, 'results/b.csv')).toEqual(
+        entry('results/b.csv', { status: '执行失败', runId: OTHER, failure: '非零退出码' })
+      );
+    });
+
+    it('once the other run, which runs/started announced, is settled', () => {
+      const pending = applyRunStarted(emptyArtifactIndex(), RUN_ID, ['results/a.csv']);
+      const runs = new Map([[OTHER, otherRecord]]);
+
+      const settled = settleEndedRuns(pending, runs, () => false, (runId) => runId === OTHER);
+
+      expect(getArtifactEntry(settled, 'results/a.csv')).toEqual(recordMissing);
+    });
+
+    it('while an unannounced record with the start time still counts as the rename', () => {
+      const renamed = '20260920T101530123-zzzzzz';
+      const pending = applyRunStarted(emptyArtifactIndex(), RUN_ID, ['results/a.csv']);
+      const record = runRecord({ runId: renamed, exitCode: null, failure: '超时', outputs: [] });
+
+      const settled = settleEndedRuns(
+        pending,
+        new Map([[renamed, record]]),
+        () => false,
+        (runId) => runId === OTHER
+      );
+
+      expect(getArtifactEntry(settled, 'results/a.csv')).toEqual(
+        entry('results/a.csv', { status: '执行失败', runId: renamed, failure: '超时' })
+      );
+    });
+  });
 });
 
 describe('syncDiscoveredFiles', () => {
