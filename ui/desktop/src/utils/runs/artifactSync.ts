@@ -19,7 +19,9 @@ import type { ArtifactFileCheck, ArtifactFileRole } from '../../types/runsApi';
 import {
   ARTIFACT_INDEX_SCHEMA_VERSION,
   STALE_REASON_KINDS,
+  applyRunEnded,
   applyRunFinished,
+  awaitsRunRecord,
   emptyArtifactIndex,
   getArtifactEntry,
   isArtifactStatus,
@@ -180,8 +182,9 @@ export function sameArtifactIndex(a: ArtifactIndex, b: ArtifactIndex): boolean {
  * start time, so they sort in the order the runs started.
  *
  * - No entry, or one without a run: yes.
- * - The run the entry already names: only while it is `执行中` (the run has just ended).
- * - An entry `执行中` for another run: yes when `runId` started no earlier. A record whose id got
+ * - The run the entry already names: only while the entry waits for that run's record
+ *   (`awaitsRunRecord`: `执行中`, or outdated because the record was missing).
+ * - An entry waiting for another run: yes when `runId` started no earlier. A record whose id got
  *   a new suffix on a write collision keeps the start time, so it still ends the pending run.
  * - Otherwise: yes when `runId` started later.
  */
@@ -189,10 +192,11 @@ function isNewerRun(entry: ArtifactEntry | undefined, runId: string): boolean {
   if (!entry || entry.runId === null) {
     return true;
   }
+  const waiting = awaitsRunRecord(entry);
   if (entry.runId === runId) {
-    return entry.status === '执行中';
+    return waiting;
   }
-  if (entry.status === '执行中') {
+  if (waiting) {
     return runId.slice(0, RUN_ID_TIME_LENGTH) >= entry.runId.slice(0, RUN_ID_TIME_LENGTH);
   }
   return runId > entry.runId;
@@ -217,7 +221,7 @@ export function applyNewRuns(state: ArtifactIndex, records: readonly RunRecord[]
     );
     const pending = Object.keys(next.entries).some((path) => {
       const entry = next.entries[path];
-      return entry.status === '执行中' && entry.runId === record.runId;
+      return entry.runId === record.runId && awaitsRunRecord(entry);
     });
     if (outputs.length === 0 && !pending) {
       continue;
@@ -226,6 +230,70 @@ export function applyNewRuns(state: ArtifactIndex, records: readonly RunRecord[]
       next,
       outputs.length === record.outputs.length ? record : { ...record, outputs }
     );
+  }
+  return next;
+}
+
+/** The record a run left: its own, else the only one with its start time, else none. */
+function recordLeftBy(runId: string, runs: RunRecordMap): RunRecord | null {
+  const own = runs.get(runId);
+  if (own) {
+    return own;
+  }
+  const startedAt = runId.slice(0, RUN_ID_TIME_LENGTH);
+  const renamed = [...runs.values()].filter(
+    (record) => record.runId.slice(0, RUN_ID_TIME_LENGTH) === startedAt
+  );
+  return renamed.length === 1 ? renamed[0] : null;
+}
+
+/**
+ * Ends the `执行中` entries of every run that is over (requirements 16.3, 16.5, 16.6), so that
+ * no entry stays `执行中` after its run: a run is over unless `isLive` says the kernel is still
+ * running it. Each run that is over is ended with `applyRunEnded` and the record it left
+ * (`runs` holds the valid records): its own; otherwise the only record with the same start time,
+ * which is the record the kernel wrote under a new suffix after a write collision; otherwise
+ * none, which outdates the entries with the reason `record-missing`. A `执行中` entry that names
+ * no run has nothing to wait for and falls back to `未开始`. Live runs are left alone, so this
+ * changes nothing while they run, and applying it twice gives the same index.
+ */
+export function settleEndedRuns(
+  state: ArtifactIndex,
+  runs: RunRecordMap,
+  isLive: (runId: string) => boolean
+): ArtifactIndex {
+  const pending = new Set<string>();
+  const unnamed: string[] = [];
+  for (const path of Object.keys(state.entries)) {
+    const entry = state.entries[path];
+    if (entry.status !== '执行中') {
+      continue;
+    }
+    if (entry.runId === null) {
+      unnamed.push(path);
+    } else {
+      pending.add(entry.runId);
+    }
+  }
+  let next = state;
+  if (unnamed.length > 0) {
+    const entries = { ...state.entries };
+    for (const path of unnamed) {
+      defineEntry(entries, path, {
+        path,
+        status: '未开始',
+        runId: null,
+        failure: null,
+        verification: null,
+        staleReasons: [],
+      });
+    }
+    next = { ...state, entries };
+  }
+  for (const runId of [...pending].sort()) {
+    if (!isLive(runId)) {
+      next = applyRunEnded(next, runId, recordLeftBy(runId, runs));
+    }
   }
   return next;
 }

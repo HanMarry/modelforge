@@ -1,4 +1,5 @@
 use crate::config::paths::Paths;
+use crate::config::run_record_secrets::register_secret_value;
 use crate::config::GooseMode;
 use crate::providers::private_file::{private_file_target_path, write_private_file};
 use fs2::FileExt;
@@ -921,6 +922,10 @@ impl Config {
         let env_key = key.to_uppercase();
         if let Ok(val) = env::var(&env_key) {
             let value = Self::parse_env_value(&val)?;
+            // Run_Records replace the secrets the Kernel uses, wherever they came from
+            // (requirement 16.2).
+            register_secret_value(key, &Value::String(val));
+            register_secret_value(key, &value);
             return Ok(serde_json::from_value(value)?);
         }
 
@@ -929,7 +934,10 @@ impl Config {
         values
             .get(key)
             .ok_or_else(|| ConfigError::NotFound(key.to_string()))
-            .and_then(|v| Ok(serde_json::from_value(v.clone())?))
+            .and_then(|v| {
+                register_secret_value(key, v);
+                Ok(serde_json::from_value(v.clone())?)
+            })
     }
 
     /// Get secrets. If primary is in env, use env for all keys. Otherwise, use secret storage.
@@ -941,7 +949,10 @@ impl Config {
         let use_env = env::var(primary.to_uppercase()).is_ok();
         let get_value = |key: &str| -> Result<String, ConfigError> {
             if use_env {
-                env::var(key.to_uppercase()).map_err(|_| ConfigError::NotFound(key.to_string()))
+                let value = env::var(key.to_uppercase())
+                    .map_err(|_| ConfigError::NotFound(key.to_string()))?;
+                register_secret_value(key, &Value::String(value.clone()));
+                Ok(value)
             } else {
                 self.get_secret(key)
             }

@@ -3,6 +3,7 @@ import type {
   RunStartedNotification_unstable,
 } from '@aaif/goose-acp-client';
 import type { RunsApi } from '../types/runsApi';
+import { runRecordPath } from '../utils/artifactStatus';
 
 /**
  * Run notifications from the Kernel: `_goose/unstable/runs/started` and
@@ -18,9 +19,54 @@ import type { RunsApi } from '../types/runsApi';
  * mode or from a separate `goose mcp modeling` process sends none), which is why the main process
  * also rescans `.modelforge/runs` when files change.
  *
+ * A run that started but left no Run_Record sends no `runs/finished`. So the end of the tool call
+ * that started it counts too (`handleRunToolCallEnded`): when no `runs/finished` follows within
+ * `RUN_END_GRACE_MS`, the main process is told the run is over and ends what it marked `执行中`.
+ *
  * Other renderer code can listen as well, with `subscribeToRunStarted` and
  * `subscribeToRunFinished`.
  */
+
+/**
+ * How long `runs/finished` may follow the end of its tool call. goose sends it right after the
+ * tool result, so waiting only matters for a run that left no record.
+ */
+export const RUN_END_GRACE_MS = 3000;
+/** Started runs remembered at once; the oldest is forgotten first. */
+const MAX_STARTED_RUNS = 256;
+
+interface StartedRun {
+  workingDir: string;
+  runId: string;
+}
+
+/** Runs whose start was heard and whose end was not, by session and tool call. */
+const startedRuns = new Map<string, StartedRun>();
+const pendingEnds = new Map<string, ReturnType<typeof setTimeout>>();
+
+function runKey(sessionId: string, toolCallId: string): string {
+  return `${sessionId}\n${toolCallId}`;
+}
+
+function forgetRun(key: string): void {
+  startedRuns.delete(key);
+  const timer = pendingEnds.get(key);
+  if (timer !== undefined) {
+    clearTimeout(timer);
+    pendingEnds.delete(key);
+  }
+}
+
+function rememberRun(key: string, run: StartedRun): void {
+  forgetRun(key);
+  startedRuns.set(key, run);
+  for (const oldest of startedRuns.keys()) {
+    if (startedRuns.size <= MAX_STARTED_RUNS) {
+      break;
+    }
+    forgetRun(oldest);
+  }
+}
 
 export type RunStartedListener = (notification: RunStartedNotification_unstable) => void;
 export type RunFinishedListener = (notification: RunFinishedNotification_unstable) => void;
@@ -85,6 +131,10 @@ async function forwardToMainProcess(
 export async function handleAcpRunStartedNotification(
   notification: RunStartedNotification_unstable
 ): Promise<void> {
+  rememberRun(runKey(notification.sessionId, notification.toolCallId), {
+    workingDir: notification.workingDir,
+    runId: notification.runId,
+  });
   const forward = mainProcess()?.artifactsRunStarted;
   const forwarded =
     typeof forward === 'function'
@@ -94,6 +144,7 @@ export async function handleAcpRunStartedNotification(
               workingDir: notification.workingDir,
               runId: notification.runId,
               declaredOutputs: notification.declaredOutputs ?? [],
+              toolCallId: notification.toolCallId,
             }),
           'runs/started'
         )
@@ -105,6 +156,7 @@ export async function handleAcpRunStartedNotification(
 export async function handleAcpRunFinishedNotification(
   notification: RunFinishedNotification_unstable
 ): Promise<void> {
+  forgetRun(runKey(notification.sessionId, notification.toolCallId));
   const forward = mainProcess()?.artifactsRunFinished;
   const forwarded =
     typeof forward === 'function'
@@ -114,10 +166,46 @@ export async function handleAcpRunFinishedNotification(
               workingDir: notification.workingDir,
               runId: notification.runId,
               recordPath: notification.recordPath,
+              toolCallId: notification.toolCallId,
             }),
           'runs/finished'
         )
       : Promise.resolve();
   dispatch(runFinishedListeners, notification, 'runs/finished');
   await forwarded;
+}
+
+/**
+ * The tool call `toolCallId` of the session ended (`tool_call_update` completed or failed). When
+ * it started a run and no `runs/finished` follows within `RUN_END_GRACE_MS`, the main process
+ * hears that the run is over, so the Artifacts it marked `执行中` do not wait for a record that
+ * never comes (requirement 16.5: a run without a usable record backs nothing).
+ */
+export function handleRunToolCallEnded(sessionId: string, toolCallId: string): void {
+  const key = runKey(sessionId, toolCallId);
+  const run = startedRuns.get(key);
+  if (!run || pendingEnds.has(key)) {
+    return;
+  }
+  const timer = setTimeout(() => {
+    pendingEnds.delete(key);
+    if (startedRuns.get(key) !== run) {
+      return;
+    }
+    startedRuns.delete(key);
+    const forward = mainProcess()?.artifactsRunFinished;
+    if (typeof forward === 'function') {
+      void forwardToMainProcess(
+        () =>
+          forward({
+            workingDir: run.workingDir,
+            runId: run.runId,
+            recordPath: runRecordPath(run.runId),
+            toolCallId,
+          }),
+        'the end of a run'
+      );
+    }
+  }, RUN_END_GRACE_MS);
+  pendingEnds.set(key, timer);
 }

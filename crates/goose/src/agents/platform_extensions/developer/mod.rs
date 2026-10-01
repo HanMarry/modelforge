@@ -11,6 +11,7 @@ use crate::agents::ToolCallContext;
 use anyhow::Result;
 use async_trait::async_trait;
 use edit::{EditTools, FileEditParams, FileWriteParams};
+use goose_run_record::run_recorder::SecretValues;
 use image::{ImageReadParams, ImageTool};
 use indoc::indoc;
 use rmcp::model::{
@@ -45,6 +46,8 @@ pub struct DeveloperClient {
     info: InitializeResult,
     /// For the provider and model a shell Run_Record names (task 21.7).
     session_manager: Arc<crate::session::SessionManager>,
+    /// The Kernel's Credential_Store values, replaced in shell Run_Records (requirement 16.2).
+    run_secrets: Arc<dyn SecretValues>,
     shell_tool: Arc<ShellTool>,
     edit_tools: Arc<EditTools>,
     tree_tool: Arc<TreeTool>,
@@ -94,6 +97,7 @@ impl DeveloperClient {
         Ok(Self {
             info,
             session_manager: context.session_manager,
+            run_secrets: crate::config::run_record_secrets::kernel_secret_values(),
             shell_tool: Arc::new(ShellTool::new(context.use_login_shell_path)?),
             edit_tools: Arc::new(EditTools::new()),
             tree_tool: Arc::new(TreeTool::new()),
@@ -243,6 +247,7 @@ impl McpClientTrait for DeveloperClient {
                         Some(RunSource {
                             tool_call_id: ctx.tool_call_request_id.clone(),
                             sessions: Some(self.session_manager.clone()),
+                            secrets: self.run_secrets.clone(),
                         }),
                         cancel_token,
                     )

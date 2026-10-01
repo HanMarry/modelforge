@@ -58,10 +58,10 @@ const ORPHANED_TEMP_AGE: Duration = Duration::from_secs(10 * 60);
 
 /// Source of the Credential_Store values that must not appear in a Run_Record (requirement 16.2).
 ///
-/// The default [`NoSecretValues`] supplies nothing. Real values come from the integration layer
-/// (tasks.md, layer C): the modeling extension takes them from goose-mcp's `RunIntegration`
-/// (installed with `goose_mcp::modeling::set_builtin_run_integration`), the developer `shell`
-/// from whatever goose passes to [`RunRecorder::new`].
+/// The default [`NoSecretValues`] supplies nothing. The Kernel's source is
+/// `goose::config::run_record_secrets::kernel_secret_values`: the developer `shell` passes it to
+/// [`RunRecorder::new`], and goose-cli installs it as the modeling extension's `RunIntegration`
+/// (`goose_mcp::modeling::set_builtin_run_integration`) when the Kernel starts.
 pub trait SecretValues: Send + Sync {
     fn secret_values(&self) -> Vec<SecretValue>;
 }

@@ -86,6 +86,7 @@ import { createFeishuController } from './connectors/feishu/feishuSdkAdapter';
 import { writeFileAtomic } from './utils/atomicWrite';
 import type { FeatureIpcDeps } from './utils/featureIpc';
 import { registerRunsIpc } from './utils/runs/runsIpc';
+import { sharedArtifactStore } from './utils/runs/artifactStore';
 import { registerPaperCheckIpc } from './utils/paperCheck/paperCheckIpc';
 import { registerRunCompareIpc } from './utils/compare/runCompareIpc';
 import { registerTaskResumeIpc } from './utils/resume/taskResumeIpc';
@@ -295,7 +296,7 @@ const featureIpcDeps: FeatureIpcDeps = {
 registerRunsIpc(ipcMain, featureIpcDeps);
 registerPaperCheckIpc(ipcMain, featureIpcDeps);
 registerRunCompareIpc(ipcMain, featureIpcDeps);
-registerTaskResumeIpc(ipcMain, featureIpcDeps);
+registerTaskResumeIpc(ipcMain, featureIpcDeps, sharedArtifactStore());
 registerReviewIpc(ipcMain, featureIpcDeps);
 registerLearningIpc(ipcMain, featureIpcDeps);
 

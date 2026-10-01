@@ -24,6 +24,7 @@ use crate::subprocess::SubprocessExt;
 // The Run_Record type and the recorder live in goose-run-record so that goose's developer shell
 // can record runs without depending on this crate; re-exported under their old paths.
 pub use goose_run_record::{run_record, run_recorder};
+mod compile_record;
 pub mod run_script;
 pub mod task_plan;
 
@@ -168,6 +169,30 @@ fn meta_string(meta: &MetaObject, key: &str) -> Option<String> {
         .map(str::to_string)
 }
 
+/// Where a recorded call runs: the Project is the session working directory goose sends in the
+/// request `_meta`, or the process working directory without one.
+fn run_context(context: &RequestContext<RoleServer>) -> Result<RunContext, ErrorData> {
+    let project_root = meta_string(&context.meta, WORKING_DIR_META_KEY)
+        .map(PathBuf::from)
+        .or_else(|| std::env::current_dir().ok())
+        .ok_or_else(|| {
+            ErrorData::new(
+                ErrorCode::INVALID_PARAMS,
+                "no Project directory: the request names no working directory and the \
+                 current directory is unavailable"
+                    .to_string(),
+                None,
+            )
+        })?;
+    Ok(RunContext {
+        project_root,
+        provider: meta_string(&context.meta, run_script::PROVIDER_META_KEY),
+        model: meta_string(&context.meta, run_script::MODEL_META_KEY),
+        tool_call_id: meta_string(&context.meta, run_script::TOOL_CALL_ID_META_KEY),
+        notifier: Some(Arc::new(context.peer.clone())),
+    })
+}
+
 impl Default for ModelingServer {
     fn default() -> Self {
         Self::new()
@@ -192,7 +217,9 @@ impl ModelingServer {
         let instructions = formatdoc! {r#"
             Tools for the mathematical-modeling pipeline:
             - check_env: detect Python, uv, and LaTeX/Typst toolchains; provide installation instructions.
-            - compile_latex: compile a LaTeX/Typst document and surface error lines.
+            - compile_latex: compile a LaTeX/Typst document and surface error lines. Inside the
+              Project the compilation is recorded like a run_script run (the main file and the
+              files it includes in, the PDF out).
             - run_script: run computation code (a script file or a command) in the Project and
               write its Run_Record to .modelforge/runs/<run_id>.json before returning.
             - create_task_plan / update_task_plan: declare a task of several computation steps
@@ -225,25 +252,7 @@ impl ModelingServer {
         params: Parameters<RunScriptParams>,
         context: RequestContext<RoleServer>,
     ) -> Result<CallToolResult, ErrorData> {
-        let project_root = meta_string(&context.meta, WORKING_DIR_META_KEY)
-            .map(PathBuf::from)
-            .or_else(|| std::env::current_dir().ok())
-            .ok_or_else(|| {
-                ErrorData::new(
-                    ErrorCode::INVALID_PARAMS,
-                    "no Project directory: the request names no working directory and the \
-                     current directory is unavailable"
-                        .to_string(),
-                    None,
-                )
-            })?;
-        let run_context = RunContext {
-            project_root,
-            provider: meta_string(&context.meta, run_script::PROVIDER_META_KEY),
-            model: meta_string(&context.meta, run_script::MODEL_META_KEY),
-            tool_call_id: meta_string(&context.meta, run_script::TOOL_CALL_ID_META_KEY),
-            notifier: Some(Arc::new(context.peer.clone())),
-        };
+        let run_context = run_context(&context)?;
         let active = self.active_runs.register(context.id.clone());
         let cancelled = context.ct.clone();
         let stop = async {
@@ -251,16 +260,6 @@ impl ModelingServer {
             active.stop_request().await
         };
         run_script::execute(params.0, run_context, &self.run_integration, stop).await
-    }
-
-    async fn run_command(
-        &self,
-        program: &str,
-        args: &[&str],
-        cwd: Option<&std::path::Path>,
-    ) -> (bool, String, String) {
-        self.run_command_with_timeout(program, args, cwd, Duration::from_secs(180))
-            .await
     }
 
     async fn run_command_with_timeout(
@@ -444,69 +443,36 @@ impl ModelingServer {
     /// Compile a LaTeX or Typst document and return the PDF path or parsed error lines.
     #[tool(
         name = "compile_latex",
-        description = "Compile a LaTeX (.tex) or Typst (.typ) document and return the PDF path on success or parsed error lines on failure."
+        description = "Compile a LaTeX (.tex) or Typst (.typ) document and return the PDF path on success or parsed error lines on failure. A relative path is read from the Project (the session working directory). When the document and the PDF are inside the Project, the compilation is recorded in .modelforge/runs/<run_id>.json before returning: the main file as code, the files it includes as inputs, the PDF as output."
     )]
     pub async fn compile_latex(
         &self,
         params: Parameters<CompileLatexParams>,
+        context: RequestContext<RoleServer>,
     ) -> Result<CallToolResult, ErrorData> {
-        let params = params.0;
+        let run_context = run_context(&context)?;
+        let active = self.active_runs.register(context.id.clone());
+        let cancelled = context.ct.clone();
+        let stop = async {
+            cancelled.cancelled().await;
+            active.stop_request().await
+        };
+        self.compile(params.0, run_context, stop).await
+    }
 
-        let command = CompileCommand::new(&params)
+    /// The work of [`Self::compile_latex`] for a call in `context`; `stop` resolves when the
+    /// caller cancels.
+    async fn compile(
+        &self,
+        params: CompileLatexParams,
+        context: RunContext,
+        stop: impl std::future::Future<Output = StopRequest>,
+    ) -> Result<CallToolResult, ErrorData> {
+        let command = CompileCommand::new(&params, Some(&context.project_root))
             .map_err(|error| ErrorData::new(ErrorCode::INVALID_PARAMS, error.to_string(), None))?;
         std::fs::create_dir_all(&command.output_dir)
             .map_err(|error| ErrorData::new(ErrorCode::INTERNAL_ERROR, error.to_string(), None))?;
-
-        // A stale PDF from an earlier run must not pass as this run's product: drop it up
-        // front and remember the start time, so validate_pdf can require a fresh file.
-        let started_at = std::time::SystemTime::now();
-        let _ = std::fs::remove_file(&command.pdf_path);
-
-        let args: Vec<&str> = command.args.iter().map(String::as_str).collect();
-        let program = command.program.as_str();
-        let (ok, stdout, stderr) = self.run_command(program, &args, Some(&command.cwd)).await;
-
-        // Treat PDF validation failure as compilation failure
-        if ok {
-            if let Err(error) = validate_pdf(&command.pdf_path, started_at) {
-                // Never leave a half-written product behind for a later run to mistake it.
-                let _ = std::fs::remove_file(&command.pdf_path);
-                let log = format!(
-                    "{program} exited with code 0 but did not produce a valid PDF at {}: {error}\n\nLog tail:\n{}",
-                    command.pdf_path.display(),
-                    tail(&format!("{stdout}\n{stderr}"), 40)
-                );
-                return Ok(CallToolResult::error(vec![ContentBlock::text(log)]));
-            }
-            let summary = format!(
-                "Compiled successfully with {program}.\n\nOutput: {}",
-                command.pdf_path.display()
-            );
-            return Ok(CallToolResult::success(vec![ContentBlock::Text(
-                TextContent::new(summary),
-            )]));
-        }
-
-        // Failed (or timed out): drop any partial product as well.
-        let _ = std::fs::remove_file(&command.pdf_path);
-
-        let log = format!("{stdout}\n{stderr}");
-        let errors = extract_errors(&log);
-
-        let mut message = format!("Compilation failed with {program}.\n\n");
-        if errors.is_empty() {
-            message.push_str("No parseable error lines found. Raw log tail:\n\n");
-            message.push_str(&tail(&log, 40));
-        } else {
-            message.push_str("Errors:\n\n");
-            for error in errors {
-                message.push_str(&format!("{error}\n"));
-            }
-        }
-
-        Ok(CallToolResult::error(vec![ContentBlock::Text(
-            TextContent::new(message),
-        )]))
+        compile_record::execute(command, context, &self.run_integration, stop).await
     }
 }
 
@@ -533,14 +499,25 @@ fn uv_python_path(line: &str) -> Option<String> {
 struct CompileCommand {
     program: String,
     args: Vec<String>,
+    /// The main document, absolute.
+    source: PathBuf,
     cwd: PathBuf,
     output_dir: PathBuf,
     pdf_path: PathBuf,
 }
 
 impl CompileCommand {
-    fn new(params: &CompileLatexParams) -> anyhow::Result<Self> {
-        let source = std::path::absolute(&params.path)?;
+    /// A relative `params.path` is read from `project_root` when there is one, otherwise from
+    /// the process working directory.
+    fn new(
+        params: &CompileLatexParams,
+        project_root: Option<&std::path::Path>,
+    ) -> anyhow::Result<Self> {
+        let requested = std::path::Path::new(&params.path);
+        let source = match project_root {
+            Some(root) if requested.is_relative() => std::path::absolute(root.join(requested))?,
+            _ => std::path::absolute(requested)?,
+        };
         anyhow::ensure!(source.is_file(), "File not found: {}", source.display());
         let cwd = source
             .parent()
@@ -581,10 +558,18 @@ impl CompileCommand {
         Ok(Self {
             program: program.into(),
             args,
+            source,
             cwd,
             output_dir,
             pdf_path,
         })
+    }
+
+    /// The command line as the Run_Record names it.
+    fn command_line(&self) -> String {
+        shell_words::join(
+            std::iter::once(self.program.as_str()).chain(self.args.iter().map(String::as_str)),
+        )
     }
 }
 
@@ -835,11 +820,14 @@ mod tests {
         for engine in [
             "latexmk", "pdflatex", "xelatex", "lualatex", "tectonic", "typst",
         ] {
-            let command = CompileCommand::new(&CompileLatexParams {
-                path: path.to_string_lossy().into_owned(),
-                engine: Some(engine.into()),
-                output_dir: Some("results".into()),
-            })
+            let command = CompileCommand::new(
+                &CompileLatexParams {
+                    path: path.to_string_lossy().into_owned(),
+                    engine: Some(engine.into()),
+                    output_dir: Some("results".into()),
+                },
+                None,
+            )
             .unwrap();
             assert_eq!(command.cwd, source);
             assert_eq!(command.pdf_path, source.join("results/paper.pdf"));
@@ -854,21 +842,51 @@ mod tests {
         let path = dir.path().join("paper.tex.notes.tex");
         std::fs::write(&path, "document").unwrap();
         let output = dir.path().join("elsewhere");
-        let command = CompileCommand::new(&CompileLatexParams {
-            path: path.to_string_lossy().into_owned(),
-            engine: Some("typst".into()),
-            output_dir: Some(output.to_string_lossy().into_owned()),
-        })
+        let command = CompileCommand::new(
+            &CompileLatexParams {
+                path: path.to_string_lossy().into_owned(),
+                engine: Some("typst".into()),
+                output_dir: Some(output.to_string_lossy().into_owned()),
+            },
+            None,
+        )
         .unwrap();
         assert_eq!(command.pdf_path, output.join("paper.tex.notes.pdf"));
     }
 
-    fn latexmk_args_for(path: &std::path::Path) -> Vec<String> {
-        CompileCommand::new(&CompileLatexParams {
-            path: path.to_string_lossy().into_owned(),
-            engine: None,
+    #[test]
+    fn relative_documents_are_read_from_the_project() {
+        let project = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(project.path().join("paper")).unwrap();
+        std::fs::write(project.path().join("paper/main.tex"), "document").unwrap();
+        let params = CompileLatexParams {
+            path: "paper/main.tex".into(),
+            engine: Some("xelatex".into()),
             output_dir: None,
-        })
+        };
+        let command = CompileCommand::new(&params, Some(project.path())).unwrap();
+        let source = std::path::absolute(project.path().join("paper/main.tex")).unwrap();
+        assert_eq!(command.source, source);
+        assert_eq!(command.cwd, source.parent().unwrap());
+        assert_eq!(command.pdf_path, source.with_extension("pdf"));
+        // The recorded command line reads back as the program and its arguments.
+        let mut expected = vec!["xelatex".to_string()];
+        expected.extend(command.args.iter().cloned());
+        assert_eq!(
+            shell_words::split(&command.command_line()).unwrap(),
+            expected
+        );
+    }
+
+    fn latexmk_args_for(path: &std::path::Path) -> Vec<String> {
+        CompileCommand::new(
+            &CompileLatexParams {
+                path: path.to_string_lossy().into_owned(),
+                engine: None,
+                output_dir: None,
+            },
+            None,
+        )
         .unwrap()
         .args
     }
@@ -1153,17 +1171,33 @@ Set-Content -Path '{pid_path}' -Value \"$PID`n$($g.Id)\"; Start-Sleep -Seconds 6
 \end{document}",
         )
         .unwrap();
-        let result = ModelingServer::new()
-            .compile_latex(Parameters(CompileLatexParams {
+        let result = compile_in(
+            dir.path(),
+            CompileLatexParams {
                 path: path.to_string_lossy().into_owned(),
                 engine: Some("latexmk".into()),
                 output_dir: Some("output files".into()),
-            }))
-            .await
-            .unwrap();
+            },
+        )
+        .await;
         assert_ne!(result.is_error, Some(true), "{result:?}");
         assert!(source.join("output files/paper.pdf").is_file());
         assert!(!source.join("paper.pdf").exists());
+    }
+
+    /// What `compile_latex` returns for a call whose working directory is `project`.
+    async fn compile_in(project: &std::path::Path, params: CompileLatexParams) -> CallToolResult {
+        let context = RunContext {
+            project_root: project.to_path_buf(),
+            provider: None,
+            model: None,
+            tool_call_id: None,
+            notifier: None,
+        };
+        ModelingServer::new()
+            .compile(params, context, std::future::pending())
+            .await
+            .unwrap()
     }
 
     #[tokio::test]
@@ -1176,14 +1210,15 @@ Set-Content -Path '{pid_path}' -Value \"$PID`n$($g.Id)\"; Start-Sleep -Seconds 6
             "\\documentclass{ctexart}\n\\begin{document}\n中文正文测试。\n\\end{document}",
         )
         .unwrap();
-        let result = ModelingServer::new()
-            .compile_latex(Parameters(CompileLatexParams {
+        let result = compile_in(
+            dir.path(),
+            CompileLatexParams {
                 path: path.to_string_lossy().into_owned(),
                 engine: None,
                 output_dir: None,
-            }))
-            .await
-            .unwrap();
+            },
+        )
+        .await;
         assert_ne!(result.is_error, Some(true), "{result:?}");
         assert!(dir.path().join("paper.pdf").is_file());
     }
@@ -1202,16 +1237,17 @@ First version.
         )
         .unwrap();
         let compile = |path: std::path::PathBuf| {
-            let server = ModelingServer::new();
+            let root = dir.path().to_path_buf();
             async move {
-                server
-                    .compile_latex(Parameters(CompileLatexParams {
+                compile_in(
+                    &root,
+                    CompileLatexParams {
                         path: path.to_string_lossy().into_owned(),
                         engine: Some("latexmk".into()),
                         output_dir: None,
-                    }))
-                    .await
-                    .unwrap()
+                    },
+                )
+                .await
             }
         };
 

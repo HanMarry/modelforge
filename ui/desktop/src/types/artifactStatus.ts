@@ -19,16 +19,20 @@ export type ArtifactStatus =
   | '已过期';
 
 /**
- * Why an Artifact is out of date (requirement 16.8, 17.4, 17.8). `output-modified` means the
- * Artifact file itself no longer matches the hash its run recorded, that is, it was changed
- * outside ModelForge.
+ * Why an Artifact is out of date (requirement 16.8, 17.4, 17.8, 22.5). `output-modified` means
+ * the Artifact file itself no longer matches the hash its run recorded, that is, it was changed
+ * outside ModelForge. `record-missing` names the Run_Record of the Artifact's run,
+ * `.modelforge/runs/<runId>.json`, when that run left no usable record: the record is absent or
+ * cannot be parsed, so nothing traces what the run wrote. When that record turns up, it is
+ * applied to the Artifact like the record of a run that just ended.
  */
 export type StaleReasonKind =
   | 'input-changed'
   | 'code-changed'
   | 'output-modified'
   | 'missing'
-  | 'unreadable';
+  | 'unreadable'
+  | 'record-missing';
 
 export interface StaleReason {
   kind: StaleReasonKind;

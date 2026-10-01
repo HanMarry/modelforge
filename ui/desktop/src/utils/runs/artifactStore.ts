@@ -30,7 +30,9 @@ import type {
   ArtifactsRunFinishedEvent,
   ArtifactsRunStartedEvent,
 } from '../../types/runsApi';
+import type { ResumeStep, StepStaleReason } from '../../types/taskPlan';
 import {
+  applyResumeStaleness,
   applyRunStarted,
   detectStaleness,
   emptyArtifactIndex,
@@ -54,6 +56,7 @@ import {
   parseArtifactIndex,
   sameArtifactIndex,
   serializeArtifactIndex,
+  settleEndedRuns,
   staleCheckPaths,
   syncDiscoveredFiles,
 } from './artifactSync';
@@ -115,8 +118,22 @@ export interface ArtifactStore {
   /** "标记已验证" after a detection pass, so an outdated file cannot be verified (17.2, 17.7). */
   verify: (projectDir: string, artifactPath: string) => Promise<MarkVerifiedResult>;
   inspect: (projectDir: string, artifactPath: string) => Promise<ArtifactInspection>;
+  /** `runs/started`: marks the declared outputs `执行中` until the run is over. */
   runStarted: (event: unknown) => Promise<ArtifactIndex>;
+  /**
+   * `runs/finished`, or the end of the tool call that started a run: the run is over, its record
+   * is applied, and an entry it left `执行中` is ended (`settleEndedRuns`).
+   */
   runFinished: (event: unknown) => Promise<ArtifactIndex>;
+  /**
+   * Requirement 22.5: the Artifacts of `step`, which an interrupted task resumes from, become
+   * `已过期` for `reasons` (`applyResumeStaleness`), after a detection pass.
+   */
+  markResumeStale: (
+    projectDir: string,
+    step: ResumeStep,
+    reasons: readonly StepStaleReason[]
+  ) => Promise<ArtifactIndex>;
   /** Called with the new index whenever one changes; returns the unsubscribe function. */
   subscribe: (listener: (event: ArtifactsChangedEvent) => void) => () => void;
   /** Stops every watcher and pending pass. */
@@ -143,6 +160,12 @@ export interface ArtifactStoreOptions {
 const DEFAULT_DEBOUNCE_MS = 500;
 const DEFAULT_MAX_WAIT_MS = 2000;
 const DEFAULT_MAX_WATCHERS = 8;
+/**
+ * A run this long after its start is over even if nothing said so (the kernel went away while it
+ * ran): the longest `run_script` time limit, a day, plus an hour.
+ */
+const MAX_LIVE_RUN_MS = (86_400 + 3_600) * 1000;
+const MAX_TOOL_CALL_ID_LENGTH = 512;
 /** Projects whose index stays in memory. */
 const MAX_PROJECTS = 32;
 const ARTIFACT_STAGES = new Set(['results', 'figures', 'paper']);
@@ -184,12 +207,25 @@ export function isRelevantChange(relativePath: string | null): boolean {
   return !IGNORED_TOP_LEVEL.has(parts[0]);
 }
 
+/** A run whose `runs/started` arrived in this process and whose end has not been heard of. */
+interface LiveRun {
+  /** The tool call that runs it, which also ends it. */
+  toolCallId: string | null;
+  /** When the start arrived, in milliseconds since the epoch. */
+  since: number;
+}
+
 interface ProjectState {
   root: string;
   /** `null` until read from `artifacts.json`. */
   index: ArtifactIndex | null;
   /** The valid Run_Records of the last pass. */
   runs: RunRecordMap;
+  /**
+   * Runs the kernel may still be running, by run id. Every other run is over: after a restart
+   * this is empty, so whatever was `执行中` before ends on the first pass.
+   */
+  liveRuns: Map<string, LiveRun>;
   /** True while the watcher saw no change since the last pass. */
   fresh: boolean;
   /** Counts the changes the watcher reported. */
@@ -206,6 +242,16 @@ function isObject(value: unknown): value is Record<string, unknown> {
 
 function invalidEvent(message: string): ArtifactStoreError {
   return new ArtifactStoreError('INVALID_EVENT', message);
+}
+
+/** The optional `toolCallId` of a run event; anything but a plausible id counts as none. */
+function readToolCallId(value: Record<string, unknown>): string | undefined {
+  const toolCallId = value.toolCallId;
+  return typeof toolCallId === 'string' &&
+    toolCallId.length > 0 &&
+    toolCallId.length <= MAX_TOOL_CALL_ID_LENGTH
+    ? toolCallId
+    : undefined;
 }
 
 /** A `runs/started` from the renderer; declared outputs that cannot be Artifacts are dropped. */
@@ -230,11 +276,13 @@ function readRunStarted(value: unknown): ArtifactsRunStartedEvent {
       declaredOutputs.push(output);
     }
   }
-  return {
+  const started: ArtifactsRunStartedEvent = {
     workingDir: value.workingDir as string,
     runId: value.runId as string,
     declaredOutputs,
   };
+  const toolCallId = readToolCallId(value);
+  return toolCallId === undefined ? started : { ...started, toolCallId };
 }
 
 /** A `runs/finished` from the renderer; `recordPath` must be the record of `runId`. */
@@ -247,7 +295,22 @@ function readRunFinished(value: unknown): ArtifactsRunFinishedEvent {
   if (value.recordPath !== recordPath) {
     throw invalidEvent(`recordPath is not the Run_Record of ${runId}`);
   }
-  return { workingDir: value.workingDir as string, runId, recordPath };
+  const finished: ArtifactsRunFinishedEvent = {
+    workingDir: value.workingDir as string,
+    runId,
+    recordPath,
+  };
+  const toolCallId = readToolCallId(value);
+  return toolCallId === undefined ? finished : { ...finished, toolCallId };
+}
+
+function isResumeStep(value: unknown): value is ResumeStep {
+  return (
+    isObject(value) &&
+    typeof value.id === 'string' &&
+    Array.isArray(value.runIds) &&
+    (value.runIds as unknown[]).every(isRunId)
+  );
 }
 
 function toRunMap(loaded: LoadedRunRecords): Map<string, RunRecord> {
@@ -353,6 +416,7 @@ export function createArtifactStore(options: ArtifactStoreOptions = {}): Artifac
       root,
       index: null,
       runs: new Map(),
+      liveRuns: new Map(),
       fresh: false,
       changes: 0,
       queue: Promise.resolve(),
@@ -462,6 +526,34 @@ export function createArtifactStore(options: ArtifactStoreOptions = {}): Artifac
     return found;
   };
 
+  /** Whether the kernel may still be running `runId`; a start older than a day is over. */
+  const liveIn =
+    (state: ProjectState) =>
+    (runId: string): boolean => {
+      const live = state.liveRuns.get(runId);
+      if (!live) {
+        return false;
+      }
+      if (now().getTime() - live.since > MAX_LIVE_RUN_MS) {
+        state.liveRuns.delete(runId);
+        return false;
+      }
+      return true;
+    };
+
+  /** The run `runId` is over, and so is any other run the same tool call started. */
+  const endLiveRun = (state: ProjectState, runId: string, toolCallId: string | undefined) => {
+    state.liveRuns.delete(runId);
+    if (toolCallId === undefined) {
+      return;
+    }
+    for (const [liveRunId, live] of [...state.liveRuns]) {
+      if (live.toolCallId === toolCallId) {
+        state.liveRuns.delete(liveRunId);
+      }
+    }
+  };
+
   /** One detection pass; call it through `serialize`. */
   const refreshLocked = async (
     state: ProjectState
@@ -472,6 +564,9 @@ export function createArtifactStore(options: ArtifactStoreOptions = {}): Artifac
     const runs = toRunMap(loaded);
     // Broken record files (`loaded.problems`) back no Artifact (16.5); `runs-list` reports them.
     let next = applyNewRuns(previous, loaded.records.map(({ record }) => record));
+    // What a run that is over left `执行中`: a record under another suffix, a broken record or
+    // no record at all.
+    next = settleEndedRuns(next, runs, liveIn(state));
 
     const artifactFiles = await scanFiles(state.root);
     const present = new Set(artifactFiles);
@@ -611,6 +706,10 @@ export function createArtifactStore(options: ArtifactStoreOptions = {}): Artifac
         if (await isFile(record)) {
           return previous;
         }
+        state.liveRuns.set(started.runId, {
+          toolCallId: started.toolCallId ?? null,
+          since: now().getTime(),
+        });
         return commit(
           state,
           previous,
@@ -623,8 +722,25 @@ export function createArtifactStore(options: ArtifactStoreOptions = {}): Artifac
     runFinished: async (event) => {
       // The pass reads the record at recordPath with the others and applies it through
       // `applyNewRuns`, which also keeps a record the watcher found first from applying twice.
+      // The run is over now, so `settleEndedRuns` ends what it left `执行中`: entries whose
+      // record has another suffix (the tool call names the run it started) or is unusable.
       const finished = readRunFinished(event);
-      return (await refreshProject(await resolveProject(finished.workingDir))).index;
+      const root = await resolveProject(finished.workingDir);
+      endLiveRun(stateFor(root), finished.runId, finished.toolCallId);
+      return (await refreshProject(root)).index;
+    },
+
+    markResumeStale: async (projectDir, step, reasons) => {
+      if (!isResumeStep(step) || !Array.isArray(reasons)) {
+        throw invalidEvent('A resume check needs the step and its reasons');
+      }
+      const root = await resolveProject(projectDir);
+      const state = stateFor(root);
+      await ensureWatching(state);
+      return serialize(state, async () => {
+        const { index } = await refreshLocked(state);
+        return commit(state, index, applyResumeStaleness(index, step, reasons), false);
+      });
     },
 
     subscribe: (listener) => {

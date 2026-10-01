@@ -83,8 +83,10 @@ export type ResumeFileRole = 'input' | 'code' | 'output';
 /**
  * One condition of requirement 22.2 that a step fails. Requirement 22.5 shows them as 记录缺失
  * (`record-missing`, `record-truncated`), 哈希不一致 (`hash-mismatch`) and 文件缺失
- * (`file-missing`); those mark the step's Artifacts 已过期. `run-failed` is the non-zero exit
- * code of 22.2 and leaves them at 执行失败.
+ * (`file-missing`). `record-missing`, `hash-mismatch` and `file-missing` mark the step's
+ * Artifacts 已过期 (`applyResumeStaleness`); a truncated record still backs its Artifacts, whose
+ * listed files the staleness check compares. `run-failed` is the non-zero exit code of 22.2 and
+ * leaves them at 执行失败.
  */
 export type StepStaleReason =
   /** The step has no run (`runId` null), or the record is absent or cannot be parsed. */

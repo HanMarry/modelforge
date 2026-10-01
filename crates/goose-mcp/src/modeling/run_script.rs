@@ -36,7 +36,7 @@ use tokio::process::{Child, Command};
 use tokio::task::JoinHandle;
 use tokio::time::Instant;
 
-use super::run_record::{is_project_relative_path, Dependency};
+use super::run_record::{is_project_relative_path, Dependency, RunRecord};
 use super::run_recorder::{
     FinishedRun, NoRunObserver, NoSecretValues, ProbedEnvironment, RunObserver, RunOutcome,
     RunRecorder, RunSpec, SecretValues, CONFIG_UNKNOWN,
@@ -363,7 +363,7 @@ fn declared_output_paths(recorder: &RunRecorder, declared: &[String]) -> Vec<Str
 
 /// One declared output that may not exist yet: its deepest existing ancestor must resolve inside
 /// the Project, and the missing rest is appended as written.
-fn declared_output_path(recorder: &RunRecorder, path: &Path) -> Option<String> {
+pub(super) fn declared_output_path(recorder: &RunRecorder, path: &Path) -> Option<String> {
     let absolute = if path.is_absolute() {
         path.to_path_buf()
     } else {
@@ -395,7 +395,7 @@ fn declared_output_path(recorder: &RunRecorder, path: &Path) -> Option<String> {
 }
 
 /// The [`RUN_STARTED_NOTIFICATION`] of the run `run_id`.
-fn run_started_notice(
+pub(super) fn run_started_notice(
     run_id: &str,
     tool_call_id: Option<&str>,
     declared_outputs: &[String],
@@ -415,7 +415,7 @@ fn run_started_notice(
 /// Best effort: the desktop also learns about the run from its result and from rescanning
 /// `.modelforge/runs`. Awaited before the run is supervised, so the notice reaches the client
 /// before the tool result does.
-async fn send_run_started(notifier: &dyn CallNotifier, notice: ServerNotification) {
+pub(super) async fn send_run_started(notifier: &dyn CallNotifier, notice: ServerNotification) {
     match tokio::time::timeout(RUN_STARTED_SEND_TIMEOUT, notifier.notify(notice)).await {
         Ok(Ok(())) => {}
         Ok(Err(error)) => tracing::debug!(%error, "the run start notice was not delivered"),
@@ -749,16 +749,16 @@ fn is_code_file(path: &str) -> bool {
 }
 
 /// How a supervised process ended, with the tails of its output.
-struct Supervised {
-    outcome: RunOutcome,
-    stdout: String,
-    stderr: String,
-    note: Option<String>,
+pub(super) struct Supervised {
+    pub(super) outcome: RunOutcome,
+    pub(super) stdout: String,
+    pub(super) stderr: String,
+    pub(super) note: Option<String>,
 }
 
 /// Waits for the process, the time limit or `stop`, whichever comes first. On the last two the
 /// whole process tree is killed.
-async fn supervise(
+pub(super) async fn supervise(
     mut child: Child,
     timeout: Duration,
     stop: impl Future<Output = StopRequest>,
@@ -867,10 +867,10 @@ fn keep_tail(sink: &Mutex<Vec<u8>>, bytes: &[u8]) {
 }
 
 /// A probe running beside the code. Dropping it aborts the task, which kills its process.
-struct ProbeTask<T>(JoinHandle<T>);
+pub(super) struct ProbeTask<T>(pub(super) JoinHandle<T>);
 
 impl<T> ProbeTask<T> {
-    async fn finish_by(mut self, deadline: Instant) -> Option<T> {
+    pub(super) async fn finish_by(mut self, deadline: Instant) -> Option<T> {
         match tokio::time::timeout_at(deadline, &mut self.0).await {
             Ok(Ok(value)) => Some(value),
             _ => None,
@@ -885,7 +885,7 @@ impl<T> Drop for ProbeTask<T> {
 }
 
 /// Stdout and stderr of a successful short command, or `None`.
-async fn probe(
+pub(super) async fn probe(
     program: &str,
     args: &[&str],
     cwd: &Path,
@@ -912,7 +912,7 @@ async fn probe(
     })
 }
 
-fn first_line(text: &str) -> Option<String> {
+pub(super) fn first_line(text: &str) -> Option<String> {
     text.lines()
         .map(str::trim)
         .find(|line| !line.is_empty())
@@ -1029,7 +1029,7 @@ fn describe_outcome(outcome: RunOutcome, timeout_secs: u64) -> String {
     }
 }
 
-fn push_paths(text: &mut String, label: &str, paths: &[&str], truncated: bool) {
+pub(super) fn push_paths(text: &mut String, label: &str, paths: &[&str], truncated: bool) {
     let more = if truncated { ", more not recorded" } else { "" };
     text.push_str(&format!("{label} ({}{more}):", paths.len()));
     if paths.is_empty() {
@@ -1058,6 +1058,22 @@ fn push_output(text: &mut String, supervised: &Supervised) {
             super::tail(output, OUTPUT_TAIL_LINES)
         ));
     }
+}
+
+/// `_meta["modelforge/run"]` of a recorded run, which goose forwards as `runs/finished`.
+pub(super) fn run_meta(record: &RunRecord) -> serde_json::Value {
+    let outputs: Vec<&str> = record
+        .outputs
+        .iter()
+        .map(|file| file.path.as_str())
+        .collect();
+    json!({
+        "runId": record.run_id,
+        "recordPath": format!(".modelforge/runs/{}.json", record.run_id),
+        "exitCode": record.exit_code,
+        "failure": record.failure,
+        "outputs": outputs,
+    })
 }
 
 fn report(
@@ -1099,16 +1115,7 @@ fn report(
     push_output(&mut text, supervised);
 
     let mut meta = MetaObject::new();
-    meta.0.insert(
-        RUN_META_KEY.to_string(),
-        json!({
-            "runId": record.run_id,
-            "recordPath": record_path,
-            "exitCode": record.exit_code,
-            "failure": record.failure,
-            "outputs": outputs,
-        }),
-    );
+    meta.0.insert(RUN_META_KEY.to_string(), run_meta(record));
     let content = vec![ContentBlock::text(text)];
     let result = if outcome.succeeded() {
         CallToolResult::success(content)

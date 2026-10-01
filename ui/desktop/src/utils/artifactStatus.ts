@@ -4,10 +4,12 @@
  * Run_Records. Hashing, `artifacts.json` and file watching belong to the I/O layer (task 22.8).
  *
  * Transitions (design, "ArtifactIndex" state diagram):
- *   applyRunStarted   listed files                     -> 执行中
- *   applyRunFinished  outputs and 执行中 of the run     -> 已生成 (exit 0) or 执行失败
- *   markVerified      已生成                            -> 已验证
- *   detectStaleness   已生成, 已验证                     -> 已过期
+ *   applyRunStarted       listed files                       -> 执行中
+ *   applyRunFinished      outputs and 执行中 of the run       -> 已生成 (exit 0) or 执行失败
+ *   applyRunEnded         执行中 of a run that is over        -> as its record says, or 已过期
+ *   markVerified          已生成                              -> 已验证
+ *   detectStaleness       已生成, 已验证                       -> 已过期
+ *   applyResumeStaleness  Artifacts of the step resumed from  -> 已过期
  * Otherwise the file scan of the I/O layer sets 未开始 and 已发现文件.
  */
 
@@ -20,6 +22,7 @@ import type {
   StaleReasonKind,
 } from '../types/artifactStatus';
 import type { FileHashSnapshot, RunFailure, RunRecord, RunRecordMap } from '../types/runRecord';
+import type { ResumeFileRole, ResumeStep, StepStaleReason } from '../types/taskPlan';
 import { FILE_HASH_MISSING, FILE_HASH_UNREADABLE } from './runRecord';
 
 export const ARTIFACT_INDEX_SCHEMA_VERSION = 1;
@@ -40,7 +43,32 @@ export const STALE_REASON_KINDS: readonly StaleReasonKind[] = [
   'output-modified',
   'missing',
   'unreadable',
+  'record-missing',
 ];
+
+/** Where the Run_Record of `runId` lives, relative to the Project root. */
+export function runRecordPath(runId: string): string {
+  return `.modelforge/runs/${runId}.json`;
+}
+
+/**
+ * Whether `entry` waits for the Run_Record of the run it names: it is `执行中`, or `已过期`
+ * because that record was missing (`applyRunEnded`, `applyResumeStaleness`). Such a record is
+ * applied to the entry when it turns up, like the record of a run that just ended.
+ */
+export function awaitsRunRecord(entry: ArtifactEntry): boolean {
+  if (entry.runId === null) {
+    return false;
+  }
+  if (entry.status === '执行中') {
+    return true;
+  }
+  const record = runRecordPath(entry.runId);
+  return (
+    entry.status === '已过期' &&
+    entry.staleReasons.some((reason) => reason.kind === 'record-missing' && reason.path === record)
+  );
+}
 
 export function isArtifactStatus(value: unknown): value is ArtifactStatus {
   return typeof value === 'string' && (ARTIFACT_STATUSES as readonly string[]).includes(value);
@@ -95,8 +123,8 @@ function freshEntry(
  *
  * `applyRunFinished` finds these entries again by `runId`, so the caller must pass the id the
  * finished Run_Record will carry. The kernel allocates it when the run starts
- * (`allocate_run_id`) but may draw a new suffix on a write collision; entries left behind by
- * such a run stay `执行中` until the next run of the same files.
+ * (`allocate_run_id`) but may draw a new suffix on a write collision; `applyRunEnded` ends the
+ * entries of such a run, and of a run that left no usable record, once the run is over.
  */
 export function applyRunStarted(
   state: ArtifactIndex,
@@ -112,7 +140,9 @@ export function applyRunStarted(
 
 /**
  * Applies a finished run (requirements 16.3, 16.6, 17.9). The Artifacts of the run are the files
- * in `run.outputs` plus the entries `applyRunStarted` marked `执行中` for `run.runId`.
+ * in `run.outputs` plus the entries that wait for its record (`awaitsRunRecord`): those
+ * `applyRunStarted` marked `执行中` for `run.runId`, and those outdated because that record was
+ * missing.
  *
  * - Exit code 0: every output becomes `已生成`, linked to `run.runId`, with the previous
  *   verification and stale reasons cleared (a `已过期` Artifact regenerated this way needs a new
@@ -127,10 +157,7 @@ export function applyRunStarted(
  */
 export function applyRunFinished(state: ArtifactIndex, run: RunRecord): ArtifactIndex {
   const outputs = new Set(run.outputs.map((file) => file.path));
-  const pending = Object.keys(state.entries).filter((path) => {
-    const entry = state.entries[path];
-    return entry.status === '执行中' && entry.runId === run.runId;
-  });
+  const pending = awaitingPaths(state, run.runId);
   const entries = { ...state.entries };
 
   if (run.exitCode === 0) {
@@ -150,6 +177,170 @@ export function applyRunFinished(state: ArtifactIndex, run: RunRecord): Artifact
     setEntry(entries, path, freshEntry(path, '执行失败', run.runId, failure));
   }
   return withEntries(state, entries);
+}
+
+/** The entries that wait for the Run_Record of `runId`, in index order. */
+function awaitingPaths(state: ArtifactIndex, runId: string): string[] {
+  return Object.keys(state.entries).filter((path) => {
+    const entry = state.entries[path];
+    return entry.runId === runId && awaitsRunRecord(entry);
+  });
+}
+
+/**
+ * Ends the entries `applyRunStarted` marked `执行中` for `runId` once that run is over
+ * (requirements 16.3, 16.5, 16.6), so that none stays `执行中` for good. `record` is the
+ * Run_Record the run left: normally the record of `runId`, or one whose id got a new suffix
+ * because the kernel found the name taken when writing it; `null` when the run left no usable
+ * record (none was written, or it cannot be parsed).
+ *
+ * - A record of a run that exited 0: `已生成` when it lists the file, otherwise `未开始`, as
+ *   `applyRunFinished` does; the file scan then promotes an existing file to `已发现文件`.
+ * - A record of a failed run: `执行失败` with its failure kind.
+ * - No record: `已过期` with the one reason `record-missing`, naming
+ *   `.modelforge/runs/<runId>.json`. Nothing traces what the run wrote, so the file must not
+ *   count as a result; the entry keeps `runId`, so the record still applies if it turns up.
+ *
+ * Only these entries change. The record's other outputs are left to `applyRunFinished` and the
+ * I/O layer, which knows whether a later run has written them since.
+ */
+export function applyRunEnded(
+  state: ArtifactIndex,
+  runId: string,
+  record: RunRecord | null
+): ArtifactIndex {
+  const pending = Object.keys(state.entries).filter((path) => {
+    const entry = state.entries[path];
+    return entry.status === '执行中' && entry.runId === runId;
+  });
+  if (pending.length === 0) {
+    return state;
+  }
+  const entries = { ...state.entries };
+  for (const path of pending) {
+    setEntry(entries, path, endedEntry(path, runId, record));
+  }
+  return withEntries(state, entries);
+}
+
+function endedEntry(path: string, runId: string, record: RunRecord | null): ArtifactEntry {
+  if (record === null) {
+    return {
+      path,
+      status: '已过期',
+      runId,
+      failure: null,
+      verification: null,
+      staleReasons: [{ kind: 'record-missing', path: runRecordPath(runId) }],
+    };
+  }
+  if (record.exitCode === 0) {
+    return record.outputs.some((file) => file.path === path)
+      ? freshEntry(path, '已生成', record.runId, null)
+      : freshEntry(path, '未开始', null, null);
+  }
+  return freshEntry(path, '执行失败', record.runId, record.failure ?? '非零退出码');
+}
+
+const RESUME_STALE_STATUSES: ReadonlySet<ArtifactStatus> = new Set<ArtifactStatus>([
+  '已生成',
+  '已验证',
+  '已过期',
+  '执行中',
+]);
+
+const HASH_MISMATCH_KINDS: Readonly<Record<ResumeFileRole, StaleReasonKind>> = {
+  input: 'input-changed',
+  code: 'code-changed',
+  output: 'output-modified',
+};
+
+/** A step's reason in the words of an Artifact, or `null` when it does not outdate one. */
+function resumeStaleReason(reason: StepStaleReason): StaleReason | null {
+  switch (reason.kind) {
+    case 'record-missing':
+      return reason.runId === null
+        ? null
+        : { kind: 'record-missing', path: runRecordPath(reason.runId) };
+    case 'hash-mismatch':
+      return reason.actual === FILE_HASH_UNREADABLE
+        ? { kind: 'unreadable', path: reason.path }
+        : { kind: HASH_MISMATCH_KINDS[reason.role], path: reason.path };
+    case 'file-missing':
+      return { kind: 'missing', path: reason.path };
+    // A truncated record still backs its Artifacts, and the staleness check compares every file
+    // it lists; a failed run leaves its Artifacts at 执行失败.
+    case 'record-truncated':
+    case 'run-failed':
+      return null;
+  }
+}
+
+/** Appends `reason` unless `reasons` already holds it. */
+function addReason(reasons: StaleReason[], reason: StaleReason): void {
+  if (!reasons.some((known) => known.kind === reason.kind && known.path === reason.path)) {
+    reasons.push(reason);
+  }
+}
+
+/**
+ * Requirement 22.5 (task 25.4): when an interrupted task resumes from `step` because the step
+ * failed the check of `planResume`, the step's Artifacts become `已过期` with why. `reasons` are
+ * the step's reasons as `planResume` reports them: a missing record (记录缺失) becomes
+ * `record-missing` naming the record, a hash mismatch (哈希不一致) `input-changed`,
+ * `code-changed` or `output-modified` by the file's role (`unreadable` when the file could not
+ * be read), and a missing file (文件缺失) `missing`. A truncated record and a non-zero exit code
+ * outdate nothing.
+ *
+ * The step's Artifacts are the entries linked to one of its runs that are `已生成`, `已验证`,
+ * `已过期` or `执行中`. Each gets the reasons of its own run, or every reason of the step when its
+ * run has none; reasons it already had stay, each reason is listed once, and the run id and the
+ * verification are kept, as `detectStaleness` does. Applying the same reasons again changes
+ * nothing.
+ */
+export function applyResumeStaleness(
+  state: ArtifactIndex,
+  step: ResumeStep,
+  reasons: readonly StepStaleReason[]
+): ArtifactIndex {
+  const byRun = new Map<string, StaleReason[]>();
+  const all: StaleReason[] = [];
+  for (const reason of reasons) {
+    const mapped = resumeStaleReason(reason);
+    if (mapped === null || reason.runId === null) {
+      continue;
+    }
+    addReason(all, mapped);
+    const own = byRun.get(reason.runId) ?? [];
+    addReason(own, mapped);
+    byRun.set(reason.runId, own);
+  }
+  if (all.length === 0) {
+    return state;
+  }
+  const runIds = new Set(step.runIds);
+  const entries = { ...state.entries };
+  let changed = false;
+  for (const path of Object.keys(state.entries)) {
+    const entry = state.entries[path];
+    if (
+      entry.runId === null ||
+      !runIds.has(entry.runId) ||
+      !RESUME_STALE_STATUSES.has(entry.status)
+    ) {
+      continue;
+    }
+    const staleReasons = entry.status === '已过期' ? [...entry.staleReasons] : [];
+    for (const reason of byRun.get(entry.runId) ?? all) {
+      addReason(staleReasons, reason);
+    }
+    if (entry.status === '已过期' && staleReasons.length === entry.staleReasons.length) {
+      continue;
+    }
+    setEntry(entries, path, { ...entry, status: '已过期', failure: null, staleReasons });
+    changed = true;
+  }
+  return changed ? withEntries(state, entries) : state;
 }
 
 const pad = (value: number, width: number) => String(value).padStart(width, '0');
