@@ -46,6 +46,10 @@ export const FEISHU_PERMISSION_META_KEY = 'modelforge/permission';
 export const FEISHU_ACP_CLIENT = 'modelforge-feishu';
 
 const INITIALIZE_TIMEOUT_MS = 10_000;
+/** The renderer's `RUN_END_GRACE_MS`: goose sends `runs/finished` right after the tool result. */
+const RUN_END_GRACE_MS = 3000;
+/** Started runs remembered at once; the oldest is forgotten first. */
+const MAX_STARTED_RUNS = 256;
 const AUTH_REQUIRED_CODE = -32000;
 const RESOURCE_NOT_FOUND_CODE = -32002;
 const PROVIDER_ERROR_CODES = new Set([
@@ -64,6 +68,14 @@ const PROVIDER_FAILURE_TEXT =
   /provider|api[ _-]?key|rate[ _-]?limit|quota|credits?|unauthori[sz]ed|context length|\b(?:401|403|429)\b/i;
 const TOOL_FAILURE_TEXT = /\btools?\b|extension|\bmcp\b/i;
 
+/** A run of a Feishu session that is over without a `runs/finished` (see `onRunEnded`). */
+export interface FeishuRunEnded {
+  sessionId: string;
+  toolCallId: string;
+  runId: string;
+  workingDir: string;
+}
+
 export interface FeishuAcpPortOptions {
   /** Opens a stream to the `goose serve` of the desktop. */
   openStream: () => Promise<Stream>;
@@ -73,10 +85,19 @@ export interface FeishuAcpPortOptions {
   /** Run notifications of Feishu sessions, for the Artifact store of the main process. */
   onRunStarted?: (notification: RunStartedNotification_unstable) => void;
   onRunFinished?: (notification: RunFinishedNotification_unstable) => void;
+  /**
+   * A run that started but sent no `runs/finished`: its tool call ended and none followed within
+   * `runEndGraceMs`, its turn ended, or the connection closed. It left no record this connection
+   * heard of, so the Artifact store ends what it marked `执行中`, as the renderer does for its own
+   * sessions (`handleRunToolCallEnded` in `acp/runNotifications.ts`).
+   */
+  onRunEnded?: (run: FeishuRunEnded) => void;
   log?: (message: string) => void;
   /** Injectable for tests; defaults to `connectGooseAcpClient`. */
   connectClient?: (stream: Stream, callbacks: GooseAcpCallbacks) => GooseAcpClient;
   initializeTimeoutMs?: number;
+  /** How long `runs/finished` may follow the end of its tool call; defaults to 3 seconds. */
+  runEndGraceMs?: number;
 }
 
 export interface FeishuAcpPortHandle extends FeishuAcpPort {
@@ -249,6 +270,7 @@ export function createFeishuAcpPort(options: FeishuAcpPortOptions): FeishuAcpPor
   const log = options.log ?? (() => {});
   const connectClient = options.connectClient ?? connectGooseAcpClient;
   const initializeTimeoutMs = options.initializeTimeoutMs ?? INITIALIZE_TIMEOUT_MS;
+  const runEndGraceMs = options.runEndGraceMs ?? RUN_END_GRACE_MS;
 
   let current: GooseAcpClient | null = null;
   let connecting: Promise<GooseAcpClient> | null = null;
@@ -259,12 +281,87 @@ export function createFeishuAcpPort(options: FeishuAcpPortOptions): FeishuAcpPor
 
   const turns = new Map<string, TurnTracker>(); // sessionId -> running turn
   const activeRuns = new Map<string, string>(); // sessionId -> Kernel run id, for steering
+  // Runs whose `runs/started` arrived and whose `runs/finished` did not, by session and tool call.
+  const startedRuns = new Map<string, RunStartedNotification_unstable>();
+  const runEndTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
   const emit = (event: FeishuSessionEvent): void => {
     try {
       eventHandler?.(event);
     } catch (error) {
       log(`a session event handler failed: ${errorText(error)}`);
+    }
+  };
+
+  const runKey = (sessionId: string, toolCallId: string): string => `${sessionId}\n${toolCallId}`;
+
+  const forgetRun = (key: string): void => {
+    startedRuns.delete(key);
+    const timer = runEndTimers.get(key);
+    if (timer !== undefined) {
+      clearTimeout(timer);
+      runEndTimers.delete(key);
+    }
+  };
+
+  const rememberRun = (notification: RunStartedNotification_unstable): void => {
+    const key = runKey(notification.sessionId, notification.toolCallId);
+    forgetRun(key);
+    startedRuns.set(key, notification);
+    for (const oldest of startedRuns.keys()) {
+      if (startedRuns.size <= MAX_STARTED_RUNS) {
+        break;
+      }
+      forgetRun(oldest);
+    }
+  };
+
+  /** The run of `key` is over and sent no `runs/finished`. */
+  const endRun = (key: string): void => {
+    const run = startedRuns.get(key);
+    forgetRun(key);
+    if (!run) {
+      return;
+    }
+    try {
+      options.onRunEnded?.({
+        sessionId: run.sessionId,
+        toolCallId: run.toolCallId,
+        runId: run.runId,
+        workingDir: run.workingDir,
+      });
+    } catch (error) {
+      log(`ending run ${run.runId} failed: ${errorText(error)}`);
+    }
+  };
+
+  /** A tool call ended; its run is over unless `runs/finished` follows within the grace. */
+  const toolCallEnded = (sessionId: string, toolCallId: string): void => {
+    const key = runKey(sessionId, toolCallId);
+    if (!startedRuns.has(key) || runEndTimers.has(key)) {
+      return;
+    }
+    const timer = setTimeout(() => {
+      runEndTimers.delete(key);
+      endRun(key);
+    }, runEndGraceMs);
+    timer.unref?.();
+    runEndTimers.set(key, timer);
+  };
+
+  /** The turn of `sessionId` ended, and with it every tool call it ran. */
+  const turnEnded = (sessionId: string): void => {
+    for (const run of [...startedRuns.values()]) {
+      if (run.sessionId === sessionId) {
+        toolCallEnded(sessionId, run.toolCallId);
+      }
+    }
+  };
+
+  /** Nothing more arrives for the runs this connection started. */
+  const endAllRuns = (): void => {
+    for (const key of [...startedRuns.keys()]) {
+      endRun(key);
     }
   };
 
@@ -288,6 +385,12 @@ export function createFeishuAcpPort(options: FeishuAcpPortOptions): FeishuAcpPor
         activeRuns.set(sessionId, runId);
       }
       return;
+    }
+    if (
+      (update.sessionUpdate === 'tool_call' || update.sessionUpdate === 'tool_call_update') &&
+      (update.status === 'completed' || update.status === 'failed')
+    ) {
+      toolCallEnded(sessionId, update.toolCallId);
     }
     const turn = turns.get(sessionId);
     if (!turn) {
@@ -378,9 +481,11 @@ export function createFeishuAcpPort(options: FeishuAcpPortOptions): FeishuAcpPor
     unstable_sessionUpdate: async () => {},
     unstable_providerDeviceCode: async () => {},
     unstable_runsStarted: async (notification) => {
+      rememberRun(notification);
       options.onRunStarted?.(notification);
     },
     unstable_runsFinished: async (notification) => {
+      forgetRun(runKey(notification.sessionId, notification.toolCallId));
       const turn = turns.get(notification.sessionId);
       if (turn) {
         for (const output of notification.outputs ?? []) {
@@ -427,6 +532,7 @@ export function createFeishuAcpPort(options: FeishuAcpPortOptions): FeishuAcpPor
       }
       current = null;
       activeRuns.clear();
+      endAllRuns();
       log('ACP connection closed');
       emit({ type: 'disconnected' });
     };
@@ -501,6 +607,7 @@ export function createFeishuAcpPort(options: FeishuAcpPortOptions): FeishuAcpPor
           turns.delete(sessionId);
         }
         activeRuns.delete(sessionId);
+        turnEnded(sessionId);
       }
     },
     steer: async (sessionId: string, text: string): Promise<boolean> => {
@@ -538,6 +645,7 @@ export function createFeishuAcpPort(options: FeishuAcpPortOptions): FeishuAcpPor
       const client = current;
       current = null;
       client?.connection.close();
+      endAllRuns();
     },
   };
 }
