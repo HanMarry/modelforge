@@ -1,0 +1,108 @@
+// Records, machine-wide, every signal that can stop or end a process, together with who sent it
+// and the raw target of the kill-family syscall. A kill(-1, ...) (every process of the sender's
+// user, including the runner and a setsid'd watchdog), a kill(0, ...) (the sender's own process
+// group) or a kill of some other group shows up here with the sending process and thread.
+//
+// Signals kept: HUP INT QUIT ILL ABRT BUS KILL SEGV TERM STOP TSTP TTIN TTOU.
+// The .NET runner suspends its threads with real-time signals through tgkill; those are not kept.
+
+BEGIN
+{
+  printf("bpftrace attached\n");
+}
+
+tracepoint:syscalls:sys_enter_kill
+/args->sig != 0/
+{
+  time("%H:%M:%S ");
+  printf("kill(%d, %d) by pid=%d tid=%d uid=%d comm=%s parent=%d:%s\n",
+    args->pid, args->sig, pid, tid, uid, comm,
+    curtask->real_parent->tgid, curtask->real_parent->comm);
+}
+
+tracepoint:syscalls:sys_enter_tgkill
+/args->sig == 1 || args->sig == 2 || args->sig == 3 || args->sig == 4 || args->sig == 6 ||
+ args->sig == 7 || args->sig == 9 || args->sig == 11 || args->sig == 15 || args->sig == 19 ||
+ args->sig == 20 || args->sig == 21 || args->sig == 22/
+{
+  time("%H:%M:%S ");
+  printf("tgkill(%d, %d, %d) by pid=%d tid=%d uid=%d comm=%s parent=%d:%s\n",
+    args->tgid, args->pid, args->sig, pid, tid, uid, comm,
+    curtask->real_parent->tgid, curtask->real_parent->comm);
+}
+
+tracepoint:syscalls:sys_enter_tkill
+/args->sig == 1 || args->sig == 2 || args->sig == 3 || args->sig == 4 || args->sig == 6 ||
+ args->sig == 7 || args->sig == 9 || args->sig == 11 || args->sig == 15 || args->sig == 19 ||
+ args->sig == 20 || args->sig == 21 || args->sig == 22/
+{
+  time("%H:%M:%S ");
+  printf("tkill(%d, %d) by pid=%d tid=%d uid=%d comm=%s parent=%d:%s\n",
+    args->pid, args->sig, pid, tid, uid, comm,
+    curtask->real_parent->tgid, curtask->real_parent->comm);
+}
+
+tracepoint:syscalls:sys_enter_pidfd_send_signal
+/args->sig != 0/
+{
+  time("%H:%M:%S ");
+  printf("pidfd_send_signal(fd %d, %d) by pid=%d tid=%d uid=%d comm=%s parent=%d:%s\n",
+    args->pidfd, args->sig, pid, tid, uid, comm,
+    curtask->real_parent->tgid, curtask->real_parent->comm);
+}
+
+// One line per process that actually receives a kept signal, including signals the kernel
+// generates itself (parent-death signals, OOM kills, faults). For a kill(-1, ...) this lists
+// every target by name.
+tracepoint:signal:signal_generate
+/args->sig == 1 || args->sig == 2 || args->sig == 3 || args->sig == 4 || args->sig == 6 ||
+ args->sig == 7 || args->sig == 9 || args->sig == 11 || args->sig == 15 || args->sig == 19 ||
+ args->sig == 20 || args->sig == 21 || args->sig == 22/
+{
+  time("%H:%M:%S ");
+  printf("deliver sig=%d to pid=%d comm=%s group=%d result=%d code=%d from pid=%d comm=%s\n",
+    args->sig, args->pid, args->comm, args->group, args->result, args->code, pid, comm);
+}
+
+// Processes (thread-group leaders) that end because of a signal, and every exit of the
+// runner's own processes.
+tracepoint:sched:sched_process_exit
+/pid == tid && ((curtask->exit_code & 0x7f) != 0 || comm == "Runner.Listener" ||
+ comm == "Runner.Worker")/
+{
+  time("%H:%M:%S ");
+  printf("exit pid=%d comm=%s status=0x%x parent=%d:%s\n",
+    pid, comm, curtask->exit_code, curtask->real_parent->tgid, curtask->real_parent->comm);
+}
+
+tracepoint:oom:mark_victim
+{
+  time("%H:%M:%S ");
+  printf("oom victim pid=%d\n", args->pid);
+}
+
+// Rates, so a fork storm or a connection storm between two samples is visible.
+tracepoint:sched:sched_process_fork
+{
+  @forks = @forks + 1;
+}
+
+tracepoint:sock:inet_sock_set_state
+/args->newstate == 2/
+{
+  @tcp_connects = @tcp_connects + 1;
+}
+
+interval:s:5
+{
+  time("%H:%M:%S ");
+  printf("rate5s forks=%d tcp_connects=%d\n", @forks, @tcp_connects);
+  @forks = 0;
+  @tcp_connects = 0;
+}
+
+END
+{
+  clear(@forks);
+  clear(@tcp_connects);
+}

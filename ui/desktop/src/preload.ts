@@ -49,7 +49,13 @@ import type { CollabHostStartRequest, CollabHostState } from './utils/collab/col
 import type { CheckpointGitSource } from './utils/checkpoints/checkpointIpc';
 import type { CollabMember } from './utils/collab/collabService';
 import type { CollabGuestRole } from './utils/collab/collabPolicy';
-import type { FeishuConfig, FeishuSaveConfig } from './connectors/feishu/feishuIpc';
+import type {
+  FeishuConfig,
+  FeishuSaveConfig,
+  FeishuStatus,
+  FeishuUndeliveredEvent,
+  FeishuUndeliveredMark,
+} from './connectors/feishu/feishuIpc';
 // Layer C features keep their bridges in `bridges/` and their types in `types/<feature>Api.ts`.
 import { featureBridges } from './bridges';
 import type { FeatureApis } from './types/featureApis';
@@ -432,7 +438,10 @@ type ElectronAPI = FeatureApis & {
   // Feishu connector
   feishuGetConfig: () => Promise<FeishuConfig>;
   feishuSaveConfig: (patch: FeishuSaveConfig) => Promise<IpcResult<FeishuConfig>>;
-  feishuStatus: () => Promise<IpcResult<{ started: boolean }>>;
+  feishuStatus: () => Promise<IpcResult<FeishuStatus>>;
+  /** Whether a Feishu reply of this session could not be delivered (requirement 15.2). */
+  feishuUndelivered: (sessionId: string) => Promise<IpcResult<FeishuUndeliveredMark | null>>;
+  onFeishuUndelivered: (callback: (event: FeishuUndeliveredEvent) => void) => () => void;
 };
 
 type AppConfigAPI = {
@@ -779,6 +788,14 @@ const electronAPI: ElectronAPI = {
   feishuGetConfig: () => ipcRenderer.invoke('feishu-get-config'),
   feishuSaveConfig: (patch: FeishuSaveConfig) => ipcRenderer.invoke('feishu-save-config', patch),
   feishuStatus: () => ipcRenderer.invoke('feishu-status'),
+  feishuUndelivered: (sessionId: string) => ipcRenderer.invoke('feishu-undelivered', sessionId),
+  onFeishuUndelivered: (callback: (event: FeishuUndeliveredEvent) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, event: FeishuUndeliveredEvent) =>
+      callback(event);
+    // Same name as FEISHU_UNDELIVERED_CHANNEL; the sandboxed preload imports only types.
+    ipcRenderer.on('feishu-undelivered-changed', listener);
+    return () => ipcRenderer.removeListener('feishu-undelivered-changed', listener);
+  },
   ...featureBridges,
 };
 

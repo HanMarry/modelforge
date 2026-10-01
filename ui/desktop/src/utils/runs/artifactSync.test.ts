@@ -24,11 +24,13 @@ import {
   parseArtifactIndex,
   sameArtifactIndex,
   serializeArtifactIndex,
+  settleEndedRuns,
   staleCheckPaths,
   syncDiscoveredFiles,
 } from './artifactSync';
 
 const OUT = 'results/out.csv';
+const RECORD_PATH = `.modelforge/runs/${RUN_ID}.json`;
 
 function entry(path: string, overrides: Partial<ArtifactEntry> = {}): ArtifactEntry {
   return {
@@ -178,6 +180,67 @@ describe('applyNewRuns', () => {
     const pending = applyRunStarted(emptyArtifactIndex(), LATER_RUN_ID, [OUT]);
 
     expect(applyNewRuns(pending, [runRecord()])).toBe(pending);
+  });
+});
+
+describe('settleEndedRuns', () => {
+  it('ends what a run left pending once it is over, also under a new suffix', () => {
+    const renamed = '20260920T101530123-zzzzzz';
+    const pending = applyRunStarted(emptyArtifactIndex(), RUN_ID, [OUT, 'results/never.csv']);
+    const record = runRecord({ runId: renamed });
+    const runs = new Map([[renamed, record]]);
+    const collided = applyNewRuns(pending, [record]);
+    expect(getArtifactEntry(collided, 'results/never.csv')?.status).toBe('执行中');
+
+    // While the kernel still runs it, nothing changes.
+    expect(settleEndedRuns(collided, runs, () => true)).toBe(collided);
+
+    const settled = settleEndedRuns(collided, runs, () => false);
+    expect(getArtifactEntry(settled, OUT)).toEqual(
+      entry(OUT, { status: '已生成', runId: renamed })
+    );
+    expect(getArtifactEntry(settled, 'results/never.csv')).toEqual(
+      entry('results/never.csv', { status: '未开始' })
+    );
+    expect(settleEndedRuns(settled, runs, () => false)).toBe(settled);
+  });
+
+  it('ends a failed run under a new suffix as 执行失败', () => {
+    const renamed = '20260920T101530123-zzzzzz';
+    const pending = applyRunStarted(emptyArtifactIndex(), RUN_ID, ['results/never.csv']);
+    const record = runRecord({ runId: renamed, exitCode: null, failure: '超时', outputs: [] });
+
+    const settled = settleEndedRuns(pending, new Map([[renamed, record]]), () => false);
+
+    expect(getArtifactEntry(settled, 'results/never.csv')).toEqual(
+      entry('results/never.csv', { status: '执行失败', runId: renamed, failure: '超时' })
+    );
+  });
+
+  it('outdates what a run without a usable record left, until the record turns up', () => {
+    const pending = applyRunStarted(emptyArtifactIndex(), RUN_ID, [OUT]);
+
+    const settled = settleEndedRuns(pending, new Map(), () => false);
+
+    expect(getArtifactEntry(settled, OUT)).toEqual(
+      entry(OUT, {
+        status: '已过期',
+        runId: RUN_ID,
+        staleReasons: [{ kind: 'record-missing', path: RECORD_PATH }],
+      })
+    );
+    // A later pass finds the record after all, for example once a broken file was repaired.
+    expect(getArtifactEntry(applyNewRuns(settled, [runRecord()]), OUT)).toEqual(
+      entry(OUT, { status: '已生成', runId: RUN_ID })
+    );
+  });
+
+  it('falls back to 未开始 for a pending entry that names no run', () => {
+    const state = indexOf(entry(OUT, { status: '执行中' }));
+
+    expect(getArtifactEntry(settleEndedRuns(state, new Map(), () => false), OUT)).toEqual(
+      entry(OUT, { status: '未开始' })
+    );
   });
 });
 

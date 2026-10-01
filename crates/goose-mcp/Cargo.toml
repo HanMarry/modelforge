@@ -40,3 +40,7 @@ image = { version = "0.24.4", default-features = false, features = ["bmp", "dds"
 umya-spreadsheet = { version = "3", default-features = false }
 shell-words = { workspace = true }
 process-wrap = { version = "9", default-features = false, features = ["std", "process-session"] }
+
+[target."cfg(unix)".dependencies]
+# Process-group kills go through kill(2): procps-ng's kill(1) mangles negative pids.
+libc = { version = "0.2.182", default-features = false, features = ["std"] }

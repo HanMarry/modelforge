@@ -114,11 +114,14 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt update -y
-          sudo apt install -y libdbus-1-dev gnome-keyring libxcb1-dev
+          # gdb: test-binary-runner.sh prints the backtraces of a test binary that hangs.
+          sudo apt install -y libdbus-1-dev gnome-keyring libxcb1-dev gdb
 
       - name: Build and Test
-        # A healthy run takes 15-20 minutes. Some runs end after about 50 with "The hosted runner
-        # lost communication with the server" and no log at all; the watchdog (see its header)
+        # A healthy run takes 15-20 minutes. Runs used to end after about 50 with "The hosted
+        # runner lost communication with the server" and no log at all: a goose-mcp test killed a
+        # process tree through procps-ng's kill(1), which made it kill(-1, SIGKILL) whenever the
+        # tree's pid started with 1, and that killed the runner. The watchdog (see its header)
         # records what the machine was doing in the "rust-watchdog" commit status.
         timeout-minutes: 40
         run: |
@@ -132,15 +135,53 @@ jobs:
           trap 'kill "$watchdog" 2>/dev/null; wait "$watchdog" 2>/dev/null || true' EXIT
           free -m
           df -h /
-          cargo test --locked -- --skip scenario_tests::scenarios::tests 2>&1 | tee -a "$WATCHDOG_TEST_LOG"
-          cargo test --locked --jobs 1 scenario_tests::scenarios::tests 2>&1 | tee -a "$WATCHDOG_TEST_LOG"
+          # Build outside the sandbox: the compiler's memory peak is not a test's.
+          cargo test --locked --no-run 2>&1 | tee -a "$WATCHDOG_TEST_LOG"
+          # The tests run in their own PID namespace and a systemd scope with memory and task
+          # limits (see the script), and every test binary under a time limit that names the tests
+          # still running when it expires (TEST_BINARY_TIMEOUT_SECS, test-binary-runner.sh). A test
+          # that signals every process it can, or runs away with memory, threads or time, now fails
+          # this step with its output instead of taking the runner down.
+          sandbox=(../.github/scripts/rust-test-sandbox.sh --name rust-tests --)
+          "${sandbox[@]}" cargo test --locked -- --skip scenario_tests::scenarios::tests 2>&1 | tee -a "$WATCHDOG_TEST_LOG"
+          "${sandbox[@]}" cargo test --locked --jobs 1 scenario_tests::scenarios::tests 2>&1 | tee -a "$WATCHDOG_TEST_LOG"
         working-directory: crates
         env:
           RUST_MIN_STACK: 8388608
+          CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER: ${{ github.workspace }}/.github/scripts/test-binary-runner.sh
+          # The slowest test binary takes about a minute.
+          TEST_BINARY_TIMEOUT_SECS: "600"
           # Not GITHUB_TOKEN: tests must not see a token under a name code may look for.
+          # (rust-test-sandbox.sh also keeps it out of the tests' environment.)
           WATCHDOG_TOKEN: ${{ github.token }}
           WATCHDOG_STATUS_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           WATCHDOG_TEST_LOG: ${{ runner.temp }}/cargo-test.log
+
+  # When the Rust job loses its runner, the watchdog's reports never get a final state. This job
+  # runs after it whatever its result and finishes them (see finalize-rust-watchdog.sh).
+  rust-watchdog-finalize:
+    name: Finalize Rust watchdog reports
+    runs-on: ubuntu-latest
+    needs: rust-build-and-test
+    if: always() && needs.rust-build-and-test.result != 'skipped'
+    # Housekeeping only; it never decides the outcome of the run.
+    continue-on-error: true
+    permissions:
+      contents: read
+      statuses: write
+      checks: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          sparse-checkout: .github/scripts
+
+      - name: Finalize the rust-watchdog status and rust-watchdog-log check runs
+        run: bash .github/scripts/finalize-rust-watchdog.sh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WATCHDOG_STATUS_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          JOB_RESULT: ${{ needs.rust-build-and-test.result }}
 
   goose-sdk-uniffi:
     name: Check goose-sdk UniFFI

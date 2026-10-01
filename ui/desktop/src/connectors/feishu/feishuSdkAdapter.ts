@@ -1,153 +1,179 @@
 /**
- * Glue between the Feishu SDK long connection / the goose ACP connection and the connector core
- * (requirement 15). The connector itself is transport-agnostic; this module adapts the real
- * Feishu SDK event stream and the real ACP session surface into its ports.
+ * Puts the Feishu connector together for the main process (requirement 15): the SDK long
+ * connection and IM client (`larkChannel.ts`), the dedicated ACP connection to `goose serve`
+ * (`feishuAcpPort.ts`) and the connector core (`feishuConnector.ts`). `registerFeishuIpc` starts
+ * and stops it with the enable switch. The SDK and the ACP port are injectable for tests.
  */
-import { methods } from '@agentclientprotocol/sdk';
-import { AppType, Client, Domain } from '@larksuiteoapi/node-sdk';
-import type { GooseAcpClient } from '../../acp/gooseAcpClient';
+import type { Stream } from '@agentclientprotocol/sdk';
+import type {
+  RunFinishedNotification_unstable,
+  RunStartedNotification_unstable,
+} from '@aaif/goose-acp-client';
+import {
+  createFeishuAcpPort,
+  type FeishuAcpPortHandle,
+  type FeishuAcpPortOptions,
+} from './feishuAcpPort';
 import {
   createFeishuConnector,
-  type FeishuAcpPort,
   type FeishuConnector,
-  type FeishuSessionStore,
+  type FeishuInboundEvent,
+  type FeishuStateStore,
 } from './feishuConnector';
-import type { Stream } from '@agentclientprotocol/sdk';
+import {
+  createLarkLogger,
+  createLarkMessenger,
+  larkSdk,
+  normalizeLarkMessage,
+  type FeishuLinkState,
+  type LarkLink,
+  type LarkSdk,
+} from './larkChannel';
 
-export interface LarkEventSourceOptions {
+export interface FeishuControllerConfig {
   appId: string;
   appSecret: string;
-  redact?: (text: string) => string;
-  log?: (message: string) => void;
+  whitelist: string[];
 }
 
-/**
- * Registers the SDK long connection and normalizes `im.message.receive_v1` into the connector.
- *
- * The real event stream needs a `LarkChannel` long connection; that wiring is not landed yet, so
- * this only keeps the handler slot the connector core expects.
- */
-export function createLarkEventSource(options: LarkEventSourceOptions) {
-  const log = options.log ?? (() => {});
-  const redact = options.redact ?? ((text) => text);
-
-  return {
-    onMessage: () => () => {},
-    start: async () => {
-      log(`feishu long connection is not wired to a LarkChannel yet (app ${redact(options.appId)})`);
-    },
-    stop: async () => {},
-  };
-}
-
-export interface FeishuAcpPortOptions {
-  connect: () => Promise<{ client: GooseAcpClient; stream: Stream }>;
-  log?: (message: string) => void;
-}
-
-/**
- * Adapts a dedicated goose ACP connection into the connector's `FeishuAcpPort`. Feishu-triggered
- * sessions are created and driven on this connection; tool approval requests surface as
- * `onPermissionRequest` and are answered back through `respondPermission`.
- */
-export function createFeishuAcpPort(options: FeishuAcpPortOptions): FeishuAcpPort {
-  let client: GooseAcpClient | null = null;
-
-  const ensureClient = async (): Promise<GooseAcpClient> => {
-    if (!client) {
-      client = (await options.connect()).client;
-    }
-    return client;
-  };
-
-  return {
-    createSession: async () => {
-      const acp = await ensureClient();
-      const response = await acp.connection.agent.request(methods.agent.session.new, {
-        cwd: process.cwd(),
-        mcpServers: [],
-        _meta: { client: 'feishu' },
-      });
-      const sessionId = String(response.sessionId);
-      return { sessionId, name: sessionId };
-    },
-    prompt: async (sessionId, text) => {
-      const acp = await ensureClient();
-      await acp.connection.agent.request(methods.agent.session.prompt, {
-        sessionId,
-        prompt: [{ type: 'text', text }],
-      });
-    },
-    respondPermission: async (_request, _outcome, reason) => {
-      options.log?.(`feishu permission response (${reason ?? 'ok'})`);
-    },
-    markUndelivered: async (sessionId) => {
-      options.log?.(`feishu reply undelivered for ${sessionId}`);
-    },
-    onPermissionRequest: () => {
-      // Permission requests are not wired to a live ACP connection yet.
-      return () => {};
-    },
-    onRunUpdate: () => {
-      // Run updates are not wired to a live ACP connection yet.
-      return () => {};
-    },
-  };
+export interface FeishuControllerStatus {
+  /** Whether the connector runs (not just whether it is enabled in the settings). */
+  started: boolean;
+  /** State of the Feishu long connection. */
+  link: FeishuLinkState;
 }
 
 export interface FeishuControllerOptions {
-  store: FeishuSessionStore;
-  connectAcp: () => Promise<{ client: GooseAcpClient; stream: Stream }>;
+  store: FeishuStateStore;
+  /** Opens a stream to the desktop's `goose serve` for the dedicated ACP connection. */
+  openAcpStream: () => Promise<Stream>;
+  /** Working directory of new Feishu sessions. */
+  workingDir: () => Promise<string>;
+  clientInfo: { name: string; version: string };
+  onRunStarted?: (notification: RunStartedNotification_unstable) => void;
+  onRunFinished?: (notification: RunFinishedNotification_unstable) => void;
   log?: (message: string) => void;
+  /** Masks key values in logs and outgoing messages. */
   redact?: (text: string) => string;
+  sdk?: LarkSdk;
+  createAcpPort?: (options: FeishuAcpPortOptions) => FeishuAcpPortHandle;
 }
 
-export function createFeishuController(options: FeishuControllerOptions) {
-  let connector: FeishuConnector | null = null;
+export interface FeishuControllerHandle {
+  start: (config: FeishuControllerConfig) => Promise<void>;
+  stop: () => Promise<void>;
+  isStarted: () => boolean;
+  status: () => FeishuControllerStatus;
+}
 
-  return {
-    start: async (config: { appId: string; appSecret: string; whitelist: string[] }) => {
-      await stop();
-      const source = createLarkEventSource({
-        appId: config.appId,
-        appSecret: config.appSecret,
-        redact: options.redact,
-        log: options.log,
-      });
-      const acp = createFeishuAcpPort({ connect: options.connectAcp, log: options.log });
-      connector = createFeishuConnector({
-        whitelist: config.whitelist,
-        send: {
-          sendText: async (receiveId, text) => {
-            const client = new Client({
-              appId: config.appId,
-              appSecret: config.appSecret,
-              appType: AppType.SelfBuild,
-              domain: Domain.Feishu,
-            });
-            await client.im.message.create({
-              params: { receive_id_type: 'chat_id' },
-              data: { receive_id: receiveId, msg_type: 'text', content: JSON.stringify({ text }) },
-            });
-          },
-        },
-        acp,
-        store: options.store,
-        onMessage: source.onMessage,
-        log: options.log,
-        redact: options.redact,
-      });
-      await connector.start();
-      await source.start();
-    },
-    stop,
-    isStarted: () => connector?.status().started ?? false,
+interface Running {
+  connector: FeishuConnector;
+  acp: FeishuAcpPortHandle;
+  link: LarkLink;
+}
+
+function describe(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message || error.name;
+  }
+  return String(error);
+}
+
+export function createFeishuController(options: FeishuControllerOptions): FeishuControllerHandle {
+  const log = options.log ?? (() => {});
+  const redact = options.redact ?? ((text: string) => text);
+  const sdk = options.sdk ?? larkSdk;
+  const createAcpPort = options.createAcpPort ?? createFeishuAcpPort;
+
+  let running: Running | null = null;
+  let link: FeishuLinkState = 'idle';
+  // Bumped by every stop, so a start that is still setting up knows it was cancelled.
+  let generation = 0;
+
+  const stop = async (): Promise<void> => {
+    generation += 1;
+    const current = running;
+    running = null;
+    link = 'idle';
+    if (!current) {
+      return;
+    }
+    try {
+      current.link.close();
+    } catch (error) {
+      log(`closing the long connection failed: ${redact(describe(error))}`);
+    }
+    await current.connector.stop();
+    current.acp.close();
   };
 
-  async function stop(): Promise<void> {
-    if (connector) {
+  const start = async (config: FeishuControllerConfig): Promise<void> => {
+    await stop();
+    const own = generation;
+    const logger = createLarkLogger(log, redact);
+    const imClient = sdk.createImClient({
+      appId: config.appId,
+      appSecret: config.appSecret,
+      logger,
+    });
+    const acp = createAcpPort({
+      openStream: options.openAcpStream,
+      workingDir: options.workingDir,
+      clientInfo: options.clientInfo,
+      onRunStarted: options.onRunStarted,
+      onRunFinished: options.onRunFinished,
+      log: (message) => log(`acp: ${redact(message)}`),
+    });
+    let deliver: ((event: FeishuInboundEvent) => void) | null = null;
+    const connector = createFeishuConnector({
+      whitelist: config.whitelist,
+      messenger: createLarkMessenger(imClient),
+      acp,
+      store: options.store,
+      subscribe: (handler) => {
+        deliver = handler;
+        return () => {
+          if (deliver === handler) {
+            deliver = null;
+          }
+        };
+      },
+      log,
+      redact,
+    });
+    await connector.start();
+    if (own !== generation) {
       await connector.stop();
-      connector = null;
+      acp.close();
+      return;
     }
-  }
+
+    const larkLink = sdk.connect({
+      appId: config.appId,
+      appSecret: config.appSecret,
+      logger,
+      onMessage: (data) => {
+        const event = normalizeLarkMessage(data);
+        if (event) {
+          deliver?.(event);
+        }
+      },
+      onStateChange: (state, error) => {
+        if (own !== generation) {
+          return;
+        }
+        link = state;
+        const detail = error === undefined ? '' : `: ${redact(describe(error))}`;
+        log(`long connection ${state}${detail}`);
+      },
+    });
+    running = { connector, acp, link: larkLink };
+  };
+
+  return {
+    start,
+    stop,
+    isStarted: () => running !== null,
+    status: () => ({ started: running !== null, link }),
+  };
 }

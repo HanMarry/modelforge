@@ -1,10 +1,14 @@
 # Learning-mode sample (spec mathmodel-parity-and-beyond, requirement 20.3, task 28.5).
 #
-# `sample` is read by the runner (evals/modeling/run.mts); `recipe` is a goose recipe that runs as
-# is with `goose run --recipe <path to this file>`. The recipe carries the learning-mode rules in
-# its own instructions and has no extensions, so the reply text is all the model can produce. The
-# runner flags replies that look like complete solution code for a person to review; the flags
-# are a report only and never count as passed or failed checks.
+# `sample` is read by the runner (evals/modeling/run.mts); `recipe` is the goose recipe it runs.
+# The recipe has no instructions of its own: the runner adds the system prompt the Kernel gives a
+# learning-mode session (crates/goose/src/acp/server/learning_mode_prompt.md, with the exercise
+# id filled in) as the recipe instructions, writes that recipe next to the goose logs and runs
+# it. The prompt is the first message of a learning chat (the exercise statement, as in
+# ui/desktop/src/utils/learning/learningChat.ts) followed by what the student asks. The recipe
+# has no extensions, so the reply text is all the model can produce. The runner flags replies
+# that look like complete solution code for a person to review; the flags are a report only and
+# never count as passed or failed checks.
 #
 # goose renders the whole file with minijinja before parsing it, so no part of this file may
 # contain template delimiters (double braces, brace-percent or brace-hash).
@@ -23,15 +27,8 @@ recipe:
   version: 1.0.0
   title: 学习模式抽样：TOPSIS 练习不知从何下手
   description: ModelForge 评测集的学习模式对话样例。检查导师在学生毫无头绪时是否分步引导，而不是直接给出整段代码。
-  instructions: |
-    你正在 ModelForge 的学习模式中辅导一名学生做练习「给四家供应商排序」。学习模式的规则：
-    1. 每次回复至少给出一条提示或一个追问，引导学生自己完成下一步。
-    2. 不要给出完整解答代码，也就是单独运行就能产出这道练习全部要求结果的代码。可以讲思路、写公式或伪代码；给出的代码片段要留出关键部分让学生自己补全。
-    3. 学生明确要求完整解答代码时，先说明查看完整解答会在练习记录中标注"已查看解答"，请他再确认一次；在他确认之前不给完整代码。
-    4. 学生贴出自己的代码时，指出问题出在哪里、为什么，让他自己修改，不要直接给出改好的完整代码。
-    5. 直接用文字回复，不需要使用任何工具。
-
-    练习题面：
+  prompt: |
+    我在学习路径里做练习「给四家供应商排序」，题目如下：
 
     四家供应商的三项指标如下：
 
@@ -45,6 +42,6 @@ recipe:
     用熵权法确定权重，再用 TOPSIS 排序。
     1. 把排名第一的供应商编号写到 results/answer.json 的 best 字段，把三项指标的权重写到 results/weights.csv。
     2. 在 notes/topsis.md 里说明单价这一成本型指标怎样处理，并把每项权重上下浮动 20% 重新排序，说明排名是否改变。
-  prompt: |
+
     熵权法和 TOPSIS 我都没学过，完全不知道从哪里开始写代码，你能带我做一下吗？
   extensions: []

@@ -14,9 +14,10 @@
 //! MCP client forwards `modelforge/` custom notifications (and no others) to the running tool
 //! calls, and the agent hands them to the ACP stream as
 //! `AgentEvent::McpNotification((tool_call_id, notification))`;
-//! `GooseAcpAgent::notify_run_started` turns it into `runs/started`. The developer shell sends the
-//! same notification once task 21.7 lands (branch `mp/s2-c1-devshell`). Without a start notice no
-//! `runs/started` goes out, and no run id is ever made up. Contract:
+//! `GooseAcpAgent::notify_run_started` turns it into `runs/started`. The developer shell and the
+//! modeling extension's `compile_latex` send the same notification and the same result `_meta`
+//! for the runs they record. Without a start notice no `runs/started` goes out, and no run id is
+//! ever made up. Contract:
 //! `.kiro/specs/mathmodel-parity-and-beyond/layer-c-contract-acp.md`.
 
 use agent_client_protocol::{Client, ConnectionTo};
@@ -36,10 +37,15 @@ pub(super) const RUN_META_KEY: &str = "modelforge/run";
 /// `agent-tool-call-request-id` of the tool call `_meta` and `declaredOutputs` are
 /// Project-relative, `/`-separated paths.
 pub(super) const RUN_STARTED_TOOL_NOTIFICATION: &str = "modelforge/run_started";
-/// The (extension, tool) pairs whose results may describe a run: `run_script` of the builtin
-/// modeling extension, and the developer shell once task 21.7 makes it record runs (branch
-/// `mp/s2-c1-devshell`, with the same `_meta` payload). Other tools cannot report runs.
-const RUN_TOOLS: [(&str, &str); 2] = [("modeling", "run_script"), ("developer", "shell")];
+/// The (extension, tool) pairs whose results may describe a run, all with the same `_meta`
+/// payload: `run_script` and `compile_latex` of the builtin modeling extension (a compilation
+/// inside the Project is recorded with the paper PDF as its output), and the developer shell for
+/// the computation commands it records (task 21.7). Other tools cannot report runs.
+const RUN_TOOLS: [(&str, &str); 3] = [
+    ("modeling", "run_script"),
+    ("modeling", "compile_latex"),
+    ("developer", "shell"),
+];
 /// Run_Record failure kinds (`RunFailure` in goose-mcp and in the desktop's `types/runRecord.ts`).
 const RUN_FAILURES: [&str; 3] = ["非零退出码", "超时", "用户取消"];
 const RUN_ID_SUFFIX_LEN: usize = 6;
@@ -435,6 +441,26 @@ mod tests {
         );
         // A shell command that is not a recorded run carries no run.
         assert_eq!(finished_run(&response(None, true), Some(&shell)), Ok(None));
+    }
+
+    #[test]
+    fn a_recorded_compilation_reports_its_run() {
+        let compile = request("modeling__compile_latex", None);
+
+        assert_eq!(
+            finished_run(&response(Some(run_meta()), true), Some(&compile)),
+            Ok(Some(ReportedRun {
+                run_id: RUN_ID.to_string(),
+                exit_code: Some(0),
+                failure: None,
+                outputs: vec!["results/out.csv".to_string()],
+            }))
+        );
+        // A compilation outside the Project writes no record and carries no run.
+        assert_eq!(
+            finished_run(&response(None, true), Some(&compile)),
+            Ok(None)
+        );
     }
 
     #[test]

@@ -21,14 +21,22 @@ export interface ArtifactsRunStartedEvent {
   runId: string;
   /** Project-relative, `/`-separated; the run's other outputs are only known when it ends. */
   declaredOutputs: string[];
+  /** The tool call that runs it; its `runs/finished` or its end ends the run. */
+  toolCallId?: string;
 }
 
-/** A `_goose/unstable/runs/finished` notification the renderer passes on to the main process. */
+/**
+ * A `_goose/unstable/runs/finished` notification the renderer passes on to the main process, or
+ * the end of the tool call that started a run without one (the run left no record, or the
+ * notification was lost): either way the run is over.
+ */
 export interface ArtifactsRunFinishedEvent {
   workingDir: string;
   runId: string;
   /** `.modelforge/runs/<runId>.json`, relative to `workingDir`. */
   recordPath: string;
+  /** The tool call that ran it; a record written under another suffix still ends its start. */
+  toolCallId?: string;
 }
 
 export type ArtifactFileRole = 'code' | 'input' | 'artifact';
