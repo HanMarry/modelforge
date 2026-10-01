@@ -138,10 +138,13 @@ foreach ($installer in $installers) {
     foreach ($root in @('HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps', 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\Windows Error Reporting\LocalDumps')) {
         $key = Join-Path $root $installer.name
         try {
+            if (-not (Test-Path -LiteralPath $root)) { New-Item -Path $root -Force | Out-Null }
             New-Item -Path $key -Force | Out-Null
             New-ItemProperty -Path $key -Name DumpFolder -PropertyType ExpandString -Value $dumps -Force | Out-Null
+            # Full dumps (the heap is needed for !heap), at most 4 per folder; each phase gets
+            # its own folder (Set-DumpFolder).
             New-ItemProperty -Path $key -Name DumpType -PropertyType DWord -Value 2 -Force | Out-Null
-            New-ItemProperty -Path $key -Name DumpCount -PropertyType DWord -Value 30 -Force | Out-Null
+            New-ItemProperty -Path $key -Name DumpCount -PropertyType DWord -Value 4 -Force | Out-Null
             $dumpKeys += $key
         }
         catch {
@@ -160,6 +163,7 @@ function Set-PageHeap([bool] $enabled) {
         foreach ($root in $script:ifeoRoots) {
             $key = Join-Path $root $installer.name
             if ($enabled) {
+                if (-not (Test-Path -LiteralPath $root)) { New-Item -Path $root -Force | Out-Null }
                 New-Item -Path $key -Force | Out-Null
                 New-ItemProperty -Path $key -Name GlobalFlag -PropertyType String -Value '0x02000000' -Force | Out-Null
                 New-ItemProperty -Path $key -Name PageHeapFlags -PropertyType String -Value '0x3' -Force | Out-Null
@@ -171,9 +175,17 @@ function Set-PageHeap([bool] $enabled) {
     }
 }
 
+function Set-DumpFolder([string] $folder) {
+    New-Item -ItemType Directory -Force -Path $folder | Out-Null
+    foreach ($key in $script:dumpKeys) {
+        try { Set-ItemProperty -LiteralPath $key -Name DumpFolder -Value $folder } catch { }
+    }
+}
+
 function Invoke-Phase([string] $phase, [int] $rounds) {
     $dir = Join-Path $script:results $phase
     New-Item -ItemType Directory -Force -Path $dir | Out-Null
+    Set-DumpFolder (Join-Path $script:dumps $phase)
     $spec = [ordered]@{
         phase      = $phase
         rounds     = $rounds
@@ -323,16 +335,18 @@ $cdb = $null
 foreach ($candidate in @("${env:ProgramFiles(x86)}\Windows Kits\10\Debuggers\x64\cdb.exe", "$env:ProgramFiles\Windows Kits\10\Debuggers\x64\cdb.exe")) {
     if ($candidate -and (Test-Path -LiteralPath $candidate)) { $cdb = $candidate; break }
 }
-$dumpFiles = @(Get-ChildItem -LiteralPath $dumps -Filter '*.dmp' -File -ErrorAction SilentlyContinue | Sort-Object LastWriteTime)
+$dumpFiles = @(Get-ChildItem -LiteralPath $dumps -Filter '*.dmp' -File -Recurse -ErrorAction SilentlyContinue | Sort-Object LastWriteTime)
 $analysed = @{}
 foreach ($dump in $dumpFiles) {
     $label = $(if ($dump.Name -match 'mf-setup-([a-z]+)\.exe') { $Matches[1] } else { 'other' })
-    $entry = [ordered]@{ file = $dump.Name; bytes = $dump.Length; label = $label; analysis = ''; facts = @() }
+    $phaseName = Split-Path -Leaf $dump.DirectoryName
+    $entry = [ordered]@{ file = ('{0}/{1}' -f $phaseName, $dump.Name); bytes = $dump.Length; label = $label; phase = $phaseName; analysis = ''; facts = @() }
+    $slot = '{0}|{1}' -f $phaseName, $label
     $count = 0
-    if ($analysed.ContainsKey($label)) { $count = $analysed[$label] }
-    if ($cdb -and $count -lt 3) {
-        $analysed[$label] = $count + 1
-        $log = Join-Path $dumps ($dump.BaseName + '.cdb.txt')
+    if ($analysed.ContainsKey($slot)) { $count = $analysed[$slot] }
+    if ($cdb -and $count -lt 2) {
+        $analysed[$slot] = $count + 1
+        $log = Join-Path $dump.DirectoryName ($dump.BaseName + '.cdb.txt')
         $symbols = Join-Path $WorkDir 'symbols'
         $commands = '.effmach x86; !wow64exts.sw; .exr -1; .ecxr; r; kv 12; ub @eip L8; u @eip L3; lmv m System; !gflag; .echo MF-HEAP; !heap -p -a @esi; !heap -p -a @edi; q'
         try {

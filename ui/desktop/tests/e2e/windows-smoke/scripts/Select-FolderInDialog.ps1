@@ -100,8 +100,10 @@ function Test-WindowOpen([int] $hwnd) {
     }
 }
 
-# The folder name box: the Edit inside the combo box with control id 1148 (cmb13) of the common
-# item dialog; failing that, a visible Edit inside any combo box. All Edits are recorded.
+# The folder name box. The folder picker ("Select Folder", seen in run 36850049924) has a plain
+# Edit with control id 1152 (edt1) next to its "Folder:" label, directly under the dialog; the file
+# dialogs use the Edit of the combo box 1148 (cmb13). Failing both, the only visible Edit. All
+# Edits are recorded.
 function Find-FolderBox($dialog) {
     $walker = [System.Windows.Automation.TreeWalker]::RawViewWalker
     $boxes = @()
@@ -126,9 +128,13 @@ function Find-FolderBox($dialog) {
     $script:result.editBoxes = @($boxes | ForEach-Object {
             '{0} parent {1}/{2} hwnd {3}{4}' -f $_.id, $_.parentClass, $_.parentId, $_.hwnd, $(if ($_.offscreen) { ' offscreen' } else { '' })
         })
-    $pick = @($boxes | Where-Object { $_.id -eq '1148' -or $_.parentId -eq '1148' } | Select-Object -First 1)
+    $pick = @($boxes | Where-Object { $_.id -eq '1152' } | Select-Object -First 1)
     if ($pick.Count -eq 0) {
-        $pick = @($boxes | Where-Object { -not $_.offscreen -and $_.parentClass -match 'ComboBox' } | Select-Object -First 1)
+        $pick = @($boxes | Where-Object { $_.id -eq '1148' -or $_.parentId -eq '1148' } | Select-Object -First 1)
+    }
+    if ($pick.Count -eq 0) {
+        $visible = @($boxes | Where-Object { -not $_.offscreen })
+        if ($visible.Count -eq 1) { $pick = $visible }
     }
     if ($pick.Count -eq 0) { return $null }
     return $pick[0]
