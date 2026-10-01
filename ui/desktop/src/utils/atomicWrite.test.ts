@@ -5,7 +5,12 @@ import fc from 'fast-check';
 import { afterEach, describe, expect, it } from 'vitest';
 import { MemoryFs, type MemoryFsFault } from '../test/memoryFs';
 import { pbtParams } from '../test/pbt';
-import { AtomicWriteError, RENAME_RETRIES, writeFileAtomic } from './atomicWrite';
+import {
+  AtomicWriteError,
+  RENAME_RETRIES,
+  writeFileAtomic,
+  writeFileAtomicSync,
+} from './atomicWrite';
 
 const tempDirs: string[] = [];
 
@@ -78,6 +83,79 @@ describe('Property 10: 原子写入', () => {
       }),
       pbtParams
     );
+  });
+});
+
+// The synchronous writer keeps the guarantee of Property 10 under the same faults.
+describe('writeFileAtomicSync under faults', () => {
+  it('only ever exposes the old or the new contents, and cleans up on failure', () => {
+    fc.assert(
+      fc.property(fc.string(), fc.string(), faultArb, (before, after, fault) => {
+        const target = '/data/settings.json';
+        const memory = new MemoryFs({ [target]: before });
+        memory.fault = fault;
+        const observed: Array<string | undefined> = [];
+        memory.onChange(() => observed.push(memory.files.get(target)));
+        const sleeps: number[] = [];
+
+        let error: unknown = null;
+        try {
+          writeFileAtomicSync(target, after, {
+            fs: memory,
+            sleep: (ms) => sleeps.push(ms),
+            tempPath: (file) => `${file}.pending.tmp`,
+          });
+        } catch (caught) {
+          error = caught;
+        }
+
+        for (const value of observed) {
+          expect([before, after]).toContain(value);
+        }
+        if (expectedToSucceed(fault)) {
+          expect(error).toBeNull();
+          expect(memory.files.get(target)).toBe(after);
+        } else {
+          expect(error).toBeInstanceOf(AtomicWriteError);
+          expect(memory.files.get(target)).toBe(before);
+        }
+        expect([...memory.files.keys()]).toEqual([target]);
+        // Only failed renames that are worth retrying wait.
+        expect(sleeps.length).toBeLessThanOrEqual(RENAME_RETRIES);
+      }),
+      pbtParams
+    );
+  });
+});
+
+describe('writeFileAtomicSync on the real file system', () => {
+  it('replaces the target and leaves no temporary files behind', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'atomic-write-sync-test-'));
+    tempDirs.push(dir);
+    const target = path.join(dir, 'settings 设置.json');
+    fs.writeFileSync(target, '{"version":1}');
+
+    writeFileAtomicSync(target, '{"version":2}');
+    writeFileAtomicSync(target, Buffer.from('{"version":3}', 'utf8'));
+
+    expect(fs.readFileSync(target, 'utf8')).toBe('{"version":3}');
+    expect(fs.readdirSync(dir)).toEqual([path.basename(target)]);
+  });
+
+  it('reports the stage and keeps the target when the directory is missing', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'atomic-write-sync-test-'));
+    tempDirs.push(dir);
+    const target = path.join(dir, 'missing', 'settings.json');
+
+    let error: unknown = null;
+    try {
+      writeFileAtomicSync(target, 'x');
+    } catch (caught) {
+      error = caught;
+    }
+    expect(error).toBeInstanceOf(AtomicWriteError);
+    expect(error).toMatchObject({ stage: 'open' });
+    expect(fs.existsSync(path.dirname(target))).toBe(false);
   });
 });
 

@@ -792,14 +792,12 @@ mod tests {
     use std::collections::HashMap;
     #[cfg(unix)]
     use std::fs;
-    #[cfg(unix)]
-    use std::os::unix::fs::PermissionsExt;
     use test_case::test_case;
 
     #[cfg(unix)]
     fn recording_cli(directory: &Path) -> PathBuf {
         let command = directory.join("codex-recording-shim");
-        fs::write(
+        goose_test_support::write_executable_script(
             &command,
             r#"#!/bin/sh
 record_dir=${0%/*}
@@ -808,7 +806,6 @@ printf '%s\n' '{"type":"item.completed","item":{"type":"agent_message","text":"p
 "#,
         )
         .unwrap();
-        fs::set_permissions(&command, fs::Permissions::from_mode(0o755)).unwrap();
         command
     }
 

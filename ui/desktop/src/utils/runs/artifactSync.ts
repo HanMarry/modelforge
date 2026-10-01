@@ -234,15 +234,26 @@ export function applyNewRuns(state: ArtifactIndex, records: readonly RunRecord[]
   return next;
 }
 
-/** The record a run left: its own, else the only one with its start time, else none. */
-function recordLeftBy(runId: string, runs: RunRecordMap): RunRecord | null {
+/**
+ * The record a run left: its own; else the only record with its start time whose id belongs to
+ * no other run (`isClaimed`), which is the record the kernel wrote under a new suffix after a
+ * write collision; else none. Two runs can start in the same millisecond (parallel tool calls),
+ * so a record with the same start time whose id another run announced is that run's own record,
+ * never the one this run left.
+ */
+function recordLeftBy(
+  runId: string,
+  runs: RunRecordMap,
+  isClaimed: (runId: string) => boolean
+): RunRecord | null {
   const own = runs.get(runId);
   if (own) {
     return own;
   }
   const startedAt = runId.slice(0, RUN_ID_TIME_LENGTH);
   const renamed = [...runs.values()].filter(
-    (record) => record.runId.slice(0, RUN_ID_TIME_LENGTH) === startedAt
+    (record) =>
+      record.runId.slice(0, RUN_ID_TIME_LENGTH) === startedAt && !isClaimed(record.runId)
   );
   return renamed.length === 1 ? renamed[0] : null;
 }
@@ -253,14 +264,17 @@ function recordLeftBy(runId: string, runs: RunRecordMap): RunRecord | null {
  * running it. Each run that is over is ended with `applyRunEnded` and the record it left
  * (`runs` holds the valid records): its own; otherwise the only record with the same start time,
  * which is the record the kernel wrote under a new suffix after a write collision; otherwise
- * none, which outdates the entries with the reason `record-missing`. A `执行中` entry that names
- * no run has nothing to wait for and falls back to `未开始`. Live runs are left alone, so this
- * changes nothing while they run, and applying it twice gives the same index.
+ * none, which outdates the entries with the reason `record-missing`. A record with the same start
+ * time is not taken when its id is another run's: one that still has `执行中` entries or that
+ * `isAnnounced` (its `runs/started` arrived). A `执行中` entry that names no run has nothing to
+ * wait for and falls back to `未开始`. Live runs are left alone, so this changes nothing while
+ * they run, and applying it twice gives the same index.
  */
 export function settleEndedRuns(
   state: ArtifactIndex,
   runs: RunRecordMap,
-  isLive: (runId: string) => boolean
+  isLive: (runId: string) => boolean,
+  isAnnounced: (runId: string) => boolean = () => false
 ): ArtifactIndex {
   const pending = new Set<string>();
   const unnamed: string[] = [];
@@ -290,9 +304,10 @@ export function settleEndedRuns(
     }
     next = { ...state, entries };
   }
+  const isClaimed = (runId: string): boolean => pending.has(runId) || isAnnounced(runId);
   for (const runId of [...pending].sort()) {
     if (!isLive(runId)) {
-      next = applyRunEnded(next, runId, recordLeftBy(runId, runs));
+      next = applyRunEnded(next, runId, recordLeftBy(runId, runs, isClaimed));
     }
   }
   return next;
