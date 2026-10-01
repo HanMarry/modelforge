@@ -468,6 +468,12 @@ export function createFeishuConnector(options: FeishuConnectorOptions): FeishuCo
     }
     // Group chats, non-text messages and accounts outside the whitelist get no reply (15.3).
     if (routeInbound(event.message, whitelist) !== 'forward') {
+      const { chatType, messageType, senderOpenId } = event.message;
+      const openId = senderOpenId.trim();
+      if (chatType === 'p2p' && messageType === 'text' && openId && !whitelist.includes(openId)) {
+        // Only the open_id, never the content: it is what the owner adds to the whitelist.
+        log(`ignored a private message from ${openId}: not in the whitelist`);
+      }
       return;
     }
     enqueue(event.chatId, () => handleMessage(event));
