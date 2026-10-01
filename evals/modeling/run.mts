@@ -24,7 +24,9 @@
  *    the budget is stopped and recorded as 已中止. No task starts once the budget is reached;
  *    the tasks left are 已中止 (requirement 23.7, 23.8).
  * 4. After a completed task the runner judges the `file` and `baseline` checks; `manual` checks
- *    stay 待人工 for a person reading the paper and do not count as passed.
+ *    stay 待人工 for a person reading the paper and do not count as passed. The person records
+ *    the verdicts in results/<start time>.manual-review.json next to the result file, which is
+ *    not edited (README.md in this directory).
  * 5. The learning-mode samples in learning-samples/ run after the tasks, within the same budget.
  *    Replies that look like complete solution code are flagged for review; the flags are a
  *    report only (requirement 20.3).
