@@ -18,7 +18,11 @@ param(
     [Parameter(Mandatory = $true)][string] $Installer,
     [Parameter(Mandatory = $true)][string] $InstallDir,
     [string] $ResultFile = '',
-    [int] $TimeoutSeconds = 900
+    [int] $TimeoutSeconds = 900,
+    # How often an installer that crashed is run again. 0 (the default): a crash fails the
+    # install. The workflow sets MODELFORGE_SMOKE_INSTALLER_CRASH_RETRIES only for runs against
+    # packages built before build/modelforge-multiuser.nsh, whose installers crash at random.
+    [int] $CrashRetries = -1
 )
 
 $ErrorActionPreference = 'Stop'
@@ -43,8 +47,11 @@ $result = [ordered]@{
     desktopShortcut          = ''
     desktopShortcutPresent   = $false
     durationMs               = 0
-    # Installer runs that crashed before the one whose exit code is reported.
+    # Installer runs that crashed, the last one included when it ended the install.
     crashes                  = @()
+    # Reruns allowed after a crash (-CrashRetries) and reruns made.
+    crashRetries             = 0
+    reruns                   = 0
     error                    = $null
 }
 
@@ -61,10 +68,18 @@ try {
     # token keeps the path in one piece for that parser. A single argument string is passed to
     # CreateProcess unchanged.
     $argumentLine = '/S "/D=' + $InstallDir + '"'
-    # Under a freshly created local user the installer once crashed in its NSIS System plug-in
-    # (access violation in %TEMP%\ns*.tmp\System.dll, exit 0xC0000005) before writing anything,
-    # while the same installer passed for that user in other runs. A crash like that is run once
-    # more; it stays in the result and in the summary, so it is never passed over silently.
+    # Installers built before build/modelforge-multiuser.nsh crash at random on a fresh per-user
+    # install (access violation in %TEMP%\ns*.tmp\System.dll, exit 0xC0000005, in .onInit before
+    # writing anything; see that file). A crash fails the install unless -CrashRetries allows
+    # running it again; a rerun stays in the result and in the summary, never passed over.
+    if ($CrashRetries -lt 0) {
+        $CrashRetries = 0
+        $fromEnv = 0
+        if ([int]::TryParse([string]$env:MODELFORGE_SMOKE_INSTALLER_CRASH_RETRIES, [ref] $fromEnv) -and $fromEnv -gt 0) {
+            $CrashRetries = $fromEnv
+        }
+    }
+    $result.crashRetries = $CrashRetries
     $crashCodes = @(-1073741819, -1073740791)   # 0xC0000005, 0xC0000409
     $attempt = 0
     while ($true) {
@@ -76,13 +91,17 @@ try {
             Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
             throw "installer did not finish within $TimeoutSeconds s"
         }
-        if ($attempt -lt 2 -and $crashCodes -contains [int]$code) {
+        if ($crashCodes -contains [int]$code) {
             $crash = 'attempt {0} exited with 0x{1:X8}' -f $attempt, [int]$code
-            Write-Host ("installer crashed: {0}; running it again" -f $crash)
             $result.crashes += $crash
-            Stop-ModelForgeProcesses -InstallDir $InstallDir
-            Start-Sleep -Seconds 5
-            continue
+            if ($result.reruns -lt $CrashRetries) {
+                Write-Host ("installer crashed: {0}; running it again" -f $crash)
+                $result.reruns++
+                Stop-ModelForgeProcesses -InstallDir $InstallDir
+                Start-Sleep -Seconds 5
+                continue
+            }
+            Write-Host ("installer crashed: {0}" -f $crash)
         }
         break
     }
@@ -114,7 +133,7 @@ try {
     $result.desktopShortcutPresent = Test-Path -LiteralPath $shortcuts.Desktop
 
     if ($code -ne 0) {
-        throw "installer exited with code $code"
+        throw ("installer exited with code {0} (0x{0:X8}); reruns after a crash allowed: {1}" -f [int]$code, $CrashRetries)
     }
     if (-not (Test-Path -LiteralPath $result.exe)) {
         throw ("installed executable not found at {0}" -f $result.exe)
