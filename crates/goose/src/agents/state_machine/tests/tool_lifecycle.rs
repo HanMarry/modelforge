@@ -8,7 +8,10 @@ use super::calculator_extension::{
 use super::pipeline::MessageKind::{Agent, Confirmation, ToolCall, ToolResponse};
 use super::pipeline::MAX_TURNS;
 use super::test_pipeline;
-use crate::agents::tool_execution::{CHAT_MODE_TOOL_SKIPPED_RESPONSE, DECLINED_RESPONSE};
+use crate::agents::tool_execution::{
+    record_tool_denial_reason, ToolDenialReason, CHAT_MODE_TOOL_SKIPPED_RESPONSE,
+    DECLINED_REJECTED_RESPONSE, DECLINED_RESPONSE, DECLINED_TIMEOUT_RESPONSE,
+};
 use crate::agents::AgentEvent;
 use crate::config::permission::PermissionLevel;
 use crate::config::GooseMode;
@@ -303,6 +306,41 @@ async fn approvals_and_per_tool_permissions() -> Result<()> {
     result.assert_message(-2, ToolResponse, DECLINED_RESPONSE);
     result.assert_message(-1, Agent, "the command was not run");
 
+    Ok(())
+}
+
+/// A client that says why it denied a call (the Feishu connector, requirement 15.5) gets the
+/// declined result written as "已拒绝" or "已超时", and the tool does not run.
+#[tokio::test]
+async fn a_denial_reason_from_the_client_becomes_the_tool_result() -> Result<()> {
+    let (pipeline, api) = test_pipeline().await?;
+    let pipeline = pipeline.with_goose_mode(GooseMode::Approve).await;
+
+    api.on("reject this addition")
+        .calls([("rejected", ADD, value(1))]);
+    api.on("已拒绝").reply("the approver said no");
+    pipeline.run(["reject this addition"]).await?;
+    record_tool_denial_reason(&pipeline.session_id, "rejected", ToolDenialReason::Rejected);
+    pipeline.confirm("rejected", Permission::DenyOnce).await?;
+    let result = pipeline.resume().await?;
+    result.assert_message(-2, ToolResponse, DECLINED_REJECTED_RESPONSE);
+    result.assert_message(-1, Agent, "the approver said no");
+
+    api.on("let this addition time out")
+        .calls([("timed-out", ADD, value(2))]);
+    api.on("已超时").reply("the approval timed out");
+    pipeline.run(["let this addition time out"]).await?;
+    record_tool_denial_reason(
+        &pipeline.session_id,
+        "timed-out",
+        ToolDenialReason::TimedOut,
+    );
+    pipeline.confirm("timed-out", Permission::DenyOnce).await?;
+    let result = pipeline.resume().await?;
+    result.assert_message(-2, ToolResponse, DECLINED_TIMEOUT_RESPONSE);
+    result.assert_message(-1, Agent, "the approval timed out");
+
+    assert_eq!(pipeline.calculator_total(), 0);
     Ok(())
 }
 
