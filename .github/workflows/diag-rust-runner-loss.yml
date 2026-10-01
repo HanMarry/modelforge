@@ -7,6 +7,9 @@
 # disk and kernel messages, and reports to a check run that survives a lost runner.
 #   full: the whole CI test command, round after round
 #   acp:  tests/acp_server_test.rs alone, alternating default threads and --test-threads=1
+#   kill-demo: goose-mcp's modeling timeout test twice, once as is and once after pushing the
+#              sandbox's PID counter past 10000, so that the timed-out child's PID starts with 1
+#              (procps-ng's kill(1) reads only the first digit of a negative PID)
 # By default the rounds run in .github/scripts/rust-test-sandbox.sh (PID namespace, cgroup
 # limits), so a test that kills or starves the machine fails its round instead of the runner.
 #
@@ -27,6 +30,9 @@ on:
         description: Run the rounds in rust-test-sandbox.sh
         type: boolean
         default: true
+      modes:
+        description: JSON list of modes (full, acp, kill-demo)
+        default: '["full", "acp"]'
   push:
     branches:
       - mp/s4-ci-runner
@@ -55,7 +61,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mode: [full, acp]
+        mode: ${{ fromJSON(inputs.modes || '["full", "acp"]') }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -107,7 +113,11 @@ jobs:
           export CARGO_INCREMENTAL=0
           free -m
           df -h /
-          cargo test --locked --no-run 2>&1 | tail -n 40
+          if [[ "${{ matrix.mode }}" == kill-demo ]]; then
+            cargo test --locked -p goose-mcp --lib --no-run 2>&1 | tail -n 40
+          else
+            cargo test --locked --no-run 2>&1 | tail -n 40
+          fi
         env:
           RUST_MIN_STACK: 8388608
 
@@ -124,11 +134,24 @@ jobs:
           gnome-keyring-daemon --components=secrets --daemonize --unlock <<< 'foobar'
           export CARGO_INCREMENTAL=0
           export CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER="$GITHUB_WORKSPACE/.github/scripts/test-binary-runner.sh"
-          if [[ "$MODE" == full ]]; then rounds="$FULL_ROUNDS"; else rounds="$ACP_ROUNDS"; fi
+          case "$MODE" in
+            full) rounds="$FULL_ROUNDS" ;;
+            kill-demo) rounds=2 ;;
+            *) rounds="$ACP_ROUNDS" ;;
+          esac
+          demo_test=(cargo test --locked -p goose-mcp --lib modeling::tests::commands_time_out_instead_of_hanging -- --exact)
           for i in $(seq 1 "$rounds"); do
             if [[ "$MODE" == full ]]; then
               label=full
               cmd=(cargo test --locked --tests --no-fail-fast -- --skip scenario_tests::scenarios::tests)
+            elif [[ "$MODE" == kill-demo && "$i" == 1 ]]; then
+              # Control: in a fresh PID namespace the timed-out child gets a small PID.
+              label=kill-demo-control
+              cmd=("${demo_test[@]}")
+            elif [[ "$MODE" == kill-demo ]]; then
+              # Spend PIDs until new ones start with 1 (10200 and up), then run the same test.
+              label=kill-demo-pid-1xxxx
+              cmd=(bash -c 'while p="$(sh -c "echo \$\$")"; ((p < 10200)); do :; done; echo "next PIDs start at $p"; exec "$@"' demo "${demo_test[@]}")
             elif ((i % 2)); then
               label=acp-default
               cmd=(cargo test --locked --test acp_server_test)
