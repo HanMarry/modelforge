@@ -13,6 +13,7 @@ import {
   methods,
   PROTOCOL_VERSION,
   type PermissionOption,
+  type PromptResponse,
   type RequestPermissionRequest,
   type RequestPermissionResponse,
   type SessionNotification,
@@ -487,10 +488,10 @@ export function createFeishuAcpPort(options: FeishuAcpPortOptions): FeishuAcpPor
       const turn = newTurnTracker();
       turns.set(sessionId, turn);
       try {
-        const response = await client.connection.agent.request(methods.agent.session.prompt, {
-          sessionId,
-          prompt: textPrompt(text),
-        });
+        const response: PromptResponse = await client.connection.agent.request(
+          methods.agent.session.prompt,
+          { sessionId, prompt: textPrompt(text) }
+        );
         return turnOutcome(response.stopReason, turn);
       } catch (error) {
         log(`turn of ${sessionId} ended with an error: ${errorText(error)}`);

@@ -1,41 +1,52 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import {
   createFeishuConnector,
   type FeishuAcpPort,
+  type FeishuApprovalDecision,
   type FeishuApprovalRequest,
   type FeishuConnector,
   type FeishuInboundEvent,
-  type FeishuRunUpdate,
+  type FeishuSessionRef,
+  type FeishuTurnOutcome,
 } from '../../src/connectors/feishu/feishuConnector';
 import { FEISHU_SUMMARY_LIMIT, FEISHU_SUMMARY_NOTE } from '../../src/connectors/feishu/replyFormat';
 
+// The full SDK-level flow on fake timers is in src/connectors/feishu/feishuSdkAdapter.test.ts;
+// this keeps a real-timer pass over the connector with short intervals.
+
 class FakeAcp implements FeishuAcpPort {
   sessions = 0;
-  prompted: Array<{ sessionId: string; text: string }> = [];
-  responded: Array<{ request: FeishuApprovalRequest; outcome: string; reason?: string }> = [];
-  undelivered: string[] = [];
-  permissionHandler: ((request: FeishuApprovalRequest) => void) | null = null;
-  runHandler: ((update: FeishuRunUpdate) => void) | null = null;
+  prompted: Array<{
+    sessionId: string;
+    text: string;
+    finish: (outcome: FeishuTurnOutcome) => void;
+  }> = [];
+  permissionHandler: ((request: FeishuApprovalRequest) => Promise<FeishuApprovalDecision>) | null =
+    null;
 
-  async createSession() {
-    const id = `s${this.sessions++}`;
-    return { sessionId: id, name: `会话 ${this.sessions}` };
+  async createSession(): Promise<FeishuSessionRef> {
+    const sessionId = `s${this.sessions}`;
+    this.sessions += 1;
+    return { sessionId, name: `会话 ${this.sessions}` };
   }
-  async prompt(sessionId: string, text: string) {
-    this.prompted.push({ sessionId, text });
+  async sessionInfo(sessionId: string): Promise<{ name: string } | null> {
+    return { name: sessionId };
   }
-  async respondPermission(request: FeishuApprovalRequest, outcome: 'allow' | 'deny', reason?: string) {
-    this.responded.push({ request, outcome, reason });
+  prompt(sessionId: string, text: string): Promise<FeishuTurnOutcome> {
+    return new Promise((finish) => {
+      this.prompted.push({ sessionId, text, finish });
+    });
   }
-  async markUndelivered(sessionId: string) {
-    this.undelivered.push(sessionId);
+  async steer(): Promise<boolean> {
+    return false;
   }
-  onPermissionRequest(handler: (request: FeishuApprovalRequest) => void) {
+  onPermissionRequest(
+    handler: (request: FeishuApprovalRequest) => Promise<FeishuApprovalDecision>
+  ): () => void {
     this.permissionHandler = handler;
     return () => {};
   }
-  onRunUpdate(handler: (update: FeishuRunUpdate) => void) {
-    this.runHandler = handler;
+  onSessionEvent(): () => void {
     return () => {};
   }
 }
@@ -56,16 +67,34 @@ function waitUntil(condition: () => boolean, timeoutMs = 2000): Promise<void> {
   });
 }
 
-function setup(overrides: { send?: (id: string, text: string) => Promise<void> } = {}) {
+const running: FeishuConnector[] = [];
+
+afterEach(async () => {
+  await Promise.all(running.splice(0).map((connector) => connector.stop()));
+});
+
+async function setup(overrides: { send?: (chatId: string, text: string) => Promise<void> } = {}) {
   const sent: string[] = [];
+  const undelivered: string[] = [];
   let messageHandler: ((event: FeishuInboundEvent) => void) | null = null;
   const acp = new FakeAcp();
-  const connector: FeishuConnector = createFeishuConnector({
+  const send =
+    overrides.send ??
+    (async (_chatId: string, text: string) => {
+      sent.push(text);
+    });
+  const connector = createFeishuConnector({
     whitelist: ['ou_1'],
-    send: { sendText: overrides.send ?? (async (_id, text) => { sent.push(text); }) },
+    messenger: { sendText: send },
     acp,
-    store: { load: async () => ({}), save: async () => {} },
-    onMessage: (handler) => {
+    store: {
+      loadChats: async () => ({}),
+      saveChats: async () => {},
+      markUndelivered: async (sessionId: string) => {
+        undelivered.push(sessionId);
+      },
+    },
+    subscribe: (handler) => {
       messageHandler = handler;
       return () => {};
     },
@@ -74,99 +103,96 @@ function setup(overrides: { send?: (id: string, text: string) => Promise<void> }
     approvalTimeoutMs: 50,
     randomInt: () => 0,
   });
-  return { sent, acp, connector, messageHandler };
-}
-
-function emit(handler: ((event: FeishuInboundEvent) => void) | null, event: FeishuInboundEvent): void {
-  if (!handler) {
-    throw new Error('message handler not registered');
-  }
-  handler(event);
+  await connector.start();
+  running.push(connector);
+  const emit = (chatId: string, text: string, senderOpenId = 'ou_1') => {
+    if (!messageHandler) {
+      throw new Error('message handler not registered');
+    }
+    messageHandler({
+      messageId: `${chatId}-${text}`,
+      chatId,
+      message: { chatType: 'p2p', messageType: 'text', text, senderOpenId },
+    });
+  };
+  return { sent, undelivered, acp, emit };
 }
 
 describe('feishu connector (integration, fake SDK/ACP)', () => {
   it('forwards a whitelisted private text message and replies an accept notice', async () => {
-    const { sent, acp, connector, messageHandler } = setup();
-    await connector.start();
-    emit(messageHandler, {
-      chatId: 'chat1',
-      message: { chatType: 'p2p', messageType: 'text', text: '帮我建模', senderOpenId: 'ou_1' },
-    });
+    const { sent, acp, emit } = await setup();
+    emit('chat1', '帮我建模');
 
     await waitUntil(() => acp.prompted.length === 1 && sent.length >= 1);
     expect(acp.prompted[0].text).toBe('帮我建模');
     expect(sent[0]).toContain('已受理');
-    expect(sent[0]).toContain('会话');
+    expect(sent[0]).toContain('会话 1');
   });
 
   it('ignores a non-whitelisted sender', async () => {
-    const { sent, acp, connector, messageHandler } = setup();
-    await connector.start();
-    emit(messageHandler, {
-      chatId: 'chat2',
-      message: { chatType: 'p2p', messageType: 'text', text: 'hi', senderOpenId: 'ou_evil' },
-    });
+    const { sent, acp, emit } = await setup();
+    emit('chat2', 'hi', 'ou_evil');
+
     await new Promise((resolve) => setTimeout(resolve, 30));
     expect(acp.prompted).toHaveLength(0);
     expect(sent).toHaveLength(0);
   });
 
   it('truncates a long summary with the session note', async () => {
-    const { sent, acp, connector, messageHandler } = setup();
-    await connector.start();
-    emit(messageHandler, {
-      chatId: 'chat3',
-      message: { chatType: 'p2p', messageType: 'text', text: 'run', senderOpenId: 'ou_1' },
-    });
+    const { sent, acp, emit } = await setup();
+    emit('chat3', 'run');
     await waitUntil(() => acp.prompted.length === 1);
 
-    const run: FeishuRunUpdate = {
-      sessionId: 's0',
+    acp.prompted[0].finish({
       status: 'completed',
+      statusText: '完成',
       artifactFileNames: Array.from({ length: 300 }, (_, i) => `artifact-${i}.png`),
-      startedAt: 0,
-    };
-    acp.runHandler?.(run);
+      reply: '',
+    });
 
-    await waitUntil(() => sent.some((text) => text.includes('完成')));
-    const summary = sent.find((text) => text.includes('完成')) ?? '';
+    await waitUntil(() => sent.some((text) => text.startsWith('状态：完成')));
+    const summary = sent.find((text) => text.startsWith('状态：完成')) ?? '';
     expect([...summary].length).toBeLessThanOrEqual(FEISHU_SUMMARY_LIMIT);
     expect(summary.endsWith(FEISHU_SUMMARY_NOTE)).toBe(true);
   });
 
   it('marks the session undelivered after all reply retries fail', async () => {
-    const { sent, acp, connector, messageHandler } = setup({
+    const { sent, undelivered, acp, emit } = await setup({
       send: async () => {
         throw new Error('network down');
       },
     });
-    await connector.start();
-    emit(messageHandler, {
-      chatId: 'chat4',
-      message: { chatType: 'p2p', messageType: 'text', text: 'run', senderOpenId: 'ou_1' },
-    });
+    emit('chat4', 'run');
     await waitUntil(() => acp.prompted.length === 1);
 
-    acp.runHandler?.({
-      sessionId: 's0',
+    acp.prompted[0].finish({
       status: 'completed',
+      statusText: '完成',
       artifactFileNames: ['a.pdf'],
-      startedAt: 0,
+      reply: '',
     });
-    await waitUntil(() => acp.undelivered.length === 1);
-    expect(acp.undelivered).toEqual(['s0']);
+    await waitUntil(() => undelivered.length === 1);
+    expect(undelivered).toEqual(['s0']);
     expect(sent).toHaveLength(0);
   });
 
   it('denies an approval that times out and explains the reason', async () => {
-    const { sent, acp, connector } = setup();
-    await connector.start();
-    acp.permissionHandler?.({ sessionId: 's0', chatId: 'chat5', toolName: 'run', arguments: '{"x":1}' });
+    const { sent, acp, emit } = await setup();
+    emit('chat5', 'run');
+    await waitUntil(() => acp.prompted.length === 1);
+    if (!acp.permissionHandler) {
+      throw new Error('permission handler not registered');
+    }
 
-    await waitUntil(() => acp.responded.length === 1);
-    expect(acp.responded[0].outcome).toBe('deny');
-    expect(acp.responded[0].reason).toBe('已超时');
-    expect(sent.some((text) => text.includes('工具审批'))).toBe(true);
-    expect(sent.some((text) => text.includes('未执行'))).toBe(true);
+    const decision = await acp.permissionHandler({
+      sessionId: 's0',
+      toolCallId: 'call-1',
+      toolName: 'run',
+      arguments: '{"x":1}',
+    });
+
+    expect(decision).toEqual({ outcome: 'deny', reason: 'timeout' });
+    await waitUntil(() => sent.some((text) => text.includes('未执行')));
+    expect(sent.some((text) => text.includes('工具调用需要审批'))).toBe(true);
   });
 });
