@@ -61,8 +61,10 @@
       { "path": "work/20260930T173512Z/custom_deepseek_deepseek-v4-pro/practice-university-evaluation/results/weights.json", "sha256": "e07b26a446fbd10c82984ae10560fd8f6cc19f3d489eb5af5ed4fa3827c310ee" }
     ]
   },
-  "reviewer": "Kiro AI 代理（待用户签核）",
-  "signedOff": false,
+  "reviewer": "Kiro AI 代理",
+  "signedOff": true,
+  "signedOffBy": "HanMarry",
+  "signedOffAt": "2026-10-03T10:25:00+08:00",
   "reviewedAt": "2026-10-01T14:54:36+08:00",
   "method": [
     "逐项对照 checks.yaml 的 criterion 原文阅读 paper.tex（行号）与 paper.pdf（页码）。PDF 文本用 pdftotext 4.00 提取，中文字形经 TeX Live adobemapping 的 Adobe-GB1-UCS2 映射还原；三篇 PDF 的文本与 paper.tex 一致，paper.log 中的行号引用与当前 paper.tex 对得上。",
