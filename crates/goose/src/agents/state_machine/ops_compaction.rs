@@ -19,7 +19,9 @@ use crate::providers::base::Provider;
 use crate::session::Session;
 use goose_providers::model::ModelConfig;
 
-const COMPACTION_THINKING_TEXT: &str = "goose is compacting the conversation...";
+const COMPACTION_PROGRESS_TEXT: &str = "goose is compacting the conversation...";
+const COMPACTION_OPERATION_NAME: &str = "compaction";
+const REACTIVE_COMPACTION_NOTE: &str = "reactive";
 
 pub(super) const MAX_CONTEXT_ERROR_COMPACTIONS: usize = 2;
 
@@ -120,18 +122,15 @@ impl CompactionOperation {
         let command = messages_since_kickoff(conversation)?
             .first()
             .cloned()
-            .ok_or_else(|| anyhow!("clear command conversation has no kickoff message"))?
-            .with_visibility(true, false);
+            .ok_or_else(|| anyhow!("clear command conversation has no kickoff message"))?;
         let response = Message::assistant()
             .with_text("Conversation cleared")
             .with_visibility(true, false);
-        let command = emit.message(command).await;
+        // Like the legacy command path, echo the command as the user sent it; the
+        // replacement below records it as user-only.
+        let command = emit.message(command).await.with_visibility(true, false);
         let response = emit.message(response).await;
-        yielded_with([
-            Conversation::default().into(),
-            command.into(),
-            response.into(),
-        ])
+        yielded_with([Conversation::new_unvalidated([command, response]).into()])
     }
 }
 
@@ -233,14 +232,11 @@ impl Operation<Session, GooseEffect> for CompactionOperation {
         );
 
         if reactive_context_error {
-            let context_errors = messages
+            let prior_compactions = messages
                 .iter()
-                .filter(|message| {
-                    message.error_kind() == Some(MessageErrorKind::ContextLengthExceeded)
-                        && !message.is_agent_visible()
-                })
+                .filter(|message| is_reactive_compaction_summary(message))
                 .count();
-            if context_errors > MAX_CONTEXT_ERROR_COMPACTIONS {
+            if prior_compactions >= MAX_CONTEXT_ERROR_COMPACTIONS {
                 return not_applicable();
             }
         } else {
@@ -253,31 +249,36 @@ impl Operation<Session, GooseEffect> for CompactionOperation {
             }
         }
 
-        let conversation_with_hidden_error;
+        // The provider error behind a reactive compaction is dropped, not kept in
+        // history: the legacy loop never records it, and leaving it after the
+        // prompt would make the summary treat the prompt as an unfinished tool loop.
+        let conversation_without_error;
         let conversation = if reactive_context_error {
             let mut messages = conversation.messages().to_vec();
-            let Some(last) = messages.last_mut() else {
-                return not_applicable();
-            };
-            last.metadata.agent_visible = false;
-            conversation_with_hidden_error = Conversation::new_unvalidated(messages);
-            &conversation_with_hidden_error
+            messages.pop();
+            conversation_without_error = Conversation::new_unvalidated(messages);
+            &conversation_without_error
         } else {
             conversation
         };
 
-        let threshold_percentage = (self.threshold * 100.0) as u32;
-        emit.message(Message::assistant().with_system_notification(
-            SystemNotificationType::InlineMessage,
+        let notice = if reactive_context_error {
+            "Context limit reached. Compacting to continue conversation...".to_string()
+        } else {
+            let threshold_percentage = (self.threshold * 100.0) as u32;
             format!(
                 "Exceeded auto-compact threshold of {threshold_percentage}%. \
-                     Performing auto-compaction..."
-            ),
-        ))
+                 Performing auto-compaction..."
+            )
+        };
+        emit.message(
+            Message::assistant()
+                .with_system_notification(SystemNotificationType::InlineMessage, notice),
+        )
         .await;
         emit.message(Message::assistant().with_system_notification(
-            SystemNotificationType::ThinkingMessage,
-            COMPACTION_THINKING_TEXT,
+            SystemNotificationType::ProgressMessage,
+            COMPACTION_PROGRESS_TEXT,
         ))
         .await;
 
@@ -298,14 +299,25 @@ impl Operation<Session, GooseEffect> for CompactionOperation {
         .await
         {
             Ok(result) => {
-                let compacted = result.conversation;
+                let mut compacted = result.conversation;
                 let usage = result.usage;
                 record_chat_usage(&span, &usage);
-                emit.message(Message::assistant().with_system_notification(
-                    SystemNotificationType::InlineMessage,
-                    "Compaction complete",
-                ))
-                .await;
+                if reactive_context_error {
+                    // The summary directly follows the retained originals.
+                    if let Some(summary) = compacted.messages_mut().get_mut(conversation.len()) {
+                        summary.metadata.set_operation_note(
+                            COMPACTION_OPERATION_NAME,
+                            REACTIVE_COMPACTION_NOTE,
+                            serde_json::Value::Bool(true),
+                        );
+                    }
+                } else {
+                    emit.message(Message::assistant().with_system_notification(
+                        SystemNotificationType::InlineMessage,
+                        "Compaction complete",
+                    ))
+                    .await;
+                }
                 applied([GooseEffect::ReplaceConversation {
                     conversation: compacted,
                     usage: Some(usage),
@@ -322,4 +334,15 @@ impl Operation<Session, GooseEffect> for CompactionOperation {
             }
         }
     }
+}
+
+/// Reactive compactions mark their summary so later context errors in the same
+/// turn can count them; the note lives in `metadata.operations`, never sent to
+/// providers.
+fn is_reactive_compaction_summary(message: &Message) -> bool {
+    message
+        .metadata
+        .operation_note(COMPACTION_OPERATION_NAME, REACTIVE_COMPACTION_NOTE)
+        .and_then(serde_json::Value::as_bool)
+        .unwrap_or(false)
 }

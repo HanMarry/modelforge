@@ -8,11 +8,12 @@ use goose_agent::inference::InferenceEffect;
 pub use goose_agent::inference::InferenceRunner;
 use goose_providers::base::{MessageStream, ModelInfo, Provider};
 use goose_providers::conversation::message::Message;
-use goose_providers::conversation::token_usage::ProviderUsage;
+use goose_providers::conversation::token_usage::{CostSource, ProviderUsage};
 use goose_providers::errors::ProviderError;
 use goose_providers::model::ModelConfig;
 
 use crate::agents::extension_manager::{get_tool_owner, recover_mangled_tool_name};
+use crate::agents::reply_parts::coerce_tool_arguments;
 use crate::agents::state_machine::GooseEffect;
 
 pub(super) use goose_agent::inference::{chat_span, record_chat_usage};
@@ -33,6 +34,12 @@ impl GooseInferenceProvider {
 impl InferenceEffect for GooseEffect {
     fn record_usage(usage: ProviderUsage) -> Self {
         GooseEffect::RecordUsage(usage)
+    }
+
+    fn defers_provider_error(err: &ProviderError) -> bool {
+        // Compaction recovers from these silently, like the legacy loop; when it
+        // cannot, `ExitOnErrorOperation` surfaces the persisted error message.
+        matches!(err, ProviderError::ContextLengthExceeded(_))
     }
 }
 
@@ -96,6 +103,66 @@ fn canonicalize_tool_request_names(
     }
 }
 
+/// Mirrors the legacy `categorize_tool_requests`: string arguments are coerced to
+/// the advertised schema's types, and the tool's registry `_meta` (e.g. its owning
+/// extension) is merged into the request's `tool_meta`, existing keys winning.
+fn coerce_tool_requests(message: &mut Message, advertised_tools: &[rmcp::model::Tool]) {
+    for content in &mut message.content {
+        let goose_providers::conversation::message::MessageContent::ToolRequest(request) = content
+        else {
+            continue;
+        };
+        let Ok(tool_call) = &mut request.tool_call else {
+            continue;
+        };
+        let Some(tool) = advertised_tools
+            .iter()
+            .find(|tool| tool.name == tool_call.name)
+        else {
+            continue;
+        };
+        let schema = serde_json::Value::Object(tool.input_schema.as_ref().clone());
+        if let Some(arguments) = coerce_tool_arguments(tool_call.arguments.clone(), &schema) {
+            tool_call.arguments = Some(arguments);
+        }
+        let Some(serde_json::Value::Object(registry_meta)) = tool
+            .meta
+            .as_ref()
+            .and_then(|meta| serde_json::to_value(meta).ok())
+        else {
+            continue;
+        };
+        match request.tool_meta.as_mut() {
+            Some(serde_json::Value::Object(existing)) => {
+                for (key, value) in registry_meta {
+                    existing.entry(key).or_insert(value);
+                }
+            }
+            None => request.tool_meta = Some(serde_json::Value::Object(registry_meta)),
+            Some(_) => {}
+        }
+    }
+}
+
+/// Prices a streamed usage report the same way the legacy loop does before
+/// emitting it, so the `Usage` event carries cost alongside the token counts.
+fn price_usage(provider_name: &str, mut usage: ProviderUsage) -> ProviderUsage {
+    if usage.cost_source.is_some() {
+        return usage;
+    }
+    if usage.cost.is_some() {
+        usage.cost_source = Some(CostSource::ProviderReported);
+    } else if let Some(cost) = crate::providers::canonical_cost::estimate_model_cost(
+        provider_name,
+        &usage.model,
+        &usage.usage,
+    ) {
+        usage.cost = Some(cost);
+        usage.cost_source = Some(CostSource::Estimated);
+    }
+    usage
+}
+
 #[async_trait]
 impl Provider for GooseInferenceProvider {
     fn get_name(&self) -> &str {
@@ -142,6 +209,12 @@ impl Provider for GooseInferenceProvider {
                 .collect(),
         );
         let session_id = crate::session_context::current_session_id().unwrap_or_default();
+        let advertised_tool_definitions = tools
+            .iter()
+            .chain(toolshim_tools.iter())
+            .cloned()
+            .collect::<Vec<_>>();
+        let provider_name = self.inner.get_name().to_string();
         let stream = crate::agents::reply_parts::stream_response_from_provider(
             self.inner.clone(),
             model_config.clone(),
@@ -156,6 +229,7 @@ impl Provider for GooseInferenceProvider {
             result.map(|(message, usage)| {
                 let message = message.map(|mut message| {
                     canonicalize_tool_request_names(&mut message, &advertised_tool_descriptors);
+                    coerce_tool_requests(&mut message, &advertised_tool_definitions);
                     if message.role == rmcp::model::Role::Assistant {
                         message.metadata.set_operation_note(
                             LLM_OPERATION_NAME,
@@ -165,6 +239,7 @@ impl Provider for GooseInferenceProvider {
                     }
                     message
                 });
+                let usage = usage.map(|usage| price_usage(&provider_name, usage));
                 (message, usage)
             })
         })))

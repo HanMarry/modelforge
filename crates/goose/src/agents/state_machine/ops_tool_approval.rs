@@ -57,7 +57,8 @@ impl Operation<Session, GooseEffect> for ToolApprovalOperation<'_> {
             return not_applicable();
         }
 
-        let state = ApprovalState::from_messages(messages_since_kickoff(conversation)?);
+        let messages = messages_since_kickoff(conversation)?;
+        let state = ApprovalState::from_messages(messages);
         let mut effects = Vec::new();
 
         for pending in state.responses() {
@@ -79,6 +80,8 @@ impl Operation<Session, GooseEffect> for ToolApprovalOperation<'_> {
             if pending.executable != Some(executable) {
                 effects.push(mark_executable(&pending.tool_call_id, executable));
             }
+
+            effects.extend(hide_answered_confirmation(messages, &pending.tool_call_id));
         }
 
         let pending_requests = state.pending_requests();
@@ -292,4 +295,35 @@ fn mark_executable(tool_call_id: &str, executable: bool) -> GooseEffect {
         patch: serde_json::json!({ TOOL_EXECUTABLE_KEY: executable }),
     }
     .into()
+}
+
+/// Hides still-visible confirmation prompts for a decided tool call: the prompt
+/// is shown only while the decision is pending and does not reappear when the
+/// session is reloaded, as with the legacy loop (which never persists it).
+fn hide_answered_confirmation(messages: &[Message], tool_call_id: &str) -> Vec<GooseEffect> {
+    messages
+        .iter()
+        .filter(|message| message.is_user_visible() || message.is_agent_visible())
+        .filter(|message| {
+            message.content.iter().any(|content| {
+                matches!(
+                    content,
+                    MessageContent::ActionRequired(action)
+                        if matches!(
+                            &action.data,
+                            ActionRequiredData::ToolConfirmation { id, .. } if id == tool_call_id
+                        )
+                )
+            })
+        })
+        .filter_map(|message| message.id.clone())
+        .map(|message_id| {
+            ConversationEffect::SetMessageVisibility {
+                message_id,
+                user_visible: false,
+                agent_visible: false,
+            }
+            .into()
+        })
+        .collect()
 }
