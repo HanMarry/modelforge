@@ -162,6 +162,31 @@ fn outcome_summary(result: &PathResult) -> Value {
     }
 }
 
+/// 一个用例两条路径归一化后的完整轨迹，只用于排查差异，不参与判定。
+/// 差异报告按位置比较，一侧多出或少了一项后，后面的项会整体错位；完整轨迹能直接看出
+/// 两侧序列的真实形状。路径失败时该侧是失败原因。
+pub(super) fn case_traces(
+    case: &ParityCase,
+    legacy: &PathResult,
+    state_machine: &PathResult,
+) -> Value {
+    fn side(result: &PathResult) -> Value {
+        match result {
+            Ok(trace) => {
+                let trace = normalize(trace);
+                json!({ "events": trace.events, "persistence": trace.persistence })
+            }
+            Err(_) => outcome_summary(result),
+        }
+    }
+    json!({
+        "case": case.name,
+        "dimension": case.dimension,
+        "legacy": side(legacy),
+        "stateMachine": side(state_machine),
+    })
+}
+
 /// 汇总差异项：总数、每个用例的差异数，以及没有任何用例的维度（需求 4.5）。
 pub(super) fn report(commit: &str, cases: &[ParityCase], diffs: Vec<DiffItem>) -> ParityReport {
     let mut uncovered_dimensions = Vec::new();
