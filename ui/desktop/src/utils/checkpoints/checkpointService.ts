@@ -15,7 +15,6 @@ import { execFile } from 'node:child_process';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import type { Dirent, Stats } from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 
 interface ExecRunResult {
@@ -168,6 +167,11 @@ interface GitEnv {
   [key: string]: string | undefined;
 }
 
+// Git for Windows maps "/dev/null" onto the NUL device itself, but rejects
+// Node's os.devNull ("\\.\nul") with `unable to access '\\.\nul': Invalid
+// argument`, so the null-config value must stay the MSYS spelling everywhere.
+const GIT_NULL_CONFIG = '/dev/null';
+
 function buildGitEnv(gitDir: string, workTree: string): GitEnv {
   return {
     ...process.env,
@@ -175,9 +179,9 @@ function buildGitEnv(gitDir: string, workTree: string): GitEnv {
     GIT_WORK_TREE: workTree,
     GIT_INDEX_FILE: path.join(gitDir, 'index'),
     GIT_CONFIG_NOSYSTEM: '1',
-    GIT_CONFIG_GLOBAL: os.devNull,
+    GIT_CONFIG_GLOBAL: GIT_NULL_CONFIG,
     GIT_ATTR_NOSYSTEM: '1',
-    GIT_CONFIG_SYSTEM: os.devNull,
+    GIT_CONFIG_SYSTEM: GIT_NULL_CONFIG,
     GIT_TERMINAL_PROMPT: '0',
     GIT_PAGER: 'cat',
   };
@@ -508,7 +512,7 @@ export class CheckpointService {
     }
     if (!exists) {
       await runExec(git, ['init', '--bare', gitDir], {
-        env: { ...process.env, GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: os.devNull },
+        env: { ...process.env, GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: GIT_NULL_CONFIG },
         windowsHide: true,
       });
     }
