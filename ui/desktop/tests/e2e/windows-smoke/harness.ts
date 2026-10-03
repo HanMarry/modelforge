@@ -995,8 +995,9 @@ export interface CreatedProject {
 
 /**
  * Creates a Project from the first locally available example through the IPC the wizard's
- * "创建并打开" button uses, and remembers it as the most recent folder. The wizard picks the
- * parent folder with a native dialog, which CDP cannot drive; this is the only substitution.
+ * "创建并打开" button uses, and remembers it as the most recent folder. Only a fallback: the
+ * wizard test picks the parent folder in the Windows folder dialog itself
+ * (scripts/Select-FolderInDialog.ps1) and calls this when that dialog cannot be driven.
  */
 export async function createExampleProject(page: Page, parentDir: string): Promise<CreatedProject> {
   fs.mkdirSync(parentDir, { recursive: true });
@@ -1051,6 +1052,78 @@ export async function listRecentDirs(page: Page): Promise<string[]> {
 // ---------------------------------------------------------------------------------------------
 // Files
 // ---------------------------------------------------------------------------------------------
+//
+// The specs copy and delete files only through `copyTreeSync` and `removeSync`, never through
+// `fs.cpSync` or `fs.rmSync`. In Node 24.10 (the test runner's version) both sync calls are C++
+// on top of std::filesystem and build their paths from the raw UTF-8 bytes, which Windows decodes
+// in the ANSI code page (src/node_file.cc: `CpSyncCopyDir` passes `std::filesystem::path(*src)`
+// to a throwing `directory_iterator`, `RmSync` uses `std::filesystem::path(path.ToStringView())`).
+// For a path with Chinese characters the decoded path does not exist, so `fs.rmSync` silently
+// removes nothing, and `fs.cpSync` of a directory throws inside C++, which aborts the whole
+// process with 0xC0000409: the Playwright worker of the cn-user uninstall spec died that way
+// copying C:\Users\模型 测试\AppData\Roaming\ModelForge\logs (5 of 5 attempts, runs 36765098000
+// to 36774508039). readdir, lstat, mkdir, copyFile, unlink and rmdir go through libuv, which
+// converts UTF-8 to UTF-16 itself.
+
+/** Synchronous sleep for the short retries below. */
+function sleepSync(ms: number): void {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+/** Runs `action`, retrying a few times while Windows still holds the file (EBUSY, EPERM, ...). */
+function withFileRetries(action: () => void): void {
+  const transient = new Set(['EBUSY', 'EPERM', 'EACCES', 'ENOTEMPTY']);
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      action();
+      return;
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code ?? '';
+      if (attempt >= 5 || !transient.has(code)) {
+        throw error;
+      }
+      sleepSync(200 * attempt);
+    }
+  }
+}
+
+/**
+ * Copies a file, or a directory with everything in it, to `target` (created as needed).
+ * Symbolic links and other special entries are skipped; the evidence copies are plain files.
+ */
+export function copyTreeSync(source: string, target: string): void {
+  const stat = fs.lstatSync(source);
+  if (stat.isDirectory()) {
+    fs.mkdirSync(target, { recursive: true });
+    for (const entry of fs.readdirSync(source)) {
+      copyTreeSync(path.join(source, entry), path.join(target, entry));
+    }
+  } else if (stat.isFile()) {
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.copyFileSync(source, target);
+  }
+}
+
+/** Deletes a file, or a directory with everything in it; a missing `target` is not an error. */
+export function removeSync(target: string): void {
+  let stat: fs.Stats;
+  try {
+    stat = fs.lstatSync(target);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      return;
+    }
+    throw error;
+  }
+  if (stat.isDirectory()) {
+    for (const entry of fs.readdirSync(target)) {
+      removeSync(path.join(target, entry));
+    }
+    withFileRetries(() => fs.rmdirSync(target));
+  } else {
+    withFileRetries(() => fs.unlinkSync(target));
+  }
+}
 
 export function writeProjectFile(projectDir: string, relative: string, content: string): string {
   const target = path.join(projectDir, ...relative.split('/'));
@@ -1359,7 +1432,8 @@ export async function readSessions(dbPath: string): Promise<SessionRow[]> {
       db.close();
     }
   } finally {
-    fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 3, retryDelay: 200 });
+    // %TEMP% is inside the profile, so it has Chinese characters for the cn-user scenario.
+    removeSync(tmp);
   }
 }
 
@@ -1552,4 +1626,50 @@ export function runHelper<T>(
   const output = `${run.stdout ?? ''}${run.stderr ?? ''}${run.error ? `\n${String(run.error)}` : ''}`;
   console.log(`[helper ${name}] exit ${run.status}\n${output.trim()}`);
   return { exitCode: run.status, output, result: readJsonFile<T>(resultFile), resultFile };
+}
+
+/**
+ * `runHelper` without blocking the worker, for helpers that act on the running app (the native
+ * folder dialog): the CDP connection keeps being served while the script runs.
+ */
+export function runHelperAsync<T>(
+  cfg: SmokeConfig,
+  name: string,
+  params: Record<string, string>,
+  timeoutMs: number,
+  env: Record<string, string> = {}
+): Promise<HelperResult<T>> {
+  fs.mkdirSync(cfg.evidenceDir, { recursive: true });
+  const resultFile = path.join(cfg.evidenceDir, `${path.basename(name, '.ps1')}-${Date.now()}.json`);
+  const args = ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', path.join(SMOKE_DIR, 'scripts', name)];
+  for (const [key, value] of Object.entries({ ...params, ResultFile: resultFile })) {
+    args.push(`-${key}`, value);
+  }
+  const exe = path.join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
+  return new Promise((resolve) => {
+    const chunks: string[] = [];
+    const child = spawn(exe, args, { windowsHide: false, env: mergeEnv(process.env, env) });
+    child.stdout?.on('data', (chunk: Buffer) => chunks.push(chunk.toString('utf8')));
+    child.stderr?.on('data', (chunk: Buffer) => chunks.push(chunk.toString('utf8')));
+    const timer = setTimeout(() => {
+      chunks.push(`\n[harness] ${name} did not finish within ${timeoutMs} ms; killed`);
+      spawnSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], { windowsHide: true });
+    }, timeoutMs);
+    let done = false;
+    const finish = (exitCode: number | null) => {
+      if (done) {
+        return;
+      }
+      done = true;
+      clearTimeout(timer);
+      const output = chunks.join('');
+      console.log(`[helper ${name}] exit ${exitCode}\n${output.trim()}`);
+      resolve({ exitCode, output, result: readJsonFile<T>(resultFile), resultFile });
+    };
+    child.once('error', (error) => {
+      chunks.push(`\n${String(error)}`);
+      finish(null);
+    });
+    child.once('close', (code) => finish(code));
+  });
 }

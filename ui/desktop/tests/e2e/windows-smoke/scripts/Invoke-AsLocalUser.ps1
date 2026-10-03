@@ -31,7 +31,10 @@ param(
     [string] $WorkingDirectory = '',
     [string] $ResultFile = '',
     # Above the Playwright budget of Run-AsUserInner.ps1 (-TimeoutSeconds 6300 there).
-    [int] $TimeoutSeconds = 6600
+    [int] $TimeoutSeconds = 6600,
+    # Script started as the user, next to this one, with -EnvFile; it writes
+    # <resultsDir>\inner-result.json. Run-InstallLoop.ps1 for the installer crash check.
+    [string] $InnerScript = 'Run-AsUserInner.ps1'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -136,7 +139,8 @@ try {
     # 4. Run the inner script as the user, with the user's profile loaded.
     $result.stage = 'start'
     $credential = New-Object System.Management.Automation.PSCredential(("{0}\{1}" -f $env:COMPUTERNAME, $UserName), $secure)
-    $inner = Join-Path $PSScriptRoot 'Run-AsUserInner.ps1'
+    $inner = Join-Path $PSScriptRoot (Split-Path -Leaf $InnerScript)
+    if (-not (Test-Path -LiteralPath $inner)) { throw "inner script not found: $inner" }
     $powershell = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
     $argumentLine = ('-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}" -EnvFile "{1}"' -f $inner, $EnvFile)
     if (-not $WorkingDirectory) { $WorkingDirectory = Split-Path -Parent $EnvFile }

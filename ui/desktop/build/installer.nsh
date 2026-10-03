@@ -30,6 +30,23 @@
 ; their data. ~/.config/goose and ~/.local/share/goose are goose's Linux locations and are
 ; not used on Windows. A GOOSE_PATH_ROOT override is a developer setting and is not followed.
 ; Keys goose stored in Windows Credential Manager are not removed here.
+;
+; The two welcome-page hooks below replace electron-builder's setInstallModePerUser with a copy
+; that does not read past the end of the Shell's per-user Programs path (see
+; build/modelforge-multiuser.nsh: a fresh install crashed in System.dll with 0xC0000005).
+; electron-builder inserts them after multiUser.nsh and before the install-mode page functions,
+; .onInit and un.onInit are compiled, which is the only place the macro can be swapped. The
+; installer has no welcome page of its own, so customWelcomePage adds none; the uninstaller
+; keeps its default welcome page.
+
+!macro customWelcomePage
+  !include "modelforge-multiuser.nsh"
+!macroend
+
+!macro customUnWelcomePage
+  !include "modelforge-multiuser.nsh"
+  !insertmacro MUI_UNPAGE_WELCOME
+!macroend
 
 !macro customUnInstall
   ; A silent uninstall (upgrade, CI, or /S) must not block on a dialog: keep the data.

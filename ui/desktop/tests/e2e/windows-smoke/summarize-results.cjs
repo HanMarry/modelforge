@@ -215,6 +215,25 @@ function helperKind(result) {
   return null;
 }
 
+/**
+ * Crashed attempts and reruns of one Install-ModelForge.ps1 result. Results written before the
+ * script counted `reruns` only listed the crashes that were followed by a rerun.
+ */
+function installCrashes(result) {
+  const crashes = Array.isArray(result.crashes) ? result.crashes.length : 0;
+  const reruns = Number.isInteger(result.reruns) ? result.reruns : crashes;
+  return { crashes, reruns };
+}
+
+function installCrashText(result) {
+  const { crashes, reruns } = installCrashes(result);
+  if (crashes === 0) return '';
+  const list = result.crashes.join('; ');
+  return reruns > 0
+    ? `installer crashed and was run again (${reruns} rerun${reruns === 1 ? '' : 's'}): ${list}`
+    : `installer crashed: ${list}`;
+}
+
 function helperRow(kind, result) {
   const ok = result.ok === true ? '✅' : '❌';
   switch (kind) {
@@ -230,9 +249,7 @@ function helperRow(kind, result) {
           `Start menu ${yesNo(result.startMenuShortcutPresent)}`,
           `desktop ${yesNo(result.desktopShortcutPresent)}`,
           `dir ${result.installDir || ''}`,
-          Array.isArray(result.crashes) && result.crashes.length > 0
-            ? `installer crashed and was run again: ${result.crashes.join('; ')}`
-            : '',
+          installCrashText(result),
         ],
         error: result.error,
       };
@@ -368,6 +385,28 @@ function buildSummary(resultsDir, env) {
     );
   }
   if (scenarios.length === 0) lines.push('| (none) | – | – | – | no scenario ran |');
+  lines.push('');
+
+  // The release gate in one line: no failed or flaky test, no installer crash or rerun.
+  const allTests = scenarios.flatMap((scenario) => scenario.tests);
+  const gate = { failed: 0, flaky: 0, installs: 0, crashes: 0, reruns: 0 };
+  for (const test of allTests) {
+    if (test.status === 'flaky') gate.flaky += 1;
+    else if (!['passed', 'skipped'].includes(test.status)) gate.failed += 1;
+  }
+  for (const file of findJsonFiles(resultsDir)) {
+    const result = readJson(file);
+    if (helperKind(result) !== 'install') continue;
+    const { crashes, reruns } = installCrashes(result);
+    gate.installs += 1;
+    gate.crashes += crashes;
+    gate.reruns += reruns;
+  }
+  const clean = gate.failed === 0 && gate.flaky === 0 && gate.crashes === 0 && scenarios.some((s) => s.report);
+  lines.push(
+    `${clean ? '✅' : '❌'} Gate: ${gate.failed} failed, ${gate.flaky} flaky; ` +
+      `${gate.installs} installer runs, ${gate.crashes} crashed attempts, ${gate.reruns} reruns`
+  );
   lines.push('');
 
   // Per-test status, failures first within each scenario.
