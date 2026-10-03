@@ -1148,6 +1148,30 @@
   "createSubRecipeInline.validationMsg": {
     "defaultMessage": "名前、タイトル、レシピの説明、指示は必須です。"
   },
+  "credentialMigrationNotice.failure": {
+    "defaultMessage": "{owner} {name}: the {step} step failed"
+  },
+  "credentialMigrationNotice.ownerExtension": {
+    "defaultMessage": "Extension"
+  },
+  "credentialMigrationNotice.ownerProvider": {
+    "defaultMessage": "Provider"
+  },
+  "credentialMigrationNotice.retry": {
+    "defaultMessage": "Their configuration was left unchanged. The migration is retried automatically on the next start."
+  },
+  "credentialMigrationNotice.stepReplace": {
+    "defaultMessage": "replace"
+  },
+  "credentialMigrationNotice.stepVerify": {
+    "defaultMessage": "verify"
+  },
+  "credentialMigrationNotice.stepWrite": {
+    "defaultMessage": "write"
+  },
+  "credentialMigrationNotice.title": {
+    "defaultMessage": "Some plaintext request headers could not be moved to the credential store"
+  },
   "credentialStorageStatus.checkAgain": {
     "defaultMessage": "Check again"
   },
@@ -2051,6 +2075,12 @@
   "extensionModal.removeExtension": {
     "defaultMessage": "拡張機能を削除"
   },
+  "extensionModal.saveFailed": {
+    "defaultMessage": "{name} を保存できませんでした: {reason}。入力内容は保持されているので、もう一度お試しください。"
+  },
+  "extensionModal.unknownError": {
+    "defaultMessage": "不明なエラー"
+  },
   "extensionModal.unsavedChangesMessage": {
     "defaultMessage": "拡張機能の設定に未保存の変更があります。保存せずに閉じてもよろしいですか？"
   },
@@ -2363,11 +2393,29 @@
   "headersSection.headersDescription": {
     "defaultMessage": "MCP Server へのリクエストに含めるカスタム HTTP ヘッダーを追加します。両方のフィールドに入力してから「+」ボタンをクリックして追加してください。"
   },
+  "headersSection.markNewSensitive": {
+    "defaultMessage": "新しいヘッダーを機密としてマーク"
+  },
+  "headersSection.markSensitive": {
+    "defaultMessage": "{name} を機密としてマーク"
+  },
   "headersSection.noSpaces": {
     "defaultMessage": "ヘッダー名にスペースは使用できません"
   },
+  "headersSection.reenterSavedValues": {
+    "defaultMessage": "保存済みの値は拡張機能の名前に紐づいています。名前を変更した後は、次の値を再入力してください: {names}"
+  },
   "headersSection.requestHeaders": {
     "defaultMessage": "リクエストヘッダー"
+  },
+  "headersSection.savedValueLabel": {
+    "defaultMessage": "{name} の保存済みの値は非表示です。新しい値を入力すると置き換えられます。"
+  },
+  "headersSection.sensitive": {
+    "defaultMessage": "機密"
+  },
+  "headersSection.sensitiveHint": {
+    "defaultMessage": "機密の値はシステムの認証情報ストアに保存され、再表示されません。Authorization、Proxy-Authorization、X-API-Key、api-key は常に機密として扱われます。"
   },
   "headersSection.value": {
     "defaultMessage": "値"
@@ -5289,7 +5337,7 @@
     "defaultMessage": "Only LaTeX (.tex), Markdown (.md) and PDF files can be reviewed."
   },
   "review.failureApproval": {
-    "defaultMessage": "The Kernel asked for a tool approval, which this panel cannot grant. Switch the permission mode to automatic or smart approval, then try again."
+    "defaultMessage": "The review stopped because the Kernel asked a question this panel cannot answer, such as a form from an extension. Tool approvals are refused automatically and do not stop the review. Try again."
   },
   "review.failureCancelled": {
     "defaultMessage": "The review was interrupted."

@@ -1148,6 +1148,30 @@
   "createSubRecipeInline.validationMsg": {
     "defaultMessage": "Name, title, recipe description, and instructions are required."
   },
+  "credentialMigrationNotice.failure": {
+    "defaultMessage": "{owner} {name}: the {step} step failed"
+  },
+  "credentialMigrationNotice.ownerExtension": {
+    "defaultMessage": "Extension"
+  },
+  "credentialMigrationNotice.ownerProvider": {
+    "defaultMessage": "Provider"
+  },
+  "credentialMigrationNotice.retry": {
+    "defaultMessage": "Their configuration was left unchanged. The migration is retried automatically on the next start."
+  },
+  "credentialMigrationNotice.stepReplace": {
+    "defaultMessage": "replace"
+  },
+  "credentialMigrationNotice.stepVerify": {
+    "defaultMessage": "verify"
+  },
+  "credentialMigrationNotice.stepWrite": {
+    "defaultMessage": "write"
+  },
+  "credentialMigrationNotice.title": {
+    "defaultMessage": "Some plaintext request headers could not be moved to the credential store"
+  },
   "credentialStorageStatus.checkAgain": {
     "defaultMessage": "Check again"
   },
@@ -2051,6 +2075,12 @@
   "extensionModal.removeExtension": {
     "defaultMessage": "Remove extension"
   },
+  "extensionModal.saveFailed": {
+    "defaultMessage": "Could not save {name}: {reason}. Your entries are kept, so you can try again."
+  },
+  "extensionModal.unknownError": {
+    "defaultMessage": "unknown error"
+  },
   "extensionModal.unsavedChangesMessage": {
     "defaultMessage": "You have unsaved changes to the extension configuration. Are you sure you want to close without saving?"
   },
@@ -2363,11 +2393,29 @@
   "headersSection.headersDescription": {
     "defaultMessage": "Add custom HTTP headers to include in requests to the MCP server. Click the \"+\" button to add after filling both fields."
   },
+  "headersSection.markNewSensitive": {
+    "defaultMessage": "Mark the new header as sensitive"
+  },
+  "headersSection.markSensitive": {
+    "defaultMessage": "Mark {name} as sensitive"
+  },
   "headersSection.noSpaces": {
     "defaultMessage": "Header name cannot contain spaces"
   },
+  "headersSection.reenterSavedValues": {
+    "defaultMessage": "Saved values are tied to the extension name. After renaming, enter them again: {names}"
+  },
   "headersSection.requestHeaders": {
     "defaultMessage": "Request Headers"
+  },
+  "headersSection.savedValueLabel": {
+    "defaultMessage": "Saved value of {name} is hidden. Type a new value to replace it."
+  },
+  "headersSection.sensitive": {
+    "defaultMessage": "Sensitive"
+  },
+  "headersSection.sensitiveHint": {
+    "defaultMessage": "Sensitive values are kept in the system credential store and are not shown again. Authorization, Proxy-Authorization, X-API-Key and api-key are always sensitive."
   },
   "headersSection.value": {
     "defaultMessage": "Value"
@@ -5289,7 +5337,7 @@
     "defaultMessage": "Only LaTeX (.tex), Markdown (.md) and PDF files can be reviewed."
   },
   "review.failureApproval": {
-    "defaultMessage": "The Kernel asked for a tool approval, which this panel cannot grant. Switch the permission mode to automatic or smart approval, then try again."
+    "defaultMessage": "The review stopped because the Kernel asked a question this panel cannot answer, such as a form from an extension. Tool approvals are refused automatically and do not stop the review. Try again."
   },
   "review.failureCancelled": {
     "defaultMessage": "The review was interrupted."

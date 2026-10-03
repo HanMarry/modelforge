@@ -12,6 +12,10 @@ import {
 import { OPTIONAL_RUNTIMES } from '../../utils/diagnostics/optionalRuntimes';
 import type { OnboardingState, OnboardingStepId } from '../../utils/settings';
 import type { CheckpointGitSource } from '../../utils/checkpoints/checkpointIpc';
+import {
+  CredentialMigrationNotice,
+  useCredentialMigrationFailures,
+} from '../settings/providers/CredentialMigrationNotice';
 
 const CATEGORY_LABELS: Record<DiagnosticCategory, string> = {
   provider: '模型供应商',
@@ -69,6 +73,7 @@ export default function DiagnosticsView() {
   const [provenance, setProvenance] = useState<KernelProvenance>(NO_PROVENANCE);
   const [onboarding, setOnboarding] = useState<OnboardingState | null>(null);
   const [gitSource, setGitSource] = useState<CheckpointGitSource | null>(null);
+  const migrationFailures = useCredentialMigrationFailures();
 
   useEffect(() => {
     const off = window.electron.onDiagnosticsProgress((category, result) => {
@@ -207,6 +212,9 @@ export default function DiagnosticsView() {
             <div className="mt-1 text-sm text-text-muted">不可追溯{provenance.reason ? `（${provenance.reason}）` : ''}</div>
           )}
         </section>
+
+        {/* Plaintext header migrations that failed at Kernel startup (requirement 1.9). */}
+        {migrationFailures.length > 0 && <CredentialMigrationNotice failures={migrationFailures} />}
 
         <section className="rounded-lg border border-border-default p-4">
           <h2 className="font-medium">自动快照使用的 git</h2>

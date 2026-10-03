@@ -47,8 +47,6 @@ fn rejects_implicitly_discovered_bare_repository() {
 #[cfg(unix)]
 #[test]
 fn does_not_execute_repository_fsmonitor_hook() {
-    use std::os::unix::fs::PermissionsExt;
-
     let temp_dir = tempfile::tempdir().unwrap();
     let repo_dir = temp_dir.path().join("repo");
     fs::create_dir(&repo_dir).unwrap();
@@ -59,12 +57,11 @@ fn does_not_execute_repository_fsmonitor_hook() {
 
     let marker_path = temp_dir.path().join("fsmonitor-ran");
     let hook_path = temp_dir.path().join("fsmonitor-hook");
-    fs::write(
+    goose_test_support::write_executable_script(
         &hook_path,
         format!("#!/bin/sh\n: > '{}'\n", marker_path.display()),
     )
     .unwrap();
-    fs::set_permissions(&hook_path, fs::Permissions::from_mode(0o755)).unwrap();
     assert_git_succeeded(&run_git(
         &repo_dir,
         &["config", "core.fsmonitor", hook_path.to_str().unwrap()],

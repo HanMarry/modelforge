@@ -26,6 +26,7 @@ import {
   failureFromError,
   permissionResponse,
   turnOutcome,
+  type FeishuAcpPortOptions,
 } from './feishuAcpPort';
 
 const OPTIONS: PermissionOption[] = [
@@ -110,18 +111,40 @@ function createFakeKernel() {
   };
 }
 
-function createPort(kernel: ReturnType<typeof createFakeKernel>) {
+function createPort(
+  kernel: ReturnType<typeof createFakeKernel>,
+  overrides: Partial<FeishuAcpPortOptions> = {}
+) {
   const events: FeishuSessionEvent[] = [];
   const runFinished = vi.fn();
+  const runEnded = vi.fn();
   const port = createFeishuAcpPort({
     openStream: async () => ({}) as Stream,
     workingDir: async () => '/projects/demo',
     clientInfo: { name: 'modelforge-feishu', version: 'test' },
     onRunFinished: runFinished,
+    onRunEnded: runEnded,
     connectClient: kernel.connectClient,
+    ...overrides,
   });
   port.onSessionEvent((event) => events.push(event));
-  return { port, events, runFinished };
+  return { port, events, runFinished, runEnded };
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+function runStarted(toolCallId: string, runId: string) {
+  return {
+    sessionId: 'session-1',
+    toolCallId,
+    runId,
+    workingDir: '/projects/demo',
+    declaredOutputs: ['results/out.csv'],
+  };
 }
 
 function update(sessionId: string, value: Record<string, unknown>): SessionNotification {
@@ -329,6 +352,104 @@ describe('createFeishuAcpPort', () => {
       })
     );
     expect(await port.steer('session-1', '再来一条')).toBe(false);
+  });
+
+  it('ends a run that sent no runs/finished once its tool call ended', async () => {
+    const kernel = createFakeKernel();
+    const { port, runEnded, runFinished } = createPort(kernel, { runEndGraceMs: 10 });
+    await port.createSession('拟合');
+    const callbacks = kernel.callbacks();
+    const turn = port.prompt('session-1', '拟合模型');
+    await flush();
+
+    await callbacks.unstable_runsStarted(runStarted('call-1', 'run-1'));
+    await callbacks.sessionUpdate(
+      update('session-1', {
+        sessionUpdate: 'tool_call_update',
+        toolCallId: 'call-1',
+        status: 'failed',
+      })
+    );
+    // runs/finished may still follow within the grace period.
+    expect(runEnded).not.toHaveBeenCalled();
+
+    await vi.waitFor(() =>
+      expect(runEnded).toHaveBeenCalledWith({
+        sessionId: 'session-1',
+        toolCallId: 'call-1',
+        runId: 'run-1',
+        workingDir: '/projects/demo',
+      })
+    );
+    kernel.prompts[0].resolve({ stopReason: 'end_turn' });
+    await turn;
+    await sleep(30);
+    expect(runEnded).toHaveBeenCalledTimes(1);
+    expect(runFinished).not.toHaveBeenCalled();
+  });
+
+  it('leaves a run that sent runs/finished alone', async () => {
+    const kernel = createFakeKernel();
+    const { port, runEnded, runFinished } = createPort(kernel, { runEndGraceMs: 10 });
+    await port.createSession('拟合');
+    const callbacks = kernel.callbacks();
+    const turn = port.prompt('session-1', '拟合模型');
+    await flush();
+
+    await callbacks.unstable_runsStarted(runStarted('call-1', 'run-1'));
+    await callbacks.sessionUpdate(
+      update('session-1', {
+        sessionUpdate: 'tool_call_update',
+        toolCallId: 'call-1',
+        status: 'completed',
+      })
+    );
+    await callbacks.unstable_runsFinished({
+      sessionId: 'session-1',
+      toolCallId: 'call-1',
+      runId: 'run-1',
+      workingDir: '/projects/demo',
+      recordPath: '.modelforge/runs/run-1.json',
+      exitCode: 0,
+      outputs: ['results/out.csv'],
+    });
+    kernel.prompts[0].resolve({ stopReason: 'end_turn' });
+    await turn;
+
+    await sleep(50);
+    expect(runFinished).toHaveBeenCalledTimes(1);
+    expect(runEnded).not.toHaveBeenCalled();
+  });
+
+  it('ends the runs of a turn that ended, and every run when the connection closes', async () => {
+    const kernel = createFakeKernel();
+    const { port, runEnded } = createPort(kernel, { runEndGraceMs: 10 });
+    await port.createSession('拟合');
+    const callbacks = kernel.callbacks();
+
+    // The turn ends while its tool call never reported an end.
+    const first = port.prompt('session-1', '第一问');
+    await flush();
+    await callbacks.unstable_runsStarted(runStarted('call-1', 'run-1'));
+    kernel.prompts[0].resolve({ stopReason: 'end_turn' });
+    await first;
+    await vi.waitFor(() =>
+      expect(runEnded).toHaveBeenCalledWith(expect.objectContaining({ runId: 'run-1' }))
+    );
+
+    // The connection closes while a run is going: nothing more can arrive for it.
+    void port.prompt('session-1', '第二问');
+    await flush();
+    await callbacks.unstable_runsStarted(runStarted('call-2', 'run-2'));
+    kernel.connections[0].close();
+    await flush();
+    expect(runEnded).toHaveBeenLastCalledWith({
+      sessionId: 'session-1',
+      toolCallId: 'call-2',
+      runId: 'run-2',
+      workingDir: '/projects/demo',
+    });
+    expect(runEnded).toHaveBeenCalledTimes(2);
   });
 
   it('reconnects after the connection closes and tells the connector', async () => {

@@ -340,8 +340,6 @@ mod tests {
     #[cfg(unix)]
     use std::fs;
     #[cfg(unix)]
-    use std::os::unix::fs::PermissionsExt;
-    #[cfg(unix)]
     use std::path::Path;
 
     #[cfg(unix)]
@@ -385,7 +383,7 @@ mod tests {
     #[cfg(unix)]
     fn recording_cli(directory: &Path) -> PathBuf {
         let command = directory.join("gemini-recording-shim");
-        fs::write(
+        goose_test_support::write_executable_script(
             &command,
             r#"#!/bin/sh
 record_dir=${0%/*}
@@ -396,7 +394,6 @@ printf '%s\n' '{"type":"result","stats":{}}'
 "#,
         )
         .unwrap();
-        fs::set_permissions(&command, fs::Permissions::from_mode(0o755)).unwrap();
         command
     }
 

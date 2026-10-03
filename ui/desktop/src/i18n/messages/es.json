@@ -1148,6 +1148,30 @@
   "createSubRecipeInline.validationMsg": {
     "defaultMessage": "El nombre, el título, la descripción de la receta y las instrucciones son obligatorios."
   },
+  "credentialMigrationNotice.failure": {
+    "defaultMessage": "{owner} {name}: the {step} step failed"
+  },
+  "credentialMigrationNotice.ownerExtension": {
+    "defaultMessage": "Extension"
+  },
+  "credentialMigrationNotice.ownerProvider": {
+    "defaultMessage": "Provider"
+  },
+  "credentialMigrationNotice.retry": {
+    "defaultMessage": "Their configuration was left unchanged. The migration is retried automatically on the next start."
+  },
+  "credentialMigrationNotice.stepReplace": {
+    "defaultMessage": "replace"
+  },
+  "credentialMigrationNotice.stepVerify": {
+    "defaultMessage": "verify"
+  },
+  "credentialMigrationNotice.stepWrite": {
+    "defaultMessage": "write"
+  },
+  "credentialMigrationNotice.title": {
+    "defaultMessage": "Some plaintext request headers could not be moved to the credential store"
+  },
   "credentialStorageStatus.checkAgain": {
     "defaultMessage": "Check again"
   },
@@ -2051,6 +2075,12 @@
   "extensionModal.removeExtension": {
     "defaultMessage": "Quitar extensión"
   },
+  "extensionModal.saveFailed": {
+    "defaultMessage": "No se pudo guardar {name}: {reason}. Tus datos se conservan para que puedas volver a intentarlo."
+  },
+  "extensionModal.unknownError": {
+    "defaultMessage": "error desconocido"
+  },
   "extensionModal.unsavedChangesMessage": {
     "defaultMessage": "Tienes cambios sin guardar en la configuración de la extensión. ¿Seguro que quieres cerrar sin guardar?"
   },
@@ -2363,11 +2393,29 @@
   "headersSection.headersDescription": {
     "defaultMessage": "Añade encabezados HTTP personalizados para incluirlos en las peticiones al servidor MCP. Haz clic en el botón \"+\" para añadir después de rellenar ambos campos."
   },
+  "headersSection.markNewSensitive": {
+    "defaultMessage": "Marcar el nuevo encabezado como sensible"
+  },
+  "headersSection.markSensitive": {
+    "defaultMessage": "Marcar {name} como sensible"
+  },
   "headersSection.noSpaces": {
     "defaultMessage": "El nombre del encabezado no puede contener espacios"
   },
+  "headersSection.reenterSavedValues": {
+    "defaultMessage": "Los valores guardados están ligados al nombre de la extensión. Después de cambiarle el nombre, vuelve a introducirlos: {names}"
+  },
   "headersSection.requestHeaders": {
     "defaultMessage": "Encabezados de la petición"
+  },
+  "headersSection.savedValueLabel": {
+    "defaultMessage": "El valor guardado de {name} está oculto. Escribe un valor nuevo para reemplazarlo."
+  },
+  "headersSection.sensitive": {
+    "defaultMessage": "Sensible"
+  },
+  "headersSection.sensitiveHint": {
+    "defaultMessage": "Los valores sensibles se guardan en el almacén de credenciales del sistema y no se vuelven a mostrar. Authorization, Proxy-Authorization, X-API-Key y api-key siempre son sensibles."
   },
   "headersSection.value": {
     "defaultMessage": "Valor"
@@ -5289,7 +5337,7 @@
     "defaultMessage": "Only LaTeX (.tex), Markdown (.md) and PDF files can be reviewed."
   },
   "review.failureApproval": {
-    "defaultMessage": "The Kernel asked for a tool approval, which this panel cannot grant. Switch the permission mode to automatic or smart approval, then try again."
+    "defaultMessage": "The review stopped because the Kernel asked a question this panel cannot answer, such as a form from an extension. Tool approvals are refused automatically and do not stop the review. Try again."
   },
   "review.failureCancelled": {
     "defaultMessage": "The review was interrupted."

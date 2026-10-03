@@ -2,6 +2,7 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { pbtParams } from '../test/pbt';
 import type { Competition, CompetitionDateRange, CompetitionStatus, LocalDate } from '../types/catalog';
+import { isAllowedUrl } from '../utils/urlPolicy';
 import {
   ALL_STATUSES,
   COMPETITION_CATALOG,
@@ -204,5 +205,35 @@ describe('COMPETITION_CATALOG', () => {
       expect(COMPETITION_CATALOG.competitions.some((c) => c.name.includes(name))).toBe(true);
     }
     expect(COMPETITION_CATALOG.competitions.length).toBeGreaterThanOrEqual(8);
+  });
+
+  /** A real calendar day written as `YYYY-MM-DD`. */
+  function isCalendarDate(value: string): boolean {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+    const parsed = new Date(`${value}T00:00:00Z`);
+    return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+  }
+
+  it('ships well-formed data: http(s) websites and ordered calendar dates (requirement 8.1, 8.9)', () => {
+    expect(isCalendarDate(COMPETITION_CATALOG.updatedAt)).toBe(true);
+    for (const competition of COMPETITION_CATALOG.competitions) {
+      expect(competition.organizer.trim()).not.toBe('');
+      if (competition.website !== null) {
+        expect(isAllowedUrl(competition.website)).toBe(true);
+      }
+      for (const range of [competition.registration, competition.contest]) {
+        for (const date of [range.start, range.end]) {
+          if (date !== null) expect(isCalendarDate(date)).toBe(true);
+        }
+        if (range.start !== null && range.end !== null) {
+          expect(range.start <= range.end).toBe(true);
+        }
+      }
+      const { end: registrationEnd } = competition.registration;
+      const { end: contestEnd } = competition.contest;
+      if (registrationEnd !== null && contestEnd !== null) {
+        expect(registrationEnd <= contestEnd).toBe(true);
+      }
+    }
   });
 });

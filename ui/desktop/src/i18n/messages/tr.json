@@ -1148,6 +1148,30 @@
   "createSubRecipeInline.validationMsg": {
     "defaultMessage": "Ad, başlık, tarif açıklaması ve talimatlar gereklidir."
   },
+  "credentialMigrationNotice.failure": {
+    "defaultMessage": "{owner} {name}: the {step} step failed"
+  },
+  "credentialMigrationNotice.ownerExtension": {
+    "defaultMessage": "Extension"
+  },
+  "credentialMigrationNotice.ownerProvider": {
+    "defaultMessage": "Provider"
+  },
+  "credentialMigrationNotice.retry": {
+    "defaultMessage": "Their configuration was left unchanged. The migration is retried automatically on the next start."
+  },
+  "credentialMigrationNotice.stepReplace": {
+    "defaultMessage": "replace"
+  },
+  "credentialMigrationNotice.stepVerify": {
+    "defaultMessage": "verify"
+  },
+  "credentialMigrationNotice.stepWrite": {
+    "defaultMessage": "write"
+  },
+  "credentialMigrationNotice.title": {
+    "defaultMessage": "Some plaintext request headers could not be moved to the credential store"
+  },
   "credentialStorageStatus.checkAgain": {
     "defaultMessage": "Check again"
   },
@@ -2051,6 +2075,12 @@
   "extensionModal.removeExtension": {
     "defaultMessage": "Uzantıyı kaldır"
   },
+  "extensionModal.saveFailed": {
+    "defaultMessage": "{name} kaydedilemedi: {reason}. Girdileriniz korunuyor, tekrar deneyebilirsiniz."
+  },
+  "extensionModal.unknownError": {
+    "defaultMessage": "bilinmeyen hata"
+  },
   "extensionModal.unsavedChangesMessage": {
     "defaultMessage": "Uzantı yapılandırmasında kaydedilmemiş değişiklikleriniz var. Kaydetmeden kapatmak istediğinizden emin misiniz?"
   },
@@ -2363,11 +2393,29 @@
   "headersSection.headersDescription": {
     "defaultMessage": "MCP sunucusuna yapılan isteklere dahil etmek için özel HTTP üstbilgileri ekleyin. Her iki alanı da doldurduktan sonra eklemek için \"+\" butonuna tıklayın."
   },
+  "headersSection.markNewSensitive": {
+    "defaultMessage": "Yeni başlığı hassas olarak işaretle"
+  },
+  "headersSection.markSensitive": {
+    "defaultMessage": "{name} başlığını hassas olarak işaretle"
+  },
   "headersSection.noSpaces": {
     "defaultMessage": "Başlık adı boşluk içeremez"
   },
+  "headersSection.reenterSavedValues": {
+    "defaultMessage": "Kaydedilen değerler uzantı adına bağlıdır. Yeniden adlandırdıktan sonra bunları tekrar girin: {names}"
+  },
   "headersSection.requestHeaders": {
     "defaultMessage": "Başlıkları Talep Et"
+  },
+  "headersSection.savedValueLabel": {
+    "defaultMessage": "{name} için kaydedilen değer gizli. Değiştirmek için yeni bir değer yazın."
+  },
+  "headersSection.sensitive": {
+    "defaultMessage": "Hassas"
+  },
+  "headersSection.sensitiveHint": {
+    "defaultMessage": "Hassas değerler sistemin kimlik bilgisi deposunda tutulur ve bir daha gösterilmez. Authorization, Proxy-Authorization, X-API-Key ve api-key her zaman hassastır."
   },
   "headersSection.value": {
     "defaultMessage": "Değer"
@@ -5289,7 +5337,7 @@
     "defaultMessage": "Only LaTeX (.tex), Markdown (.md) and PDF files can be reviewed."
   },
   "review.failureApproval": {
-    "defaultMessage": "The Kernel asked for a tool approval, which this panel cannot grant. Switch the permission mode to automatic or smart approval, then try again."
+    "defaultMessage": "The review stopped because the Kernel asked a question this panel cannot answer, such as a form from an extension. Tool approvals are refused automatically and do not stop the review. Try again."
   },
   "review.failureCancelled": {
     "defaultMessage": "The review was interrupted."

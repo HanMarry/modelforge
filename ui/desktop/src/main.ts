@@ -88,10 +88,11 @@ import {
 } from './connectors/feishu/feishuIpc';
 import { createFeishuController } from './connectors/feishu/feishuSdkAdapter';
 import { openPinnedAcpStream } from './connectors/feishu/feishuAcpTransport';
-import { writeFileAtomic } from './utils/atomicWrite';
+import { writeFileAtomic, writeFileAtomicSync } from './utils/atomicWrite';
 import type { FeatureIpcDeps } from './utils/featureIpc';
 import { registerRunsIpc } from './utils/runs/runsIpc';
 import { sharedArtifactStore } from './utils/runs/artifactStore';
+import { runRecordPath } from './utils/artifactStatus';
 import { registerPaperCheckIpc } from './utils/paperCheck/paperCheckIpc';
 import { registerRunCompareIpc } from './utils/compare/runCompareIpc';
 import { registerTaskResumeIpc } from './utils/resume/taskResumeIpc';
@@ -294,13 +295,15 @@ const feishuController = createFeishuController({
   },
   workingDir: () => feishuWorkingDir(),
   clientInfo: { name: 'modelforge-feishu', version: app.getVersion() },
-  // Runs of Feishu sessions update the Artifact store like the renderer's do.
+  // Runs of Feishu sessions update the Artifact store like the renderer's do
+  // (`acp/runNotifications.ts`), tool call ids included.
   onRunStarted: (notification) => {
     sharedArtifactStore()
       .runStarted({
         workingDir: notification.workingDir,
         runId: notification.runId,
         declaredOutputs: notification.declaredOutputs ?? [],
+        toolCallId: notification.toolCallId,
       })
       .catch((error: unknown) =>
         log.warn(`[feishu] runs/started was not applied: ${errorMessage(error)}`)
@@ -312,9 +315,23 @@ const feishuController = createFeishuController({
         workingDir: notification.workingDir,
         runId: notification.runId,
         recordPath: notification.recordPath,
+        toolCallId: notification.toolCallId,
       })
       .catch((error: unknown) =>
         log.warn(`[feishu] runs/finished was not applied: ${errorMessage(error)}`)
+      );
+  },
+  // A run that sent no runs/finished is over all the same; what it left 执行中 is ended.
+  onRunEnded: (run) => {
+    sharedArtifactStore()
+      .runFinished({
+        workingDir: run.workingDir,
+        runId: run.runId,
+        recordPath: runRecordPath(run.runId),
+        toolCallId: run.toolCallId,
+      })
+      .catch((error: unknown) =>
+        log.warn(`[feishu] the end of run ${run.runId} was not applied: ${errorMessage(error)}`)
       );
   },
   log: (message) => log.info(`[feishu] ${message}`),
@@ -519,7 +536,16 @@ function getSettings(): Settings {
 function updateSettings(modifier: (settings: Settings) => void): void {
   const settings = getSettings();
   modifier(settings);
-  fsSync.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
+  writeSettingsFile(settings);
+}
+
+/**
+ * Atomic, because the main process also rewrites settings.json in the background (the Feishu
+ * connector's chat sessions and undelivered marks): a torn file reads back as the defaults,
+ * and the next write would then drop every other setting.
+ */
+function writeSettingsFile(settings: Settings): void {
+  writeFileAtomicSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
 }
 
 function getConfiguredGooseLocale(): string | undefined {
@@ -2281,7 +2307,7 @@ ipcMain.handle('set-setting', (_event, key: SettingKey, value: unknown) => {
   const settings = getSettings();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (settings as any)[key] = value;
-  fsSync.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
+  writeSettingsFile(settings);
 
   if (key === 'language') {
     appConfig.GOOSE_LOCALE = getConfiguredGooseLocale();

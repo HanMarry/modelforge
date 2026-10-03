@@ -1148,6 +1148,30 @@
   "createSubRecipeInline.validationMsg": {
     "defaultMessage": "Nama, tajuk, penerangan resipi, dan arahan adalah diperlukan."
   },
+  "credentialMigrationNotice.failure": {
+    "defaultMessage": "{owner} {name}: the {step} step failed"
+  },
+  "credentialMigrationNotice.ownerExtension": {
+    "defaultMessage": "Extension"
+  },
+  "credentialMigrationNotice.ownerProvider": {
+    "defaultMessage": "Provider"
+  },
+  "credentialMigrationNotice.retry": {
+    "defaultMessage": "Their configuration was left unchanged. The migration is retried automatically on the next start."
+  },
+  "credentialMigrationNotice.stepReplace": {
+    "defaultMessage": "replace"
+  },
+  "credentialMigrationNotice.stepVerify": {
+    "defaultMessage": "verify"
+  },
+  "credentialMigrationNotice.stepWrite": {
+    "defaultMessage": "write"
+  },
+  "credentialMigrationNotice.title": {
+    "defaultMessage": "Some plaintext request headers could not be moved to the credential store"
+  },
   "credentialStorageStatus.checkAgain": {
     "defaultMessage": "Check again"
   },
@@ -2051,6 +2075,12 @@
   "extensionModal.removeExtension": {
     "defaultMessage": "Buang sambungan"
   },
+  "extensionModal.saveFailed": {
+    "defaultMessage": "Tidak dapat menyimpan {name}: {reason}. Entri anda dikekalkan, jadi anda boleh mencuba lagi."
+  },
+  "extensionModal.unknownError": {
+    "defaultMessage": "ralat tidak diketahui"
+  },
   "extensionModal.unsavedChangesMessage": {
     "defaultMessage": "Anda mempunyai perubahan yang belum disimpan pada konfigurasi sambungan. Adakah anda pasti mahu menutup tanpa menyimpan?"
   },
@@ -2363,11 +2393,29 @@
   "headersSection.headersDescription": {
     "defaultMessage": "Tambah pengepala HTTP tersuai untuk disertakan dalam permintaan kepada pelayan MCP. Klik butang \"+\" untuk menambah selepas mengisi kedua-dua medan."
   },
+  "headersSection.markNewSensitive": {
+    "defaultMessage": "Tandakan pengepala baharu sebagai sensitif"
+  },
+  "headersSection.markSensitive": {
+    "defaultMessage": "Tandakan {name} sebagai sensitif"
+  },
   "headersSection.noSpaces": {
     "defaultMessage": "Nama pengepala tidak boleh mengandungi ruang"
   },
+  "headersSection.reenterSavedValues": {
+    "defaultMessage": "Nilai tersimpan terikat pada nama sambungan. Selepas menamakan semula, masukkan semula nilai ini: {names}"
+  },
   "headersSection.requestHeaders": {
     "defaultMessage": "Pengepala Permintaan"
+  },
+  "headersSection.savedValueLabel": {
+    "defaultMessage": "Nilai tersimpan bagi {name} disembunyikan. Taip nilai baharu untuk menggantikannya."
+  },
+  "headersSection.sensitive": {
+    "defaultMessage": "Sensitif"
+  },
+  "headersSection.sensitiveHint": {
+    "defaultMessage": "Nilai sensitif disimpan dalam stor kelayakan sistem dan tidak dipaparkan lagi. Authorization, Proxy-Authorization, X-API-Key dan api-key sentiasa sensitif."
   },
   "headersSection.value": {
     "defaultMessage": "Nilai"
@@ -5289,7 +5337,7 @@
     "defaultMessage": "Only LaTeX (.tex), Markdown (.md) and PDF files can be reviewed."
   },
   "review.failureApproval": {
-    "defaultMessage": "The Kernel asked for a tool approval, which this panel cannot grant. Switch the permission mode to automatic or smart approval, then try again."
+    "defaultMessage": "The review stopped because the Kernel asked a question this panel cannot answer, such as a form from an extension. Tool approvals are refused automatically and do not stop the review. Try again."
   },
   "review.failureCancelled": {
     "defaultMessage": "The review was interrupted."
