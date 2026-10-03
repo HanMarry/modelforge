@@ -131,6 +131,10 @@ jobs:
               echo "| --- | --- | --- |"
               jq -r '.cases[] | "| \(.name) | \(.dimension) | \(.diffs) |"' "$report"
               echo
+              echo "比较前生效的内部记账剔除规则（需求 4.4）："
+              echo
+              jq -r '(.normalizationRules // [])[] | "- \(.)"' "$report"
+              echo
               echo "| 用例 | 维度 | 范围 | 位置 | 失败路径 | legacy | state machine |"
               echo "| --- | --- | --- | --- | --- | --- | --- |"
               jq -r ".diffs[] | \"| \\(.case) | \\(.dimension) | \\(.section) | \\(.index) | \\(.path // \"\") | \\(.legacy | $cell) | \\(.stateMachine | $cell) |\"" "$report"

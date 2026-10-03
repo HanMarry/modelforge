@@ -7,7 +7,7 @@ use serde::Serialize;
 use serde_json::{json, Value};
 
 use super::model::{Dimension, ExecPath, FailureKind, ParityCase, PathResult, Trace};
-use super::normalize::normalize;
+use super::normalize::{normalize, INTERNAL_BOOKKEEPING_RULES};
 
 /// 差异所在的比较范围。
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
@@ -72,6 +72,8 @@ pub(super) struct ParityReport {
     pub(super) commit: String,
     pub(super) total_diffs: usize,
     pub(super) uncovered_dimensions: Vec<Dimension>,
+    /// 比较前生效的内部记账剔除规则（需求 4.4），随报告输出以便审计。
+    pub(super) normalization_rules: Vec<&'static str>,
     pub(super) cases: Vec<CaseSummary>,
     pub(super) diffs: Vec<DiffItem>,
 }
@@ -209,6 +211,7 @@ pub(super) fn report(commit: &str, cases: &[ParityCase], diffs: Vec<DiffItem>) -
         commit: commit.to_string(),
         total_diffs: diffs.len(),
         uncovered_dimensions,
+        normalization_rules: INTERNAL_BOOKKEEPING_RULES.to_vec(),
         cases: summaries,
         diffs,
     }
@@ -286,6 +289,10 @@ mod tests {
         assert_eq!(json["totalDiffs"], 2);
         assert_eq!(json["diffs"][0]["stateMachine"], "c");
         assert_eq!(json["uncoveredDimensions"][0], "tool_approval");
+        assert_eq!(
+            json["normalizationRules"].as_array().map(Vec::len),
+            Some(INTERNAL_BOOKKEEPING_RULES.len())
+        );
     }
 
     #[test]

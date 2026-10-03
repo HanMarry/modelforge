@@ -55,6 +55,15 @@ const DATETIME_PATTERN: &str = concat!(
 const UUID_PATTERN: &str =
     r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
 
+/// 内部记账剔除规则的说明文本，原样写进差异报告，便于审计（需求 4.4）。
+/// 与 `drop_internal_bookkeeping` 的实现一一对应，改规则时两处同步修改。
+pub(super) const INTERNAL_BOOKKEEPING_RULES: [&str; 4] = [
+    "剔除消息 metadata.operations（状态机操作记账，从不发给模型、不展示给用户）",
+    "剔除 toolRequest._meta 中的 goose.executable 标记，剔除后为空则删除 _meta",
+    "丢弃持久化中 userVisible=false 且 agentVisible=false 的消息行",
+    "删除 history_replaced 事件内各消息的 id（替换后的会话内容由持久化写入逐行比较）",
+];
+
 /// 返回归一化后的轨迹，输入不变。
 pub(super) fn normalize(trace: &Trace) -> Trace {
     let trace = drop_internal_bookkeeping(trace);
