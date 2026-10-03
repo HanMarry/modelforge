@@ -29,7 +29,11 @@ pub(super) fn enrich(session: &Session, effects: &mut [GooseEffect]) {
             } => (usage.clone(), true),
             _ => continue,
         };
-        let (cost, cost_source) = if let Some(cost) = usage.cost {
+        let (cost, cost_source) = if usage.cost_source.is_some() {
+            // Already priced upstream (the inference stream prices usage before
+            // emitting its `Usage` event); keep it so event and ledger agree.
+            (usage.cost, usage.cost_source)
+        } else if let Some(cost) = usage.cost {
             (Some(cost), Some(CostSource::ProviderReported))
         } else {
             match session.provider_name.as_deref().and_then(|provider| {
@@ -81,4 +85,11 @@ pub(super) async fn record(
 pub(super) async fn estimate_context(conversation: &Conversation) -> Result<TokenUsage> {
     let tokens = crate::context_mgmt::count_context_tokens(conversation).await?;
     Ok(TokenUsage::new(Some(tokens), None, Some(tokens)))
+}
+
+/// Context usage after a plain history replacement such as `/clear`: like the
+/// legacy command, output tokens restart at zero instead of becoming unknown.
+pub(super) async fn reset_context(conversation: &Conversation) -> Result<TokenUsage> {
+    let tokens = crate::context_mgmt::count_context_tokens(conversation).await?;
+    Ok(TokenUsage::new(Some(tokens), Some(0), Some(tokens)))
 }

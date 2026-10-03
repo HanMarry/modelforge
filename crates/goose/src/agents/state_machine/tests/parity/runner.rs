@@ -8,13 +8,15 @@
 use super::cases::all_cases;
 use super::harness::{run_both, STATE_MACHINE_ENV};
 use super::model::ExecPath;
-use super::report::{compare_case, report};
+use super::report::{case_traces, compare_case, report};
 use crate::agents::state_machine;
 
 /// 报告 JSON 的输出路径；未设置时只打印到标准输出。
 const REPORT_PATH_ENV: &str = "GOOSE_PARITY_REPORT";
 /// 写进报告的源码 commit；未设置时记为 `unknown`。
 const COMMIT_ENV: &str = "GOOSE_PARITY_COMMIT";
+/// 两条路径完整轨迹的输出路径（只用于排查差异）；未设置时不写。
+const TRACES_PATH_ENV: &str = "GOOSE_PARITY_TRACES";
 
 /// 默认路径守卫：未设置 `GOOSE_STATE_MACHINE` 时必须走 legacy 循环（需求 4.1）。
 #[test]
@@ -38,9 +40,15 @@ fn parity_paths_select_their_loop() {
 async fn state_machine_parity_report() {
     let cases = all_cases();
     let mut diffs = Vec::new();
+    let mut traces = Vec::with_capacity(cases.len());
     for case in &cases {
         let (legacy, state_machine) = run_both(case).await;
         diffs.extend(compare_case(case, &legacy, &state_machine));
+        traces.push(case_traces(case, &legacy, &state_machine));
+    }
+    if let Ok(path) = std::env::var(TRACES_PATH_ENV) {
+        let json = serde_json::to_string_pretty(&traces).expect("parity traces serialize");
+        std::fs::write(&path, json).expect("parity traces are writable");
     }
     let commit = std::env::var(COMMIT_ENV).unwrap_or_else(|_| "unknown".to_string());
     let report = report(&commit, &cases, diffs);

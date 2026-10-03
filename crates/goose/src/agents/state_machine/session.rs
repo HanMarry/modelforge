@@ -59,7 +59,7 @@ impl EffectHandler<Session, GooseEffect> for SessionManager {
                 )) => {
                     self.replace_conversation(&session.id, conversation).await?;
                     self.update(&session.id)
-                        .usage(usage::estimate_context(conversation).await?)
+                        .usage(usage::reset_context(conversation).await?)
                         .apply()
                         .await?;
                 }
@@ -113,25 +113,27 @@ impl EffectHandler<Session, GooseEffect> for SessionManager {
             }
         }
 
-        for effect in effects {
+        let persisted = session
+            .conversation
+            .as_ref()
+            .map(|conversation| conversation.messages().as_slice())
+            .unwrap_or_default();
+        let effects: &[GooseEffect] = effects;
+        for (index, effect) in effects.iter().enumerate() {
             match effect {
                 GooseEffect::Conversation(ConversationEffect::AppendMessage(message)) => {
                     if contains_tool_confirmation_request(message) {
                         // Responses can arrive immediately, so publish only after the persistence pass.
                         emit.emit(AgentEvent::Message(message.clone())).await;
                     }
-                    if let Some(usage) = message
-                        .metadata
-                        .usage
-                        .as_deref()
-                        .filter(|_| !message.user_visible_content().content.is_empty())
-                        .cloned()
-                    {
-                        emit.emit(AgentEvent::MessageUsage {
-                            message_id: message.id.clone(),
-                            usage,
-                        })
-                        .await;
+                    if awaited_tool_request_ids(message).is_empty() {
+                        if let Some(event) = message_usage_event(message) {
+                            emit.emit(event).await;
+                        }
+                    }
+                    let earlier = persisted.iter().chain(appended_messages(&effects[..index]));
+                    for event in completed_request_usage(earlier, message) {
+                        emit.emit(event).await;
                     }
                 }
                 GooseEffect::Conversation(ConversationEffect::ReplaceConversation(
@@ -141,14 +143,79 @@ impl EffectHandler<Session, GooseEffect> for SessionManager {
                     emit.emit(AgentEvent::HistoryReplaced(conversation.clone()))
                         .await;
                 }
-                GooseEffect::RecordUsage(usage) => {
-                    emit.emit(AgentEvent::Usage(usage.clone())).await
-                }
+                // `Usage` events are emitted by the inference operation as soon as the
+                // provider reports them, ahead of the chunk they arrived with.
                 _ => {}
             }
         }
         Ok(())
     }
+}
+
+/// Tool requests in `message` that goose itself must answer before the
+/// message's turn is complete (externally dispatched calls are answered elsewhere).
+fn awaited_tool_request_ids(message: &Message) -> Vec<&str> {
+    message
+        .content
+        .iter()
+        .filter_map(MessageContent::as_tool_request)
+        .filter(|request| !request.was_executed_externally())
+        .map(|request| request.id.as_str())
+        .collect()
+}
+
+fn message_usage_event(message: &Message) -> Option<AgentEvent> {
+    let usage = message.metadata.usage.as_deref()?;
+    if message.user_visible_content().content.is_empty() {
+        return None;
+    }
+    Some(AgentEvent::MessageUsage {
+        message_id: message.id.clone(),
+        usage: usage.clone(),
+    })
+}
+
+fn appended_messages(effects: &[GooseEffect]) -> impl Iterator<Item = &Message> {
+    effects.iter().filter_map(|effect| match effect {
+        GooseEffect::Conversation(ConversationEffect::AppendMessage(message)) => Some(message),
+        _ => None,
+    })
+}
+
+/// `MessageUsage` events for assistant messages whose awaited tool requests are
+/// all answered once `response` lands — the legacy loop reports a tool-calling
+/// message's usage only after its tool responses, at the end of the iteration.
+fn completed_request_usage<'a>(
+    earlier: impl Iterator<Item = &'a Message>,
+    response: &Message,
+) -> Vec<AgentEvent> {
+    let answered_now = response.get_tool_response_ids();
+    if answered_now.is_empty() {
+        return Vec::new();
+    }
+    let earlier = earlier.collect::<Vec<_>>();
+    let answered_before = earlier
+        .iter()
+        .flat_map(|message| message.get_tool_response_ids())
+        .collect::<std::collections::HashSet<_>>();
+    earlier
+        .iter()
+        .filter(|message| message.role == rmcp::model::Role::Assistant)
+        .filter_map(|message| {
+            let awaited = awaited_tool_request_ids(message);
+            let completes_now = awaited
+                .iter()
+                .any(|id| answered_now.contains(id) && !answered_before.contains(id));
+            let all_answered = awaited
+                .iter()
+                .all(|id| answered_now.contains(id) || answered_before.contains(id));
+            if completes_now && all_answered {
+                message_usage_event(message)
+            } else {
+                None
+            }
+        })
+        .collect()
 }
 
 impl EffectUsage<GooseEffect> for SessionManager {
@@ -187,7 +254,7 @@ async fn mirror_effects(session: &mut Session, effects: &[GooseEffect]) -> Resul
             }
             GooseEffect::Conversation(ConversationEffect::ReplaceConversation(conversation)) => {
                 session.conversation = Some(conversation.clone());
-                session.usage = usage::estimate_context(conversation).await?;
+                session.usage = usage::reset_context(conversation).await?;
             }
             GooseEffect::ReplaceConversation {
                 conversation,

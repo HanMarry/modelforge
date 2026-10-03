@@ -62,6 +62,7 @@ jobs:
         env:
           RUST_MIN_STACK: 8388608
           GOOSE_PARITY_REPORT: ${{ runner.temp }}/parity/parity-report.json
+          GOOSE_PARITY_TRACES: ${{ runner.temp }}/parity/parity-traces.json
           GOOSE_PARITY_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Accumulate parity-history.json
@@ -130,6 +131,10 @@ jobs:
               echo "| --- | --- | --- |"
               jq -r '.cases[] | "| \(.name) | \(.dimension) | \(.diffs) |"' "$report"
               echo
+              echo "比较前生效的内部记账剔除规则（需求 4.4）："
+              echo
+              jq -r '(.normalizationRules // [])[] | "- \(.)"' "$report"
+              echo
               echo "| 用例 | 维度 | 范围 | 位置 | 失败路径 | legacy | state machine |"
               echo "| --- | --- | --- | --- | --- | --- | --- |"
               jq -r ".diffs[] | \"| \\(.case) | \\(.dimension) | \\(.section) | \\(.index) | \\(.path // \"\") | \\(.legacy | $cell) | \\(.stateMachine | $cell) |\"" "$report"
@@ -148,6 +153,15 @@ jobs:
           path: ${{ runner.temp }}/parity/parity-report.json
           if-no-files-found: warn
           retention-days: 90
+
+      - name: Upload parity traces
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: parity-traces
+          path: ${{ runner.temp }}/parity/parity-traces.json
+          if-no-files-found: warn
+          retention-days: 30
 
       - name: Upload parity history
         if: always()

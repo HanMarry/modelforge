@@ -1,5 +1,13 @@
-//! 轨迹归一化（需求 4.4）：比较前把时间戳与运行时随机生成的标识替换为编号占位值。
+//! 轨迹归一化（需求 4.4）：比较前先剔除内部记账，再把时间戳与运行时随机生成的标识
+//! 替换为编号占位值。
 //!
+//! - 内部记账（`drop_internal_bookkeeping`，规则成文、只剔除既不发给模型也不展示给用户的内容）：
+//!   1. 消息 `metadata.operations`：状态机操作的记账笔记，注释写明从不发给 provider；
+//!   2. 工具请求 `_meta` 里的 `goose.executable`：状态机审批结果的执行标记，剔除后为空就去掉 `_meta`；
+//!   3. 持久化中 `userVisible=false` 且 `agentVisible=false` 的消息行：用户与模型都看不到，
+//!      只供状态机断点恢复（如确认决策、已处理的确认请求）；
+//!   4. `history_replaced` 事件里各消息的 `id`：legacy 在写库前发出、部分消息尚无 id，状态机
+//!      写库后发出、id 已分配；替换后的会话内容（含 id）由持久化写入逐行比较。
 //! - 时间戳：键名属于 `TIMESTAMP_KEYS` 的非空值，以及字符串里的日期时间文本，
 //!   按出现顺序依次替换为 `<ts#1>`、`<ts#2>`……每次出现各占一个编号，与取值无关，
 //!   两条路径跨过秒或分钟边界的先后不同也不会产生差异。
@@ -35,6 +43,10 @@ const ID_KEYS: [&str; 9] = [
     "tool_call_id",
     "toolCallId",
 ];
+/// 状态机操作记账（`MessageMetadata::operations`）的序列化键名。
+const OPERATIONS_KEY: &str = "operations";
+/// 状态机审批执行标记（`ops_tool_approval::TOOL_EXECUTABLE_KEY`）。
+const TOOL_EXECUTABLE_KEY: &str = "goose.executable";
 // 只用 ASCII 字符类：`regex` 在本 crate 关闭了默认 feature，`\d`、`\s` 依赖 unicode-perl。
 const DATETIME_PATTERN: &str = concat!(
     r"[0-9]{4}-[0-9]{2}-[0-9]{2}[T ][0-9]{2}:[0-9]{2}",
@@ -43,8 +55,18 @@ const DATETIME_PATTERN: &str = concat!(
 const UUID_PATTERN: &str =
     r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
 
+/// 内部记账剔除规则的说明文本，原样写进差异报告，便于审计（需求 4.4）。
+/// 与 `drop_internal_bookkeeping` 的实现一一对应，改规则时两处同步修改。
+pub(super) const INTERNAL_BOOKKEEPING_RULES: [&str; 4] = [
+    "剔除消息 metadata.operations（状态机操作记账，从不发给模型、不展示给用户）",
+    "剔除 toolRequest._meta 中的 goose.executable 标记，剔除后为空则删除 _meta",
+    "丢弃持久化中 userVisible=false 且 agentVisible=false 的消息行",
+    "删除 history_replaced 事件内各消息的 id（替换后的会话内容由持久化写入逐行比较）",
+];
+
 /// 返回归一化后的轨迹，输入不变。
 pub(super) fn normalize(trace: &Trace) -> Trace {
+    let trace = drop_internal_bookkeeping(trace);
     let mut normalizer = Normalizer::new();
     let mut events = Vec::with_capacity(trace.events.len());
     for value in &trace.events {
@@ -57,6 +79,90 @@ pub(super) fn normalize(trace: &Trace) -> Trace {
     Trace {
         events,
         persistence,
+    }
+}
+
+/// 按模块文档列出的四条规则剔除内部记账，其余内容原样保留。
+fn drop_internal_bookkeeping(trace: &Trace) -> Trace {
+    let events = trace
+        .events
+        .iter()
+        .cloned()
+        .map(|mut event| {
+            match event.get("type").and_then(Value::as_str) {
+                Some("message") => {
+                    if let Some(message) = event.get_mut("message") {
+                        strip_message(message);
+                    }
+                }
+                Some("history_replaced") => {
+                    if let Some(Value::Array(messages)) = event.get_mut("conversation") {
+                        for message in messages {
+                            strip_message(message);
+                            if let Some(fields) = message.as_object_mut() {
+                                fields.remove("id");
+                            }
+                        }
+                    }
+                }
+                _ => {}
+            }
+            event
+        })
+        .collect();
+    let persistence = trace
+        .persistence
+        .iter()
+        .filter(|row| !is_invisible_message_row(row))
+        .cloned()
+        .map(|mut row| {
+            if row.get("table").and_then(Value::as_str) == Some("messages") {
+                strip_message(&mut row);
+            }
+            row
+        })
+        .collect();
+    Trace {
+        events,
+        persistence,
+    }
+}
+
+fn is_invisible_message_row(row: &Value) -> bool {
+    let flag = |key: &str| {
+        row.pointer(&format!("/metadata/{key}"))
+            .and_then(Value::as_bool)
+    };
+    row.get("table").and_then(Value::as_str) == Some("messages")
+        && flag("userVisible") == Some(false)
+        && flag("agentVisible") == Some(false)
+}
+
+/// 消息事件与持久化消息行共用：两者都有 `metadata` 与 `content`。
+fn strip_message(message: &mut Value) {
+    if let Some(Value::Object(metadata)) = message.get_mut("metadata") {
+        metadata.remove(OPERATIONS_KEY);
+    }
+    let Some(Value::Array(content)) = message.get_mut("content") else {
+        return;
+    };
+    for item in content {
+        if item.get("type").and_then(Value::as_str) != Some("toolRequest") {
+            continue;
+        }
+        let Some(fields) = item.as_object_mut() else {
+            continue;
+        };
+        let emptied = match fields.get_mut("_meta") {
+            Some(Value::Object(meta)) => {
+                meta.remove(TOOL_EXECUTABLE_KEY);
+                meta.is_empty()
+            }
+            _ => false,
+        };
+        if emptied {
+            fields.remove("_meta");
+        }
     }
 }
 
@@ -191,5 +297,92 @@ mod tests {
         let original = trace(events, persistence);
 
         assert_eq!(normalize(&original), original);
+    }
+
+    #[test]
+    fn drops_operations_notes_and_executable_markers_only() {
+        fn request(meta: Value) -> Value {
+            json!({
+                "type": "toolRequest",
+                "toolCall": { "status": "success" },
+                "_meta": meta,
+            })
+        }
+        let message = json!({
+            "role": "assistant",
+            "content": [
+                request(json!({ "goose.executable": true })),
+                request(json!({ "goose.executable": false, "goose_extension": "calculator" })),
+            ],
+            "metadata": {
+                "userVisible": true,
+                "agentVisible": true,
+                "operations": { "llm": { "advertised_tools": ["calculator__add"] } },
+            },
+        });
+        let events = vec![json!({ "type": "message", "message": message.clone() })];
+        let mut row = message;
+        row["table"] = json!("messages");
+
+        let stripped = drop_internal_bookkeeping(&trace(events, vec![row]));
+
+        let expected = json!({
+            "role": "assistant",
+            "content": [
+                { "type": "toolRequest", "toolCall": { "status": "success" } },
+                request(json!({ "goose_extension": "calculator" })),
+            ],
+            "metadata": { "userVisible": true, "agentVisible": true },
+        });
+        assert_eq!(stripped.events[0]["message"], expected);
+        let mut expected_row = expected;
+        expected_row["table"] = json!("messages");
+        assert_eq!(stripped.persistence, vec![expected_row]);
+    }
+
+    #[test]
+    fn drops_message_rows_hidden_from_both_user_and_agent() {
+        let row = |user: bool, agent: bool| {
+            json!({
+                "table": "messages",
+                "metadata": { "userVisible": user, "agentVisible": agent },
+            })
+        };
+        let ledger = json!({ "table": "usage_ledger", "total_tokens": 15 });
+        let persistence = vec![
+            row(true, false),
+            row(false, false),
+            row(false, true),
+            ledger.clone(),
+        ];
+
+        let stripped = drop_internal_bookkeeping(&trace(Vec::new(), persistence));
+
+        assert_eq!(
+            stripped.persistence,
+            vec![row(true, false), row(false, true), ledger]
+        );
+    }
+
+    #[test]
+    fn drops_message_ids_inside_history_replacements() {
+        let event = json!({
+            "type": "history_replaced",
+            "conversation": [
+                { "id": "msg_1", "role": "user", "content": [] },
+                { "id": null, "role": "assistant", "content": [] },
+            ],
+        });
+
+        let stripped = drop_internal_bookkeeping(&trace(vec![event], Vec::new()));
+
+        let expected = json!({
+            "type": "history_replaced",
+            "conversation": [
+                { "role": "user", "content": [] },
+                { "role": "assistant", "content": [] },
+            ],
+        });
+        assert_eq!(stripped.events, vec![expected]);
     }
 }

@@ -7,7 +7,7 @@ use serde::Serialize;
 use serde_json::{json, Value};
 
 use super::model::{Dimension, ExecPath, FailureKind, ParityCase, PathResult, Trace};
-use super::normalize::normalize;
+use super::normalize::{normalize, INTERNAL_BOOKKEEPING_RULES};
 
 /// 差异所在的比较范围。
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
@@ -72,6 +72,8 @@ pub(super) struct ParityReport {
     pub(super) commit: String,
     pub(super) total_diffs: usize,
     pub(super) uncovered_dimensions: Vec<Dimension>,
+    /// 比较前生效的内部记账剔除规则（需求 4.4），随报告输出以便审计。
+    pub(super) normalization_rules: Vec<&'static str>,
     pub(super) cases: Vec<CaseSummary>,
     pub(super) diffs: Vec<DiffItem>,
 }
@@ -162,6 +164,31 @@ fn outcome_summary(result: &PathResult) -> Value {
     }
 }
 
+/// 一个用例两条路径归一化后的完整轨迹，只用于排查差异，不参与判定。
+/// 差异报告按位置比较，一侧多出或少了一项后，后面的项会整体错位；完整轨迹能直接看出
+/// 两侧序列的真实形状。路径失败时该侧是失败原因。
+pub(super) fn case_traces(
+    case: &ParityCase,
+    legacy: &PathResult,
+    state_machine: &PathResult,
+) -> Value {
+    fn side(result: &PathResult) -> Value {
+        match result {
+            Ok(trace) => {
+                let trace = normalize(trace);
+                json!({ "events": trace.events, "persistence": trace.persistence })
+            }
+            Err(_) => outcome_summary(result),
+        }
+    }
+    json!({
+        "case": case.name,
+        "dimension": case.dimension,
+        "legacy": side(legacy),
+        "stateMachine": side(state_machine),
+    })
+}
+
 /// 汇总差异项：总数、每个用例的差异数，以及没有任何用例的维度（需求 4.5）。
 pub(super) fn report(commit: &str, cases: &[ParityCase], diffs: Vec<DiffItem>) -> ParityReport {
     let mut uncovered_dimensions = Vec::new();
@@ -184,6 +211,7 @@ pub(super) fn report(commit: &str, cases: &[ParityCase], diffs: Vec<DiffItem>) -
         commit: commit.to_string(),
         total_diffs: diffs.len(),
         uncovered_dimensions,
+        normalization_rules: INTERNAL_BOOKKEEPING_RULES.to_vec(),
         cases: summaries,
         diffs,
     }
@@ -261,6 +289,10 @@ mod tests {
         assert_eq!(json["totalDiffs"], 2);
         assert_eq!(json["diffs"][0]["stateMachine"], "c");
         assert_eq!(json["uncoveredDimensions"][0], "tool_approval");
+        assert_eq!(
+            json["normalizationRules"].as_array().map(Vec::len),
+            Some(INTERNAL_BOOKKEEPING_RULES.len())
+        );
     }
 
     #[test]
