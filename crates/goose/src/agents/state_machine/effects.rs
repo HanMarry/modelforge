@@ -14,7 +14,7 @@ pub enum GooseEffect {
         /// event for this replacement; never persisted. Lets an operation report
         /// completion only once clients have the new history, as the legacy
         /// loop does after an auto-compaction.
-        then_announce: Option<Message>,
+        then_announce: Option<Box<Message>>,
     },
     SetRecipe(Box<Option<Recipe>>),
     SetExtensionData(ExtensionData),

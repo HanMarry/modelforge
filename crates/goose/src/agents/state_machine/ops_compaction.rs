@@ -322,10 +322,10 @@ impl Operation<Session, GooseEffect> for CompactionOperation {
                 } else {
                     // Reported once the replacement is published, as the legacy loop
                     // yields it after `HistoryReplaced`.
-                    then_announce = Some(Message::assistant().with_system_notification(
+                    then_announce = Some(Box::new(Message::assistant().with_system_notification(
                         SystemNotificationType::InlineMessage,
                         "Compaction complete",
-                    ));
+                    )));
                 }
                 applied([GooseEffect::ReplaceConversation {
                     conversation: compacted,

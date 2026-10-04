@@ -151,7 +151,7 @@ impl EffectHandler<Session, GooseEffect> for SessionManager {
                     emit.emit(AgentEvent::HistoryReplaced(conversation.clone()))
                         .await;
                     if let Some(announcement) = then_announce {
-                        emit.message(announcement.clone()).await;
+                        emit.message(announcement.as_ref().clone()).await;
                     }
                 }
                 // `Usage` events are emitted by the inference operation as soon as the
