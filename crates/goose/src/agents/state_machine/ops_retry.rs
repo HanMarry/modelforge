@@ -1,6 +1,6 @@
 //! Decides whether a completed response should finish, continue, or retry the turn.
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use async_trait::async_trait;
 use std::time::Duration;
 
@@ -8,7 +8,7 @@ use crate::agents::retry::{
     execute_on_failure_command_with_timeout, execute_success_checks_with_timeout,
 };
 use crate::agents::state_machine::{
-    applied, ends_turn, messages_since_kickoff, not_applicable, yielded_with, ConversationEffect,
+    applied, command_exchange, ends_turn, messages_since_kickoff, not_applicable, yielded_with,
     Emitter, GooseEffect, Operation, OperationResult, SlashCommand,
 };
 use crate::agents::types::RetryConfig;
@@ -138,28 +138,7 @@ impl Operation<Session, GooseEffect> for RetryOperation<'_> {
             Message::assistant().with_text(text)
         };
 
-        let command_message = messages_since_kickoff(conversation)?
-            .first()
-            .cloned()
-            .ok_or_else(|| anyhow!("slash command conversation has no kickoff message"))?;
-        let message_id = command_message
-            .id
-            .clone()
-            .ok_or_else(|| anyhow!("Persisted slash command message has no id"))?;
-        let command_message = command_message.with_visibility(true, false);
-        let response = response.with_visibility(true, false);
-        emit.message(command_message).await;
-        let response = emit.message(response).await;
-
-        let mut effects = vec![
-            ConversationEffect::SetMessageVisibility {
-                message_id,
-                user_visible: true,
-                agent_visible: false,
-            }
-            .into(),
-            response.into(),
-        ];
+        let mut effects = command_exchange(conversation, response, emit).await?;
         if starts_turn {
             effects.push(
                 Message::user()

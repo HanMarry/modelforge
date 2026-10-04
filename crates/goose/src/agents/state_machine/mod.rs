@@ -61,7 +61,7 @@ pub(super) use ops_project::ProjectOperation;
 pub(super) use ops_recipe::RecipeOperation;
 pub(super) use ops_retry::RetryOperation;
 pub(super) use ops_skills::SkillOperation;
-pub(super) use ops_slash_command::SlashCommandOperation;
+pub(super) use ops_slash_command::{command_exchange, SlashCommandOperation};
 pub(super) use ops_status::StatusOperation;
 pub(super) use ops_steer::{SteerOperation, SteerQueue};
 pub(super) use ops_stop_hook::StopHookOperation;

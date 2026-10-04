@@ -5,8 +5,8 @@ use async_trait::async_trait;
 use rmcp::model::Role;
 
 use crate::agents::state_machine::{
-    applied, messages_since_kickoff, not_applicable, yielded_with, ConversationEffect, Emitter,
-    GooseEffect, Operation, OperationResult, SlashCommand,
+    applied, command_exchange, messages_since_kickoff, not_applicable, yielded_with,
+    ConversationEffect, Emitter, GooseEffect, Operation, OperationResult, SlashCommand,
 };
 use crate::conversation::message::Message;
 use crate::conversation::Conversation;
@@ -31,14 +31,6 @@ impl Operation<Session, GooseEffect> for DoctorOperation {
             return not_applicable();
         }
 
-        let command_message = messages_since_kickoff(conversation)?
-            .first()
-            .cloned()
-            .ok_or_else(|| anyhow!("doctor command conversation has no kickoff message"))?;
-        let message_id = command_message
-            .id
-            .clone()
-            .ok_or_else(|| anyhow!("Persisted slash command message has no id"))?;
         // Doctor still needs the legacy Agent, so keep that lookup contained at this boundary.
         let agent = crate::execution::manager::AgentManager::instance()
             .await?
@@ -50,21 +42,13 @@ impl Operation<Session, GooseEffect> for DoctorOperation {
         };
 
         if result.role == Role::Assistant {
-            let command_message = command_message.with_visibility(true, false);
-            let result = result.with_visibility(true, false);
-            emit.message(command_message).await;
-            let result = emit.message(result).await;
-            return yielded_with([
-                ConversationEffect::SetMessageVisibility {
-                    message_id,
-                    user_visible: true,
-                    agent_visible: false,
-                }
-                .into(),
-                result.into(),
-            ]);
+            return yielded_with(command_exchange(conversation, result, emit).await?);
         }
 
+        let message_id = messages_since_kickoff(conversation)?
+            .first()
+            .and_then(|command| command.id.clone())
+            .ok_or_else(|| anyhow!("Persisted slash command message has no id"))?;
         applied([
             ConversationEffect::SetMessageVisibility {
                 message_id,

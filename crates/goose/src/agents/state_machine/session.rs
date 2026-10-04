@@ -66,6 +66,7 @@ impl EffectHandler<Session, GooseEffect> for SessionManager {
                 GooseEffect::ReplaceConversation {
                     conversation,
                     usage: replacement_usage,
+                    ..
                 } => {
                     if let Some(provider_usage) = replacement_usage {
                         usage::record(self, session, provider_usage, true).await?;
@@ -138,10 +139,20 @@ impl EffectHandler<Session, GooseEffect> for SessionManager {
                 }
                 GooseEffect::Conversation(ConversationEffect::ReplaceConversation(
                     conversation,
-                ))
-                | GooseEffect::ReplaceConversation { conversation, .. } => {
+                )) => {
                     emit.emit(AgentEvent::HistoryReplaced(conversation.clone()))
                         .await;
+                }
+                GooseEffect::ReplaceConversation {
+                    conversation,
+                    then_announce,
+                    ..
+                } => {
+                    emit.emit(AgentEvent::HistoryReplaced(conversation.clone()))
+                        .await;
+                    if let Some(announcement) = then_announce {
+                        emit.message(announcement.clone()).await;
+                    }
                 }
                 // `Usage` events are emitted by the inference operation as soon as the
                 // provider reports them, ahead of the chunk they arrived with.
@@ -259,6 +270,7 @@ async fn mirror_effects(session: &mut Session, effects: &[GooseEffect]) -> Resul
             GooseEffect::ReplaceConversation {
                 conversation,
                 usage: replacement_usage,
+                ..
             } => {
                 if let Some(provider_usage) = replacement_usage {
                     session.accumulated_usage += provider_usage.usage;

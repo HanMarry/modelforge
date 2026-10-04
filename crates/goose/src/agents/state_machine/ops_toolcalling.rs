@@ -12,8 +12,8 @@ use crate::agents::platform_extensions::MANAGE_EXTENSIONS_TOOL_NAME_COMPLETE;
 use crate::agents::state_machine::ops_llm::{ADVERTISED_TOOLS_NOTE, LLM_OPERATION_NAME};
 use crate::agents::state_machine::ops_tool_approval::request_executable;
 use crate::agents::state_machine::{
-    applied, messages_since_kickoff, not_applicable, yielded_with, ConversationEffect, Emitter,
-    GooseEffect, Operation, OperationResult, SlashCommand,
+    applied, command_exchange, messages_since_kickoff, not_applicable, yielded_with,
+    ConversationEffect, Emitter, GooseEffect, Operation, OperationResult, SlashCommand,
 };
 use crate::agents::tool_execution::{
     declined_response, tool_stream, ToolCallResult, ToolStreamItem, CHAT_MODE_TOOL_SKIPPED_RESPONSE,
@@ -407,29 +407,8 @@ impl<'a> ToolExecutionOperation<'a> {
         message: String,
         emit: &Emitter,
     ) -> Result<OperationResult<GooseEffect>> {
-        let command = messages_since_kickoff(conversation)?
-            .first()
-            .cloned()
-            .ok_or_else(|| anyhow!("prompt command conversation has no kickoff message"))?;
-        let message_id = command
-            .id
-            .clone()
-            .ok_or_else(|| anyhow!("Persisted slash command message has no id"))?;
-        let command = command.with_visibility(true, false);
-        let response = Message::assistant()
-            .with_text(message)
-            .with_visibility(true, false);
-        emit.message(command).await;
-        let response = emit.message(response).await;
-        yielded_with([
-            ConversationEffect::SetMessageVisibility {
-                message_id,
-                user_visible: true,
-                agent_visible: false,
-            }
-            .into(),
-            response.into(),
-        ])
+        let response = Message::assistant().with_text(message);
+        yielded_with(command_exchange(conversation, response, emit).await?)
     }
 
     async fn list_prompts(

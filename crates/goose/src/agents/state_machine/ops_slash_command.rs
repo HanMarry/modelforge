@@ -2,13 +2,15 @@
 
 use std::sync::Arc;
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 
 use crate::agents::state_machine::effects::GooseEffect;
 use crate::agents::state_machine::{
-    messages_since_kickoff, not_applicable, Emitter, Operation, OperationResult, SlashCommand,
+    messages_since_kickoff, not_applicable, ConversationEffect, Emitter, Operation,
+    OperationResult, SlashCommand,
 };
+use crate::conversation::message::Message;
 use crate::conversation::Conversation;
 use crate::session::Session;
 
@@ -39,6 +41,36 @@ impl<'a> SlashCommandOperation<'a> {
     pub fn new(operations: Vec<Arc<dyn Operation<Session, GooseEffect> + 'a>>) -> Self {
         Self { operations }
     }
+}
+
+/// Answers the slash command that kicked off `conversation` the way the legacy
+/// command path does: clients see the command as the user sent it and the reply
+/// with the visibility its handler gave it, while both are recorded as
+/// user-visible only. Returns the effects that record the exchange.
+pub(crate) async fn command_exchange(
+    conversation: &Conversation,
+    reply: Message,
+    emit: &Emitter,
+) -> Result<Vec<GooseEffect>> {
+    let command = messages_since_kickoff(conversation)?
+        .first()
+        .cloned()
+        .ok_or_else(|| anyhow!("slash command conversation has no kickoff message"))?;
+    let message_id = command
+        .id
+        .clone()
+        .ok_or_else(|| anyhow!("Persisted slash command message has no id"))?;
+    emit.message(command).await;
+    let reply = emit.message(reply).await.with_visibility(true, false);
+    Ok(vec![
+        ConversationEffect::SetMessageVisibility {
+            message_id,
+            user_visible: true,
+            agent_visible: false,
+        }
+        .into(),
+        reply.into(),
+    ])
 }
 
 #[async_trait]

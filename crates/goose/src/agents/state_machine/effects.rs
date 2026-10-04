@@ -10,6 +10,11 @@ pub enum GooseEffect {
     ReplaceConversation {
         conversation: Conversation,
         usage: Option<ProviderUsage>,
+        /// Transient notification published right after the `HistoryReplaced`
+        /// event for this replacement; never persisted. Lets an operation report
+        /// completion only once clients have the new history, as the legacy
+        /// loop does after an auto-compaction.
+        then_announce: Option<Message>,
     },
     SetRecipe(Box<Option<Recipe>>),
     SetExtensionData(ExtensionData),

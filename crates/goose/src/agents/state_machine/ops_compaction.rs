@@ -153,6 +153,17 @@ impl Operation<Session, GooseEffect> for CompactionOperation {
             _ => return not_applicable(),
         }
 
+        // Like the legacy command path, compact the history the command was sent
+        // after, then record the command and its reply after the summary.
+        let since_kickoff = messages_since_kickoff(conversation)?;
+        let command = since_kickoff
+            .first()
+            .cloned()
+            .ok_or_else(|| anyhow!("compact command conversation has no kickoff message"))?;
+        let history = Conversation::new_unvalidated(
+            conversation.messages()[..conversation.len() - since_kickoff.len()].to_vec(),
+        );
+
         let span = chat_span(
             self.provider.as_ref(),
             &self.model_config,
@@ -163,7 +174,7 @@ impl Operation<Session, GooseEffect> for CompactionOperation {
             self.provider.as_ref(),
             &self.model_config,
             &session.id,
-            conversation,
+            &history,
             true,
         )
         .instrument(span.clone())
@@ -175,27 +186,23 @@ impl Operation<Session, GooseEffect> for CompactionOperation {
                 return Self::command_error(conversation, error.to_string(), emit).await;
             }
         };
-        let compacted = result.conversation;
         let usage = result.usage;
         record_chat_usage(&span, &usage);
 
-        let command = messages_since_kickoff(conversation)?
-            .first()
-            .cloned()
-            .ok_or_else(|| anyhow!("compact command conversation has no kickoff message"))?
-            .with_visibility(true, false);
         let response = Message::assistant()
             .with_text("Compaction complete")
             .with_visibility(true, false);
-        emit.message(command).await;
+        // Echo the command as the user sent it; the replacement records it as
+        // user-only.
+        let command = emit.message(command).await.with_visibility(true, false);
         let response = emit.message(response).await;
-        yielded_with([
-            GooseEffect::ReplaceConversation {
-                conversation: compacted,
-                usage: Some(usage),
-            },
-            response.into(),
-        ])
+        let mut compacted = result.conversation.messages().to_vec();
+        compacted.extend([command, response]);
+        yielded_with([GooseEffect::ReplaceConversation {
+            conversation: Conversation::new_unvalidated(compacted),
+            usage: Some(usage),
+            then_announce: None,
+        }])
     }
 
     async fn moim_parts(
@@ -302,6 +309,7 @@ impl Operation<Session, GooseEffect> for CompactionOperation {
                 let mut compacted = result.conversation;
                 let usage = result.usage;
                 record_chat_usage(&span, &usage);
+                let mut then_announce = None;
                 if reactive_context_error {
                     // The summary directly follows the retained originals.
                     if let Some(summary) = compacted.messages_mut().get_mut(conversation.len()) {
@@ -312,15 +320,17 @@ impl Operation<Session, GooseEffect> for CompactionOperation {
                         );
                     }
                 } else {
-                    emit.message(Message::assistant().with_system_notification(
+                    // Reported once the replacement is published, as the legacy loop
+                    // yields it after `HistoryReplaced`.
+                    then_announce = Some(Message::assistant().with_system_notification(
                         SystemNotificationType::InlineMessage,
                         "Compaction complete",
-                    ))
-                    .await;
+                    ));
                 }
                 applied([GooseEffect::ReplaceConversation {
                     conversation: compacted,
                     usage: Some(usage),
+                    then_announce,
                 }])
             }
             Err(e) => {

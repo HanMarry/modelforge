@@ -1,13 +1,13 @@
 use std::sync::Arc;
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use async_trait::async_trait;
 use goose_providers::base::Provider;
 use goose_providers::model::ModelConfig;
 
 use crate::agents::state_machine::{
-    messages_since_kickoff, not_applicable, yielded_with, ConversationEffect, Emitter, GooseEffect,
-    Operation, OperationResult, SlashCommand,
+    command_exchange, not_applicable, yielded_with, Emitter, GooseEffect, Operation,
+    OperationResult, SlashCommand,
 };
 use crate::conversation::message::Message;
 use crate::conversation::Conversation;
@@ -61,25 +61,6 @@ impl Operation<Session, GooseEffect> for StatusOperation {
             "N/A".to_string()
         };
         let response = Message::assistant().with_text(format!("**Session status**\n\n- Model: {}\n- Provider: {}\n- Mode: {}\n- Tokens (lifetime): {}\n- Context: {} / {} tokens ({})", self.model_config.model_name, self.provider.get_name(), session.goose_mode, lifetime_tokens, context_tokens, context_limit, context_pct)).with_visibility(true, false);
-        let command_message = messages_since_kickoff(conversation)?
-            .first()
-            .cloned()
-            .ok_or_else(|| anyhow!("status command conversation has no kickoff message"))?;
-        let message_id = command_message
-            .id
-            .clone()
-            .ok_or_else(|| anyhow!("Persisted slash command message has no id"))?;
-        emit.message(command_message.with_visibility(true, false))
-            .await;
-        let response = emit.message(response).await;
-        yielded_with([
-            ConversationEffect::SetMessageVisibility {
-                message_id,
-                user_visible: true,
-                agent_visible: false,
-            }
-            .into(),
-            response.into(),
-        ])
+        yielded_with(command_exchange(conversation, response, emit).await?)
     }
 }
