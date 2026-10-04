@@ -237,6 +237,7 @@ mod tests {
             dimension,
             input,
             initial_session: Vec::new(),
+            initial_context_tokens: None,
         }
     }
 

@@ -101,6 +101,9 @@ pub(super) struct ParityCase {
     pub(super) input: CaseInput,
     /// 运行前按顺序写入会话存储的消息。
     pub(super) initial_session: Vec<Message>,
+    /// 运行前写入会话记录的上下文用量（`usage.total_tokens`）；超过自动压缩阈值时
+    /// 两条路径都会在推理前主动压缩。`None` 表示不写，用量由消息估算。
+    pub(super) initial_context_tokens: Option<i32>,
 }
 
 #[derive(Clone, Debug)]

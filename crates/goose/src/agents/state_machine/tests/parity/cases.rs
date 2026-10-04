@@ -15,6 +15,8 @@ use crate::permission::Permission;
 /// 所以上限取得比任何用例预期的推理次数都大。
 const MAX_TURNS: u32 = 5;
 const CALL_ID: &str = "call-1";
+/// 超过自动压缩阈值的上下文用量：harness 固定上下文上限 128000、阈值 0.8，即 102400。
+const OVER_THRESHOLD_TOKENS: i32 = 110_000;
 
 /// Stop hook：第一次结束轮次时以退出码 2 拒绝并要求继续，之后放行。
 /// 标记文件放在插件目录里，两条路径各自使用独立的临时目录。
@@ -45,9 +47,14 @@ pub(super) fn all_cases() -> Vec<ParityCase> {
         transient_server_error(),
         empty_reply(),
         context_limit_compaction(),
+        auto_compaction_over_threshold(),
         resume_existing_history(),
         second_turn_in_session(),
         clear_command(),
+        compact_command(),
+        status_command(),
+        goal_query_command(),
+        prompts_command(),
         unknown_command(),
         auto_tool_call(),
         scheduled_turn(),
@@ -86,6 +93,7 @@ fn single_turn(
         dimension,
         input,
         initial_session: Vec::new(),
+        initial_context_tokens: None,
     }
 }
 
@@ -146,6 +154,7 @@ fn user_only_message() -> ParityCase {
         dimension: Dimension::MessageVisibility,
         input: case_input(vec![turn], Vec::new()),
         initial_session: Vec::new(),
+        initial_context_tokens: None,
     }
 }
 
@@ -229,6 +238,24 @@ fn context_limit_compaction() -> ParityCase {
     case
 }
 
+/// 上下文压缩：会话记录的上下文用量已超过自动压缩阈值（128000 × 0.8），
+/// 推理前主动压缩（一次摘要调用），比较提示、`history_replaced` 与“Compaction complete”的先后。
+fn auto_compaction_over_threshold() -> ParityCase {
+    let script = vec![
+        ScriptStep::Text("Summary: the user asked what two plus two is."),
+        ScriptStep::Text("Five plus five is ten."),
+    ];
+    let mut case = single_turn(
+        "auto_compaction_over_threshold",
+        Dimension::ContextCompaction,
+        "And five plus five?",
+        script,
+    );
+    case.initial_session = prior_exchange();
+    case.initial_context_tokens = Some(OVER_THRESHOLD_TOKENS);
+    case
+}
+
 /// 会话恢复：会话存储里已有历史，在其上继续一轮。
 fn resume_existing_history() -> ParityCase {
     let script = vec![ScriptStep::Text("Four plus four is eight.")];
@@ -251,6 +278,7 @@ fn second_turn_in_session() -> ParityCase {
         dimension: Dimension::SessionResume,
         input: case_input(turns, script),
         initial_session: Vec::new(),
+        initial_context_tokens: None,
     }
 }
 
@@ -264,6 +292,52 @@ fn clear_command() -> ParityCase {
     );
     case.initial_session = prior_exchange();
     case
+}
+
+/// slash command：`/compact` 手动压缩已有历史（一次摘要调用），比较命令回显、
+/// “Compaction complete”与 `history_replaced` 的内容和先后。
+fn compact_command() -> ParityCase {
+    let script = vec![ScriptStep::Text(
+        "Summary: the user asked what two plus two is.",
+    )];
+    let mut case = single_turn(
+        "compact_command",
+        Dimension::SlashCommand,
+        "/compact",
+        script,
+    );
+    case.initial_session = prior_exchange();
+    case
+}
+
+/// slash command：`/status` 只回报会话状态（仅用户可见），不调用 provider。
+fn status_command() -> ParityCase {
+    single_turn(
+        "status_command",
+        Dimension::SlashCommand,
+        "/status",
+        Vec::new(),
+    )
+}
+
+/// slash command：不带参数的 `/goal` 查询当前目标，不调用 provider。
+fn goal_query_command() -> ParityCase {
+    single_turn(
+        "goal_query_command",
+        Dimension::SlashCommand,
+        "/goal",
+        Vec::new(),
+    )
+}
+
+/// slash command：`/prompts` 列出扩展提供的 prompt（本用例没有扩展），不调用 provider。
+fn prompts_command() -> ParityCase {
+    single_turn(
+        "prompts_command",
+        Dimension::SlashCommand,
+        "/prompts",
+        Vec::new(),
+    )
 }
 
 /// slash command：未知命令按普通消息交给模型。

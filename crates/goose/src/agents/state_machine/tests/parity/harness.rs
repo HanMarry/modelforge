@@ -28,7 +28,7 @@ use crate::conversation::message::{ActionRequiredData, MessageContent};
 use crate::hooks::HookManager;
 use crate::permission::Permission;
 use crate::plugins::discovery::{DiscoveredPlugin, PluginScope};
-use crate::providers::base::Provider;
+use crate::providers::base::{Provider, Usage};
 use crate::session::{SessionManager, SessionType};
 use goose_providers::model::ModelConfig;
 
@@ -143,6 +143,10 @@ async fn execute(case: &ParityCase) -> Result<Trace> {
     }
     for message in &case.initial_session {
         sessions.add_message(id, message).await?;
+    }
+    if let Some(tokens) = case.initial_context_tokens {
+        let usage = Usage::new(Some(tokens), Some(0), Some(tokens));
+        sessions.update(id).usage(usage).apply().await?;
     }
 
     let mut events = Vec::new();

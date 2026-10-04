@@ -162,6 +162,7 @@ fn property_case() -> ParityCase {
         dimension: Dimension::MessageVisibility,
         input,
         initial_session: Vec::new(),
+        initial_context_tokens: None,
     }
 }
 
