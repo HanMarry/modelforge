@@ -75,12 +75,12 @@ interface Stats {
   longestStreak: number;
 }
 
-const dayKeyFromDate = (date: Date): string =>
+export const dayKeyFromDate = (date: Date): string =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
     date.getDate()
   ).padStart(2, '0')}`;
 
-const dayKey = (value: string | undefined): string | null => {
+export const dayKey = (value: string | undefined): string | null => {
   if (!value) return null;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return null;
@@ -91,8 +91,14 @@ const dayKey = (value: string | undefined): string | null => {
  * Consecutive active days. The current streak counts back from today, but a day with no
  * activity yet does not break it — otherwise every streak would read 0 until the user
  * sends their first prompt of the day.
+ *
+ * Uses `Math.round((current - previous) / 86_400_000) === 1` so 23-hour and 25-hour
+ * daylight-saving transition days are still treated as consecutive calendar days.
  */
-function streaks(activeDays: Map<string, number>): { current: number; longest: number } {
+export function streaks(
+  activeDays: Map<string, number>,
+  now: Date = new Date()
+): { current: number; longest: number } {
   const days = [...activeDays.entries()]
     .filter(([, count]) => count > 0)
     .map(([key]) => key)
@@ -104,12 +110,12 @@ function streaks(activeDays: Map<string, number>): { current: number; longest: n
   for (let index = 1; index < days.length; index++) {
     const previous = new Date(`${days[index - 1]}T00:00:00`).getTime();
     const current = new Date(`${days[index]}T00:00:00`).getTime();
-    run = current - previous === 86_400_000 ? run + 1 : 1;
+    run = Math.round((current - previous) / 86_400_000) === 1 ? run + 1 : 1;
     longest = Math.max(longest, run);
   }
 
   const active = new Set(days);
-  const cursor = new Date();
+  const cursor = new Date(now.getTime());
   cursor.setHours(0, 0, 0, 0);
   if (!active.has(dayKeyFromDate(cursor))) cursor.setDate(cursor.getDate() - 1);
   let current = 0;

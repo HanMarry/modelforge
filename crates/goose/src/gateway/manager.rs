@@ -230,7 +230,8 @@ impl GatewayManager {
             self.pairing_store.clone(),
             gateway.clone(),
             config.clone(),
-        );
+        )
+        .with_cancel_token(cancel.clone());
         let handler_for_task = handler.clone();
 
         let gateway_clone = gateway.clone();

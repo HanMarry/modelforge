@@ -9,6 +9,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type { IpcMain } from 'electron';
+import { writeFileAtomicSync } from '../../utils/atomicWrite';
 import type { CredentialStore } from '../../utils/credentialStore';
 import { maskSecret } from '../../utils/secretMask';
 import { describeError, toIpcError, type IpcResult } from '../../utils/ipcResult';
@@ -99,7 +100,7 @@ export function registerFeishuIpc(
 
   const writeState = (state: FeishuState): void => {
     fs.mkdirSync(path.dirname(deps.file), { recursive: true });
-    fs.writeFileSync(deps.file, JSON.stringify(state, null, 2), 'utf8');
+    writeFileAtomicSync(deps.file, JSON.stringify(state, null, 2));
   };
 
   const masked = (id: string): string | null => maskValue(store.get(id));

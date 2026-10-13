@@ -26,6 +26,7 @@ pub fn get_context_filenames() -> Vec<String> {
 #[derive(Default)]
 pub struct SubdirectoryHintTracker {
     loaded_dirs: HashSet<PathBuf>,
+    loaded_hint_files: HashSet<PathBuf>,
     pending_dirs: Vec<PathBuf>,
     hints_filenames: Vec<String>,
 }
@@ -34,6 +35,7 @@ impl SubdirectoryHintTracker {
     pub fn new() -> Self {
         Self {
             loaded_dirs: HashSet::new(),
+            loaded_hint_files: HashSet::new(),
             pending_dirs: Vec::new(),
             hints_filenames: get_context_filenames(),
         }
@@ -92,11 +94,12 @@ impl SubdirectoryHintTracker {
             if self.loaded_dirs.contains(&dir) {
                 continue;
             }
-            if let Some(content) = load_hints_from_directory(
+            if let Some(content) = load_hints_from_directory_tracked(
                 &dir,
                 &working_dir,
                 &self.hints_filenames,
                 &ignore_patterns,
+                &mut self.loaded_hint_files,
             ) {
                 let key = format!("subdir_hints:{}", dir.display());
                 results.push((key, content));
@@ -117,11 +120,29 @@ fn resolve_to_parent_dir(token: &str, working_dir: &Path) -> Option<PathBuf> {
     resolved.parent().map(|d| d.to_path_buf())
 }
 
+#[cfg(test)]
 fn load_hints_from_directory(
     directory: &Path,
     working_dir: &Path,
     hints_filenames: &[String],
     ignore_patterns: &Gitignore,
+) -> Option<String> {
+    let mut loaded_hint_files = HashSet::new();
+    load_hints_from_directory_tracked(
+        directory,
+        working_dir,
+        hints_filenames,
+        ignore_patterns,
+        &mut loaded_hint_files,
+    )
+}
+
+fn load_hints_from_directory_tracked(
+    directory: &Path,
+    working_dir: &Path,
+    hints_filenames: &[String],
+    ignore_patterns: &Gitignore,
+    loaded_hint_files: &mut HashSet<PathBuf>,
 ) -> Option<String> {
     if !directory.is_dir() || !directory.is_absolute() {
         return None;
@@ -146,6 +167,12 @@ fn load_hints_from_directory(
         for hints_filename in hints_filenames {
             let hints_path = dir.join(hints_filename);
             if hints_path.is_file() {
+                let canonical_hint = hints_path
+                    .canonicalize()
+                    .unwrap_or_else(|_| hints_path.clone());
+                if !loaded_hint_files.insert(canonical_hint) {
+                    continue;
+                }
                 let mut visited = HashSet::new();
                 let expanded = read_referenced_files(
                     &hints_path,
@@ -981,6 +1008,41 @@ End of hints"#;
         let hints = tracker.load_new_hints(&project_root);
         assert_eq!(hints.len(), 1);
         assert!(hints[0].1.contains("future hints"));
+    }
+
+    #[test]
+    fn tracker_deduplicates_shared_ancestor_hint_files() {
+        let temp_dir = TempDir::new().unwrap();
+        let project_root = temp_dir.path().join("project");
+        let ancestor = project_root.join("crates");
+        let child_a = ancestor.join("crate_a").join("src");
+        let child_b = ancestor.join("crate_b").join("src");
+        fs::create_dir_all(&child_a).unwrap();
+        fs::create_dir_all(&child_b).unwrap();
+
+        fs::write(ancestor.join(GOOSE_HINTS_FILENAME), "shared workspace hint").unwrap();
+        fs::write(child_a.join(GOOSE_HINTS_FILENAME), "crate_a specific hint").unwrap();
+        fs::write(child_b.join(GOOSE_HINTS_FILENAME), "crate_b specific hint").unwrap();
+
+        let mut tracker = SubdirectoryHintTracker::new();
+        let args_a: serde_json::Map<String, serde_json::Value> =
+            serde_json::from_str(r#"{"path": "crates/crate_a/src/lib.rs"}"#).unwrap();
+        tracker.record_tool_arguments(&Some(args_a), &project_root);
+        let first_hints = tracker.load_new_hints(&project_root);
+        assert_eq!(first_hints.len(), 1);
+        assert!(first_hints[0].1.contains("shared workspace hint"));
+        assert!(first_hints[0].1.contains("crate_a specific hint"));
+
+        let args_b: serde_json::Map<String, serde_json::Value> =
+            serde_json::from_str(r#"{"path": "crates/crate_b/src/lib.rs"}"#).unwrap();
+        tracker.record_tool_arguments(&Some(args_b), &project_root);
+        let second_hints = tracker.load_new_hints(&project_root);
+        assert_eq!(second_hints.len(), 1);
+        assert!(
+            !second_hints[0].1.contains("shared workspace hint"),
+            "shared ancestor hint file must not be duplicated across sibling subdirectories"
+        );
+        assert!(second_hints[0].1.contains("crate_b specific hint"));
     }
 }
 

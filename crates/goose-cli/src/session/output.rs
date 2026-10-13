@@ -1459,7 +1459,10 @@ fn shorten_path(path: &str, debug: bool) -> String {
     let path = Path::new(path);
 
     // First try to convert to ~ if it's in home directory
-    let home = etcetera::home_dir().ok();
+    let home = std::env::var_os("HOME")
+        .filter(|h| !h.is_empty())
+        .map(std::path::PathBuf::from)
+        .or_else(|| etcetera::home_dir().ok());
     let path_str = if let Some(home) = home {
         if let Ok(stripped) = path.strip_prefix(home) {
             format!("~/{}", stripped.display())
@@ -1994,11 +1997,7 @@ mod tests {
 
     #[test]
     fn test_home_directory_conversion() {
-        // Save the current home dir
-        let original_home = env::var("HOME").ok();
-
-        // Set a test home directory
-        env::set_var("HOME", "/Users/testuser");
+        let _guard = env_lock::lock_env([("HOME", Some("/Users/testuser"))]);
 
         assert_eq!(
             shorten_path("/Users/testuser/documents/file.txt", false),
@@ -2010,13 +2009,6 @@ mod tests {
             shorten_path("/Users/testuser2/documents/file.txt", false),
             "/Users/testuser2/documents/file.txt"
         );
-
-        // Restore the original home dir
-        if let Some(home) = original_home {
-            env::set_var("HOME", home);
-        } else {
-            env::remove_var("HOME");
-        }
     }
 
     #[test]

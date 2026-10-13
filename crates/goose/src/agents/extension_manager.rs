@@ -156,10 +156,6 @@ impl Extension {
             .is_some()
     }
 
-    fn get_instructions(&self) -> Option<String> {
-        self.client.get_instructions()
-    }
-
     fn get_client(&self) -> McpClientBox {
         self.client.clone()
     }
@@ -1701,14 +1697,20 @@ impl ExtensionManager {
     /// Get extensions info for building the system prompt
     pub async fn get_extensions_info(&self, working_dir: &std::path::Path) -> Vec<ExtensionInfo> {
         let working_dir_str = working_dir.to_string_lossy();
-        self.extensions
+        let snapshot: Vec<(String, McpClientBox, bool)> = self
+            .extensions
             .lock()
             .await
             .iter()
-            .map(|(name, ext)| {
-                let instructions = ext.get_instructions().unwrap_or_default();
+            .map(|(name, ext)| (name.clone(), ext.get_client(), ext.supports_resources()))
+            .collect();
+
+        snapshot
+            .into_iter()
+            .map(|(name, client, supports_resources)| {
+                let instructions = client.get_instructions().unwrap_or_default();
                 let instructions = instructions.replace("{{WORKING_DIR}}", &working_dir_str);
-                ExtensionInfo::new(name, &instructions, ext.supports_resources())
+                ExtensionInfo::new(&name, &instructions, supports_resources)
             })
             .collect()
     }

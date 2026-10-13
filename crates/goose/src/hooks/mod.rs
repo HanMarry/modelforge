@@ -1054,23 +1054,6 @@ async fn run_command_hook(
     timeout: Duration,
     use_login_shell_path: bool,
 ) -> Result<HookRun> {
-    match tokio::time::timeout(
-        timeout,
-        run_command_hook_inner(raw_command, plugin_root, payload, use_login_shell_path),
-    )
-    .await
-    {
-        Ok(res) => res,
-        Err(_) => anyhow::bail!("hook `{raw_command}` timed out after {:?}", timeout),
-    }
-}
-
-async fn run_command_hook_inner(
-    raw_command: &str,
-    plugin_root: &Path,
-    payload: &str,
-    use_login_shell_path: bool,
-) -> Result<HookRun> {
     let command = expand_plugin_root(raw_command, plugin_root);
     let path = if use_login_shell_path {
         hook_path().await
@@ -1083,29 +1066,52 @@ async fn run_command_hook_inner(
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .kill_on_drop(true);
+    crate::subprocess::configure_subprocess(&mut process);
+
     let mut child = process
         .spawn()
         .with_context(|| format!("spawning hook `{command}`"))?;
+    #[cfg(unix)]
+    let pid = child.id();
 
-    let mut stdin_delivered = true;
-    if let Some(mut stdin) = child.stdin.take() {
-        if let Err(err) = stdin.write_all(payload.as_bytes()).await {
-            stdin_delivered = false;
-            warn!(command = %command, error = %err, "Could not deliver the hook payload");
-        } else if let Err(err) = stdin.shutdown().await {
-            stdin_delivered = false;
-            warn!(command = %command, error = %err, "Could not close the hook stdin pipe");
+    let payload_bytes = payload.as_bytes();
+    let command_for_log = command.as_str();
+    let wait_future = async move {
+        let mut stdin_delivered = true;
+        if let Some(mut stdin) = child.stdin.take() {
+            if let Err(err) = stdin.write_all(payload_bytes).await {
+                stdin_delivered = false;
+                warn!(command = %command_for_log, error = %err, "Could not deliver the hook payload");
+            } else if let Err(err) = stdin.shutdown().await {
+                stdin_delivered = false;
+                warn!(command = %command_for_log, error = %err, "Could not close the hook stdin pipe");
+            }
+        }
+
+        let output = child
+            .wait_with_output()
+            .await
+            .with_context(|| format!("waiting on hook `{command_for_log}`"))?;
+        Ok::<HookRun, anyhow::Error>(HookRun {
+            output,
+            stdin_delivered,
+        })
+    };
+
+    match tokio::time::timeout(timeout, wait_future).await {
+        Ok(res) => res,
+        Err(_) => {
+            #[cfg(unix)]
+            if let Some(pid) = pid {
+                // SAFETY: signals only the process group `configure_subprocess`
+                // put this child in (negative pid), never an unrelated group.
+                unsafe {
+                    libc::kill(-(pid as libc::pid_t), libc::SIGKILL);
+                }
+            }
+            anyhow::bail!("hook `{raw_command}` timed out after {:?}", timeout)
         }
     }
-
-    let output = child
-        .wait_with_output()
-        .await
-        .with_context(|| format!("waiting on hook `{command}`"))?;
-    Ok(HookRun {
-        output,
-        stdin_delivered,
-    })
 }
 
 fn hook_command(command: &str, plugin_root: &Path, path: Option<&str>) -> Command {
@@ -2317,5 +2323,32 @@ mod tests {
             .await;
 
         assert!(banners.is_empty());
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn command_hook_timeout_kills_process_group() {
+        let tmp = tempfile::tempdir().unwrap();
+        let pid_file = tmp.path().join("child.pid");
+        let cmd = format!(
+            "sleep 30 & echo $! > {} && wait",
+            pid_file.to_string_lossy()
+        );
+
+        let err = run_command_hook(&cmd, tmp.path(), "{}", Duration::from_millis(200), false)
+            .await
+            .unwrap_err();
+        assert!(err.to_string().contains("timed out"));
+
+        if let Ok(raw_pid) = std::fs::read_to_string(&pid_file) {
+            if let Ok(child_pid) = raw_pid.trim().parse::<libc::pid_t>() {
+                tokio::time::sleep(Duration::from_millis(50)).await;
+                let alive = unsafe { libc::kill(child_pid, 0) == 0 };
+                assert!(
+                    !alive,
+                    "grandchild process {child_pid} should be killed with its process group"
+                );
+            }
+        }
     }
 }

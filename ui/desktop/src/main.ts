@@ -495,6 +495,19 @@ function isValidLanguageSetting(value: unknown): value is Settings['language'] {
   return typeof value === 'string' && validLanguageSettings.has(value as Settings['language']);
 }
 
+function cloneDefaultSettings(): Settings {
+  return {
+    ...defaultSettings,
+    externalGoosed: { ...defaultSettings.externalGoosed },
+    agentKernel: { ...defaultSettings.agentKernel },
+    onboarding: {
+      ...defaultSettings.onboarding,
+      steps: { ...defaultSettings.onboarding.steps },
+    },
+    keyboardShortcuts: { ...defaultSettings.keyboardShortcuts },
+  };
+}
+
 function getSettings(): Settings {
   if (fsSync.existsSync(SETTINGS_FILE)) {
     let stored: Partial<Settings>;
@@ -503,7 +516,7 @@ function getSettings(): Settings {
       stored = JSON.parse(data) as Partial<Settings>;
     } catch (err) {
       console.error('Failed to read settings.json, using defaults:', err);
-      return defaultSettings;
+      return cloneDefaultSettings();
     }
     return {
       ...defaultSettings,
@@ -530,7 +543,7 @@ function getSettings(): Settings {
       },
     };
   }
-  return defaultSettings;
+  return cloneDefaultSettings();
 }
 
 function updateSettings(modifier: (settings: Settings) => void): void {

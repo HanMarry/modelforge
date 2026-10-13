@@ -99,15 +99,24 @@ export function approvalUnknownCodeText(code: string): string {
 }
 
 const APPROVAL_REPLY = new RegExp(
-  `^(批准|拒绝)[\\s\\u3000]*([A-Za-z0-9]{${FEISHU_APPROVAL_CODE_LENGTH}})$`
+  `^(批准|拒绝)[\\s\\u3000:：-]*([A-Za-z0-9]{${FEISHU_APPROVAL_CODE_LENGTH}})$`
 );
 
+const LEADING_QUOTES = /^[「『"'\u201c\u201d\u2018\u2019\s\u3000]+/;
+const TRAILING_PUNCTUATION = /[」』"'\u201c\u201d\u2018\u2019。.!！?？~～，,；;\s\u3000]+$/;
+
 /**
- * Recognizes `批准 <code>` and `拒绝 <code>` (any spacing, any letter case). Anything that
- * matches is an approval reply and is never forwarded as a new task, even with an unknown code.
+ * Recognizes `批准 <code>` and `拒绝 <code>` (any spacing, any letter case, fullwidth
+ * alphanumerics, or surrounding quotes/trailing punctuation added by mobile IMEs). Anything
+ * that matches is an approval reply and is never forwarded as a new task, even with an
+ * unknown code.
  */
 export function parseApprovalReply(text: string): FeishuApprovalReply | null {
-  const match = APPROVAL_REPLY.exec(text.trim());
+  const normalized = text
+    .normalize('NFKC')
+    .replace(LEADING_QUOTES, '')
+    .replace(TRAILING_PUNCTUATION, '');
+  const match = APPROVAL_REPLY.exec(normalized);
   if (!match) {
     return null;
   }

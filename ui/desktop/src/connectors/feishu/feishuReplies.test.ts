@@ -10,10 +10,18 @@ import {
 } from './feishuReplies';
 
 describe('parseApprovalReply', () => {
-  it('reads 批准 and 拒绝 with any spacing and letter case', () => {
+  it('reads 批准 and 拒绝 with any spacing, letter case, fullwidth chars, or trailing punctuation', () => {
     expect(parseApprovalReply('批准 ABC234')).toEqual({ action: 'approve', code: 'ABC234' });
     expect(parseApprovalReply('  拒绝\u3000abc234 ')).toEqual({ action: 'reject', code: 'ABC234' });
     expect(parseApprovalReply('批准ABC234')).toEqual({ action: 'approve', code: 'ABC234' });
+    expect(parseApprovalReply('批准 ＡＢＣ２３４。')).toEqual({
+      action: 'approve',
+      code: 'ABC234',
+    });
+    expect(parseApprovalReply('「拒绝 abc234」!')).toEqual({
+      action: 'reject',
+      code: 'ABC234',
+    });
   });
 
   it('does not read anything else as an approval', () => {

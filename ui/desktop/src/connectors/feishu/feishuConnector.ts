@@ -223,9 +223,6 @@ export function createFeishuConnector(options: FeishuConnectorOptions): FeishuCo
     if (await deliver(task.chatId, text)) {
       return;
     }
-    if (!started) {
-      return;
-    }
     try {
       await options.store.markUndelivered(task.sessionId);
     } catch (error) {

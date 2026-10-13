@@ -3298,6 +3298,7 @@ mod tests {
             ("GOOSE_CONTEXT_LIMIT", None::<&str>),
             ("GOOSE_TOOLSHIM", None::<&str>),
             ("GOOSE_TOOLSHIM_OLLAMA_MODEL", None::<&str>),
+            ("GOOSE_THINKING_EFFORT", Some("")),
         ]);
 
         let current_model_config = goose_providers::model::ModelConfig {
@@ -3342,7 +3343,7 @@ mod tests {
             ("GOOSE_CONTEXT_LIMIT", None::<&str>),
             ("GOOSE_TOOLSHIM", None::<&str>),
             ("GOOSE_TOOLSHIM_OLLAMA_MODEL", None::<&str>),
-            ("GOOSE_THINKING_EFFORT", None::<&str>),
+            ("GOOSE_THINKING_EFFORT", Some("")),
         ]);
 
         let current = goose_providers::model::ModelConfig::new("gpt-5.4-high")

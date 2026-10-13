@@ -352,4 +352,68 @@ describe('inbound filtering and replies', () => {
 
     await expect(decision).resolves.toEqual({ outcome: 'cancelled' });
   });
+
+  it('marks the session as undelivered when the connector stops during reply retries', async () => {
+    const undelivered: string[] = [];
+    let inbound: ((event: FeishuInboundEvent) => void) | null = null;
+    let turns: PendingTurn[] = [];
+    let failSend = false;
+
+    const connector = createFeishuConnector({
+      whitelist: [ALLOWED],
+      messenger: {
+        sendText: async () => {
+          if (failSend) {
+            throw new Error('network down');
+          }
+        },
+      },
+      acp: {
+        createSession: async (first) => ({ sessionId: 's-stop-retry', name: `飞书：${first}` }),
+        sessionInfo: async () => ({ name: '飞书：测试' }),
+        prompt: (sessionId, text) =>
+          new Promise<FeishuTurnOutcome>((resolve) => {
+            turns.push({ sessionId, text, resolve });
+          }),
+        steer: async () => false,
+        onPermissionRequest: () => () => {},
+        onSessionEvent: () => () => {},
+      },
+      store: {
+        loadChats: async () => ({}),
+        saveChats: async () => {},
+        markUndelivered: async (sessionId) => {
+          undelivered.push(sessionId);
+        },
+      },
+      subscribe: (handler) => {
+        inbound = handler;
+        return () => {
+          inbound = null;
+        };
+      },
+      retryIntervalMs: 1_000,
+      retryMax: 3,
+    });
+
+    await connector.start();
+    inbound!(textEvent('执行任务'));
+    await flush();
+
+    // Fail the final result delivery and stop the connector before retries complete
+    failSend = true;
+    turns[0].resolve({
+      status: 'completed',
+      statusText: '完成',
+      artifactFileNames: [],
+      reply: '最终结果',
+    });
+    await flush();
+
+    await connector.stop();
+    await vi.advanceTimersByTimeAsync(1_000);
+    await flush();
+
+    expect(undelivered).toEqual(['s-stop-retry']);
+  });
 });

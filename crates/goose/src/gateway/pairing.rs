@@ -77,6 +77,7 @@ impl StoredPendingCodesValue {
 
 pub struct PairingStore {
     pairings: RwLock<HashMap<PlatformUser, PairingState>>,
+    persist_lock: tokio::sync::Mutex<()>,
 }
 
 impl PairingStore {
@@ -84,6 +85,7 @@ impl PairingStore {
         let pairings = Self::load_pairings_from_config();
         Ok(Self {
             pairings: RwLock::new(pairings),
+            persist_lock: tokio::sync::Mutex::new(()),
         })
     }
 
@@ -239,15 +241,23 @@ impl PairingStore {
     }
 
     pub async fn set(&self, user: &PlatformUser, state: PairingState) -> anyhow::Result<()> {
-        let mut pairings = self.pairings.write().await;
-        pairings.insert(user.clone(), state);
-        Self::save_pairings_to_config(&pairings)
+        let _persist_guard = self.persist_lock.lock().await;
+        let snapshot = {
+            let mut pairings = self.pairings.write().await;
+            pairings.insert(user.clone(), state);
+            pairings.clone()
+        };
+        Self::save_pairings_to_config(&snapshot)
     }
 
     pub async fn remove(&self, user: &PlatformUser) -> anyhow::Result<()> {
-        let mut pairings = self.pairings.write().await;
-        pairings.remove(user);
-        Self::save_pairings_to_config(&pairings)
+        let _persist_guard = self.persist_lock.lock().await;
+        let snapshot = {
+            let mut pairings = self.pairings.write().await;
+            pairings.remove(user);
+            pairings.clone()
+        };
+        Self::save_pairings_to_config(&snapshot)
     }
 
     pub async fn store_pending_code(
@@ -274,11 +284,15 @@ impl PairingStore {
     }
 
     pub async fn remove_all_for_platform(&self, platform: &str) -> anyhow::Result<usize> {
-        let mut pairings = self.pairings.write().await;
-        let before = pairings.len();
-        pairings.retain(|user, _| user.platform != platform);
-        let removed = before - pairings.len();
-        Self::save_pairings_to_config(&pairings)?;
+        let _persist_guard = self.persist_lock.lock().await;
+        let (removed, snapshot) = {
+            let mut pairings = self.pairings.write().await;
+            let before = pairings.len();
+            pairings.retain(|user, _| user.platform != platform);
+            let removed = before - pairings.len();
+            (removed, pairings.clone())
+        };
+        Self::save_pairings_to_config(&snapshot)?;
         Ok(removed)
     }
 

@@ -54,6 +54,9 @@ pub struct GatewayHandler {
     pairing_store: Arc<PairingStore>,
     gateway: Arc<dyn Gateway>,
     config: GatewayConfig,
+    /// Gateway-wide cancellation token; in-flight turns use child tokens so
+    /// stopping or removing a gateway cancels active agent turns cleanly.
+    cancel_token: CancellationToken,
     /// Tracks users who have a tool-confirmation prompt awaiting their reply.
     pending_confirmations: Arc<Mutex<HashMap<PlatformUser, PendingConfirmation>>>,
     /// Serializes `relay_to_session` per user; confirmation replies bypass this lock.
@@ -77,6 +80,7 @@ impl GatewayHandler {
             pairing_store,
             gateway,
             config,
+            cancel_token: CancellationToken::new(),
             pending_confirmations: Arc::new(Mutex::new(HashMap::new())),
             turn_locks: Arc::new(Mutex::new(HashMap::new())),
             confirmation_reply_locks: Arc::new(Mutex::new(HashMap::new())),
@@ -84,7 +88,13 @@ impl GatewayHandler {
         }
     }
 
+    pub fn with_cancel_token(mut self, cancel_token: CancellationToken) -> Self {
+        self.cancel_token = cancel_token;
+        self
+    }
+
     pub async fn deny_pending_confirmations(&self) {
+        self.cancel_token.cancel();
         let pending: Vec<_> = self.pending_confirmations.lock().await.drain().collect();
         for (_, pending) in pending {
             let PendingConfirmation {
@@ -521,7 +531,7 @@ impl GatewayHandler {
         // Load extensions (skips any already loaded on the agent).
         agent.load_extensions_from_session(&session).await;
 
-        let cancel = CancellationToken::new();
+        let cancel = self.cancel_token.child_token();
         let user_message = Message::user().with_text(&message.text);
 
         // Cap tool-calling loops so the agent doesn't run away doing

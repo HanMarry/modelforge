@@ -993,10 +993,15 @@ impl Gateway for TelegramGateway {
             }
         });
 
+        let mut in_flight = tokio::task::JoinSet::new();
+
         loop {
+            while in_flight.try_join_next().is_some() {}
+
             tokio::select! {
                 _ = cancel.cancelled() => {
                     tracing::info!("Telegram gateway shutting down");
+                    in_flight.abort_all();
                     break;
                 }
                 result = self.get_updates(offset) => {
@@ -1059,7 +1064,7 @@ impl Gateway for TelegramGateway {
                                 };
 
                                 let handler = handler.clone();
-                                tokio::spawn(async move {
+                                in_flight.spawn(async move {
                                     if let Err(e) = handler.handle_message(incoming).await {
                                         tracing::error!(error = %e, "error handling Telegram message");
                                     }

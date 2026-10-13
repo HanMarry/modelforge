@@ -1363,6 +1363,11 @@ impl Config {
     }
 
     pub fn get_goose_thinking_effort(&self) -> Option<ThinkingEffort> {
+        if let Ok(raw) = env::var("GOOSE_THINKING_EFFORT") {
+            if raw.trim().is_empty() {
+                return None;
+            }
+        }
         self.get_param::<String>("GOOSE_THINKING_EFFORT")
             .ok()
             .and_then(|e| e.parse().ok())

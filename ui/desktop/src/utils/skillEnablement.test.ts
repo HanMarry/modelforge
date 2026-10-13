@@ -124,4 +124,45 @@ describe('skill enablement', () => {
     fs.writeFileSync(path.join(disabledSkillsRoot(appDataDir), 'index.json'), 'not json', 'utf8');
     expect(readDisabledIndex(appDataDir)).toEqual([]);
   });
+
+  it('ignores index entries whose name contains path traversal segments', () => {
+    fs.mkdirSync(disabledSkillsRoot(appDataDir), { recursive: true });
+    fs.writeFileSync(
+      path.join(disabledSkillsRoot(appDataDir), 'index.json'),
+      JSON.stringify([
+        { name: '../escape', originalPath: skillDir, disabledAt: '2026-01-01T00:00:00Z' },
+        { name: 'nested/sub', originalPath: skillDir, disabledAt: '2026-01-01T00:00:00Z' },
+        { name: '..', originalPath: skillDir, disabledAt: '2026-01-01T00:00:00Z' },
+        { name: 'valid-skill', originalPath: skillDir, disabledAt: '2026-01-01T00:00:00Z' },
+      ]),
+      'utf8'
+    );
+
+    expect(readDisabledIndex(appDataDir).map((r) => r.name)).toEqual(['valid-skill']);
+  });
+
+  it('falls back to recursive copy and remove when renameSync fails with EXDEV across drives', () => {
+    const exdevRename = (): never => {
+      const err = new Error('EXDEV: cross-device link not permitted') as NodeJS.ErrnoException;
+      err.code = 'EXDEV';
+      throw err;
+    };
+
+    const disabled = setSkillEnabled(
+      appDataDir,
+      { name: 'demo', path: skillDir, enabled: false },
+      { renameSync: exdevRename }
+    );
+    expect(fs.existsSync(skillDir)).toBe(false);
+    expect(fs.existsSync(path.join(disabled.location, 'SKILL.md'))).toBe(true);
+
+    const restored = setSkillEnabled(
+      appDataDir,
+      { name: 'demo', path: skillDir, enabled: true },
+      { renameSync: exdevRename }
+    );
+    expect(restored.location).toBe(skillDir);
+    expect(fs.existsSync(path.join(skillDir, 'SKILL.md'))).toBe(true);
+    expect(fs.existsSync(disabled.location)).toBe(false);
+  });
 });

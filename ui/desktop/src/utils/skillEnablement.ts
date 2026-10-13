@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { writeFileAtomicSync } from './atomicWrite';
 
 /**
  * Enable/disable for filesystem skills, done by moving the skill's folder out of the
@@ -28,8 +29,19 @@ export interface DisabledSkillRecord {
   name: string;
   /** Where the folder came from, so enabling can put it back. */
   originalPath: string;
-  /** ISO date, newest first in the index. */
+  /** ISO 8601 timestamp when the skill was disabled; index entries are sorted by name. */
   disabledAt: string;
+}
+
+export function isSafeFolderName(name: string): boolean {
+  return (
+    name.length > 0 &&
+    name !== '.' &&
+    name !== '..' &&
+    !name.includes('/') &&
+    !name.includes('\\') &&
+    path.basename(name) === name
+  );
 }
 
 export function disabledSkillsRoot(appDataDir: string): string {
@@ -52,7 +64,9 @@ export function readDisabledIndex(appDataDir: string): DisabledSkillRecord[] {
     return parsed
       .filter(
         (entry): entry is DisabledSkillRecord =>
-          typeof entry?.name === 'string' && typeof entry?.originalPath === 'string'
+          typeof entry?.name === 'string' &&
+          isSafeFolderName(entry.name) &&
+          typeof entry?.originalPath === 'string'
       )
       .map((entry) => ({
         name: entry.name,
@@ -70,11 +84,39 @@ export function readDisabledIndex(appDataDir: string): DisabledSkillRecord[] {
 function writeDisabledIndex(appDataDir: string, records: DisabledSkillRecord[]): void {
   const root = disabledSkillsRoot(appDataDir);
   fs.mkdirSync(root, { recursive: true });
-  fs.writeFileSync(
-    path.join(root, INDEX_FILE),
-    `${JSON.stringify(records, null, 2)}\n`,
-    'utf8'
-  );
+  writeFileAtomicSync(path.join(root, INDEX_FILE), `${JSON.stringify(records, null, 2)}\n`);
+}
+
+export interface MoveDirectoryOps {
+  renameSync?: (oldPath: fs.PathLike, newPath: fs.PathLike) => void;
+  cpSync?: typeof fs.cpSync;
+  rmSync?: typeof fs.rmSync;
+}
+
+/**
+ * Moves a skill directory, falling back to recursive copy + remove when `renameSync`
+ * fails with `EXDEV` (for example when a project workspace lives on `E:` while
+ * `appDataDir` lives on `C:`).
+ */
+export function moveDirectorySync(from: string, to: string, ops: MoveDirectoryOps = {}): void {
+  const rename = ops.renameSync ?? fs.renameSync;
+  const cp = ops.cpSync ?? fs.cpSync;
+  const rm = ops.rmSync ?? fs.rmSync;
+  try {
+    rename(from, to);
+  } catch (error) {
+    if (
+      error &&
+      typeof error === 'object' &&
+      'code' in error &&
+      (error as { code?: unknown }).code === 'EXDEV'
+    ) {
+      cp(from, to, { recursive: true });
+      rm(from, { recursive: true, force: true });
+      return;
+    }
+    throw error;
+  }
 }
 
 /** A folder name inside the disabled store that is not taken yet. */
@@ -102,7 +144,8 @@ export interface SetSkillEnabledResult {
  */
 export function setSkillEnabled(
   appDataDir: string,
-  request: { name: string; path: string; enabled: boolean }
+  request: { name: string; path: string; enabled: boolean },
+  moveOps?: MoveDirectoryOps
 ): SetSkillEnabledResult {
   const root = disabledSkillsRoot(appDataDir);
   fs.mkdirSync(root, { recursive: true });
@@ -117,8 +160,13 @@ export function setSkillEnabled(
       throw new Error(`不是技能目录（缺少 ${SKILL_FILE}）：${originalPath}`);
     }
 
-    const folder = availableFolderName(root, name, new Set(records.map((r) => r.name)));
-    fs.renameSync(originalPath, path.join(root, folder));
+    const baseName = isSafeFolderName(name)
+      ? name
+      : isSafeFolderName(path.basename(originalPath))
+        ? path.basename(originalPath)
+        : 'skill';
+    const folder = availableFolderName(root, baseName, new Set(records.map((r) => r.name)));
+    moveDirectorySync(originalPath, path.join(root, folder), moveOps);
     const next = [
       ...records.filter((record) => record.name !== folder),
       { name: folder, originalPath, disabledAt: new Date().toISOString() },
@@ -140,7 +188,7 @@ export function setSkillEnabled(
   if (fs.existsSync(record.originalPath)) {
     throw new Error(`原位置已被占用，未覆盖：${record.originalPath}`);
   }
-  fs.renameSync(stored, record.originalPath);
+  moveDirectorySync(stored, record.originalPath, moveOps);
   const next = records.filter((entry) => entry.name !== record.name);
   writeDisabledIndex(appDataDir, next);
   return { records: next, location: record.originalPath };
