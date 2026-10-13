@@ -9,8 +9,7 @@ use tracing_futures::Instrument;
 use crate::agents::state_machine::ops_llm::{chat_span, record_chat_usage};
 use crate::agents::state_machine::{
     applied, last_effective_role, messages_since_kickoff, not_applicable, trailing_error, yielded,
-    yielded_with, ConversationEffect, Emitter, GooseEffect, Operation, OperationResult,
-    SlashCommand,
+    yielded_with, Emitter, GooseEffect, Operation, OperationResult, SlashCommand,
 };
 use crate::context_mgmt::compact_messages;
 use crate::conversation::message::{Message, MessageErrorKind, SystemNotificationType};
@@ -85,34 +84,24 @@ impl CompactionOperation {
         }
     }
 
+    /// The legacy path answers a failed `/compact` with a lone error message and
+    /// records neither it nor the command, leaving the history as it was.
     async fn command_error(
         conversation: &Conversation,
         message: String,
         emit: &Emitter,
     ) -> Result<OperationResult<GooseEffect>> {
-        let command = messages_since_kickoff(conversation)?
+        let message_id = messages_since_kickoff(conversation)?
             .first()
-            .cloned()
-            .ok_or_else(|| anyhow!("compact command conversation has no kickoff message"))?;
-        let message_id = command
+            .ok_or_else(|| anyhow!("compact command conversation has no kickoff message"))?
             .id
             .clone()
             .ok_or_else(|| anyhow!("Persisted slash command message has no id"))?;
-        let command = command.with_visibility(true, false);
         let response = Message::assistant()
             .with_text(message)
             .with_visibility(true, false);
-        emit.message(command).await;
-        let response = emit.message(response).await;
-        yielded_with([
-            ConversationEffect::SetMessageVisibility {
-                message_id,
-                user_visible: true,
-                agent_visible: false,
-            }
-            .into(),
-            response.into(),
-        ])
+        emit.message(response).await;
+        yielded_with([GooseEffect::DiscardFrom(message_id)])
     }
 
     async fn clear(

@@ -111,6 +111,10 @@ impl EffectHandler<Session, GooseEffect> for SessionManager {
                 GooseEffect::RecordUsage(provider_usage) => {
                     usage::record(self, session, provider_usage, false).await?;
                 }
+                GooseEffect::DiscardFrom(message_id) => {
+                    self.truncate_conversation_from_message(&session.id, message_id)
+                        .await?;
+                }
             }
         }
 
@@ -339,6 +343,18 @@ async fn mirror_effects(session: &mut Session, effects: &[GooseEffect]) -> Resul
             GooseEffect::RecordUsage(provider_usage) => {
                 session.usage = provider_usage.usage;
                 session.accumulated_usage += provider_usage.usage;
+            }
+            GooseEffect::DiscardFrom(message_id) => {
+                let Some(conversation) = session.conversation.as_mut() else {
+                    continue;
+                };
+                if let Some(position) = conversation
+                    .messages()
+                    .iter()
+                    .position(|message| message.id.as_deref() == Some(message_id.as_str()))
+                {
+                    conversation.messages_mut().truncate(position);
+                }
             }
         }
     }

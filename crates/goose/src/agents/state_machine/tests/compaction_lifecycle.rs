@@ -177,12 +177,19 @@ async fn a_failed_compact_command_reports_the_error_and_keeps_working() -> Resul
 
     let failed = pipeline.run(["/compact"]).await?;
     assert_eq!(failed.history_replacements(), 0);
-    failed.assert_message(-1, Agent, "summarizer offline");
-    assert!(failed
+    failed.assert_emitted("summarizer offline");
+    // Like the legacy path, neither the command nor the error is recorded.
+    let remaining = failed
         .conversation()
         .messages()
         .iter()
-        .any(|message| message.as_concat_text() == "worked"));
+        .map(|message| message.as_concat_text())
+        .collect::<Vec<_>>();
+    assert!(remaining.iter().any(|text| text == "worked"));
+    assert!(!remaining.iter().any(|text| text.trim() == "/compact"));
+    assert!(!remaining
+        .iter()
+        .any(|text| text.contains("summarizer offline")));
 
     api.on("still there?").reply("still here");
     let recovered = pipeline.run(["still there?"]).await?;

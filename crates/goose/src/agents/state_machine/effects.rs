@@ -19,6 +19,11 @@ pub enum GooseEffect {
     SetRecipe(Box<Option<Recipe>>),
     SetExtensionData(ExtensionData),
     RecordUsage(ProviderUsage),
+    /// Drops the message with this id and everything after it from the stored
+    /// conversation, without publishing `HistoryReplaced` or touching usage. For
+    /// a command whose handler failed before recording anything, as the legacy
+    /// path leaves it unsaved.
+    DiscardFrom(String),
 }
 
 impl MachineEffect for GooseEffect {
