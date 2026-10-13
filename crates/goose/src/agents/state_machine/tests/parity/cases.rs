@@ -52,6 +52,7 @@ pub(super) fn all_cases() -> Vec<ParityCase> {
         second_turn_in_session(),
         clear_command(),
         compact_command(),
+        compact_command_failure(),
         status_command(),
         goal_query_command(),
         prompts_command(),
@@ -305,6 +306,19 @@ fn compact_command() -> ParityCase {
         Dimension::SlashCommand,
         "/compact",
         script,
+    );
+    case.initial_session = prior_exchange();
+    case
+}
+
+/// slash command：`/compact` 的摘要调用失败（脚本为空，provider 报错），
+/// 比较错误回复的内容与可见性、失败后命令与已有历史是否保留。
+fn compact_command_failure() -> ParityCase {
+    let mut case = single_turn(
+        "compact_command_failure",
+        Dimension::SlashCommand,
+        "/compact",
+        Vec::new(),
     );
     case.initial_session = prior_exchange();
     case
