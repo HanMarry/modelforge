@@ -23,7 +23,7 @@ use rmcp::model::{
     MetaObject, Role, ServerCapabilities, ServerNotification, Tool,
 };
 use serde::Deserialize;
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::future::Future;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
@@ -38,6 +38,7 @@ use tracing::{info, warn};
 pub static EXTENSION_NAME: &str = "summon";
 
 const SUBAGENT_DESCRIPTION_BUDGET: usize = 160;
+const MAX_BUFFERED_NOTIFICATIONS: usize = 1024;
 
 const TASK_LABEL_BUDGET: usize = 60;
 
@@ -127,7 +128,7 @@ pub struct CompletedTask {
 }
 
 enum NotificationSink {
-    Buffer(Vec<ServerNotification>),
+    Buffer(VecDeque<ServerNotification>),
     Emitter(ToolCallNotificationEmitter),
 }
 
@@ -144,7 +145,12 @@ async fn yield_to_outer_tool_stream() {
 impl NotificationSink {
     fn route(&mut self, notification: ServerNotification) {
         match self {
-            Self::Buffer(buffer) => buffer.push(notification),
+            Self::Buffer(buffer) => {
+                if buffer.len() >= MAX_BUFFERED_NOTIFICATIONS {
+                    buffer.pop_front();
+                }
+                buffer.push_back(notification);
+            }
             Self::Emitter(emitter) => emitter.emit_best_effort(notification),
         }
     }
@@ -154,19 +160,19 @@ impl NotificationSink {
             return;
         };
         while let Self::Buffer(buffered) = self {
-            let Some(notification) = buffered.first().cloned() else {
+            let Some(notification) = buffered.front().cloned() else {
                 break;
             };
             emitter.emit_best_effort(notification);
             yield_to_outer_tool_stream().await;
-            buffered.remove(0);
+            buffered.pop_front();
         }
         *self = Self::Emitter(emitter);
     }
 
     fn detach(&mut self) {
         if matches!(self, Self::Emitter(_)) {
-            *self = Self::Buffer(Vec::new());
+            *self = Self::Buffer(VecDeque::new());
         }
     }
 
@@ -699,7 +705,7 @@ impl SummonClient {
     fn notification_sink(emitter: Option<ToolCallNotificationEmitter>) -> SharedNotificationSink {
         Arc::new(Mutex::new(match emitter {
             Some(emitter) => NotificationSink::Emitter(emitter),
-            None => NotificationSink::Buffer(Vec::new()),
+            None => NotificationSink::Buffer(VecDeque::new()),
         }))
     }
 
@@ -3503,7 +3509,7 @@ You review code."#;
     fn buffered_notification_sink(
         notifications: Vec<ServerNotification>,
     ) -> SharedNotificationSink {
-        Arc::new(Mutex::new(NotificationSink::Buffer(notifications)))
+        Arc::new(Mutex::new(NotificationSink::Buffer(notifications.into())))
     }
 
     #[test]

@@ -97,6 +97,7 @@ if (hasDom) {
       logError: vi.fn(),
       on: vi.fn(),
       off: vi.fn(),
+      onArtifactsChanged: vi.fn(() => () => {}),
     },
   });
 }

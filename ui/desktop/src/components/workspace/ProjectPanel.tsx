@@ -224,7 +224,7 @@ export default function ProjectPanel({
   }, [workingDir]);
   useEffect(() => {
     if (!workingDir) return undefined;
-    return window.electron.onArtifactsChanged((event) => {
+    return window.electron.onArtifactsChanged?.((event) => {
       if (event.projectDir === workingDir || event.projectDir === projectRoot) {
         setArtifacts({ directory: workingDir, index: event.index });
       }

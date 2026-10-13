@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { IntlTestWrapper } from '../../i18n/test-utils';
 import type { ArtifactEntry, ArtifactIndex } from '../../types/artifactStatus';
@@ -103,6 +103,7 @@ beforeEach(() => {
   };
 });
 afterEach(() => {
+  cleanup();
   window.electron = originalElectron;
 });
 

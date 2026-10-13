@@ -16,6 +16,7 @@ allowed-tools: Bash(*), Read
   不要修改用户的 `git config`（用户名、邮箱、凭据、代理一律不碰）。
 - 不把可选项缺失判定为核心环境不可用。
 - 不静默安装，不静默创建虚拟环境，不修改系统 Python。
+- 与 `modeling__check_env` 的分工：`modeling__check_env` 仅做编译器与解释器可执行文件的快速探测；完整环境就绪结论（含 Python 科学计算包与中文字体）以本技能 `scripts/check_environment.py` 的结构化报告为准。
 
 ## 检查分级
 

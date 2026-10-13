@@ -1731,9 +1731,15 @@ impl ExtensionManager {
     }
 
     pub async fn update_working_dir(&self, new_dir: &std::path::Path) {
-        let extensions = self.extensions.lock().await;
-        for (name, ext) in extensions.iter() {
-            if let Err(e) = ext.client.update_working_dir(new_dir.to_path_buf()).await {
+        let clients: Vec<(String, McpClientBox)> = self
+            .extensions
+            .lock()
+            .await
+            .iter()
+            .map(|(name, ext)| (name.clone(), ext.get_client()))
+            .collect();
+        for (name, client) in clients {
+            if let Err(e) = client.update_working_dir(new_dir.to_path_buf()).await {
                 tracing::warn!(extension = %name, error = %e, "failed to update roots");
             }
         }
@@ -1846,9 +1852,10 @@ impl ExtensionManager {
         }
 
         let version_before = self.tools_cache_version.load(Ordering::SeqCst);
-        let tools = Arc::new(self.fetch_all_tools(session_id).await?);
+        let (tools, all_succeeded) = self.fetch_all_tools(session_id).await?;
+        let tools = Arc::new(tools);
 
-        {
+        if all_succeeded {
             let mut cache = self.tools_cache.lock().await;
             let version_after = self.tools_cache_version.load(Ordering::SeqCst);
             if version_after == version_before && cache.is_none() {
@@ -1907,7 +1914,7 @@ impl ExtensionManager {
         *self.tools_cache.lock().await = None;
     }
 
-    async fn fetch_all_tools(&self, session_id: &str) -> ExtensionResult<Vec<Tool>> {
+    async fn fetch_all_tools(&self, session_id: &str) -> ExtensionResult<(Vec<Tool>, bool)> {
         let clients: Vec<_> = self
             .extensions
             .lock()
@@ -1922,6 +1929,7 @@ impl ExtensionManager {
             let ext_name = name.clone();
             async move {
                 let mut tools = Vec::new();
+                let mut succeeded = true;
                 let mut client_tools = match client
                     .list_tools(session_id, None, cancel_token.clone())
                     .await
@@ -1929,7 +1937,7 @@ impl ExtensionManager {
                     Ok(t) => t,
                     Err(e) => {
                         warn!(extension = %ext_name, error = %e, "Failed to list tools");
-                        return (name, vec![]);
+                        return (name, vec![], false);
                     }
                 };
 
@@ -1979,12 +1987,13 @@ impl ExtensionManager {
                         Ok(t) => t,
                         Err(e) => {
                             warn!(extension = %ext_name, error = %e, "Failed to list tools (pagination)");
+                            succeeded = false;
                             break;
                         }
                     };
                 }
 
-                (name, tools)
+                (name, tools, succeeded)
             }
         });
 
@@ -1992,7 +2001,11 @@ impl ExtensionManager {
 
         let mut seen_names: std::collections::HashSet<String> = std::collections::HashSet::new();
         let mut tools = Vec::new();
-        for (ext_name, client_tools) in results {
+        let mut all_succeeded = true;
+        for (ext_name, client_tools, succeeded) in results {
+            if !succeeded {
+                all_succeeded = false;
+            }
             for tool in client_tools {
                 let tool_name = tool.name.to_string();
                 if seen_names.contains(&tool_name) {
@@ -2008,7 +2021,7 @@ impl ExtensionManager {
             }
         }
 
-        Ok(tools)
+        Ok((tools, all_succeeded))
     }
 
     // Function that gets executed for read_resource tool
@@ -4434,5 +4447,82 @@ mod tests {
             header_found,
             "custom header x-api-key was not forwarded through the OAuth connection path"
         );
+    }
+
+    #[tokio::test]
+    async fn test_transient_list_tools_failure_is_not_cached() {
+        use std::sync::atomic::AtomicBool;
+
+        struct FlakyClient {
+            should_fail: Arc<AtomicBool>,
+        }
+
+        #[async_trait::async_trait]
+        impl McpClientTrait for FlakyClient {
+            fn get_info(&self) -> Option<&InitializeResult> {
+                None
+            }
+
+            async fn list_tools(
+                &self,
+                session_id: &str,
+                next_cursor: Option<String>,
+                cancellation_token: CancellationToken,
+            ) -> Result<ListToolsResult, Error> {
+                if self.should_fail.load(Ordering::SeqCst) {
+                    return Err(Error::TransportClosed);
+                }
+                MockClient {}
+                    .list_tools(session_id, next_cursor, cancellation_token)
+                    .await
+            }
+
+            async fn call_tool(
+                &self,
+                _ctx: &ToolCallContext,
+                _name: &str,
+                _arguments: Option<JsonObject>,
+                _cancellation_token: CancellationToken,
+            ) -> Result<CallToolResult, Error> {
+                Ok(CallToolResult::success(vec![]))
+            }
+        }
+
+        let temp_dir = tempfile::tempdir().unwrap();
+        let extension_manager =
+            ExtensionManager::new_without_provider(temp_dir.path().to_path_buf());
+        let should_fail = Arc::new(AtomicBool::new(true));
+
+        extension_manager
+            .add_mock_extension("healthy".to_string(), Arc::new(MockClient {}))
+            .await;
+        extension_manager
+            .add_mock_extension(
+                "flaky".to_string(),
+                Arc::new(FlakyClient {
+                    should_fail: Arc::clone(&should_fail),
+                }),
+            )
+            .await;
+
+        let first_tools = extension_manager
+            .get_prefixed_tools("session-1", None)
+            .await
+            .unwrap();
+        assert!(first_tools.iter().any(|t| t.name == "healthy__tool"));
+        assert!(!first_tools.iter().any(|t| t.name == "flaky__tool"));
+        assert!(
+            extension_manager.tools_cache.lock().await.is_none(),
+            "incomplete tool list from transient error must not be cached"
+        );
+
+        should_fail.store(false, Ordering::SeqCst);
+        let recovered_tools = extension_manager
+            .get_prefixed_tools("session-1", None)
+            .await
+            .unwrap();
+        assert!(recovered_tools.iter().any(|t| t.name == "healthy__tool"));
+        assert!(recovered_tools.iter().any(|t| t.name == "flaky__tool"));
+        assert!(extension_manager.tools_cache.lock().await.is_some());
     }
 }

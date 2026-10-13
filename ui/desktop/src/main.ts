@@ -2808,6 +2808,17 @@ ipcMain.handle('import-skill-folder', async (event) => {
   }
 
   const name = path.basename(source);
+  if (!skillEnablement.isSafeFolderName(name)) {
+    return { canceled: false as const, error: `无效的技能文件夹名称：${name}` };
+  }
+  try {
+    skillEnablement.checkSkillFolderBounds(source);
+  } catch (error) {
+    return {
+      canceled: false as const,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
   const destination = path.join(os.homedir(), '.agents', 'skills', name);
   if (fsSync.existsSync(destination)) {
     return { canceled: false as const, error: `同名技能已存在：${destination}` };

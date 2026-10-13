@@ -11,6 +11,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
+  checkSkillFolderBounds,
   disabledSkillsRoot,
   isSkillDirectory,
   readDisabledIndex,
@@ -164,5 +165,29 @@ describe('skill enablement', () => {
     expect(restored.location).toBe(skillDir);
     expect(fs.existsSync(path.join(skillDir, 'SKILL.md'))).toBe(true);
     expect(fs.existsSync(disabled.location)).toBe(false);
+  });
+
+  it('rejects malformed setSkillEnabled requests', () => {
+    expect(() =>
+      setSkillEnabled(appDataDir, { name: '   ', path: skillDir, enabled: false })
+    ).toThrow(/请求参数无效/);
+    expect(() =>
+      setSkillEnabled(
+        appDataDir,
+        null as unknown as { name: string; path: string; enabled: boolean }
+      )
+    ).toThrow(/请求参数无效/);
+  });
+
+  it('enforces file count and total byte bounds on skill folders', () => {
+    const stats = checkSkillFolderBounds(skillDir);
+    expect(stats.files).toBe(1);
+    expect(stats.bytes).toBeGreaterThan(0);
+
+    fs.writeFileSync(path.join(skillDir, 'extra-1.txt'), 'hello', 'utf8');
+    fs.writeFileSync(path.join(skillDir, 'extra-2.txt'), 'world', 'utf8');
+
+    expect(() => checkSkillFolderBounds(skillDir, { maxFiles: 2 })).toThrow(/文件数超出上限/);
+    expect(() => checkSkillFolderBounds(skillDir, { maxBytes: 10 })).toThrow(/总大小超出上限/);
   });
 });

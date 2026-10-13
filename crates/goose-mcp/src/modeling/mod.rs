@@ -701,8 +701,15 @@ fn extract_errors(log: &str) -> Vec<String> {
             continue;
         }
         let lower = trimmed.to_ascii_lowercase();
+        let is_line_marker = trimmed
+            .strip_prefix("l.")
+            .is_some_and(|rest| rest.chars().next().is_some_and(|c| c.is_ascii_digit()));
+        let is_error_prefix = lower == "error"
+            || lower.starts_with("error:")
+            || lower.starts_with("error ")
+            || lower.starts_with("error[");
         // LaTeX error marker "!", source-line marker "l.<n>", or generic error lines
-        if trimmed.starts_with('!') || trimmed.starts_with("l.") || lower.starts_with("error") {
+        if trimmed.starts_with('!') || is_line_marker || is_error_prefix {
             errors.push(trimmed.to_string());
         }
         if errors.len() >= 40 {
@@ -1285,11 +1292,40 @@ First version.
 
     #[test]
     fn test_extract_errors() {
-        let log =
-            "This is fine\n! Undefined control sequence.\nl.42 \\badcmd\n\nAnother error line";
+        let log = "This is fine\n\
+                   error-free build completed\n\
+                   errors: 0\n\
+                   l.something not a line number\n\
+                   ! Undefined control sequence.\n\
+                   l.42 \\badcmd\n\
+                   Error: fatal TeX failure\n\
+                   Another error line";
         let errors = extract_errors(log);
-        assert!(errors.iter().any(|e| e.starts_with('!')));
-        assert!(errors.iter().any(|e| e.starts_with("l.42")));
+        assert_eq!(
+            errors,
+            vec![
+                "! Undefined control sequence.",
+                "l.42 \\badcmd",
+                "Error: fatal TeX failure",
+            ]
+        );
+    }
+
+    #[test]
+    fn uppercase_tex_extension_writes_lowercase_pdf_path() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("PAPER.TEX");
+        std::fs::write(&path, "document").unwrap();
+        let command = CompileCommand::new(
+            &CompileLatexParams {
+                path: path.to_string_lossy().into_owned(),
+                engine: Some("xelatex".into()),
+                output_dir: None,
+            },
+            None,
+        )
+        .unwrap();
+        assert_eq!(command.pdf_path, dir.path().join("PAPER.pdf"));
     }
 
     #[test]

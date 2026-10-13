@@ -95,6 +95,11 @@ fn normalize_tool_call_thinking(accumulator: &mut Conversation, chunk: &mut Mess
         return;
     }
 
+    // Streaming providers (e.g. OpenAI reasoning_content) may emit incremental
+    // thinking chunks first and then attach the complete reasoning again onto the
+    // final tool-call chunk (`has_direct_thinking == true`). Stripping prior
+    // thinking messages while keeping only `direct_thinking` avoids duplicating
+    // the reasoning block in the conversation history.
     let has_direct_thinking = chunk.content.iter().any(is_thinking);
     let mut prior_thinking = Vec::new();
     for message in accumulator.messages_mut() {
@@ -627,5 +632,68 @@ mod tests {
         );
 
         assert!(cancellation_response(&[request, response], &[]).is_none());
+    }
+
+    #[test]
+    fn normalize_tool_call_thinking_moves_prior_thinking_into_tool_request_chunk() {
+        let mut accumulator = Conversation::new_unvalidated([Message::assistant()
+            .with_thinking("step-1", "sig-1")
+            .with_text("calling tool")]);
+        let mut chunk = Message::assistant().with_tool_request(
+            "call-1",
+            Ok(rmcp::model::CallToolRequestParams::new("tool")),
+        );
+
+        normalize_tool_call_thinking(&mut accumulator, &mut chunk);
+
+        assert_eq!(accumulator.messages().len(), 1);
+        assert_eq!(accumulator.messages()[0].as_concat_text(), "calling tool");
+        assert!(!accumulator.messages()[0].content.iter().any(is_thinking));
+
+        let thinking: Vec<_> = chunk
+            .content
+            .iter()
+            .filter_map(|content| match content {
+                MessageContent::Thinking(t) => Some(t.thinking.as_str()),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(thinking, vec!["step-1"]);
+    }
+
+    #[test]
+    fn normalize_tool_call_thinking_deduplicates_when_chunk_carries_direct_thinking() {
+        let mut accumulator = Conversation::new_unvalidated([
+            Message::assistant().with_thinking("streamed reasoning", ""),
+            Message::assistant()
+                .with_text("intro")
+                .with_thinking("streamed reasoning", ""),
+        ]);
+        let mut chunk = Message::assistant()
+            .with_thinking("streamed reasoning", "")
+            .with_tool_request(
+                "call-1",
+                Ok(rmcp::model::CallToolRequestParams::new("tool")),
+            );
+
+        normalize_tool_call_thinking(&mut accumulator, &mut chunk);
+
+        assert_eq!(accumulator.messages().len(), 1);
+        assert_eq!(accumulator.messages()[0].as_concat_text(), "intro");
+        assert!(!accumulator.messages()[0].content.iter().any(is_thinking));
+
+        let thinking: Vec<_> = chunk
+            .content
+            .iter()
+            .filter_map(|content| match content {
+                MessageContent::Thinking(t) => Some(t.thinking.as_str()),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(thinking, vec!["streamed reasoning"]);
+        assert!(matches!(
+            chunk.content.last(),
+            Some(MessageContent::ToolRequest(_))
+        ));
     }
 }

@@ -1010,7 +1010,6 @@ where
     try_stream! {
         use futures::StreamExt;
 
-        let mut accumulated_text = String::new();
         let mut response_id: Option<String> = None;
         let mut model_name: Option<String> = None;
         let mut final_usage: Option<ProviderUsage> = None;
@@ -1065,8 +1064,6 @@ where
                     is_text_response = true;
                     let delta = strip_unicode_tags(&delta);
                     if !delta.is_empty() {
-                        accumulated_text.push_str(&delta);
-
                         // Yield incremental text updates for true streaming
                         let mut msg = Message::new(
                             Role::Assistant,
@@ -1159,8 +1156,6 @@ where
                     is_text_response = true;
                     let delta = strip_unicode_tags(&delta);
                     if !delta.is_empty() {
-                        accumulated_text.push_str(&delta);
-
                         let mut msg = Message::new(
                             Role::Assistant,
                             chrono::Utc::now().timestamp(),

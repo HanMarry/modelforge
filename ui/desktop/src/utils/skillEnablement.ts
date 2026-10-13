@@ -22,6 +22,8 @@ import { writeFileAtomicSync } from './atomicWrite';
 
 export const SKILL_FILE = 'SKILL.md';
 export const DISABLED_DIR = 'skills-disabled';
+export const MAX_SKILL_FOLDER_FILES = 500;
+export const MAX_SKILL_FOLDER_BYTES = 50 * 1024 * 1024;
 const INDEX_FILE = 'index.json';
 
 export interface DisabledSkillRecord {
@@ -54,6 +56,50 @@ export function isSkillDirectory(dir: string): boolean {
   } catch {
     return false;
   }
+}
+
+export interface SkillFolderBounds {
+  maxFiles?: number;
+  maxBytes?: number;
+}
+
+export function checkSkillFolderBounds(
+  dir: string,
+  limits: SkillFolderBounds = {}
+): { files: number; bytes: number } {
+  const maxFiles = limits.maxFiles ?? MAX_SKILL_FOLDER_FILES;
+  const maxBytes = limits.maxBytes ?? MAX_SKILL_FOLDER_BYTES;
+  let files = 0;
+  let bytes = 0;
+  const stack: string[] = [dir];
+
+  while (stack.length > 0) {
+    const current = stack.pop();
+    if (!current) continue;
+    const entries = fs.readdirSync(current, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isSymbolicLink()) {
+        throw new Error('技能目录不能包含符号链接');
+      }
+      const fullPath = path.join(current, entry.name);
+      if (entry.isDirectory()) {
+        stack.push(fullPath);
+      } else if (entry.isFile()) {
+        files += 1;
+        if (files > maxFiles) {
+          throw new Error(`技能目录文件数超出上限（最多 ${maxFiles} 个文件）`);
+        }
+        const stat = fs.statSync(fullPath);
+        bytes += stat.size;
+        if (bytes > maxBytes) {
+          const limitMb = Math.max(1, Math.round(maxBytes / (1024 * 1024)));
+          throw new Error(`技能目录总大小超出上限（最大 ${limitMb} MB）`);
+        }
+      }
+    }
+  }
+
+  return { files, bytes };
 }
 
 export function readDisabledIndex(appDataDir: string): DisabledSkillRecord[] {
@@ -147,6 +193,17 @@ export function setSkillEnabled(
   request: { name: string; path: string; enabled: boolean },
   moveOps?: MoveDirectoryOps
 ): SetSkillEnabledResult {
+  if (
+    !request ||
+    typeof request !== 'object' ||
+    typeof request.name !== 'string' ||
+    request.name.trim().length === 0 ||
+    typeof request.path !== 'string' ||
+    typeof request.enabled !== 'boolean'
+  ) {
+    throw new Error('技能开关请求参数无效');
+  }
+
   const root = disabledSkillsRoot(appDataDir);
   fs.mkdirSync(root, { recursive: true });
   const records = readDisabledIndex(appDataDir);
@@ -175,6 +232,9 @@ export function setSkillEnabled(
     return { records: next, location: path.join(root, folder) };
   }
 
+  if (!isSafeFolderName(name)) {
+    throw new Error(`停用记录里没有「${name}」`);
+  }
   const record = records.find((entry) => entry.name === name);
   if (!record) {
     throw new Error(`停用记录里没有「${name}」`);
